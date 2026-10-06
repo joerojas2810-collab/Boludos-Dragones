@@ -8,6 +8,7 @@ import {
   combinePieces,
   CRAFT_PARTS,
   dismantle,
+  forgeReceipt,
   refine,
 } from "./forge";
 import { coreKey, partKey } from "./parts";
@@ -303,5 +304,30 @@ describe("shortcuts (bulk)", () => {
       rank: "d",
     });
     expect(f.ok && f.profile.weapons[0].stars).toBe(1); // 7 parts = 2 crafts
+  });
+});
+
+describe("forge receipt", () => {
+  it("says what was spent and whether a piece is new or a star", () => {
+    const before = createProfile();
+    const piece = {
+      type: "espada" as const,
+      element: "fuego" as const,
+      rarity: "e" as const,
+      name: "Espada de Fuego",
+    };
+    const diff = {
+      coins: 10,
+      spend: { "core-fuego": 1 },
+      gain: {},
+      grant: [piece],
+      remove: [],
+    };
+    const fresh = forgeReceipt(before, diff);
+    expect(fresh.spent).toEqual(["10 monedas", expect.stringContaining("1 ×")]);
+    expect(fresh.got[0]).toContain("(nueva)");
+    const owned = grantPiece(before, piece);
+    const again = forgeReceipt(owned, diff);
+    expect(again.got[0]).toContain("ya la tenías, ahora 1★");
   });
 });

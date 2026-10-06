@@ -12,9 +12,11 @@ import {
   CRAFT_PARTS,
   craftCoins,
   DISMANTLE_PARTS,
+  forgeReceipt,
   REFINE_RATIO,
   refineCoins,
   type ForgeOp,
+  type ForgeReceipt,
 } from "@/lib/game/forge";
 import {
   coreKey,
@@ -93,6 +95,10 @@ export default function ForgePage() {
   const [spend, setSpend] = useState<Parts>({}); // parts to refine
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  // What every forge action produced: the latest stays on screen, plus a short history.
+  const [log, setLog] = useState<
+    { n: number; what: string; r: ForgeReceipt }[]
+  >([]);
   // Keyboard: 1-5 switch tabs (ignored while typing in a field).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -143,8 +149,20 @@ export default function ForgePage() {
     if (busy) return;
     setBusy(true);
     try {
+      const pre = applyForge(profile, op); // same pure code the server runs
       const r = await repo.forge(op);
       setMsg({ ok: true, text: r.text });
+      if (pre.ok)
+        setLog((l) =>
+          [
+            {
+              n: (l[0]?.n ?? 0) + 1,
+              what: r.text,
+              r: forgeReceipt(profile, pre.diff),
+            },
+            ...l,
+          ].slice(0, 6),
+        );
       setPicked([]);
       setSpend({});
     } catch (e) {
@@ -262,13 +280,44 @@ export default function ForgePage() {
   return (
     <main className="mx-auto grid w-full max-w-6xl gap-4 p-3 lg:grid-cols-[1fr_18rem]">
       <div className="min-w-0 space-y-4">
-        {msg && (
-          <p
-            role="status"
-            className={`text-center ${msg.ok ? "text-green-300" : "text-red-300"}`}
-          >
+        {msg && !msg.ok && (
+          <p role="status" className="text-center text-red-300">
             {msg.text}
           </p>
+        )}
+        {log.length > 0 && (
+          <Panel title="Resultado de la forja">
+            {log.map((e, i) => (
+              <div
+                key={e.n}
+                className={
+                  i === 0
+                    ? ""
+                    : "mt-2 border-t border-white/10 pt-2 text-sm opacity-70"
+                }
+              >
+                <div className="text-center text-yellow-300">{e.what}</div>
+                <div className="mt-1 grid gap-x-4 sm:grid-cols-2">
+                  <div>
+                    <b className="text-red-300">Gastaste</b>
+                    <ul className="list-inside list-disc">
+                      {e.r.spent.map((t) => (
+                        <li key={t}>{t}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <b className="text-green-300">Obtuviste</b>
+                    <ul className="list-inside list-disc">
+                      {e.r.got.map((t) => (
+                        <li key={t}>{t}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </Panel>
         )}
         <div className="flex flex-wrap gap-2" role="tablist">
           {TABS.map(([k, label]) => (

@@ -468,6 +468,12 @@ export async function doForge(d: Deps, playerId: string, op: ForgeOp) {
   } catch (e) {
     return mapRpcError(e);
   }
+  // Trace of every forge op (what was spent and gained), to check complaints later.
+  await audit(d.rpc, playerId, "forge", {
+    op: op.op,
+    diff: r.diff,
+    text: r.text,
+  });
   const fresh = await loadMe(d.rpc, playerId);
   return { text: r.text, profile: fresh.profile };
 }

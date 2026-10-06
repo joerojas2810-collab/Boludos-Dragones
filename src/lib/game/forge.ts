@@ -402,6 +402,51 @@ export function craftMax(
   return finishBulk(p, acc, "forjar");
 }
 
+export interface ForgeReceipt {
+  spent: string[]; // what the forge took
+  got: string[]; // what came out (new piece / +1 star / parts)
+}
+
+/** Plain-language account of a diff against the profile it was applied to. */
+export function forgeReceipt(before: Profile, d: ForgeDiff): ForgeReceipt {
+  const spent: string[] = [];
+  if (d.coins > 0) spent.push(`${d.coins} monedas`);
+  for (const [k, n] of Object.entries(d.spend))
+    spent.push(`${n} × ${partLabel(k)}`);
+  for (const id of d.remove) {
+    const w = before.weapons.find((x) => x.id === id);
+    spent.push(
+      w
+        ? `${w.name} ${RARITIES[w.rarity].label}${w.stars ? ` (${w.stars}★)` : ""}`
+        : id,
+    );
+  }
+  const got = Object.entries(d.gain).map(([k, n]) => `${n} × ${partLabel(k)}`);
+  const stars = new Map<string, number>(); // piece id -> stars after the grants
+  const first = new Map<string, RunPiece>();
+  for (const g of d.grant) {
+    const id = weaponKey(g.type, g.element, g.rarity);
+    const prev =
+      stars.get(id) ?? before.weapons.find((w) => w.id === id)?.stars;
+    stars.set(id, prev === undefined ? 0 : prev + 1);
+    if (!first.has(id)) first.set(id, g);
+  }
+  for (const [id, g] of first) {
+    const was = before.weapons.find((w) => w.id === id);
+    const now = stars.get(id) ?? 0;
+    const label = `${g.name} ${RARITIES[g.rarity].label}`;
+    got.push(
+      was
+        ? `${label}: ya la tenías, ahora ${now}★ (+${now - was.stars} estrella)`
+        : now > 0
+          ? `${label} nueva con ${now}★`
+          : `${label} (nueva)`,
+    );
+  }
+  if (got.length === 0) got.push("nada");
+  return { spent, got };
+}
+
 export type ForgeOp =
   | ({ op: "craft" } & Parameters<typeof craft>[1])
   | ({ op: "combineParts" } & Parameters<typeof combineParts>[1])
