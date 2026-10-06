@@ -1,0 +1,299 @@
+/* App chrome: fixed top bar + bottom tab bar around the meta screens. */
+.shell-top {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 3rem;
+  padding: 0 0.75rem;
+  background: linear-gradient(#4a3b30, #2f2620);
+  border-bottom: 4px solid var(--edge);
+  box-shadow: 0 2px 0 var(--trim);
+}
+.shell-brand {
+  font-family: var(--font-title), serif;
+  font-size: 1.25rem;
+  color: #fbbf24;
+  text-shadow: 2px 2px 0 var(--edge);
+}
+.shell-coins {
+  color: #fde047;
+  font-weight: 600;
+}
+.shell-icon {
+  min-height: 2rem;
+  padding: 0 0.5rem;
+  border: 2px solid var(--edge);
+  background: var(--panel);
+  color: var(--text);
+}
+.shell-icon:hover {
+  filter: brightness(1.2);
+}
+.shell-body {
+  padding-top: 3rem;
+  padding-bottom: 4.75rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  animation: shell-in 200ms ease-out both;
+}
+@keyframes shell-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.shell-nav {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
+  background: linear-gradient(#2f2620, #1d1714);
+  border-top: 4px solid var(--edge);
+  box-shadow: 0 -2px 0 var(--trim);
+}
+.shell-tab {
+  position: relative;
+  flex: 1 1 0;
+  max-width: 9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.3rem 0.25rem;
+  font-size: 0.8rem;
+  color: #b8aea4;
+  border: 2px solid transparent;
+  transition: color 120ms, background 120ms;
+}
+.shell-tab:hover:not([data-disabled]) {
+  color: #fff;
+  background: #3f3733;
+}
+.shell-tab[data-active="true"] {
+  color: #fde047;
+  background: #3f3733;
+  border-color: var(--trim);
+}
+.shell-tab[data-disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.shell-tab small {
+  position: absolute;
+  top: 0;
+  right: 0.2rem;
+  font-size: 0.6rem;
+  color: #fbbf24;
+}
+.shell-badge {
+  position: absolute;
+  top: 0.2rem;
+  right: 28%;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 9999px;
+  background: #ef4444;
+  border: 2px solid var(--edge);
+  animation: shell-pulse 1.4s ease-in-out infinite;
+}
+@keyframes shell-pulse {
+  50% {
+    transform: scale(1.3);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shell-body,
+  .shell-badge {
+    animation: none;
+  }
+}
+
+/* Hub (home): stacked on narrow screens, hero left / info right on wide ones */
+.hub {
+  flex: 1;
+  display: grid;
+  grid-template-areas: "title" "stage" "stats" "actions";
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-content: center;
+  gap: 0.6rem;
+  padding: 0.5rem 1rem;
+}
+.hub-title {
+  grid-area: title;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+@media (min-width: 900px) {
+  .hub {
+    grid-template-areas: "stage title" "stage stats" "stage actions";
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    column-gap: 2rem;
+    max-width: 70rem;
+    margin: 0 auto;
+    width: 100%;
+  }
+}
+.hub-stage {
+  grid-area: stage;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, 26rem);
+}
+.hub-glow {
+  position: absolute;
+  inset: 0 0 3rem 0;
+  animation: hub-pulse 3s ease-in-out infinite;
+}
+.hub-hero {
+  position: relative;
+  width: min(60vw, 34vh, 17rem);
+  animation: hub-bob 2.4s steps(6) infinite;
+  filter: drop-shadow(0 4px 0 rgb(0 0 0 / 0.35));
+}
+.hub-shadow {
+  width: 9rem;
+  height: 0.9rem;
+  margin-top: -0.6rem;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.35);
+}
+.hub-name {
+  margin-top: 0.75rem;
+  padding: 0.4rem 0.9rem;
+  text-align: center;
+}
+.hub-stats {
+  grid-area: stats;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  max-width: 44rem;
+}
+.hub-stat {
+  padding: 0.4rem 0.8rem;
+  text-align: center;
+}
+.hub-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  width: min(100%, 30rem);
+}
+.hub-actions .btn {
+  text-align: center;
+}
+.hub-cta {
+  flex: 1 1 100%;
+  font-size: 1.25rem;
+  min-height: 3.5rem;
+  text-align: center;
+  animation: hub-cta 2.2s ease-in-out infinite;
+}
+@keyframes hub-bob {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes hub-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+@keyframes hub-cta {
+  50% {
+    filter: brightness(1.15);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hub-hero,
+  .hub-glow,
+  .hub-cta {
+    animation: none;
+  }
+}
+
+/* Hero equipment "paper doll" (collection detail) */
+.doll {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: radial-gradient(closest-side, rgb(255 255 255 / 0.08), transparent);
+}
+.doll > .doll-col:first-child {
+  grid-column: 1;
+}
+.doll-hero {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  width: min(100%, 9rem);
+}
+.doll > .doll-col:nth-child(2) {
+  grid-column: 3;
+  grid-row: 1;
+}
+.doll-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.doll-slot {
+  display: grid;
+  place-items: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  border: 3px solid var(--edge);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+.doll-slot[aria-pressed="true"] {
+  outline: 3px solid #fde047;
+  outline-offset: 1px;
+}
+.doll-slot:hover {
+  filter: brightness(1.2);
+}
+.doll-empty {
+  opacity: 0.7;
+}
+
+/* Gacha pity bars */
+.pity-bar {
+  display: block;
+  flex: 1;
+  max-width: 14rem;
+  height: 0.7rem;
+  border: 2px solid var(--edge);
+  background: #1d1714;
+}
+.pity-bar > i {
+  display: block;
+  height: 100%;
+  transition: width 300ms steps(6);
+}
+
+/* Forge parts (placeholder tiles) */
+.parts-tile {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.9rem;
+  border: 3px solid var(--edge);
+  background: var(--panel);
+}

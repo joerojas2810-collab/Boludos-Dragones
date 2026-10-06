@@ -1,4 +1,4 @@
-// Weapon sprites (32x32): 6 weapon types x 5 elements, all vertical.
+// Weapon sprites (32x32): 9 weapon types x 5 elements, all vertical.
 // Swords: one blade profile per element.
 // Built from per-element blade profiles so length, width and shape differ.
 // o outline, a/b/c element main/dark/light, m/n metal, h grip, p pommel gem
@@ -157,13 +157,7 @@ function buildAxe(element: Element): string[] {
           g,
           x,
           y,
-          d === e
-            ? "c"
-            : d === e - 2 && k % 3 === 0
-              ? "w"
-              : d <= 2
-                ? "b"
-                : "a",
+          d === e ? "c" : d === e - 2 && k % 3 === 0 ? "w" : d <= 2 ? "b" : "a",
         );
       }
     }
@@ -354,6 +348,198 @@ function buildDagger(element: Element): string[] {
   return outline(g);
 }
 
+// Mace: spiked flanged head; element changes the flange count and spikes.
+const MACE: Record<Element, readonly number[]> = {
+  fuego: [2, 6, 8, 8, 6, 8, 6, 2],
+  agua: [4, 6, 8, 8, 8, 8, 6, 4],
+  tierra: [6, 10, 10, 10, 10, 10, 10, 6],
+  rayo: [2, 8, 4, 8, 4, 8, 4, 2],
+  viento: [2, 4, 6, 8, 8, 6, 4, 2],
+};
+function buildMace(element: Element): string[] {
+  const g = blank();
+  MACE[element].forEach((w, k) => {
+    const y = 3 + k * 2;
+    for (const yy of [y, y + 1])
+      for (let x = 16 - w / 2; x < 16 + w / 2; x++)
+        put(
+          g,
+          x,
+          yy,
+          x < 16 - w / 2 + 2 ? "c" : x >= 16 + w / 2 - 2 ? "b" : "a",
+        );
+  });
+  if (element === "fuego" || element === "rayo")
+    for (const x of [9, 22]) stamp(g, x, 10, ["n", "nn", "n"]);
+  stamp(g, 12, 19, ["nmmmmmmm", ".nnnnnn"]);
+  shaft(g, 21, 29);
+  gripDetails(g, [23, 26]);
+  gem(g, 29);
+  return outline(g);
+}
+
+// Wand: thin shaft, star tip; element picks the tip shape.
+const WAND_TIP: Record<Element, readonly string[]> = {
+  fuego: ["..cc..", ".caac.", "caaaab", ".abba.", "..bb.."],
+  agua: ["..cc..", ".caab.", ".caab.", ".caab.", "..bb.."],
+  tierra: ["cccccc", "caaaab", "caaaab", "caaaab", "bbbbbb"],
+  rayo: ["c...cc", ".c.cc.", "..cc..", ".cc.c.", "cc...b"],
+  viento: ["cc....", ".ccc..", "..aaab", "...abb", "....bb"],
+};
+function buildWand(element: Element): string[] {
+  const g = blank();
+  stamp(g, 13, 6, WAND_TIP[element]);
+  if (element !== "tierra") put(g, 15, 8, "w");
+  for (let y = 11; y < 29; y++) put(g, 15 + (y % 2), y, y < 21 ? "h" : "h");
+  for (const y of [12, 20]) {
+    put(g, 14, y, "y");
+    put(g, 17, y, "y");
+  }
+  stamp(g, 13, 21, ["nmmn", ".nn."]);
+  gem(g, 29);
+  return outline(g);
+}
+
+// Tome: closed book with an element-coloured cover, metal corners and clasp.
+function buildTome(element: Element): string[] {
+  const g = blank();
+  for (let y = 5; y < 27; y++)
+    for (let x = 8; x < 24; x++)
+      put(g, x, y, x < 10 ? "b" : y < 7 ? "c" : y > 24 ? "b" : "a");
+  for (let y = 7; y < 25; y++) put(g, 23, y, "w"); // page edge
+  for (const [x, y] of [
+    [8, 5],
+    [21, 5],
+    [8, 24],
+    [21, 24],
+  ])
+    stamp(g, x, y, ["nn", "nm"]);
+  stamp(
+    g,
+    13,
+    11,
+    element === "tierra"
+      ? ["cccc", "caab", "cbbb"]
+      : ["..c.", ".cac", "cabb", ".bb."],
+  );
+  put(g, 15, 18, "p");
+  put(g, 14, 19, "p");
+  put(g, 16, 19, "p");
+  put(g, 15, 19, "w");
+  put(g, 15, 20, "p");
+  stamp(g, 10, 22, ["yyyy"]);
+  if (element === "fuego") stamp(g, 13, 8, ["c", "ca"]);
+  if (element === "rayo") stamp(g, 18, 9, ["c", "cc", ".c"]);
+  if (element === "viento") stamp(g, 17, 22, ["cccc"]);
+  return outline(g);
+}
+
+// ---- gear (one sprite per slot; the element shows in trim and an ornament) ----
+const ORNAMENT: Record<Element, readonly string[]> = {
+  fuego: ["..c..", "c.a.c", ".aba."],
+  agua: [".ccc.", "caaab", ".bbb."],
+  tierra: ["c.c.c", "aaaaa", "bbbbb"],
+  rayo: ["..cc.", ".cc..", "cc..."],
+  viento: ["cc...", ".ccc.", "...cc"],
+};
+const ornament = (g: Grid, e: Element, x: number, y: number) =>
+  stamp(g, x, y, ORNAMENT[e]);
+const shade = (x: number, y: number, cx: number, cy: number) =>
+  x + y < cx + cy - 3 ? "m" : x + y > cx + cy + 3 ? "n" : "m";
+
+function buildHelm(e: Element): string[] {
+  const g = blank();
+  for (let y = 6; y <= 24; y++)
+    for (let x = 5; x <= 26; x++) {
+      const dx = (x - 15.5) / 10.5;
+      const dy = (y - 15) / 9;
+      if (
+        y <= 20
+          ? dx * dx + dy * dy <= 1
+          : Math.abs(dx) <= 0.62 - (y - 20) * 0.05
+      )
+        put(g, x, y, shade(x, y, 15, 15));
+    }
+  for (let x = 6; x <= 25; x++) put(g, x, 14, "a");
+  for (let y = 16; y <= 18; y++)
+    for (let x = 10; x <= 21; x++) put(g, x, y, "b");
+  for (let y = 20; y <= 24; y++) put(g, 15 + (y % 2), y, "n");
+  stamp(g, 14, 9, ["p", "pp"]);
+  ornament(g, e, 13, 2);
+  return outline(g);
+}
+
+function buildChest(e: Element): string[] {
+  const g = blank();
+  for (let y = 5; y <= 27; y++) {
+    const half = y < 11 ? 11 : Math.max(6, 11 - Math.floor((y - 11) / 3));
+    for (let x = 16 - half; x < 16 + half; x++)
+      put(g, x, y, shade(x, y, 15, 16));
+  }
+  stamp(g, 4, 5, ["mmmm", "mmmmm", "nmmm"]);
+  stamp(g, 24, 5, ["mmmm", "mmmmm", "nmmm"]);
+  for (let y = 9; y <= 24; y++)
+    for (let x = 12; x <= 19; x++)
+      put(g, x, y, x < 14 ? "c" : x > 17 ? "b" : "a");
+  for (let x = 8; x <= 23; x++) put(g, x, 26, "y");
+  stamp(g, 14, 13, ["p", "pp", "p"]);
+  ornament(g, e, 13, 20);
+  return outline(g);
+}
+
+function buildGreaves(e: Element): string[] {
+  const g = blank();
+  for (const x0 of [7, 17]) {
+    for (let y = 4; y <= 28; y++)
+      for (let x = x0; x < x0 + 8; x++)
+        put(g, x, y, y > 24 ? "n" : x < x0 + 2 ? "m" : x > x0 + 5 ? "n" : "m");
+    for (let x = x0; x < x0 + 8; x++) put(g, x, 12, "a");
+    stamp(g, x0 + 2, 13, ["cc", "ab", "bb"]);
+  }
+  for (let x = 7; x < 25; x++) put(g, x, 4, "y");
+  stamp(g, 15, 4, ["pp"]);
+  ornament(g, e, 4, 18);
+  return outline(g);
+}
+
+function buildBoot(e: Element): string[] {
+  const g = blank();
+  for (let y = 5; y <= 19; y++)
+    for (let x = 9; x <= 18; x++)
+      put(g, x, y, x < 11 ? "h" : x > 16 ? "n" : "h");
+  for (let y = 19; y <= 25; y++)
+    for (let x = 9; x <= 28 - (y - 19); x++) put(g, x, y, y === 25 ? "n" : "h");
+  for (let x = 8; x <= 22; x++) put(g, x, 26, "n");
+  for (let x = 9; x <= 18; x++) put(g, x, 7, "a");
+  stamp(g, 11, 8, ["cc", "ab"]);
+  stamp(g, 13, 20, ["pp", "p"]);
+  stamp(g, 9, 5, ["yyyyyyyyyy"]);
+  ornament(g, e, 20, 12);
+  return outline(g);
+}
+
+function buildAmulet(e: Element): string[] {
+  const g = blank();
+  for (let x = 5; x <= 26; x++) {
+    const t = (x - 15.5) / 10.5;
+    const y = 4 + Math.round(13 * t * t);
+    put(g, x, y, x % 3 === 0 ? "m" : "n");
+    put(g, x, y + 1, "m");
+  }
+  stamp(g, 12, 19, [
+    "..aaaa..",
+    ".caaaab.",
+    "caapaabb",
+    "caappabb",
+    ".cabbbb.",
+    "..bbbb..",
+  ]);
+  put(g, 14, 18, "y");
+  put(g, 17, 18, "y");
+  ornament(g, e, 13, 26);
+  return outline(g);
+}
+
 export const WEAPON_TYPES = [
   "espada",
   "hacha",
@@ -361,6 +547,14 @@ export const WEAPON_TYPES = [
   "arco",
   "baston",
   "daga",
+  "maza",
+  "varita",
+  "libro",
+  "casco",
+  "peto",
+  "piernas",
+  "zapatos",
+  "collar",
 ] as const satisfies readonly WeaponType[];
 
 const BUILDERS: Record<WeaponType, (e: Element) => string[]> = {
@@ -370,6 +564,14 @@ const BUILDERS: Record<WeaponType, (e: Element) => string[]> = {
   arco: buildBow,
   baston: buildStaff,
   daga: buildDagger,
+  maza: buildMace,
+  varita: buildWand,
+  libro: buildTome,
+  casco: buildHelm,
+  peto: buildChest,
+  piernas: buildGreaves,
+  zapatos: buildBoot,
+  collar: buildAmulet,
 };
 const ELEMENTS = Object.keys(WEAPON_PROFILES) as Element[];
 

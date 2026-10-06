@@ -166,10 +166,10 @@ textarea:focus-visible {
   height: 5px;
   background: var(--bg);
 }
-.rarity-frame[data-rarity="legendario"] {
+.rarity-frame:is([data-rarity="s"], [data-rarity="ss"], [data-rarity="ssr"]) {
   animation: gold-glow 1.6s steps(4) infinite;
 }
-.rarity-frame[data-rarity="legendario"]::after {
+.rarity-frame:is([data-rarity="s"], [data-rarity="ss"], [data-rarity="ssr"])::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -304,8 +304,8 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .fx-bigshake-a,
   .fx-bigshake-b,
-  .rarity-frame[data-rarity="legendario"],
-  .rarity-frame[data-rarity="legendario"]::after,
+  .rarity-frame:is([data-rarity="s"], [data-rarity="ss"], [data-rarity="ssr"]),
+  .rarity-frame:is([data-rarity="s"], [data-rarity="ss"], [data-rarity="ssr"])::after,
   .fx-shake,
   .fx-flash,
   .fx-flip,

@@ -5,7 +5,6 @@ import { Panel } from "@/components/Panel";
 import { DailyStreak } from "@/components/DailyStreak";
 import { PullReveal } from "@/components/PullReveal";
 import { Sprite } from "@/components/Sprite";
-import { TopBar } from "@/components/TopBar";
 import { Tooltip } from "@/components/Tooltip";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import type { ItemView } from "@/components/ItemCard";
@@ -17,7 +16,12 @@ import {
   type Banner,
   type PullResult,
 } from "@/lib/game/profile";
-import { PITY_THRESHOLD, RARITIES, RARITY_IDS } from "@/lib/game/rarity";
+import {
+  PITY_SSR_THRESHOLD,
+  PITY_THRESHOLD,
+  RARITIES,
+  RARITY_IDS,
+} from "@/lib/game/rarity";
 import { claimedToday, dayKey } from "@/lib/game/streak";
 import { WEAPON_TYPES } from "@/lib/game/weapons";
 import { repo, useProfile } from "@/lib/useProfile";
@@ -30,9 +34,9 @@ const BANNERS: Record<Banner, { tab: string; title: string; text: string }> = {
     text: "Cada tirada invoca un héroe con clase, elemento y rasgos propios. Un duplicado exacto (clase + elemento + rareza) suma una estrella; si solo repites clase y rareza, ganas un fragmento (3 = una estrella).",
   },
   weapon: {
-    tab: "Armas",
-    title: "Banner de armas",
-    text: "Cada tirada forja un arma: tipo, elemento y rareza. Suma ATQ al héroe que la lleve y su elemento pasa a ser el de sus ataques. Los duplicados suben estrellas.",
+    tab: "Equipo",
+    title: "Banner de equipo",
+    text: "Cada tirada forja una pieza: arma, casco, peto, piernas, zapatos o collar, con elemento y rango. Las armas suman ATQ (y su elemento pasa a ser el de tus ataques); el resto suma vida, defensa, velocidad, esquive, crítico o precisión. Los duplicados suben estrellas.",
   },
 };
 
@@ -79,7 +83,6 @@ export default function GachaPage() {
 
   return (
     <main className="flex flex-col gap-4 p-3 pt-4">
-      <TopBar current="/gacha" />
       <div className="mx-auto flex w-full max-w-4xl gap-2" role="tablist">
         {(Object.keys(BANNERS) as Banner[]).map((k) => (
           <button
@@ -113,14 +116,14 @@ export default function GachaPage() {
                   key={t}
                   type={t}
                   element="fuego"
-                  rarity="epico"
+                  rarity="a"
                   className="w-12 sm:w-16"
                 />
               ))}
         </div>
         <p className="mb-3 text-center text-base text-[#d9d2ca]">{b.text}</p>
 
-        <ul className="mb-3 grid grid-cols-5 gap-1 text-center text-xs sm:text-sm">
+        <ul className="mb-3 grid grid-cols-5 gap-1 text-center sm:grid-cols-9 text-xs sm:text-sm">
           {RARITY_IDS.map((id) => (
             <li
               key={id}
@@ -130,7 +133,7 @@ export default function GachaPage() {
               <div className="break-words text-[10px] font-semibold leading-tight sm:text-sm">
                 {RARITIES[id].label}
               </div>
-              <div>{Math.round(RARITIES[id].probability * 100)}%</div>
+              <div>{+(RARITIES[id].probability * 100).toFixed(1)}%</div>
             </li>
           ))}
         </ul>
@@ -141,14 +144,41 @@ export default function GachaPage() {
               title: "Garantía (pity)",
               kind: "info",
               lines: [
-                `Cuenta las tiradas de este banner desde tu último Legendario.`,
-                `Al llegar a ${PITY_THRESHOLD}, la siguiente tirada es Legendario seguro.`,
+                `Cuenta las tiradas de este banner desde tu último SS o mejor.`,
+                `Al llegar a ${PITY_THRESHOLD}, la siguiente tirada es SS o mejor. A las ${PITY_SSR_THRESHOLD} sin SSR, la siguiente es SSR seguro.`,
                 `Cada banner lleva su propio contador.`,
               ],
             }}
           >
-            <span className="cursor-help text-cyan-300">
-              {pity} / {PITY_THRESHOLD} para Legendario garantizado
+            <span className="cursor-help block space-y-1 text-sm">
+              {(
+                [
+                  ["SS", pity, PITY_THRESHOLD, RARITIES.ss.color],
+                  [
+                    "SSR",
+                    profile.pitySsr[banner],
+                    PITY_SSR_THRESHOLD,
+                    RARITIES.ssr.color,
+                  ],
+                ] as const
+              ).map(([label, n, max, color]) => (
+                <span key={label} className="flex items-center gap-2">
+                  <span className="w-10 text-right" style={{ color }}>
+                    {label}
+                  </span>
+                  <span className="pity-bar">
+                    <i
+                      style={{
+                        width: `${Math.min(100, (n / max) * 100)}%`,
+                        background: color,
+                      }}
+                    />
+                  </span>
+                  <span className="w-16 text-left">
+                    {n}/{max}
+                  </span>
+                </span>
+              ))}
             </span>
           </Tooltip>
         </div>

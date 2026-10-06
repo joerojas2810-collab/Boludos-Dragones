@@ -17,6 +17,7 @@ import {
   type RoomMode,
 } from "@/lib/game/room";
 import { doorsFor } from "@/lib/game/run";
+import { RARITIES, RARITY_IDS, type RarityId } from "@/lib/game/rarity";
 import { useProfile } from "@/lib/useProfile";
 import { useNow, useRoom, type LiveFight } from "@/lib/useRoom";
 import { characterView } from "@/lib/viewModels";
@@ -134,6 +135,20 @@ export function RoomScreen({
                     </button>
                   ))}
                   <select
+                    aria-label="Rango del dungeon"
+                    className="btn btn-gray"
+                    value={view.rank}
+                    onChange={(e) =>
+                      void run(client.setRank(e.target.value as RarityId))
+                    }
+                  >
+                    {RARITY_IDS.map((r) => (
+                      <option key={r} value={r}>
+                        Rango {RARITIES[r].label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
                     aria-label="Segundos por turno"
                     className="btn btn-gray"
                     value={view.turnSeconds}
@@ -152,7 +167,8 @@ export function RoomScreen({
                 <div className="text-center text-sm">
                   Modo:{" "}
                   {view.mode === "nivelado" ? "nivelado" : "poder completo"} ·{" "}
-                  {view.turnSeconds} s por turno
+                  rango {RARITIES[view.rank].label} · {view.turnSeconds} s por
+                  turno
                 </div>
               )}
             </Panel>
@@ -189,7 +205,10 @@ export function RoomScreen({
       );
       break;
     case "doors": {
-      const doors = view.seed === null ? [] : doorsFor(view.seed, view.floor);
+      const doors =
+        view.seed === null
+          ? []
+          : doorsFor(view.seed, view.floor, null, view.rank);
       main = (
         <Panel title="Elige una puerta">
           {!canPlay ? (
@@ -299,7 +318,8 @@ export function RoomScreen({
             <ul className="mt-3 space-y-1 border-t border-white/10 pt-3 text-center text-sm">
               {rows.map((r) => (
                 <li key={r.id}>
-                  <b>{r.name}</b>: <span className="text-yellow-300">{titles[r.id]}</span>
+                  <b>{r.name}</b>:{" "}
+                  <span className="text-yellow-300">{titles[r.id]}</span>
                 </li>
               ))}
             </ul>
@@ -350,7 +370,10 @@ export function RoomScreen({
               const p = view.players.find((x) => x.id === r.id)!;
               const st = playerStatus(view, p, null);
               return (
-                <li key={r.id} className="b-enter flex items-center gap-2 text-sm">
+                <li
+                  key={r.id}
+                  className="b-enter flex items-center gap-2 text-sm"
+                >
                   <span className="w-5 text-right opacity-70">{r.pos}</span>
                   {p.hero ? (
                     <Sprite
@@ -368,7 +391,9 @@ export function RoomScreen({
                     {p.isHost && "★ "}
                     {r.name}
                     {titles && (
-                      <span className="block text-xs text-yellow-300">{titles[r.id]}</span>
+                      <span className="block text-xs text-yellow-300">
+                        {titles[r.id]}
+                      </span>
                     )}
                     {emotes[r.id] && <span> {EMOTES[emotes[r.id].id]}</span>}
                     <span className={`block text-xs ${STATUS_COLOR[st.kind]}`}>
@@ -588,10 +613,13 @@ function VotePanel({
     <Panel title={vote.title}>
       <p className="mb-2 text-center">{vote.question}</p>
       <p className="mb-2 text-center text-sm opacity-80">
-        Sí {vote.yes} · No {vote.no} · gana la mayoría; empate o silencio = no se abre.
+        Sí {vote.yes} · No {vote.no} · gana la mayoría; empate o silencio = no
+        se abre.
       </p>
       {res ? (
-        <p className={`text-center font-bold ${res.opened ? (res.delta > 0 ? "text-green-300" : "text-red-400") : "opacity-80"}`}>
+        <p
+          className={`text-center font-bold ${res.opened ? (res.delta > 0 ? "text-green-300" : "text-red-400") : "opacity-80"}`}
+        >
           {!res.opened
             ? "No se abrió. Nadie gana ni pierde."
             : res.delta > 0

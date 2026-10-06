@@ -65,7 +65,7 @@ export function FloorPlayer({ client, floor, door }: Props) {
     (l: Local): Local => {
       // Door first (index of my door kind in the floor's door list), once no relic is owed.
       if (l.rs.run.pendingRelic || l.rs.run.node || l.rs.fight) return l;
-      const i = doorIndex(l.seed, floor, door);
+      const i = doorIndex(l.seed, floor, door, l.rs.run.difficulty);
       const n = i < 0 ? null : applyLogged(l.rs, { t: "door", i }, l.boost);
       if (!n) return l;
       log.current.push({ t: "door", i });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RARITIES, RARITY_IDS } from "@/lib/game/rarity";
+import { RARITIES, RARITY_IDS, isTopRank } from "@/lib/game/rarity";
 import { playPullSound } from "@/lib/sfx";
 import { ItemCard, type ItemView } from "./ItemCard";
 import "./fx.css";
@@ -70,7 +70,7 @@ export function PullReveal({ items, onDone }: Props) {
   }, [shown, items]);
 
   const single = items.length === 1;
-  const legendNow = shown >= 0 && items[shown].rarity === "legendario";
+  const legendNow = shown >= 0 && isTopRank(items[shown].rarity);
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center gap-4 overflow-y-auto bg-black/95 p-4 [&>*:first-child]:mt-auto [&>*:last-child]:mb-auto">
       {legendNow && (
@@ -81,7 +81,7 @@ export function PullReveal({ items, onDone }: Props) {
       )}
       {shown < 0 ? (
         <div className="relative flex h-40 w-40 items-center justify-center">
-          {bestId === "legendario" && <Rays color={color} />}
+          {isTopRank(bestId) && <Rays color={color} />}
           <Chest color={color} />
           <p className="absolute -bottom-6 text-sm">Invocando...</p>
         </div>
@@ -91,11 +91,11 @@ export function PullReveal({ items, onDone }: Props) {
         >
           {items.slice(0, shown + 1).map((it, i) => (
             <div key={i} className="relative fx-flip">
-              {it.rarity === "legendario" && i === shown && <Rays color={color} />}
-              {it.rarity === "legendario" && (
+              {isTopRank(it.rarity) && i === shown && <Rays color={color} />}
+              {isTopRank(it.rarity) && (
                 <div
                   className="fx-burst pointer-events-none absolute inset-0 m-auto h-24 w-24 rounded-full"
-                  style={{ background: RARITIES.legendario.color }}
+                  style={{ background: RARITIES[it.rarity].color }}
                 />
               )}
               <ItemCard item={it} size={single ? 144 : 76} />

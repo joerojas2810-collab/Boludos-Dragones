@@ -28,7 +28,7 @@ export default function SalaHome() {
     else setErr(errorText(String(r.error)));
   };
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-4">
+    <main className="flex min-h-[calc(100vh-7.75rem)] flex-col items-center justify-center gap-4 p-4">
       <Notice />
       <Panel title="Sala de la noche" className="w-full max-w-sm text-center">
         {remote ? (

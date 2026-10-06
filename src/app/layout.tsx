@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Chakra_Petch, MedievalSharp } from "next/font/google";
+import { AppShell } from "@/components/AppShell";
 import "./globals.css";
 
 const pixel = Chakra_Petch({
@@ -22,7 +23,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${pixel.variable} ${title.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <AppShell>{children}</AppShell>
+      </body>
     </html>
   );
 }

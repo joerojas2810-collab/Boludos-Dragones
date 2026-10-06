@@ -5,8 +5,9 @@ import { useState } from "react";
 import { Chip } from "@/components/Chip";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
-import { TopBar } from "@/components/TopBar";
+import { PartsList } from "@/components/PartsList";
 import { Tooltip } from "@/components/Tooltip";
+import { Sprite } from "@/components/Sprite";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import {
   CLASSES,
@@ -35,10 +36,19 @@ import {
   type RarityId,
 } from "@/lib/game/rarity";
 import { TRAITS } from "@/lib/game/traits";
+import {
+  CLASS_WEAPONS,
+  WEAPON_TYPE_DATA,
+  canUseWeapon,
+  slotOf,
+  type Slot,
+} from "@/lib/game/weapons";
+import { slotKey } from "@/lib/game/profile";
 import { repo, useProfile } from "@/lib/useProfile";
 import {
   characterView,
   filterSortCharacters,
+  pieceLine,
   weaponEffect,
   weaponView,
   type CollectionFilter,
@@ -58,6 +68,9 @@ const FRACTION = ["hp", "atk", "def", "speed"];
 const fmt = (k: keyof Stats, v: number) =>
   FRACTION.includes(k) ? `${+v.toFixed(1)}` : `${Math.round(v * 100)}%`;
 
+const DOLL_LEFT: Slot[] = ["casco", "peto", "piernas"];
+const DOLL_RIGHT: Slot[] = ["arma", "zapatos", "collar"];
+
 const selectCls =
   "border-2 border-[var(--edge)] bg-[var(--panel)] px-2 py-1.5 text-base";
 
@@ -70,6 +83,7 @@ function Detail({
   profile: Profile;
   act: (job: () => Promise<void>) => void;
 }) {
+  const [sel, setSel] = useState<Slot>("arma");
   const hero = heroFromOwned(profile, c.id);
   if (!hero) return null;
   const cmb = {
@@ -77,11 +91,6 @@ function Detail({
     char: hero,
     hp: hero.stats.hp,
   };
-  const wid = profile.equipped[c.id];
-  const weapon = profile.weapons.find((w) => w.id === wid);
-  const free = profile.weapons.filter(
-    (w) => !Object.values(profile.equipped).includes(w.id),
-  );
   const fKey = fragmentKey(c.classId, c.rarity);
   const have = profile.fragments[fKey] ?? 0;
   const reason =
@@ -125,67 +134,130 @@ function Detail({
         ))}
       </div>
 
-      <div className="border-t-2 border-[var(--edge)] pt-2">
-        <div className="mb-1 font-semibold text-yellow-300">Arma</div>
-        {weapon ? (
-          <div className="flex items-center gap-2">
-            <WeaponSprite
-              type={weapon.type}
-              element={weapon.element}
-              rarity={weapon.rarity}
-              className="w-12"
-            />
-            <div className="min-w-0 flex-1 text-sm">
-              <div className="truncate font-semibold">{weapon.name}</div>
-              <div>ATQ +{weapon.atkBonus}</div>
-              <div className="text-[#d9d2ca]">{weaponEffect(weapon)}</div>
-            </div>
-            <button
-              className="btn btn-gray text-center"
-              onClick={() => act(() => repo.equip(c.id, null))}
-            >
-              Quitar
-            </button>
-          </div>
-        ) : (
-          <p className="text-sm text-[#d9d2ca]">Sin arma equipada.</p>
-        )}
-        {free.length > 0 ? (
-          <ul className="mt-2 space-y-1">
-            {free.map((w) => (
-              <li key={w.id} className="flex items-center gap-2 text-sm">
-                <WeaponSprite
-                  type={w.type}
-                  element={w.element}
-                  rarity={w.rarity}
-                  className="w-8"
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate">{w.name}</span>
-                  <span className="block text-xs text-[#d9d2ca]">
-                    ATQ +{w.atkBonus} · {weaponEffect(w)}
-                  </span>
-                </span>
+      <div className="doll" aria-label="Equipo del héroe">
+        {[DOLL_LEFT, DOLL_RIGHT].map((col, i) => (
+          <div key={i} className="doll-col">
+            {col.map((sl) => {
+              const w = profile.weapons.find(
+                (x) => x.id === profile.equipped[slotKey(c.id, sl)],
+              );
+              return (
                 <button
-                  className="btn text-center"
-                  onClick={() => act(() => repo.equip(c.id, w.id))}
+                  key={sl}
+                  className="doll-slot"
+                  aria-pressed={sel === sl}
+                  title={w ? `${w.name}: ${pieceLine(w)}` : "Vacío"}
+                  style={
+                    w ? { borderColor: RARITIES[w.rarity].color } : undefined
+                  }
+                  onClick={() => setSel(sl)}
                 >
-                  Equipar
+                  {w ? (
+                    <WeaponSprite
+                      type={w.type}
+                      element={w.element}
+                      rarity={w.rarity}
+                      className="w-9"
+                    />
+                  ) : (
+                    <span className="doll-empty">
+                      {sl === "arma" ? "Arma" : WEAPON_TYPE_DATA[sl].label}
+                    </span>
+                  )}
                 </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          !weapon && (
-            <p className="mt-1 text-sm">
-              No tienes armas libres.{" "}
-              <Link href="/gacha" className="text-cyan-300 underline">
-                Ir al gacha
-              </Link>
-            </p>
-          )
-        )}
+              );
+            })}
+          </div>
+        ))}
+        <Sprite
+          classId={c.classId}
+          element={c.element}
+          traits={c.traits}
+          className="doll-hero"
+        />
       </div>
+
+      {[sel].map((slot) => {
+        const worn = profile.weapons.find(
+          (w) => w.id === profile.equipped[slotKey(c.id, slot)],
+        );
+        const free = profile.weapons.filter(
+          (w) =>
+            slotOf(w.type) === slot &&
+            canUseWeapon(c.classId, w.type) &&
+            !Object.values(profile.equipped).includes(w.id),
+        );
+        const title = slot === "arma" ? "Arma" : WEAPON_TYPE_DATA[slot].label;
+        return (
+          <div key={slot} className="border-t-2 border-[var(--edge)] pt-2">
+            <div className="mb-1 font-semibold text-yellow-300">{title}</div>
+            {worn ? (
+              <div className="flex items-center gap-2">
+                <WeaponSprite
+                  type={worn.type}
+                  element={worn.element}
+                  rarity={worn.rarity}
+                  className="w-12"
+                />
+                <div className="min-w-0 flex-1 text-sm">
+                  <div className="truncate font-semibold">{worn.name}</div>
+                  <div>{pieceLine(worn)}</div>
+                  <div className="text-[#d9d2ca]">{weaponEffect(worn)}</div>
+                </div>
+                <button
+                  className="btn btn-gray text-center"
+                  onClick={() => act(() => repo.equip(c.id, null, slot))}
+                >
+                  Quitar
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-[#d9d2ca]">Vacío.</p>
+            )}
+            {free.length > 0 ? (
+              <ul className="mt-2 space-y-1">
+                {free.map((w) => (
+                  <li key={w.id} className="flex items-center gap-2 text-sm">
+                    <WeaponSprite
+                      type={w.type}
+                      element={w.element}
+                      rarity={w.rarity}
+                      className="w-8"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{w.name}</span>
+                      <span className="block text-xs text-[#d9d2ca]">
+                        {pieceLine(w)} · {weaponEffect(w)}
+                      </span>
+                    </span>
+                    <button
+                      className="btn text-center"
+                      onClick={() => act(() => repo.equip(c.id, w.id))}
+                    >
+                      Equipar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              !worn && (
+                <p className="mt-1 text-sm">
+                  {slot === "arma"
+                    ? `No tienes armas libres para ${CLASSES[c.classId].name} (usa: ${CLASS_WEAPONS[
+                        c.classId
+                      ]
+                        .map((t) => WEAPON_TYPE_DATA[t].label)
+                        .join(", ")}). `
+                    : "No tienes piezas libres. "}
+                  <Link href="/gacha" className="text-cyan-300 underline">
+                    Ir al gacha
+                  </Link>
+                </p>
+              )
+            )}
+          </div>
+        );
+      })}
 
       <div className="border-t-2 border-[var(--edge)] pt-2">
         <div className="flex items-center justify-between gap-2">
@@ -228,7 +300,9 @@ export default function CollectionPage() {
       ),
     );
   };
-  const [tab, setTab] = useState<"characters" | "weapons">("characters");
+  const [tab, setTab] = useState<"characters" | "weapons" | "parts">(
+    "characters",
+  );
   const [filter, setFilter] = useState<CollectionFilter>({
     classId: "all",
     rarity: "all",
@@ -253,7 +327,6 @@ export default function CollectionPage() {
 
   return (
     <main className="flex flex-col gap-4 p-3 pt-4">
-      <TopBar current="/coleccion" />
       {notice && (
         <p role="alert" className="text-center text-sm text-red-300">
           {notice}
@@ -261,14 +334,23 @@ export default function CollectionPage() {
       )}
       <div className="mx-auto w-full max-w-4xl text-center text-base text-[#d9d2ca]">
         Runs jugadas: {profile.runsPlayed} · Mejor piso: {profile.bestFloor} ·
-        Personajes: {profile.characters.length} · Armas:{" "}
+        Personajes: {profile.characters.length} · Equipo:{" "}
         {profile.weapons.length}
+        {repo.mode === "remote" && (
+          <>
+            {" · "}
+            <Link href="/mercado" className="text-cyan-300 underline">
+              Mercado de trueque
+            </Link>
+          </>
+        )}
       </div>
       <div className="mx-auto flex w-full max-w-4xl gap-2" role="tablist">
         {(
           [
             ["characters", "Personajes"],
-            ["weapons", "Armas"],
+            ["weapons", "Equipo"],
+            ["parts", "Partes"],
           ] as const
         ).map(([k, label]) => (
           <button
@@ -283,7 +365,11 @@ export default function CollectionPage() {
         ))}
       </div>
 
-      {tab === "characters" ? (
+      {tab === "parts" ? (
+        <Panel title="Partes de forja" className="mx-auto w-full max-w-4xl">
+          <PartsList parts={profile.parts} />
+        </Panel>
+      ) : tab === "characters" ? (
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 md:grid md:grid-cols-[1fr_22rem] md:items-start">
           <Panel title="Personajes" className="min-w-0">
             {profile.characters.length === 0 ? (
@@ -390,9 +476,9 @@ export default function CollectionPage() {
           )}
         </div>
       ) : (
-        <Panel title="Armas" className="mx-auto w-full max-w-4xl">
+        <Panel title="Equipo" className="mx-auto w-full max-w-4xl">
           {profile.weapons.length === 0 ? (
-            empty("armas")
+            empty("equipo")
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] justify-items-center gap-x-2 gap-y-5">
               {[...profile.weapons]

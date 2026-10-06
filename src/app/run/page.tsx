@@ -20,6 +20,8 @@ import { Panel } from "@/components/Panel";
 import { Chip } from "@/components/Chip";
 import { ItemCard } from "@/components/ItemCard";
 import { RarityFrame } from "@/components/RarityFrame";
+import { dropsText } from "@/components/PartsList";
+import { partCount } from "@/lib/game/parts";
 import { Sprite } from "@/components/Sprite";
 import { StarRow } from "@/components/StarRow";
 import { Tooltip } from "@/components/Tooltip";
@@ -51,9 +53,19 @@ import {
   heroFromOwned,
   type Profile,
 } from "@/lib/game/profile";
-import { RARITIES } from "@/lib/game/rarity";
+import { RARITIES, RARITY_IDS } from "@/lib/game/rarity";
 import { Notice } from "@/components/Notice";
 import { proceedRun, type RunAction } from "@/lib/game/replay";
+import {
+  DUNGEONS,
+  UNLOCK_MIN_LIVES,
+  lockReason,
+  type Clears,
+} from "@/lib/game/dungeons";
+import type { RarityId } from "@/lib/game/rarity";
+import { canUseWeapon, slotOf } from "@/lib/game/weapons";
+import { pieceSummary } from "@/lib/game/loot";
+import { WeaponSprite } from "@/components/WeaponSprite";
 import { pushNotice, repo, useProfile } from "@/lib/useProfile";
 import { characterView, filterSortCharacters } from "@/lib/viewModels";
 import { autoBlockReason, autoResolve } from "@/lib/game/auto";
@@ -67,12 +79,13 @@ import { RELICS } from "@/lib/game/relics";
 import type { Rng } from "@/lib/game/rng";
 import {
   applyBattleResult,
+  chooseLoot,
   buyItem,
   chooseDoor,
   chooseRelic,
   chooseSkill,
   isVictory,
-  MAX_FLOOR,
+  topFloor,
   createRun,
   eventCost,
   fleeCost,
@@ -91,7 +104,7 @@ import {
   type FightNode,
   type Run,
 } from "@/lib/game/run";
-import { FLOORS_PER_WORLD, WORLDS, worldOf } from "@/lib/game/worlds";
+import { FLOORS_PER_WORLD, WORLDS } from "@/lib/game/worlds";
 import { playEvents } from "@/lib/sfx";
 
 type Screen =
@@ -117,14 +130,18 @@ const RARITY_BORDER = {
 } as const;
 
 function Hud({ run }: { run: Run }) {
-  const world = worldOf(run.floor);
+  const world = getFloor(run).world;
   const hero = run.hero;
   return (
     <div className="pixel-frame flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-2 text-base">
       <Tooltip tip={floorTip(run)}>
         <span className="flex cursor-help items-center gap-1.5">
-          <b className="text-yellow-300">Piso {run.floor}</b>
-          <span className="text-[#d9d2ca]">{world.name}</span>
+          <b className="text-yellow-300">
+            Piso {run.floor}/{topFloor(run)}
+          </b>
+          <span className="text-[#d9d2ca]">
+            {run.rank ? DUNGEONS[run.rank].name : world.name}
+          </span>
           <ElementIcon element={world.element} className="h-5" bare />
         </span>
       </Tooltip>
@@ -150,7 +167,7 @@ function Hud({ run }: { run: Run }) {
       </Tooltip>
       <Tooltip tip={levelTip(run)}>
         <span className="flex cursor-help items-center gap-1.5 text-green-300">
-          <RarityFrame rarity={hero.rarity ?? "comun"} size={26}>
+          <RarityFrame rarity={hero.rarity ?? "f"} size={26}>
             <Sprite
               classId={hero.classId}
               element={hero.element}
@@ -159,7 +176,7 @@ function Hud({ run }: { run: Run }) {
             />
           </RarityFrame>
           <span>
-            <span style={{ color: RARITIES[hero.rarity ?? "comun"].color }}>
+            <span style={{ color: RARITIES[hero.rarity ?? "f"].color }}>
               {hero.name}
             </span>{" "}
             · Nv {hero.level} · XP {hero.xp}/{xpToNext(hero.level)}
@@ -174,6 +191,57 @@ function Hud({ run }: { run: Run }) {
           PV {Math.round(run.hp)}/{maxHp(run)}
         </span>
       </Tooltip>
+      {run.lootEnabled &&
+        run.secured.length +
+          run.bag.length +
+          partCount(run.partSecured) +
+          partCount(run.partBag) >
+          0 && (
+          <Tooltip
+            tip={{
+              title: "Mochila de la run",
+              kind: "info",
+              lines: [
+                `${run.secured.length} piezas y ${partCount(run.partSecured)} partes aseguradas (ya son tuyas).`,
+                `${run.bag.length} piezas y ${partCount(run.partBag)} partes sin asegurar: se pierden si caes o abandonas antes de vencer al próximo jefe.`,
+              ],
+              source: "Botín",
+            }}
+          >
+            <span className="cursor-help text-[#d9d2ca]">
+              🎒 {run.secured.length + partCount(run.partSecured)}
+              {run.bag.length + partCount(run.partBag) > 0 && (
+                <span className="text-red-300">
+                  {" "}
+                  +{run.bag.length + partCount(run.partBag)}
+                </span>
+              )}
+            </span>
+          </Tooltip>
+        )}
+      {Object.values(run.loot).length > 0 && (
+        <span className="flex flex-wrap gap-1">
+          {Object.values(run.loot).map((p) => (
+            <Chip
+              key={p.type}
+              tone="passive"
+              tip={{
+                title: p.name,
+                kind: "info",
+                lines: [
+                  pieceSummary(p),
+                  "La llevas puesta en la run. Pasa a tu colección cuando un jefe la asegure.",
+                ],
+                source: "Mochila de la run",
+              }}
+            >
+              <span style={{ color: RARITIES[p.rarity].color }}>
+                {p.name} · {RARITIES[p.rarity].label}
+              </span>
+            </Chip>
+          ))}
+        </span>
+      )}
       {run.relics.length > 0 && (
         <span className="flex flex-wrap gap-1">
           {run.relics.map((id) => (
@@ -213,6 +281,7 @@ function RunScreen() {
 
   const [seed, setSeed] = useState<number | null>(null);
   const [chooseClass, setChooseClass] = useState<ClassId | null>(null);
+  const [dungeon, setDungeon] = useState<RarityId | null>(null);
   const { profile, ready } = useProfile();
 
   // Banking: exactly once per run. The runId guard lives in the ref (this
@@ -232,7 +301,16 @@ function RunScreen() {
       .submitRun(
         id,
         actionsRef.current,
-        { coins: r.coins, maxFloor: r.maxFloor },
+        {
+          coins: r.coins,
+          maxFloor: r.maxFloor,
+          loot: r.secured,
+          parts: r.partSecured,
+          clear:
+            r.rank && isVictory(r)
+              ? { rank: r.rank, lives: r.lives }
+              : undefined,
+        },
         true,
       )
       .then((info) => {
@@ -272,11 +350,16 @@ function RunScreen() {
     if (seed === null || starting) return;
     setStarting(true);
     try {
-      const info = await repo.startRun(classId, characterId, seed);
+      const info = await repo.startRun(
+        classId,
+        characterId,
+        seed,
+        dungeon ?? "f",
+      );
       runIdRef.current = info.runId;
       actionsRef.current = [];
       setChooseClass(null);
-      setRun(createRun(info.seed, info.hero));
+      setRun(createRun(info.seed, info.hero, true, info.rank));
       setScreen({ t: "doors" });
       setMsgs([
         `Semilla ${info.seed}. ${info.hero.name} (${CLASSES[info.hero.classId].name}) entra a la mazmorra.`,
@@ -297,6 +380,7 @@ function RunScreen() {
   const toSelect = () => {
     bank();
     setRun(null);
+    setDungeon(null);
     setSeed(Date.now());
   };
   useEffect(() => {
@@ -315,7 +399,18 @@ function RunScreen() {
         onBack={() => setChooseClass(null)}
       />
     );
-  if (!run) return <ClassSelect onPick={pickClass} />;
+  if (!run && !dungeon)
+    return (
+      <DungeonSelect clears={profile.dungeons} onPick={(r) => setDungeon(r)} />
+    );
+  if (!run)
+    return (
+      <ClassSelect
+        dungeon={dungeon!}
+        onPick={pickClass}
+        onBack={() => setDungeon(null)}
+      />
+    );
 
   const log = (...lines: string[]) => setMsgs((m) => [...m, ...lines]);
 
@@ -350,12 +445,14 @@ function RunScreen() {
         break;
       }
       case "chest":
-        log(`Cofre: +${node.coins} monedas.`);
+        log(
+          `Cofre: +${node.coins} monedas${dropsText(r.run.lastDrops) ? ` y ${dropsText(r.run.lastDrops)}` : ""}.`,
+        );
         setScreen({
           t: "toast",
           kind: "chest",
           title: "Cofre",
-          text: `Encuentras ${node.coins} monedas.`,
+          text: `Encuentras ${node.coins} monedas${dropsText(r.run.lastDrops) ? ` y ${dropsText(r.run.lastDrops)}` : ""}.`,
         });
         break;
       case "rest":
@@ -428,7 +525,7 @@ function RunScreen() {
             <>
               <Confetti />
               <div className="text-2xl text-yellow-300">
-                ¡Victoria! Completaste los {MAX_FLOOR} pisos
+                ¡Victoria! Completaste los {topFloor(run)} pisos
               </div>
             </>
           ) : (
@@ -444,6 +541,21 @@ function RunScreen() {
           <div className="mt-2 text-green-300">
             +{run.coins} monedas guardadas
           </div>
+          {run.lootEnabled && (
+            <div className="mt-1 text-sm">
+              <span className="text-green-300">
+                {run.secured.length} piezas y {partCount(run.partSecured)}{" "}
+                partes a tu colección
+              </span>
+              {run.bag.length > 0 && (
+                <span className="text-red-300">
+                  {" "}
+                  · {run.bag.length} piezas y {partCount(run.partBag)} partes
+                  perdidas (sin jefe que las asegure)
+                </span>
+              )}
+            </div>
+          )}
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <button className="btn text-center" onClick={toSelect}>
               Nueva run
@@ -458,10 +570,85 @@ function RunScreen() {
         </Panel>
       </Center>
     );
+  } else if (run.pendingLoot && screen.t !== "fight" && screen.t !== "picks") {
+    const offer = run.pendingLoot;
+    main = (
+      <Center>
+        <Panel title="Botín">
+          <div className="mb-3 text-center text-base text-yellow-300">
+            {offer.length > 1
+              ? "Elige una pieza: la conservas al vencer al próximo jefe"
+              : "Encuentras una pieza: la conservas al vencer al próximo jefe"}
+          </div>
+          <div
+            className={`grid gap-2 ${offer.length > 1 ? "sm:grid-cols-2" : ""}`}
+          >
+            {offer.map((p, i) => {
+              const worn = run.loot[slotOf(p.type)];
+              return (
+                <button
+                  key={i}
+                  className="btn choice-button flex h-full w-full items-center gap-3 text-left"
+                  style={{ borderColor: RARITIES[p.rarity].color }}
+                  onClick={() => {
+                    rec({ t: "loot", i });
+                    const n = chooseLoot(run, i);
+                    log(`Botín: ${p.name} (${RARITIES[p.rarity].label}).`);
+                    setRun(n);
+                    if (n.secured.length > run.secured.length)
+                      log(
+                        `Jefe vencido: ${n.secured.length} piezas aseguradas.`,
+                      );
+                    if (n.pendingRelic) setScreen({ t: "relic" });
+                    else if (n.floor !== run.floor) {
+                      log(`— Piso ${n.floor} —`);
+                      setScreen({ t: "doors" });
+                    }
+                  }}
+                >
+                  <WeaponSprite
+                    type={p.type}
+                    element={p.element}
+                    rarity={p.rarity}
+                    className="w-14 shrink-0"
+                  />
+                  <span className="min-w-0">
+                    <span className="block font-semibold">{p.name}</span>
+                    <span className="block text-sm">{pieceSummary(p)}</span>
+                    <span className="block text-xs text-[#d9d2ca]">
+                      {worn
+                        ? `Reemplaza: ${worn.name} (${RARITIES[worn.rarity].label})`
+                        : "Casilla libre en esta run"}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <button
+            className="btn btn-gray mt-3 w-full text-center"
+            onClick={() => {
+              rec({ t: "loot", i: -1 });
+              const n = chooseLoot(run, -1);
+              setRun(n);
+              if (n.secured.length > run.secured.length)
+                log(`Jefe vencido: ${n.secured.length} piezas aseguradas.`);
+              if (n.pendingRelic) setScreen({ t: "relic" });
+              else if (n.floor !== run.floor) {
+                log(`— Piso ${n.floor} —`);
+                setScreen({ t: "doors" });
+              }
+            }}
+          >
+            Dejarla
+          </button>
+        </Panel>
+      </Center>
+    );
   } else if (screen.t === "fight") {
     const { battle: b, node, result } = screen;
     logLines = b.log;
-    const fam = worldOf(run.floor).family;
+    const fam = getFloor(run).world.family;
     const mods = b.mods ?? [];
     main = (
       <>
@@ -483,7 +670,11 @@ function RunScreen() {
           onTarget={targeting.select}
           playerExtraTip={levelTip(run)}
           inRun
-          world={Math.floor((run.floor - 1) / FLOORS_PER_WORLD) % WORLDS.length}
+          world={
+            run.rank
+              ? DUNGEONS[run.rank].world
+              : Math.floor((run.floor - 1) / FLOORS_PER_WORLD) % WORLDS.length
+          }
           boss={node.kind === "boss"}
           enemyChips={(_, c) =>
             mods
@@ -790,7 +981,8 @@ function RunScreen() {
           titleClass={isBoss ? "text-red-400" : ""}
         >
           <div className="mb-3 text-center text-base text-[#d9d2ca]">
-            Piso {run.floor} · {world.name}
+            Piso {run.floor}/{topFloor(run)} ·{" "}
+            {run.rank ? DUNGEONS[run.rank].name : world.name}
           </div>
           <div
             className={`grid gap-3 ${isBoss ? "" : doors.length === 3 ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}
@@ -869,12 +1061,104 @@ const CLASS_BLURB: Record<ClassId, string> = {
   clerigo: "Cura. Resiste con paciencia.",
 };
 
-function ClassSelect({ onPick }: { onPick: (c: ClassId) => void }) {
+function DungeonSelect({
+  clears,
+  onPick,
+}: {
+  clears: Clears;
+  onPick: (r: RarityId) => void;
+}) {
+  return (
+    <main className="flex flex-col justify-center gap-4 p-3 pt-8">
+      <Panel title="Elige un dungeon" className="mx-auto w-full max-w-5xl">
+        <p className="mb-3 text-center text-base text-[#d9d2ca]">
+          Cada jefe que venzas asegura el botín que llevas. Vence el último para
+          limpiar el dungeon y abrir el siguiente rango.
+        </p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {RARITY_IDS.map((rank) => {
+            const d = DUNGEONS[rank];
+            const lock = lockReason(clears, rank);
+            const color = RARITIES[rank].color;
+            const best = clears[rank];
+            return (
+              <button
+                key={rank}
+                disabled={!!lock}
+                onClick={() => onPick(rank)}
+                className="pixel-frame flex items-center gap-3 p-2 text-left enabled:hover:brightness-125 disabled:opacity-60"
+                style={{ borderColor: color }}
+              >
+                <span
+                  className="grid h-14 w-14 shrink-0 place-items-center border-4 border-[var(--edge)] text-2xl font-bold"
+                  style={{ background: color, color: "#1d1714" }}
+                >
+                  {RARITIES[rank].label}
+                </span>
+                <span className="min-w-0 text-sm">
+                  <span className="block text-base font-semibold text-yellow-300">
+                    {d.name}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    {d.floors} pisos · {d.bosses.length} jefes
+                    <ElementIcon
+                      element={WORLDS[d.world].element}
+                      className="h-4"
+                      bare
+                    />
+                  </span>
+                  {lock ? (
+                    <span className="block text-red-300">
+                      🔒 Limpia {RARITIES[lock.rank].label} con {lock.lives}{" "}
+                      {lock.lives === 1 ? "vida" : "vidas"} o más
+                    </span>
+                  ) : best ? (
+                    <span className="block text-green-300">
+                      ✔ Limpiado · mejor: {best} ♥
+                    </span>
+                  ) : (
+                    <span className="block text-[#d9d2ca]">Sin limpiar</span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-3 text-center">
+          <Link href="/" className="btn btn-gray inline-block text-center">
+            ← Volver al menú
+          </Link>
+        </div>
+        <p className="mt-2 text-center text-xs text-[#d9d2ca]">
+          Vidas mínimas para entrar:{" "}
+          {Object.entries(UNLOCK_MIN_LIVES)
+            .map(([r, n]) => `${RARITIES[r as RarityId].label} ${n}`)
+            .join(" · ")}
+          .
+        </p>
+      </Panel>
+    </main>
+  );
+}
+
+function ClassSelect({
+  dungeon,
+  onPick,
+  onBack,
+}: {
+  dungeon: RarityId;
+  onPick: (c: ClassId) => void;
+  onBack: () => void;
+}) {
   return (
     <main className="flex flex-col justify-center gap-4 p-3 pt-8 md:h-screen md:overflow-hidden">
       <Panel title="Elige tu clase" className="mx-auto w-full max-w-4xl">
         <p className="mb-3 text-center text-base text-[#d9d2ca]">
-          Elemento, rasgos y stats se sortean al empezar.
+          Dungeon {RARITIES[dungeon].label}: {DUNGEONS[dungeon].name}. Elemento,
+          rasgos y stats se sortean al empezar.{" "}
+          <button className="text-cyan-300 underline" onClick={onBack}>
+            Cambiar dungeon
+          </button>
         </p>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
           {CLASS_IDS.map((id) => {
@@ -942,7 +1226,8 @@ function fightSummary(
 ): string {
   if (status === "won") {
     const lv = after.hero.level - before.hero.level;
-    return `Victoria: +${after.coins - before.coins} monedas${lv > 0 ? ` · ¡sube a nivel ${after.hero.level}!` : "."}`;
+    const got = dropsText(after.lastDrops);
+    return `Victoria: +${after.coins - before.coins} monedas${lv > 0 ? ` · ¡sube a nivel ${after.hero.level}!` : "."}${got ? ` Botín: ${got}.` : ""}`;
   }
   if (status === "fled")
     return `Huiste. Pagas ${before.coins - after.coins} monedas.`;
@@ -968,7 +1253,69 @@ function CharacterSelect({
     sort: "rarity",
   });
   const [sel, setSel] = useState(bestOfClass(profile, classId)?.id ?? null);
+  const [askWeapon, setAskWeapon] = useState(false);
   const chosen = owned.find((c) => c.id === sel);
+  // Usable weapons not worn by another hero: offered when the hero has none.
+  const usable = profile.weapons.filter(
+    (w) =>
+      canUseWeapon(classId, w.type) &&
+      !Object.values(profile.equipped).includes(w.id),
+  );
+  const go = () =>
+    chosen && !profile.equipped[chosen.id] && usable.length > 0
+      ? setAskWeapon(true)
+      : onPick(sel);
+  if (askWeapon && chosen)
+    return (
+      <main className="flex flex-col justify-center gap-4 p-3 pt-8">
+        <Panel
+          title={`¿Equipar a ${chosen.name}?`}
+          className="mx-auto w-full max-w-2xl"
+        >
+          <ul className="space-y-2">
+            {usable.map((w) => (
+              <li key={w.id} className="flex items-center gap-2 text-sm">
+                <WeaponSprite
+                  type={w.type}
+                  element={w.element}
+                  rarity={w.rarity}
+                  className="w-8"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{w.name}</span>
+                  <span className="block text-xs text-[#d9d2ca]">
+                    ATQ +{w.atkBonus}
+                  </span>
+                </span>
+                <button
+                  className="btn text-center"
+                  onClick={async () => {
+                    await repo.equip(chosen.id, w.id);
+                    onPick(sel);
+                  }}
+                >
+                  Equipar y empezar
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <button
+              className="btn btn-gray text-center"
+              onClick={() => onPick(sel)}
+            >
+              Empezar sin arma
+            </button>
+            <button
+              className="btn btn-gray text-center"
+              onClick={() => setAskWeapon(false)}
+            >
+              Volver
+            </button>
+          </div>
+        </Panel>
+      </main>
+    );
   return (
     <main className="flex flex-col justify-center gap-4 p-3 pt-8">
       <Panel
@@ -998,18 +1345,14 @@ function CharacterSelect({
           })}
         </div>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
-          <button
-            className="btn text-center"
-            disabled={!chosen}
-            onClick={() => onPick(sel)}
-          >
+          <button className="btn text-center" disabled={!chosen} onClick={go}>
             {chosen ? `Empezar con ${chosen.name}` : "Elige un personaje"}
           </button>
           <button
             className="btn btn-gray text-center"
             onClick={() => onPick(null)}
           >
-            Personaje al azar (Común)
+            Personaje al azar (rango F)
           </button>
           <button className="btn btn-gray text-center" onClick={onBack}>
             Cambiar de clase

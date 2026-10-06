@@ -14,7 +14,7 @@ type Props = {
 export function WeaponSprite({
   type = "espada",
   element,
-  rarity = "comun",
+  rarity = "f",
   className = "",
 }: Props) {
   const grid = WEAPON_SPRITES_BY_TYPE[type][element];
