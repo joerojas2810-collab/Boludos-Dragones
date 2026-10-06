@@ -122,7 +122,10 @@ export function FloorPlayer({ client, floor, door }: Props) {
     log.current.push(a);
     if ((a.t === "act" || a.t === "auto") && n.fight) {
       const nb = n.fight.battle;
-      playEvents(nb.events, nb.status);
+      playEvents(nb.events, nb.status, {
+        guard: nb.guardEarned,
+        boss: n.fight.node.kind === "boss",
+      });
       const last = nb.events[nb.events.length - 1];
       client.turn({
         n: nb.actions,
@@ -133,7 +136,8 @@ export function FloorPlayer({ client, floor, door }: Props) {
         eHp: Math.round(nb.enemies.reduce((t, e) => t + e.hp, 0)),
       });
     }
-    const ends = a.t === "fin" || a.t === "leave" || a.t === "pick" || a.t === "skill";
+    const ends =
+      a.t === "fin" || a.t === "leave" || a.t === "pick" || a.t === "skill";
     const next = a.t === "relic" ? begin({ ...loc, rs: n }) : { ...loc, rs: n };
     setLoc(next);
     if (ends && !n.picks && !n.fight) void submit();
@@ -176,10 +180,16 @@ export function FloorPlayer({ client, floor, door }: Props) {
   if (run.pendingRelic && !rs.fight)
     return (
       <Panel title="Reliquia">
-        <div className="mb-3 text-center text-yellow-300">Elige una reliquia</div>
+        <div className="mb-3 text-center text-yellow-300">
+          Elige una reliquia
+        </div>
         <div className="grid gap-2 sm:grid-cols-3">
           {run.pendingRelic.map((id) => (
-            <button key={id} className="btn" onClick={() => apply({ t: "relic", id })}>
+            <button
+              key={id}
+              className="btn"
+              onClick={() => apply({ t: "relic", id })}
+            >
               <div className="font-semibold">{RELICS[id].name}</div>
               <div className="text-sm">{RELICS[id].description}</div>
             </button>
@@ -268,9 +278,15 @@ export function FloorPlayer({ client, floor, door }: Props) {
         ) : (
           <div className="grid gap-2 sm:grid-cols-3">
             {upgradeOffer(run).map((id) => (
-              <button key={id} className="btn" onClick={() => apply({ t: "pick", id })}>
+              <button
+                key={id}
+                className="btn"
+                onClick={() => apply({ t: "pick", id })}
+              >
                 <div className="font-semibold">{UPGRADES[id].name}</div>
-                <div className="text-sm">{upgradeLabel(id, run.ups[id] ?? 0)}</div>
+                <div className="text-sm">
+                  {upgradeLabel(id, run.ups[id] ?? 0)}
+                </div>
               </button>
             ))}
           </div>
@@ -298,7 +314,9 @@ export function FloorPlayer({ client, floor, door }: Props) {
     return (
       <Panel title="Descanso" className="text-center">
         <div className="text-yellow-300">
-          {node.healed > 0 ? `Recuperas ${node.healed} de vida.` : "Ya estás en plena forma."}
+          {node.healed > 0
+            ? `Recuperas ${node.healed} de vida.`
+            : "Ya estás en plena forma."}
         </div>
         {leave}
       </Panel>
@@ -306,7 +324,9 @@ export function FloorPlayer({ client, floor, door }: Props) {
   if (node?.type === "shop")
     return (
       <Panel title="Mercader">
-        <div className="mb-2 text-center text-yellow-300">Tienes {run.coins} monedas</div>
+        <div className="mb-2 text-center text-yellow-300">
+          Tienes {run.coins} monedas
+        </div>
         <div className="space-y-2">
           {node.items.map((it) => {
             const bought = run.bought.includes(it.id);
@@ -319,7 +339,9 @@ export function FloorPlayer({ client, floor, door }: Props) {
                 <span className="min-w-0 flex-1">{desc}</span>
                 <button
                   className="btn w-28 shrink-0 text-center"
-                  disabled={bought || run.coins < it.price || itemUseless(run, it)}
+                  disabled={
+                    bought || run.coins < it.price || itemUseless(run, it)
+                  }
                   onClick={() => {
                     if (buyItem(run, it.id)) apply({ t: "buy", id: it.id });
                   }}

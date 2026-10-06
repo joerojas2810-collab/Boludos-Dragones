@@ -94,9 +94,9 @@ await rpc("place_bet", { p_room: R, p_bettor: U(4), p_battle_key: key(2), p_pred
 await rpc("place_bet", { p_room: R, p_bettor: U(1), p_battle_key: key(3), p_prediction: "lose", p_stake: 25 });
 await rpc("place_bet", { p_room: R, p_bettor: U(5), p_battle_key: key(3), p_prediction: "win", p_stake: 25 });
 const ip = await rpc("place_interference", { p_room: R, p_from: U(4), p_battle_key: key(1), p_kind: "stronger_enemy" });
-ok(ip.cost === 30, "interference");
+ok(ip.cost === 20, "catch-up: last in chips (30 left, leader 100) pays 30-10 " + ip.cost);
 await err(rpc("interfere", { p_room: R, p_from: U(5), p_battle_key: key(1), p_kind: "adverse_element" }), "already_interfered");
-await rpc("interfere", { p_room: R, p_from: U(5), p_battle_key: key(2), p_kind: "adverse_element" });
+ok((await rpc("interfere", { p_room: R, p_from: U(5), p_battle_key: key(2), p_kind: "adverse_element" })).cost === 30, "not last: full price 30");
 await rpc("interfere", { p_room: R, p_from: U(1), p_battle_key: key(3), p_kind: "stronger_enemy" }); // U3 will flee
 ok((await one(`select interfered from public.room_battles where room_id='${R}' and battle_key='${key(1)}'`)).interfered === true, "interfered flag");
 // secrecy of interference identity
@@ -137,13 +137,37 @@ ok((await one(`select status from public.bets where room_id='${R}' and battle_ke
 await conserved(R, "reveal");
 // total supply identity: 5 players * 100 - interference kept (U4 30 + U5 30 (key2 lost)) + comp 15 - dust 1 ... compute from ledger above
 const supply = (await one(`select sum(chips)::int s from public.room_players where room_id='${R}'`)).s;
-ok(supply === 500 - 30 - 30 + 15 - 1 || supply === 500 - 30 - 30 + 15 - 1 + 0, "supply = issued - kept interference + comp - dust: " + supply);
+ok(supply === 500 - 20 - 30 + 15 - 1, "supply = issued - kept interference + comp - dust: " + supply);
 // re-settle is idempotent
 const sf = await rpc("settle_floor", { p_room: R, p_floor: 1 });
 ok(sf.battles.length === 0, "settle_floor idempotent");
 await err(rpc("settle_battle", { p_room: R, p_battle_key: key(1), p_outcome: "win" }), "battle_settled");
 // interference revealed after settle
 ok((await as("authenticated", U(2), () => db.query(`select * from public.interferences where room_id='${R}' and battle_key='${key(1)}'`))).rows.length === 1, "interference revealed after settle");
+// ---- floor votes (reveal, round 1 floor 1, deadline T(170))
+await err(rpc("cast_vote", { p_player: U(8), p_room: R, p_floor: 1, p_yes: true, p_now: T(110) }), "not_member");
+await err(rpc("cast_vote", { p_player: U(1), p_room: R, p_floor: 2, p_yes: true, p_now: T(110) }), "wrong_floor");
+await err(rpc("cast_vote", { p_player: U(1), p_room: R, p_floor: 1, p_yes: true, p_now: T(171) }), "wrong_phase", "vote after deadline");
+await rpc("cast_vote", { p_player: U(1), p_room: R, p_floor: 1, p_yes: false, p_now: T(110) });
+await rpc("cast_vote", { p_player: U(1), p_room: R, p_floor: 1, p_yes: true, p_now: T(111) }); // change of mind
+await rpc("cast_vote", { p_player: U(2), p_room: R, p_floor: 1, p_yes: false, p_now: T(111) });
+await rpc("cast_vote", { p_player: U(4), p_room: R, p_floor: 1, p_yes: true, p_now: T(111) });
+ok((await q(`select * from public.room_votes where room_id='${R}'`)).length === 3, "one vote row per player");
+ok((await as("authenticated", U(8), () => db.query(`select * from public.room_votes`))).rows.length === 0, "non-member sees no votes");
+await err(as("authenticated", U(2), () => db.query(`insert into public.room_votes(room_id,round,floor,player_id,yes) values ('${R}',1,1,'${U(2)}',true)`)), "permission denied", "client cannot write votes");
+const pv = await chips(R);
+await err(rpc("resolve_vote", { p_room: R, p_round: 1, p_floor: 1, p_opened: false, p_delta: 5 }), "invalid_args");
+const rv = await rpc("resolve_vote", { p_room: R, p_round: 1, p_floor: 1, p_opened: true, p_delta: -9999 }).catch((e) => e);
+ok(String(rv.message).includes("invalid_args"), "delta capped");
+const rv2 = await rpc("resolve_vote", { p_room: R, p_round: 1, p_floor: 1, p_opened: true, p_delta: -40 });
+ok(rv2.opened === true && rv2.yes === 2 && rv2.no === 1 && rv2.replayed === false, "resolve " + JSON.stringify(rv2));
+const pw = await chips(R);
+const present = (await q(`select player_id from public.room_players where room_id='${R}' and left_at is null and present`)).map((x) => x.player_id);
+ok(present.every((id) => pw[id] === Math.max(0, pv[id] - 40)), "everybody present gets the same delta (floored at 0): " + JSON.stringify([pv, pw]));
+const rv3 = await rpc("resolve_vote", { p_room: R, p_round: 1, p_floor: 1, p_opened: false, p_delta: 0 });
+ok(rv3.replayed === true && rv3.opened === true && (await chips(R))[U(1)] === pw[U(1)], "resolve idempotent");
+await err(rpc("cast_vote", { p_player: U(5), p_room: R, p_floor: 1, p_yes: true, p_now: T(112) }), "wrong_phase", "no votes after result");
+await conserved(R, "vote");
 // state readable by members only
 ok((await as("authenticated", U(2), () => db.query(`select * from public.room_state`))).rows.length === 1, "member reads room_state");
 ok((await as("authenticated", U(8), () => db.query(`select * from public.room_state`))).rows.length === 0, "non-member no room_state");

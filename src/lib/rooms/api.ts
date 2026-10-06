@@ -117,6 +117,19 @@ export const battleView = z.object({
 });
 export type BattleView = z.infer<typeof battleView>;
 
+/** Floor vote (shared-risk event). `open`: you may still vote; `result` once resolved. */
+export const voteView = z.object({
+  floor: int,
+  title: z.string(),
+  question: z.string(),
+  open: z.boolean(),
+  yes: int,
+  no: int,
+  mine: z.boolean().nullable(),
+  result: z.object({ opened: z.boolean(), delta: int }).nullable(),
+});
+export type VoteView = z.infer<typeof voteView>;
+
 export const roomSnapshot = z.object({
   roomId: uuid,
   code: z.string(),
@@ -139,6 +152,7 @@ export const roomSnapshot = z.object({
     }),
   ),
   emotes: z.array(z.object({ from: uuid, id: z.string(), at: int })),
+  vote: voteView.nullable().optional(),
 });
 export type RoomSnapshot = z.infer<typeof roomSnapshot>;
 

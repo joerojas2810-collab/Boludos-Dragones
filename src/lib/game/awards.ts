@@ -88,3 +88,28 @@ export const AWARD_INFO: Record<AwardId, { title: string; blurb: (v: number) => 
   escalador: { title: "El Escalador", blurb: (v) => `Llegó hasta el piso ${v}.` },
   rey: { title: "El Rey de las Fichas", blurb: (v) => `Cierra la noche con ${v} fichas.` },
 };
+
+const TITLE: Record<AwardId, (v: number) => string> = {
+  apostador: () => "Oráculo oficial",
+  mecenas: () => "Mecenas de la casa",
+  saboteador: () => "Saboteador oficial",
+  interferido: () => "Blanco favorito",
+  valiente: () => "Valiente de hilo",
+  murio: () => "Mártir oficial",
+  apuestas_perdidas: () => "Gafe de apuestas",
+  gafe: () => "Gafe oficial",
+  invicto: () => "Intocable",
+  escalador: (v) => `Rey del piso ${v}`,
+  rey: () => "Rey de las fichas",
+};
+
+/** One nickname per player for the night: their first award (priority order), else a default. */
+export function nightTitles(
+  playerIds: readonly string[],
+  awards: readonly AwardResult[],
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const a of awards) out[a.player] ??= TITLE[a.id](a.value);
+  for (const id of playerIds) out[id] ??= "Valiente sin título";
+  return out;
+}

@@ -195,6 +195,42 @@ export function realRoomStore(): RoomStore {
       });
       return { chips: Number(r.chips) };
     },
+    async castVote(player, room, floor, yes) {
+      await c("cast_vote", { p_player: player, p_room: room, p_floor: floor, p_yes: yes });
+    },
+    async resolveVote(room, round, floor, opened, delta) {
+      const r = await c("resolve_vote", {
+        p_room: room,
+        p_round: round,
+        p_floor: floor,
+        p_opened: opened,
+        p_delta: delta,
+      });
+      return { opened: r.opened === true, delta: Number(r.delta) };
+    },
+    async loadVote(room, round, floor) {
+      const vs = rows<{ player_id: string; yes: boolean }>(
+        await sb
+          .from("room_votes")
+          .select("player_id, yes")
+          .eq("room_id", room)
+          .eq("round", round)
+          .eq("floor", floor),
+      );
+      const [res] = rows<{ opened: boolean; delta: number }>(
+        await sb
+          .from("room_vote_results")
+          .select("opened, delta")
+          .eq("room_id", room)
+          .eq("round", round)
+          .eq("floor", floor)
+          .limit(1),
+      );
+      return {
+        votes: Object.fromEntries(vs.map((v) => [v.player_id, v.yes])),
+        result: res ? { opened: res.opened, delta: Number(res.delta) } : null,
+      };
+    },
     async markPresence(player, room, present) {
       await c("mark_presence", {
         p_player: player,

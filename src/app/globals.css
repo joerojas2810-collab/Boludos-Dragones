@@ -206,7 +206,51 @@ body {
 .fx-burst {
   animation: burst 0.7s steps(7) forwards;
 }
+@keyframes bigshake-a {
+  0%,
+  100% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(-6px, 3px);
+  }
+  40% {
+    transform: translate(6px, -3px);
+  }
+  60% {
+    transform: translate(-4px, -2px);
+  }
+  80% {
+    transform: translate(3px, 2px);
+  }
+}
+@keyframes bigshake-b {
+  0%,
+  100% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(-6px, 3px);
+  }
+  40% {
+    transform: translate(6px, -3px);
+  }
+  60% {
+    transform: translate(-4px, -2px);
+  }
+  80% {
+    transform: translate(3px, 2px);
+  }
+}
+.fx-bigshake-a {
+  animation: bigshake-a 0.35s steps(5) both;
+}
+.fx-bigshake-b {
+  animation: bigshake-b 0.35s steps(5) both;
+}
 @media (prefers-reduced-motion: reduce) {
+  .fx-bigshake-a,
+  .fx-bigshake-b,
   .rarity-frame[data-rarity="legendario"],
   .rarity-frame[data-rarity="legendario"]::after,
   .fx-shake,

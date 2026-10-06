@@ -4,6 +4,7 @@
 // (the contract says the snapshot is the source of truth anyway).
 // Fight HP and emotes ride on the snapshot (server keeps them in memory).
 import { computeAwards } from "../game/awards";
+import { interfereCostFor } from "../game/room";
 import { doorsFor } from "../game/run";
 import type { RunAction } from "../game/replay";
 import type {
@@ -239,6 +240,11 @@ export class RemoteRoomClient implements RoomClient {
       players,
       battles,
       awards: this.awards?.list ?? null,
+      interfereCost: interfereCostFor(
+        Object.fromEntries(players.map((p) => [p.id, p.chips])),
+        s.you,
+      ),
+      vote: s.vote ?? null,
       connection: "online",
     };
   }
@@ -291,6 +297,7 @@ export class RemoteRoomClient implements RoomClient {
     this.act("bet", { fighter, prediction, stake });
   interfere = (fighter: string, kind: InterfereKind) =>
     this.act("interfere", { fighter, kind });
+  vote = (floor: number, yes: boolean) => this.act("vote", { floor, yes });
   kick = (target: string) => this.act("kick", { target });
   transferHost = (to: string) => this.act("transfer_host", { to });
   endNight = () => this.act("end_night");

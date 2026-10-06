@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Panel } from "@/components/Panel";
+import { DailyStreak } from "@/components/DailyStreak";
 import { PullReveal } from "@/components/PullReveal";
 import { Sprite } from "@/components/Sprite";
 import { TopBar } from "@/components/TopBar";
@@ -17,6 +18,7 @@ import {
   type PullResult,
 } from "@/lib/game/profile";
 import { PITY_THRESHOLD, RARITIES, RARITY_IDS } from "@/lib/game/rarity";
+import { claimedToday, dayKey } from "@/lib/game/streak";
 import { WEAPON_TYPES } from "@/lib/game/weapons";
 import { repo, useProfile } from "@/lib/useProfile";
 import { resultViews, summarizePull } from "@/lib/viewModels";
@@ -173,15 +175,16 @@ export default function GachaPage() {
             );
           })}
         </div>
-        {repo.mode === "remote" && (
-          <button
-            className="btn btn-gray mx-auto mt-3 block text-center"
-            disabled={busy}
-            onClick={() => run(() => repo.dailyPull(banner))}
-          >
-            Tirada gratis de hoy
-          </button>
-        )}
+        <button
+          className="btn btn-gray mx-auto mt-3 block text-center"
+          disabled={busy || claimedToday(profile.daily, dayKey())}
+          onClick={() => run(() => repo.dailyPull(banner))}
+        >
+          Tirada gratis de hoy
+        </button>
+        <p className="mt-1 text-center text-sm text-yellow-300">
+          <DailyStreak profile={profile} />
+        </p>
         {error && <p className="text-center text-sm text-red-300">{error}</p>}
         {summary && (
           <p className="mt-2 text-center text-sm text-yellow-300">

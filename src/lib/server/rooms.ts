@@ -12,6 +12,7 @@ import {
   DEFAULT_HERO,
   endNight,
   isFightDoor,
+  hasVote,
   rankByChips,
   rankByFloor,
   startCoop,
@@ -33,9 +34,11 @@ import {
   type PhaseView,
   type RoomSnapshot,
   type RunView,
+  type VoteView,
   type SubmitRes,
   type SummaryRes,
 } from "../rooms/api";
+import { resolveVoteResult, voteClosesAt, VOTE_EVENT } from "../game/vote";
 import { ApiError, E } from "./http";
 import { RpcError } from "./rpc";
 import {
@@ -171,6 +174,48 @@ async function publish(d: RoomDeps, room: string, s: RoomState) {
   }
 }
 
+/** Present members who may vote (same set the SQL pays). */
+const voters = (s: RoomState) =>
+  s.players.filter((p) => !p.left && p.present).map((p) => p.id);
+
+/** Vote shown during `reveal` of a vote floor (null elsewhere). */
+async function voteViewOf(
+  d: RoomDeps,
+  s: RoomState,
+  room: string,
+  player: string,
+  nowMs: number,
+): Promise<VoteView | null> {
+  if (s.phase !== "reveal" || !hasVote(s.floor)) return null;
+  let v = await d.store.loadVote(room, s.round, s.floor);
+  if (!v.result && nowMs >= voteClosesAt(s.deadline)) {
+    await resolveFloorVote(d, s, room);
+    v = await d.store.loadVote(room, s.round, s.floor);
+  }
+  const ids = voters(s);
+  const yes = ids.filter((i) => v.votes[i] === true).length;
+  const no = ids.filter((i) => v.votes[i] === false).length;
+  return {
+    floor: s.floor,
+    title: VOTE_EVENT.title,
+    question: VOTE_EVENT.question,
+    open: !v.result && nowMs < voteClosesAt(s.deadline),
+    yes,
+    no,
+    mine: v.votes[player] ?? null,
+    result: v.result,
+  };
+}
+
+/** Leaving `reveal` of a vote floor: tally and pay once (idempotent in SQL). */
+async function resolveFloorVote(d: RoomDeps, s: RoomState, room: string) {
+  if (s.phase !== "reveal" || !hasVote(s.floor) || s.roundSeed === null) return;
+  const v = await d.store.loadVote(room, s.round, s.floor);
+  if (v.result) return;
+  const r = resolveVoteResult(s.roundSeed, s.round, s.floor, v.votes, voters(s));
+  await d.store.resolveVote(room, s.round, s.floor, r.outcome !== null, r.delta);
+}
+
 // ---------------------------------------------------------------- lobby-level
 export async function createRoomService(
   d: RoomDeps,
@@ -266,6 +311,7 @@ export async function snapshotService(
       })),
       rankChips: rankByChips(s).map((x) => x.id),
       rankFloor: rankByFloor(s).map((x) => x.id),
+      vote: await voteViewOf(d, s, room, player, d.now()),
       ...readLive(room, `${s.round}:${s.floor}`, d.now()),
     };
   });
@@ -502,6 +548,7 @@ export async function advanceService(
       if (!r.ok) return fail(r.error as "room_closed");
       if (!r.advanced) return stale(r.reason as AdvanceRes["reason"]);
     }
+    await resolveFloorVote(d, s, room);
     const n = r.state;
     const seedNow = s.roundSeed ?? 0;
     const res = await d.store.advance({
@@ -552,6 +599,7 @@ const LIMITS: Partial<Record<ClientMsg["type"], [number, number]>> = {
   submit: [30, 60],
   bet: [30, 60],
   interfere: [20, 60],
+  vote: [20, 60],
 };
 
 export async function roomAction(
@@ -629,6 +677,14 @@ export async function roomAction(
         if (msg.fighter === player) return fail("self_interfere");
         if (b.status !== "open") return fail("battle_locked");
         extra = await st.placeInterference(room, player, b.key, msg.kind);
+        break;
+      }
+      case "vote": {
+        const s = await load(d, room);
+        if (s.phase !== "reveal" || !hasVote(s.floor)) return fail("wrong_phase");
+        if (msg.floor !== s.floor) return fail("wrong_floor");
+        if (now >= voteClosesAt(s.deadline)) return fail("wrong_phase");
+        await st.castVote(player, room, msg.floor, msg.yes);
         break;
       }
       case "hero": {

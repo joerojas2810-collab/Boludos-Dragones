@@ -24,6 +24,7 @@ import {
   setReady,
   setTurnSeconds,
   settlePool,
+  hasVote,
   interfereCostFor,
   startRound,
   transferHost,
@@ -35,6 +36,7 @@ import {
   type RoomMode,
   type RoomState,
 } from "../game/room";
+import { resolveVoteResult, voteClosesAt, VOTE_EVENT } from "../game/vote";
 import { createRun, doorsFor, type Run } from "../game/run";
 import { autoResolvePicks, replayFloor } from "./play";
 import type {
@@ -49,6 +51,7 @@ import type {
   RoomEvent,
   RoomView,
   TurnInfo,
+  VoteInfo,
 } from "./types";
 
 const NAMES = ["Joaco", "Maru", "Tano", "Lucho", "Cami", "Nacho", "Pipo"];
@@ -96,6 +99,8 @@ export class FakeRoomClient implements RoomClient {
     { defeats: number; wins: number; betNet: number; interferes: number }
   >();
   private awards: Award[] | null = null;
+  private votes = new Map<string, Record<string, boolean>>(); // "round:floor" -> id -> yes
+  private voteDone = new Map<string, { opened: boolean; delta: number }>();
   private view: RoomView | null = null;
   private timer: ReturnType<typeof setInterval>;
   private flaky: string | null = null;
@@ -246,8 +251,44 @@ export class FakeRoomClient implements RoomClient {
         ),
         ME,
       ),
+      vote: this.voteInfo(),
       connection: "online",
     };
+  }
+
+  // ------------------------------------------------------------ votes
+  private voteKey = () => `${this.st.round}:${this.st.floor}`;
+  private voters = () => this.st.players.filter((p) => !p.left && p.present).map((p) => p.id);
+  private voteInfo(): VoteInfo | null {
+    const s = this.st;
+    if (s.phase !== "reveal" || !hasVote(s.floor)) return null;
+    const k = this.voteKey();
+    const v = this.votes.get(k) ?? {};
+    const result = this.voteDone.get(k) ?? null;
+    const ids = this.voters();
+    return {
+      floor: s.floor,
+      title: VOTE_EVENT.title,
+      question: VOTE_EVENT.question,
+      open: !result && this.vnow() < voteClosesAt(s.deadline),
+      yes: ids.filter((i) => v[i] === true).length,
+      no: ids.filter((i) => v[i] === false).length,
+      mine: v[ME] ?? null,
+      result,
+    };
+  }
+  private resolveVote() {
+    const s = this.st;
+    const k = this.voteKey();
+    if (s.phase !== "reveal" || !hasVote(s.floor) || this.voteDone.has(k)) return;
+    const r = resolveVoteResult(s.roundSeed ?? 0, s.round, s.floor, this.votes.get(k) ?? {}, this.voters());
+    this.voteDone.set(k, { opened: r.outcome !== null, delta: r.delta });
+    if (r.delta === 0) return;
+    const n = structuredClone(s);
+    for (const p of n.players)
+      if (!p.left && p.present) p.chips = Math.max(0, p.chips + r.delta);
+    this.st = n;
+    this.publish();
   }
 
   // ------------------------------------------------------------ bots
@@ -293,6 +334,13 @@ export class FakeRoomClient implements RoomClient {
         for (const id of bots) this.botFight(id);
         break;
       case "reveal":
+        if (hasVote(s.floor))
+          for (const id of bots)
+            this.after(this.rng.int(500, 5000), () => {
+              const k = this.voteKey();
+              if (this.st.phase === "reveal" && !this.voteDone.has(k))
+                this.votes.set(k, { ...this.votes.get(k), [id]: this.rng.chance(0.6) });
+            });
         for (const id of bots)
           if (this.rng.chance(0.4))
             this.after(this.rng.int(500, 6000), () =>
@@ -429,6 +477,7 @@ export class FakeRoomClient implements RoomClient {
       this.lastSeq = this.st.phaseSeq;
       this.onPhase();
     }
+    if (this.st.phase === "reveal" && now >= voteClosesAt(this.st.deadline)) this.resolveVote();
     const r = advance(this.st, now, this.st.phaseSeq, { seed: this.seed() });
     if (r.ok && r.advanced) this.apply(r);
     else if (this.view && this.view.deadline !== 0) this.publish();
@@ -519,6 +568,15 @@ export class FakeRoomClient implements RoomClient {
     const r = this.apply(placeInterference(this.st, ME, fighter, kind));
     if (r.ok) this.stat(ME).interferes += 1;
     return r;
+  }
+  async vote(floor: number, yes: boolean) {
+    const s = this.st;
+    if (s.phase !== "reveal" || !hasVote(s.floor)) return err("wrong_phase");
+    if (floor !== s.floor) return err("wrong_floor");
+    if (this.vnow() >= voteClosesAt(s.deadline) || this.voteDone.has(this.voteKey())) return err("wrong_phase");
+    this.votes.set(this.voteKey(), { ...this.votes.get(this.voteKey()), [ME]: yes });
+    this.publish();
+    return ok();
   }
   async kick(target: string) {
     return this.apply(kickPlayer(this.st, ME, target, this.vnow()));

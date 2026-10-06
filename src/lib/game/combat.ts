@@ -122,6 +122,7 @@ export interface Battle {
   status: Status;
   log: string[];
   events: BattleEvent[]; // what happened in the last step, for sfx/animation
+  guardEarned?: boolean; // the last step earned a perfect guard (sfx/animation only)
   mods?: EnemyMod[];
 }
 
@@ -600,6 +601,7 @@ export function step(
     }
   }
 
+  const guardEarned = log.some((l) => l.startsWith("¡Guardia perfecta!"));
   const queue = [...b.queue];
   let playerDone = b.playerActions - queue.filter((s) => s === "player").length;
   let playerActed = false;
@@ -742,6 +744,7 @@ export function step(
       queue: end ? [] : queue,
       status: end ?? "ongoing",
       events,
+      guardEarned,
       actions,
       log: [...b.log, ...log],
     };
@@ -810,6 +813,7 @@ export function step(
     actions,
     status: "ongoing",
     events,
+    guardEarned,
     log: [...b.log, ...log, ...plan.lines],
   };
 }

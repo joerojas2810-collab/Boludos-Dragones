@@ -20,6 +20,7 @@ import {
   type RarityId,
 } from "./rarity";
 import type { Rng } from "./rng";
+import { isDayKey, type DailyState } from "./streak";
 import { TRAIT_IDS, type TraitId } from "./traits";
 import {
   generateWeapon,
@@ -30,7 +31,7 @@ import {
   type Weapon,
 } from "./weapons";
 
-export const PROFILE_VERSION = 2;
+export const PROFILE_VERSION = 3; // 3: added optional `daily` (claim streak)
 export const PULL_COST_CHARACTER = 150;
 export const PULL_COST_WEAPON = 150;
 export const MULTI_PULL = 10;
@@ -56,6 +57,7 @@ export interface Profile {
   pity: Record<Banner, number>; // pulls since last Legendario
   // Character fragments per `${classId}:${rarity}` (see fragmentKey).
   fragments: Record<string, number>;
+  daily?: DailyState; // free daily pull streak (see streak.ts)
   lastBankedRunId?: string; // guard against banking the same run twice
   bestFloor: number;
   runsPlayed: number;
@@ -452,6 +454,14 @@ export function migrate(json: unknown): Profile {
       weapon: nat(pity.weapon, PITY_THRESHOLD),
     },
     fragments,
+    ...(isObj(json.daily) && isDayKey(json.daily.day)
+      ? {
+          daily: {
+            day: json.daily.day,
+            streak: Math.max(1, nat(json.daily.streak, 100000)),
+          },
+        }
+      : {}),
     ...(typeof json.lastBankedRunId === "string"
       ? { lastBankedRunId: json.lastBankedRunId.slice(0, 100) }
       : {}),

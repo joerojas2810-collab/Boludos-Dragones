@@ -97,7 +97,7 @@ export default function Prueba() {
   });
   const act = (a: Action, target: number) => {
     let next = step(b, a, rng, target);
-    playEvents(next.events, next.status);
+    playEvents(next.events, next.status, { guard: next.guardEarned });
     if (next.status === "won") {
       const r = gainXp(hero, XP_PER_WIN);
       next = withLog(

@@ -12,6 +12,7 @@ import {
   equipWeapon,
   heroFromOwned,
   pullCharacter,
+  pullCost,
   pullWeapon,
   spendFragments,
   unequipWeapon,
@@ -21,6 +22,7 @@ import {
 } from "./game/profile";
 import { ENGINE_VERSION, type RunAction } from "./game/replay";
 import { createRng } from "./game/rng";
+import { claimDaily, dayKey } from "./game/streak";
 
 export class RepoError extends Error {
   constructor(
@@ -101,8 +103,33 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
     mode: "local",
     load: async () => ({ name: "Local", isAdmin: false, profile: store.get() }),
     pull: (b, n) => pull(b, n),
-    dailyPull: async () => {
-      throw new RepoError("unavailable", "La tirada diaria necesita cuenta.");
+    dailyPull: async (banner) => {
+      const rng = createRng(Date.now());
+      const out: { rs: PullResult[] | null; claimed: boolean } = {
+        rs: null,
+        claimed: true,
+      };
+      store.update((p) => {
+        const c = claimDaily(p.daily, dayKey());
+        if (!c) return p;
+        out.claimed = false;
+        // Free pull: lend the coins for the cost, then keep the original balance.
+        const loan = { ...p, coins: p.coins + pullCost(banner, 1) };
+        const r =
+          banner === "character"
+            ? pullCharacter(loan, rng, 1)
+            : pullWeapon(loan, rng, 1);
+        out.rs = r?.results ?? null;
+        return r
+          ? { ...r.profile, daily: c.daily, coins: r.profile.coins + c.bonus }
+          : p;
+      });
+      if (out.claimed)
+        throw new RepoError(
+          "already_claimed",
+          "Ya reclamaste la tirada de hoy.",
+        );
+      return { results: out.rs };
     },
     equip: async (c, w) =>
       store.update((p) => (w ? equipWeapon(p, c, w) : unequipWeapon(p, c))),

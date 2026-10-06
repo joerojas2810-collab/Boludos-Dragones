@@ -15,6 +15,7 @@ import {
 } from "../game/profile";
 import { ENGINE_VERSION, replayRun, type RunAction } from "../game/replay";
 import { createRng } from "../game/rng";
+import { isDayKey, type DailyState } from "../game/streak";
 import { ApiError } from "./http";
 import {
   audit,
@@ -95,13 +96,22 @@ export function toMe(raw: RawProfile): Me {
 
 export async function loadMe(rpc: Rpc, playerId: string): Promise<Me> {
   try {
-    return toMe(
+    const me = toMe(
       await call<RawProfile>(rpc, "get_profile", { p_player: playerId }),
     );
+    const daily = await call<DailyState | null>(rpc, "get_streak", {
+      p_player: playerId,
+    });
+    return daily ? migrateDaily(me, daily) : me;
   } catch (e) {
     return mapRpcError(e);
   }
 }
+
+const migrateDaily = (me: Me, daily: DailyState): Me =>
+  isDayKey(daily.day) && Number.isInteger(daily.streak) && daily.streak > 0
+    ? { ...me, profile: { ...me.profile, daily } }
+    : me;
 
 // ---- gacha ----
 
@@ -182,8 +192,17 @@ export async function doPull(
         p_daily: daily,
         p_items: items,
       });
+      // ponytail: if this fails after the pull, the bonus is lost for that day.
+      const streak = daily
+        ? await call<{ streak: number; bonus: number }>(
+            d.rpc,
+            "settle_daily_streak",
+            { p_player: playerId },
+          )
+        : null;
       const fresh = await loadMe(d.rpc, playerId);
       return {
+        streak,
         replayed: r.replayed,
         results: r.replayed ? null : out.results,
         profile: fresh.profile,

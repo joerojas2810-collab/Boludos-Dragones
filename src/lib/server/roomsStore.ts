@@ -106,6 +106,23 @@ export interface RoomStore {
     battleKey: string,
     kind: InterfereKind,
   ): Promise<{ chips: number }>;
+  castVote(player: string, room: string, floor: number, yes: boolean): Promise<void>;
+  /** TS tallied and decided; SQL applies `delta` once to every present member. */
+  resolveVote(
+    room: string,
+    round: number,
+    floor: number,
+    opened: boolean,
+    delta: number,
+  ): Promise<{ opened: boolean; delta: number }>;
+  loadVote(
+    room: string,
+    round: number,
+    floor: number,
+  ): Promise<{
+    votes: Record<string, boolean>;
+    result: { opened: boolean; delta: number } | null;
+  }>;
   markPresence(player: string, room: string, present: boolean): Promise<void>;
   sweepPresence(room: string, nowMs: number): Promise<void>;
   nightSummary(room: string): Promise<SummaryRes>;

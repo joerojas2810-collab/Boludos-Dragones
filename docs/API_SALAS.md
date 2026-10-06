@@ -12,7 +12,7 @@ Tipos y esquemas zod: `src/lib/rooms/api.ts` (respuestas y eventos) y `src/lib/r
 | GET `/api/rooms/{id}/summary` | — | `SummaryRes` (solo `night_summary`/`closed`) |
 | POST `/api/rooms/{id}/{type}` | `clientMsg` con `type == {type}` y `room == {id}` | ver abajo |
 
-`{type}`: `leave, start_round, advance, door, submit, bet, interfere, hero, ready, set_mode, set_turn_seconds, kick, transfer_host, close, end_night, start_coop, heartbeat`. Cuerpo máx. 8 KB (`submit`: 200 KB). Respuesta por defecto `ActionRes {ok, state: PhaseView}`; excepciones: `advance` -> `AdvanceRes`; `door` -> `doorRes`; `bet`/`interfere` -> `chipsRes`; `submit` -> `SubmitRes`.
+`{type}`: `leave, start_round, advance, door, submit, bet, interfere, hero, ready, set_mode, set_turn_seconds, kick, transfer_host, close, end_night, start_coop, heartbeat, vote`. Cuerpo máx. 8 KB (`submit`: 200 KB). Respuesta por defecto `ActionRes {ok, state: PhaseView}`; excepciones: `advance` -> `AdvanceRes`; `door` -> `doorRes`; `bet`/`interfere` -> `chipsRes`; `submit` -> `SubmitRes`.
 
 Reglas por fase: ver `can()` en `room.ts`. Cualquiera puede llamar `advance` (con `phaseSeq` que vio) al vencer `deadlineMs` o si todos terminaron; el primero gana, los demás reciben `advanced:false` + estado vigente (`reason: stale|not_due`). Sugerido: esperar `advanceJitterMs(playerId)`.
 
@@ -26,6 +26,7 @@ Reglas por fase: ver `can()` en `room.ts`. Cualquiera puede llamar `advance` (co
   - Si en `fighting` te interfirieron, `RunView.enemyBoost` trae el tipo; aplícalo con `applyEnemyBoost` (`src/lib/game/interference.ts`) al nodo del enemigo antes de pelear o la repetición no coincidirá.
   - Perder/huir: no avanzas de piso en tu Run, pero la sala sí; al empezar el siguiente piso el servidor te alinea (`run.floor` = piso de la sala).
 - `bet {fighter, prediction, stake}`: solo en `betting`, mínimo 10, no sobre ti, no sobre eliminados/sin pelea, una por pelea. `interfere {fighter, kind}`: 30 fichas, secreto hasta `reveal`.
+- `vote {floor, yes}`: solo en `reveal` de los pisos con voto (`ROOM_K.voteFloors`, no jefes), hasta `voteShowMs` antes del fin. Gana la mayoría de los votos emitidos (empate o silencio = no se abre); el resultado (+/- fichas iguales para todos los presentes, escalado 2 a 7 jugadores) se paga una sola vez y llega en `RoomSnapshot.vote`. `interfere` cuesta 20 (en vez de 30) si eres el único último en fichas, vas >=50 detrás y hay >=3 jugadores (migración 0007).
 - `kick`, `transfer_host`, `set_mode` (solo lobby), `set_turn_seconds`, `close`, `end_night`, `start_round`: solo anfitrión. `start_coop` responde `coop_disabled`.
 - `heartbeat {present}`: cada ~5 s mientras la pestaña esté abierta (a los 10 s sin latido eres "ausente").
 

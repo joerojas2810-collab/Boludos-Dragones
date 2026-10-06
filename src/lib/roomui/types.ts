@@ -65,6 +65,18 @@ export interface BattleView {
 
 export type Award = AwardResult;
 
+/** Floor vote shown during `reveal` of a vote floor. */
+export interface VoteInfo {
+  floor: number;
+  title: string;
+  question: string;
+  open: boolean; // you can still vote
+  yes: number;
+  no: number;
+  mine: boolean | null;
+  result: { opened: boolean; delta: number } | null;
+}
+
 export interface RoomView {
   code: string;
   me: string;
@@ -82,6 +94,7 @@ export interface RoomView {
   awards: Award[] | null; // night_summary
   /** My interfere price; absent = flat ROOM_K.interfereCost (real server is still flat). */
   interfereCost?: number;
+  vote?: VoteInfo | null;
   connection: "online" | "reconnecting";
 }
 
@@ -134,6 +147,7 @@ export interface RoomClient {
   ): Promise<Res<{ outcome: FightOutcome | null; eliminated: boolean }>>;
   bet(fighter: string, prediction: BetPrediction, stake: number): Promise<Res>;
   interfere(fighter: string, kind: InterfereKind): Promise<Res>;
+  vote(floor: number, yes: boolean): Promise<Res>;
   kick(target: string): Promise<Res>;
   transferHost(to: string): Promise<Res>;
   endNight(): Promise<Res>;

@@ -377,7 +377,10 @@ function RunScreen() {
   };
 
   const settle = (s: Extract<Screen, { t: "fight" }>, next: Battle) => {
-    playEvents(next.events, next.status);
+    playEvents(next.events, next.status, {
+      guard: next.guardEarned,
+      boss: s.node.kind === "boss",
+    });
     const result =
       next.status === "ongoing" ? null : applyBattleResult(run, next, s.node);
     setScreen({ ...s, battle: next, result });

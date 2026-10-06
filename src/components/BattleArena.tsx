@@ -30,6 +30,17 @@ function fxStyle(b: Battle, side: "player" | "enemy", enemy?: number) {
   return anims.length ? { animation: anims.join(", ") } : undefined;
 }
 
+// Screen shake on a crit (timed with its event) or a perfect guard. Two
+// identical keyframes alternate so the animation restarts on every step.
+function bigMomentFx(b: Battle) {
+  const crit = b.events.findIndex((e) => e.kind === "crit");
+  if (crit < 0 && !b.guardEarned) return undefined;
+  return {
+    className: b.log.length % 2 ? "fx-bigshake-a" : "fx-bigshake-b",
+    style: { animationDelay: `${b.guardEarned ? 0 : crit * STAGGER_S}s` },
+  };
+}
+
 type Props = {
   b: Battle;
   playerExtra: string;
@@ -66,10 +77,21 @@ export function BattleArena({
     "mt-auto flex min-h-14 flex-1 items-end justify-center pt-1 w-full";
   const spriteSize =
     "relative h-full max-h-[9.5rem] aspect-square max-w-full [&>svg]:h-full [&>svg]:w-full";
+  const big = bigMomentFx(b);
   return (
     <div
-      className={`relative flex min-h-[32rem] flex-col overflow-hidden border-4 border-[var(--edge)] p-2 md:min-h-0 md:flex-1 ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""}`}
+      className={`relative flex min-h-[32rem] flex-col overflow-hidden border-4 border-[var(--edge)] p-2 md:min-h-0 md:flex-1 ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
+      style={big?.style}
     >
+      {boss && b.status === "won" && (
+        <div
+          className="fx-flash pointer-events-none absolute inset-0 z-20 bg-yellow-300/60"
+          style={{
+            animationDelay: `${b.events.length * STAGGER_S}s`,
+            opacity: 0,
+          }}
+        />
+      )}
       {world === undefined ? (
         <div className="absolute inset-x-0 bottom-0 h-[30%] border-t-4 border-[var(--edge)] bg-[#2b2420]" />
       ) : (

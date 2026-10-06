@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DailyStreak } from "@/components/DailyStreak";
 import { GameTitle } from "@/components/GameTitle";
 import { TitleScene } from "@/components/TitleScene";
 import { Panel } from "@/components/Panel";
@@ -20,6 +21,11 @@ export default function Home() {
           {profile &&
             `● ${profile.coins} monedas · Mejor piso: ${profile.bestFloor}`}
         </p>
+        {profile && (
+          <p className="-mt-2 mb-4 text-sm opacity-90">
+            <DailyStreak profile={profile} />
+          </p>
+        )}
         <div className="flex flex-col gap-3">
           <Link href="/run" className="btn text-center">
             Run infinita

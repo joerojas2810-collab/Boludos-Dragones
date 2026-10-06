@@ -3,6 +3,7 @@
 import {
   ROOM_K,
   isBossFloor,
+  revealMsFor,
   settlePool,
   validateBet,
   type DoorKind,
@@ -60,7 +61,7 @@ export function phaseTotalMs(phase: Phase, floor: number): number {
     case "fighting":
       return ROOM_K.fightCapMs + (isBossFloor(floor) ? ROOM_K.bossExtraMs : 0);
     case "reveal":
-      return ROOM_K.revealMs;
+      return revealMsFor(floor);
     case "round_end":
       return ROOM_K.roundEndMs;
     case "coop_boss":

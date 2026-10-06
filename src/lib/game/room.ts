@@ -30,6 +30,11 @@ export const ROOM_K = {
   fightCapMs: 90_000,
   bossExtraMs: 30_000,
   revealMs: 10_000,
+  voteFloors: [3, 7], // [K] floors (non-boss) that end with a shared-risk vote
+  voteExtraMs: 8_000, // [K] extra reveal time on a vote floor
+  voteShowMs: 3_000, // [K] result stays visible this long before the floor ends
+  voteChips: 25, // [K] chips per present player at stake (before player scaling)
+  voteScalePerMissing: 0.1, // [K] +10% per missing player below maxPlayers (2 players = x1.5)
   roundEndMs: 180_000,
   coopMs: 300_000,
   absentAfterMs: 10_000,
@@ -181,6 +186,12 @@ const done = (state: RoomState, effects: Effect[] = []): Result => ({
   state,
   effects,
 });
+
+export const hasVote = (floor: number) =>
+  (ROOM_K.voteFloors as readonly number[]).includes(floor) && !isBossFloor(floor);
+/** Reveal length: longer on vote floors so everybody can tap. */
+export const revealMsFor = (floor: number) =>
+  ROOM_K.revealMs + (hasVote(floor) ? ROOM_K.voteExtraMs : 0);
 
 export const isBossFloor = (floor: number) =>
   floor > 0 && floor % ROOM_K.bossEvery === 0;
@@ -901,7 +912,7 @@ function resolveFloor(n: RoomState, now: number, effects: Effect[]) {
     const bo = toBetOutcome(p.outcome);
     settleBattleIn(n, b, bo.outcome, bo.reason, effects);
   }
-  setPhase(n, "reveal", ROOM_K.revealMs, effects, now);
+  setPhase(n, "reveal", revealMsFor(n.floor), effects, now);
 }
 
 /**
@@ -962,7 +973,7 @@ export function advance(
       }
       for (const p of n.players) p.ready = false;
       if (keys.length === 0)
-        setPhase(n, "reveal", ROOM_K.revealMs, effects, now);
+        setPhase(n, "reveal", revealMsFor(n.floor), effects, now);
       else {
         effects.push({ type: "battles_opened", keys });
         setPhase(n, "betting", ROOM_K.bettingMs, effects, now);
@@ -980,7 +991,7 @@ export function advance(
       }
       const open = Object.values(n.battles).filter((b) => b.status === "open");
       if (open.length === 0) {
-        setPhase(n, "reveal", ROOM_K.revealMs, effects, now);
+        setPhase(n, "reveal", revealMsFor(n.floor), effects, now);
         break;
       }
       for (const b of open) b.status = "locked";

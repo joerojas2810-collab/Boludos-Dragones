@@ -109,6 +109,7 @@ export const clientMsg = z.discriminatedUnion("type", [
     eHp: z.number().int().min(0).max(1e6),
   }),
   z.strictObject({ ...m("emote"), id: z.enum(EMOTE_IDS) }),
+  z.strictObject({ ...m("vote"), floor, yes: z.boolean() }),
 ]);
 export type ClientMsg = z.infer<typeof clientMsg>;
 

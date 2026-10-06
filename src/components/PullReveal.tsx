@@ -34,8 +34,15 @@ export function PullReveal({ items, onDone }: Props) {
   }, [shown, items]);
 
   const single = items.length === 1;
+  const legendNow = shown >= 0 && items[shown].rarity === "legendario";
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center gap-4 overflow-y-auto bg-black/95 p-4 [&>*:first-child]:mt-auto [&>*:last-child]:mb-auto">
+      {legendNow && (
+        <div
+          key={shown}
+          className="fx-flash pointer-events-none fixed inset-0 bg-yellow-300/50"
+        />
+      )}
       {shown < 0 ? (
         <div className="relative flex h-40 w-40 items-center justify-center">
           <div
@@ -50,7 +57,7 @@ export function PullReveal({ items, onDone }: Props) {
         </div>
       ) : (
         <div
-          className={`grid gap-x-2 gap-y-4 ${single ? "grid-cols-1" : "grid-cols-3 sm:grid-cols-5"}`}
+          className={`${legendNow ? "fx-bigshake-a" : ""} grid gap-x-2 gap-y-4 ${single ? "grid-cols-1" : "grid-cols-3 sm:grid-cols-5"}`}
         >
           {items.slice(0, shown + 1).map((it, i) => (
             <div key={i} className="relative fx-flip">

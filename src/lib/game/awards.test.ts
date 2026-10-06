@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeAwards, type AwardInput } from "./awards";
+import { computeAwards, nightTitles, type AwardInput } from "./awards";
 import { interfereCostFor, ROOM_K } from "./room";
 
 const P = (id: string, o: Partial<AwardInput> = {}): AwardInput => ({
@@ -36,5 +36,17 @@ describe("interfereCostFor", () => {
     expect(interfereCostFor({ a: 200, b: 120, c: 90 }, "b")).toBe(ROOM_K.interfereCost);
     expect(interfereCostFor({ a: 200, b: 170, c: 180 }, "b")).toBe(ROOM_K.interfereCost);
     expect(interfereCostFor({ a: 200, b: 10 }, "b")).toBe(ROOM_K.interfereCost);
+  });
+});
+
+describe("nightTitles", () => {
+  it("gives every player a title derived from awards", () => {
+    const ps = [P("a", { maxFloor: 12, losses: 0, wins: 3 }), P("b", { losses: 4 }), P("c")];
+    const aw = computeAwards(ps);
+    const t = nightTitles(["a", "b", "c", "d"], aw);
+    expect(Object.keys(t).sort()).toEqual(["a", "b", "c", "d"]);
+    expect(t.b).toBe("Gafe oficial");
+    expect(t.d).toBe("Valiente sin título");
+    expect(nightTitles(["x"], [{ id: "escalador", player: "x", value: 12 }]).x).toBe("Rey del piso 12");
   });
 });

@@ -135,6 +135,10 @@ export class FakeDb {
         });
       case "start_run":
         return this.okv({ run_id: "00000000-0000-4000-8000-000000000001" });
+      case "get_streak":
+        return this.okv(null);
+      case "settle_daily_streak":
+        return this.okv({ streak: 1, bonus: 0 });
       default:
         throw new RpcError(`unexpected rpc ${name}`);
     }

@@ -80,7 +80,24 @@ function magic(c: AudioContext, t: number, k: number, e: BattleEvent) {
   o.stop(t + 0.3);
   noiseBurst(c, t + 0.1, 3000 * k, 800 * k, 1.5, 0.15, 0.08);
   ring(c, t + 0.1, 100 * k, 0.12, 0.12);
-  if (e.kind === "crit") ring(c, t + 0.12, 2000 * k, 0.4, 0.04);
+  if (e.kind === "crit") {
+    ring(c, t + 0.12, 2000 * k, 0.4, 0.04);
+    boom(c, t + 0.1, 0.25);
+  }
+}
+
+// Low boom for big moments (crit impact).
+function boom(c: AudioContext, t: number, vol: number) {
+  const o = c.createOscillator();
+  const g = c.createGain();
+  o.type = "sine";
+  o.frequency.setValueAtTime(150, t);
+  o.frequency.exponentialRampToValueAtTime(40, t + 0.25);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+  o.connect(g).connect(c.destination);
+  o.start(t);
+  o.stop(t + 0.3);
 }
 
 // Rival sounds are pitched lower than the player's.
@@ -106,6 +123,7 @@ function play(e: BattleEvent, delay: number) {
   if (e.kind === "crit") {
     ring(ctx, t, 2300 * k, 0.45, 0.05);
     ring(ctx, t, 3400 * k, 0.35, 0.03);
+    boom(ctx, t, 0.3);
   }
 }
 
@@ -143,14 +161,44 @@ function playJingle(status: Status, delay: number) {
   );
 }
 
+// Perfect guard: shield clang plus a rising two-note ring.
+function playGuard(t: number) {
+  if (!ctx) return;
+  noiseBurst(ctx, t, 2500, 900, 4, 0.1, 0.12);
+  ring(ctx, t, 1200, 0.35, 0.08);
+  ring(ctx, t + 0.09, 1800, 0.5, 0.07);
+  boom(ctx, t, 0.2);
+}
+
+// Boss down: longer fanfare after the usual victory jingle.
+function playBossDown(t: number) {
+  if (!ctx) return;
+  [392, 523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) =>
+    note(ctx!, t + i * 0.11, f, 0.5, 0.16),
+  );
+  noiseBurst(ctx, t + 0.7, 1000, 6000, 1, 0.6, 0.07);
+}
+
+export interface BattleMoments {
+  guard?: boolean; // perfect guard earned in this step
+  boss?: boolean; // the fight is against a boss
+}
+
 // Call from a user gesture (browsers block audio otherwise).
-export function playEvents(events: BattleEvent[], status: Status = "ongoing") {
+export function playEvents(
+  events: BattleEvent[],
+  status: Status = "ongoing",
+  moments: BattleMoments = {},
+) {
   if (muted) return;
   try {
     ctx ??= new AudioContext();
     if (ctx.state === "suspended") void ctx.resume();
+    if (moments.guard) playGuard(ctx.currentTime);
     events.forEach((e, i) => play(e, i * 0.5));
     playJingle(status, events.length * 0.5 + 0.1);
+    if (moments.boss && status === "won")
+      playBossDown(ctx.currentTime + events.length * 0.5 + 0.6);
   } catch {
     // audio unavailable: ignore
   }

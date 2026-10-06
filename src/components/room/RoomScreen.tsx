@@ -17,7 +17,7 @@ import { useProfile } from "@/lib/useProfile";
 import { useNow, useRoom, type LiveFight } from "@/lib/useRoom";
 import { characterView } from "@/lib/viewModels";
 import { filterSortCharacters } from "@/lib/viewModels";
-import { AWARD_INFO } from "@/lib/game/awards";
+import { AWARD_INFO, nightTitles } from "@/lib/game/awards";
 import { DEFAULT_HERO } from "@/lib/game/room";
 import type { EmoteId, RoomClient, RoomView } from "@/lib/roomui/types";
 import {
@@ -72,7 +72,9 @@ export function RoomScreen({
     return (
       <Centered>
         <p className="mb-3">
-          {gone === "closed" ? "La sala se cerró." : "Ya no estás en esta sala."}
+          {gone === "closed"
+            ? "La sala se cerró."
+            : "Ya no estás en esta sala."}
         </p>
         <button className="btn" onClick={onExit}>
           Salir
@@ -89,8 +91,17 @@ export function RoomScreen({
   const iFight = !!view.battles[view.me];
   const rows = rankRows(view.players, "chips", view.me);
   const canPlay =
-    !!me && !me.eliminated && view.floor >= me.activeFromFloor && me.outcome === null;
+    !!me &&
+    !me.eliminated &&
+    view.floor >= me.activeFromFloor &&
+    me.outcome === null;
   const floorKey = `${view.round}:${view.floor}`;
+  const titles = view.awards
+    ? nightTitles(
+        view.players.map((p) => p.id),
+        view.awards,
+      )
+    : null;
 
   let main: ReactNode = null;
   switch (view.phase) {
@@ -101,7 +112,9 @@ export function RoomScreen({
         <>
           {view.phase === "lobby" && (
             <Panel title="Sala">
-              <div className="text-center text-sm opacity-80">Código para unirse</div>
+              <div className="text-center text-sm opacity-80">
+                Código para unirse
+              </div>
               <div className="mb-3 text-center text-4xl tracking-[0.3em] text-yellow-300">
                 {view.code}
               </div>
@@ -120,7 +133,9 @@ export function RoomScreen({
                     aria-label="Segundos por turno"
                     className="btn btn-gray"
                     value={view.turnSeconds}
-                    onChange={(e) => void run(client.setTurnSeconds(Number(e.target.value)))}
+                    onChange={(e) =>
+                      void run(client.setTurnSeconds(Number(e.target.value)))
+                    }
                   >
                     {[20, 30, 45, 60].map((s) => (
                       <option key={s} value={s}>
@@ -131,7 +146,8 @@ export function RoomScreen({
                 </div>
               ) : (
                 <div className="text-center text-sm">
-                  Modo: {view.mode === "nivelado" ? "nivelado" : "poder completo"} ·{" "}
+                  Modo:{" "}
+                  {view.mode === "nivelado" ? "nivelado" : "poder completo"} ·{" "}
                   {view.turnSeconds} s por turno
                 </div>
               )}
@@ -147,13 +163,20 @@ export function RoomScreen({
                 {me.ready ? "Quitar listo" : "Listo"}
               </button>
             )}
-            {isHost && (view.phase === "lobby" || view.phase === "round_end") && (
-              <button className="btn" onClick={() => void run(client.startRound())}>
-                {view.phase === "lobby" ? "Iniciar ronda" : "Siguiente ronda"}
-              </button>
-            )}
+            {isHost &&
+              (view.phase === "lobby" || view.phase === "round_end") && (
+                <button
+                  className="btn"
+                  onClick={() => void run(client.startRound())}
+                >
+                  {view.phase === "lobby" ? "Iniciar ronda" : "Siguiente ronda"}
+                </button>
+              )}
             {isHost && view.phase === "round_end" && (
-              <button className="btn btn-gray" onClick={() => void run(client.endNight())}>
+              <button
+                className="btn btn-gray"
+                onClick={() => void run(client.endNight())}
+              >
                 Terminar la noche
               </button>
             )}
@@ -196,7 +219,12 @@ export function RoomScreen({
       main = (
         <>
           {canPlay && myDoor && !isFightDoor(myDoor) && (
-            <FloorPlayer key={floorKey} client={client} floor={view.floor} door={myDoor} />
+            <FloorPlayer
+              key={floorKey}
+              client={client}
+              floor={view.floor}
+              door={myDoor}
+            />
           )}
           <BetPanel view={view} client={client} onError={setErr} />
           {me && (
@@ -214,17 +242,34 @@ export function RoomScreen({
       main = (
         <>
           {canPlay && iFight && myDoor && (
-            <FloorPlayer key={floorKey} client={client} floor={view.floor} door={myDoor} />
+            <FloorPlayer
+              key={floorKey}
+              client={client}
+              floor={view.floor}
+              door={myDoor}
+            />
           )}
           {canPlay && !iFight && myDoor && !isFightDoor(myDoor) && (
-            <FloorPlayer key={floorKey} client={client} floor={view.floor} door={myDoor} />
+            <FloorPlayer
+              key={floorKey}
+              client={client}
+              floor={view.floor}
+              door={myDoor}
+            />
           )}
           <FightStrip view={view} live={live} />
         </>
       );
       break;
     case "reveal":
-      main = <FightStrip view={view} live={live} reveal />;
+      main = (
+        <>
+          {view.vote && (
+            <VotePanel vote={view.vote} client={client} onError={setErr} />
+          )}
+          <FightStrip view={view} live={live} reveal />
+        </>
+      );
       break;
     case "night_summary":
     case "closed":
@@ -233,11 +278,23 @@ export function RoomScreen({
           {view.awards?.map((a) => (
             <div key={a.id} className="mb-2 text-center">
               <div className="font-bold">
-                {AWARD_INFO[a.id].title}: {view.players.find((p) => p.id === a.player)?.name ?? "?"}
+                {AWARD_INFO[a.id].title}:{" "}
+                {view.players.find((p) => p.id === a.player)?.name ?? "?"}
               </div>
-              <div className="text-sm opacity-80">{AWARD_INFO[a.id].blurb(a.value)}</div>
+              <div className="text-sm opacity-80">
+                {AWARD_INFO[a.id].blurb(a.value)}
+              </div>
             </div>
           ))}
+          {titles && (
+            <ul className="mt-3 space-y-1 border-t border-white/10 pt-3 text-center text-sm">
+              {rows.map((r) => (
+                <li key={r.id}>
+                  <b>{r.name}</b>: <span className="text-yellow-300">{titles[r.id]}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="mt-3 text-center">
             <button className="btn" onClick={onExit}>
               Salir
@@ -259,7 +316,9 @@ export function RoomScreen({
       <Panel>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <div className={`text-lg font-semibold ${TONE[banner.tone]}`}>{banner.title}</div>
+            <div className={`text-lg font-semibold ${TONE[banner.tone]}`}>
+              {banner.title}
+            </div>
             <div className="text-sm opacity-80">{banner.hint}</div>
           </div>
           <div className="text-right">
@@ -284,17 +343,26 @@ export function RoomScreen({
               return (
                 <li key={r.id} className="flex items-center gap-2 text-sm">
                   <span className="w-5 text-right opacity-70">{r.pos}</span>
-                  <span className={`min-w-0 flex-1 truncate ${r.isMe ? "text-yellow-300" : ""}`}>
+                  <span
+                    className={`min-w-0 flex-1 truncate ${r.isMe ? "text-yellow-300" : ""}`}
+                  >
                     {p.isHost && "★ "}
                     {r.name}
+                    {titles && (
+                      <span className="block text-xs text-yellow-300">{titles[r.id]}</span>
+                    )}
                     {emotes[r.id] && <span> {EMOTES[emotes[r.id].id]}</span>}
                     <span className={`block text-xs ${STATUS_COLOR[st.kind]}`}>
                       {p.hero ? `${p.hero.name} · ` : ""}
                       {st.text}
                     </span>
                   </span>
-                  <span className="tabular-nums text-yellow-300">{r.chips}</span>
-                  <span className="w-8 text-right text-xs opacity-70">P{r.floor}</span>
+                  <span className="tabular-nums text-yellow-300">
+                    {r.chips}
+                  </span>
+                  <span className="w-8 text-right text-xs opacity-70">
+                    P{r.floor}
+                  </span>
                   {isHost && r.id !== view.me && view.phase !== "closed" && (
                     <button
                       className="btn btn-gray !px-2 !py-0 text-xs"
@@ -315,7 +383,11 @@ export function RoomScreen({
           {view.phase !== "closed" && (
             <div className="mt-2 flex flex-wrap gap-1">
               {(Object.keys(EMOTES) as EmoteId[]).map((id) => (
-                <button key={id} className="btn btn-gray !px-2" onClick={() => emote(id)}>
+                <button
+                  key={id}
+                  className="btn btn-gray !px-2"
+                  onClick={() => emote(id)}
+                >
                   {EMOTES[id]}
                 </button>
               ))}
@@ -348,18 +420,27 @@ export function RoomScreen({
   );
 }
 
-
 const Centered = ({ children }: { children: ReactNode }) => (
   <main className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
     {children}
   </main>
 );
 
-function HeroPicker({ view, onPick }: { view: RoomView; onPick: (id: string) => void }) {
+function HeroPicker({
+  view,
+  onPick,
+}: {
+  view: RoomView;
+  onPick: (id: string) => void;
+}) {
   const { profile } = useProfile();
   const mine = view.players.find((p) => p.id === view.me)?.heroId ?? null;
   const owned = profile
-    ? filterSortCharacters(profile.characters, { classId: "all", rarity: "all", sort: "rarity" })
+    ? filterSortCharacters(profile.characters, {
+        classId: "all",
+        rarity: "all",
+        sort: "rarity",
+      })
     : [];
   return (
     <Panel title="Tu héroe">
@@ -377,11 +458,19 @@ function HeroPicker({ view, onPick }: { view: RoomView; onPick: (id: string) => 
         </button>
         {owned.map((c) => (
           <button key={c.id} aria-label={c.name} onClick={() => onPick(c.id)}>
-            <ItemCard item={characterView(c)} size={64} selected={mine === c.id} />
+            <ItemCard
+              item={characterView(c)}
+              size={64}
+              selected={mine === c.id}
+            />
           </button>
         ))}
       </div>
-      {mine === null && <p className="mt-2 text-center text-sm text-yellow-300">Aún no elegiste.</p>}
+      {mine === null && (
+        <p className="mt-2 text-center text-sm text-yellow-300">
+          Aún no elegiste.
+        </p>
+      )}
     </Panel>
   );
 }
@@ -396,27 +485,37 @@ function FightStrip({
   reveal?: boolean;
 }) {
   const list = fightersOf(view);
-  const nameOf = (id: string) => view.players.find((x) => x.id === id)?.name ?? "?";
+  const nameOf = (id: string) =>
+    view.players.find((x) => x.id === id)?.name ?? "?";
   return (
     <Panel title={reveal ? "Resultados" : "Peleas"}>
-      {list.length === 0 && <p className="text-center text-sm">Nadie pelea este piso.</p>}
+      {list.length === 0 && (
+        <p className="text-center text-sm">Nadie pelea este piso.</p>
+      )}
       <ul className="space-y-1">
         {list.map((p) => {
           const st = playerStatus(view, p, null);
           const b = view.battles[p.id];
           const lf = live[p.id];
-          const pct = lf && lf.pMax > 0 ? Math.round((lf.pHp / lf.pMax) * 100) : null;
-          const epct = lf && lf.eMax > 0 ? Math.round((lf.eHp / lf.eMax) * 100) : null;
+          const pct =
+            lf && lf.pMax > 0 ? Math.round((lf.pHp / lf.pMax) * 100) : null;
+          const epct =
+            lf && lf.eMax > 0 ? Math.round((lf.eHp / lf.eMax) * 100) : null;
           return (
             <li key={p.id} className="text-sm">
               <div className="flex items-center gap-2">
                 <span className="min-w-0 flex-1 truncate">
                   {p.name}
-                  {p.door && <span className="opacity-70"> · {DOOR_NAME[p.door]}</span>}
+                  {p.door && (
+                    <span className="opacity-70"> · {DOOR_NAME[p.door]}</span>
+                  )}
                   {b.interfered && (
                     <span className="text-red-400">
                       {" "}
-                      · interferido{b.interferenceFrom ? ` por ${nameOf(b.interferenceFrom)}` : ""}
+                      · interferido
+                      {b.interferenceFrom
+                        ? ` por ${nameOf(b.interferenceFrom)}`
+                        : ""}
                     </span>
                   )}
                 </span>
@@ -424,8 +523,14 @@ function FightStrip({
               </div>
               {pct !== null && b.status !== "settled" && (
                 <div className="mt-1 flex items-center gap-2 text-xs">
-                  <Bar pct={pct} color="bg-green-500" label={`Vida de ${p.name}`} />
-                  {epct !== null && <Bar pct={epct} color="bg-red-500" label="Vida del rival" />}
+                  <Bar
+                    pct={pct}
+                    color="bg-green-500"
+                    label={`Vida de ${p.name}`}
+                  />
+                  {epct !== null && (
+                    <Bar pct={epct} color="bg-red-500" label="Vida del rival" />
+                  )}
                 </div>
               )}
               {b.bets.length > 0 && (
@@ -442,6 +547,52 @@ function FightStrip({
           );
         })}
       </ul>
+    </Panel>
+  );
+}
+
+function VotePanel({
+  vote,
+  client,
+  onError,
+}: {
+  vote: NonNullable<RoomView["vote"]>;
+  client: RoomClient;
+  onError: (e: string | null) => void;
+}) {
+  const go = async (yes: boolean) => {
+    const r = await client.vote(vote.floor, yes);
+    onError(r.ok ? null : errorText(String(r.error)));
+  };
+  const res = vote.result;
+  return (
+    <Panel title={vote.title}>
+      <p className="mb-2 text-center">{vote.question}</p>
+      <p className="mb-2 text-center text-sm opacity-80">
+        Sí {vote.yes} · No {vote.no} · gana la mayoría; empate o silencio = no se abre.
+      </p>
+      {res ? (
+        <p className={`text-center font-bold ${res.opened ? (res.delta > 0 ? "text-green-300" : "text-red-400") : "opacity-80"}`}>
+          {!res.opened
+            ? "No se abrió. Nadie gana ni pierde."
+            : res.delta > 0
+              ? `¡Tesoro! Todos ganan ${res.delta} fichas.`
+              : `¡Maldición! Todos pierden ${-res.delta} fichas.`}
+        </p>
+      ) : (
+        <div className="flex justify-center gap-2">
+          {([true, false] as const).map((yes) => (
+            <button
+              key={String(yes)}
+              className={`btn ${vote.mine === yes ? "" : "btn-gray"}`}
+              disabled={!vote.open}
+              onClick={() => void go(yes)}
+            >
+              {yes ? "Abrir" : "Dejarlo"}
+            </button>
+          ))}
+        </div>
+      )}
     </Panel>
   );
 }
@@ -467,14 +618,19 @@ function BetPanel({
   const me = view.players.find((p) => p.id === view.me);
   const cost = view.interfereCost ?? ROOM_K.interfereCost;
   const mark = (k: string) => setDone((s) => new Set(s).add(k));
-  const go = async (key: string, p: Promise<{ ok: boolean; error?: unknown }>) => {
+  const go = async (
+    key: string,
+    p: Promise<{ ok: boolean; error?: unknown }>,
+  ) => {
     const r = await p;
     onError(r.ok ? null : errorText(String(r.error)));
     if (r.ok) mark(key);
   };
   return (
     <Panel title={`Apuestas · tienes ${me?.chips ?? 0} fichas`}>
-      {targets.length === 0 && <p className="text-center text-sm">No hay peleas apostables.</p>}
+      {targets.length === 0 && (
+        <p className="text-center text-sm">No hay peleas apostables.</p>
+      )}
       <div className="mb-2 flex items-center justify-center gap-2 text-sm">
         Apuesta:
         {STAKES.map((s) => (
@@ -491,18 +647,33 @@ function BetPanel({
         {targets.map((p) => {
           const open = view.battles[p.id]?.status === "open";
           return (
-            <li key={p.id} className="pixel-frame flex flex-wrap items-center gap-2 p-2 text-sm">
+            <li
+              key={p.id}
+              className="pixel-frame flex flex-wrap items-center gap-2 p-2 text-sm"
+            >
               <span className="min-w-0 flex-1">
                 <b>{p.name}</b>
-                {p.hero && ` · ${p.hero.name} (${CLASSES[p.hero.classId].name})`}
-                {p.door && <span className="opacity-70"> · {DOOR_NAME[p.door as DoorKind]}</span>}
+                {p.hero &&
+                  ` · ${p.hero.name} (${CLASSES[p.hero.classId].name})`}
+                {p.door && (
+                  <span className="opacity-70">
+                    {" "}
+                    · {DOOR_NAME[p.door as DoorKind]}
+                  </span>
+                )}
               </span>
               {(["win", "lose"] as const).map((pred) => (
                 <button
                   key={pred}
                   className="btn !px-3"
-                  disabled={!open || done.has(`b${p.id}`) || (me?.chips ?? 0) < Math.max(stake, ROOM_K.minBet)}
-                  onClick={() => void go(`b${p.id}`, client.bet(p.id, pred, stake))}
+                  disabled={
+                    !open ||
+                    done.has(`b${p.id}`) ||
+                    (me?.chips ?? 0) < Math.max(stake, ROOM_K.minBet)
+                  }
+                  onClick={() =>
+                    void go(`b${p.id}`, client.bet(p.id, pred, stake))
+                  }
                 >
                   {pred === "win" ? "Ganará" : "Perderá"}
                 </button>
@@ -511,7 +682,9 @@ function BetPanel({
                 <button
                   key={k}
                   className="btn btn-gray !px-3"
-                  disabled={!open || done.has(`i${p.id}`) || (me?.chips ?? 0) < cost}
+                  disabled={
+                    !open || done.has(`i${p.id}`) || (me?.chips ?? 0) < cost
+                  }
                   onClick={() => void go(`i${p.id}`, client.interfere(p.id, k))}
                 >
                   {label} ({cost})
@@ -525,7 +698,15 @@ function BetPanel({
   );
 }
 
-function Bar({ pct, color, label }: { pct: number; color: string; label: string }) {
+function Bar({
+  pct,
+  color,
+  label,
+}: {
+  pct: number;
+  color: string;
+  label: string;
+}) {
   const w = Math.min(100, Math.max(0, pct));
   return (
     <span
@@ -534,7 +715,10 @@ function Bar({ pct, color, label }: { pct: number; color: string; label: string 
       aria-valuenow={w}
       className="relative h-2 min-w-0 flex-1 overflow-hidden rounded bg-black/50"
     >
-      <span className={`absolute inset-y-0 left-0 ${color}`} style={{ width: `${w}%` }} />
+      <span
+        className={`absolute inset-y-0 left-0 ${color}`}
+        style={{ width: `${w}%` }}
+      />
     </span>
   );
 }
