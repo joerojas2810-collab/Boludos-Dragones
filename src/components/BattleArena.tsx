@@ -75,14 +75,14 @@ export function BattleArena({
   const multi = n > 1;
   const first = b.enemies[Math.min(enemy, n - 1)];
   const sprite =
-    "mt-auto flex min-h-28 flex-1 items-end justify-center pt-1 w-full";
+    "mt-auto flex min-h-20 flex-1 items-end justify-center pt-1 w-full";
   const spriteSize =
     "relative h-full max-h-[9.5rem] aspect-square max-w-full [&>svg]:h-full [&>svg]:w-full";
   const big = bigMomentFx(b);
   const { fx, paused } = useBattleFx(b, boss);
   return (
     <div
-      className={`relative flex min-h-[32rem] flex-col overflow-hidden border-4 border-[var(--edge)] p-2 md:min-h-[24rem] md:flex-1 ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
+      className={`relative flex min-h-[32rem] flex-col overflow-hidden border-4 border-[var(--edge)] p-2 md:min-h-0 md:flex-1 ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
       style={big?.style}
       data-hitstop={paused}
     >

@@ -146,7 +146,7 @@ export default function Prueba() {
     });
   const restart = () => setGame(newGame(rng));
   return (
-    <main className="p-4 pt-8 text-base md:min-h-screen">
+    <main className="p-4 pt-8 text-base md:h-screen md:overflow-hidden">
       <div className="mx-auto flex max-w-4xl flex-col gap-4 md:h-full md:flex-row-reverse">
         <LogPanel lines={b.log}>
           <Link href="/" className="btn btn-gray mt-3 block w-full text-center">

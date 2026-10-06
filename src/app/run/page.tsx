@@ -848,7 +848,7 @@ function RunScreen() {
   );
 
   return (
-    <main className="flex flex-col gap-3 p-3 pt-6 text-base md:min-h-screen">
+    <main className="flex flex-col gap-3 p-3 pt-6 text-base md:h-screen md:overflow-hidden">
       <div className="mx-auto w-full max-w-4xl">
         <Hud run={run} />
       </div>
@@ -871,7 +871,7 @@ const CLASS_BLURB: Record<ClassId, string> = {
 
 function ClassSelect({ onPick }: { onPick: (c: ClassId) => void }) {
   return (
-    <main className="flex flex-col justify-center gap-4 p-3 pt-8 md:min-h-screen">
+    <main className="flex flex-col justify-center gap-4 p-3 pt-8 md:h-screen md:overflow-hidden">
       <Panel title="Elige tu clase" className="mx-auto w-full max-w-4xl">
         <p className="mb-3 text-center text-base text-[#d9d2ca]">
           Elemento, rasgos y stats se sortean al empezar.

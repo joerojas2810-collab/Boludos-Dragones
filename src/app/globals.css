@@ -442,3 +442,15 @@ a:focus-visible {
   text-shadow: 2px 0 #0c2a4a, -2px 0 #0c2a4a, 0 2px #0c2a4a, 0 -2px #0c2a4a,
     0 4px #0c2a4a;
 }
+
+/* Short windows: tighter stat rows so the arena keeps room for the sprites. */
+@media (max-height: 760px) {
+  .stat-cell {
+    font-size: 0.75rem;
+    line-height: 1.1rem;
+    gap: 0.2rem;
+  }
+  .stat-v {
+    font-size: 0.8125rem;
+  }
+}
