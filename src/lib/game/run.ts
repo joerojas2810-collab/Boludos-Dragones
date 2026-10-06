@@ -107,19 +107,19 @@ export const FIGHT_PRESSURE_PER_FLOOR = 0.07;
 export const FIGHT_PRESSURE_MAX = 0.75;
 // Base coins per reward, scaled by (1 + COIN_FLOOR_SCALE * floor).
 export const COIN_FLOOR_SCALE = 0.12;
-export const FIGHT_COINS = { easy: 10, hard: 20, boss: 60 } as const;
+export const FIGHT_COINS = { easy: 5, hard: 9, boss: 27 } as const;
 export const FIGHT_XP_MULT = { easy: 1.5, hard: 2.5, boss: 5 } as const;
-export const CHEST_COINS = 25;
+export const CHEST_COINS = 11;
 export const REST_HEAL = 0.4; // fraction of max hp
 export const LIFE_LOSS_HEAL = 0.6; // hp fraction after losing a life
 export const FLEE_COIN_FRACTION = 0.3; // coins lost when fleeing (min 1 if any)
 export const SEDIENTO_HEAL = 0.1; // trait healOnWin
 export const GAFE_LOSS_XP = 15; // trait xpOnLoss
 export const SHOP_PRICES = {
-  heal: 25,
-  stat: 60,
-  life: 140,
-  reroll: 35,
+  heal: 11,
+  stat: 27,
+  life: 63,
+  reroll: 16,
 } as const;
 export const POTION_HEAL = 0.4;
 
