@@ -340,6 +340,11 @@ export const runCoinCap = (floors: number, victoryBonus = 0) =>
 // a run cannot be faster than a person clicking, a day pays a bounded amount of
 // run coins, and starts / banked runs are rate limited.
 export const MIN_ACTION_MS = 400; // fastest believable pace per logged action
+// High-stakes dungeons (unlocks, big payouts): below the floor = unpaid; between the
+// floor and the doubt line = paid, but audited ("run_slow_pace") with its log kept.
+export const MIN_ACTION_MS_HIGH = 700;
+export const DOUBT_ACTION_MS_HIGH = 1_000;
+export const HIGH_RANKS: readonly RarityId[] = ["s", "ss", "ssr"];
 export const MIN_ACTION_GRACE_MS = 3_000; // clock skew between app and database
 export const RUN_COINS_PER_DAY = 10_000; // ~40 normal runs; more pays 0 coins
 export const RUNS_PER_DAY = 60;
@@ -371,11 +376,25 @@ export async function submitRunService(
   if (row.status !== "open")
     throw new ApiError(409, "duplicate_run", "Esta run ya fue entregada.");
   await limit(d.rpc, `rundaily:${playerId}`, RUNS_PER_DAY, 86400);
+  const {
+    engineVersion: stored = 1,
+    dungeon,
+    ascension: storedAsc,
+    ...hero
+  } = row.hero as Character & {
+    engineVersion?: number;
+    dungeon?: RarityId;
+    ascension?: number;
+  };
+  const ascension = rank0(storedAsc);
+  const rank = isDungeonRank(dungeon) ? dungeon : null;
   // Impossibly fast log: close the run unpaid (nothing is credited) and say why.
+  const minMs =
+    rank && HIGH_RANKS.includes(rank) ? MIN_ACTION_MS_HIGH : MIN_ACTION_MS;
   const elapsed = row.startedAt ? Date.now() - row.startedAt : null;
   if (
     elapsed !== null &&
-    elapsed + MIN_ACTION_GRACE_MS < body.actions.length * MIN_ACTION_MS
+    elapsed + MIN_ACTION_GRACE_MS < body.actions.length * minMs
   ) {
     try {
       await call(d.rpc, "bank_run", {
@@ -394,6 +413,7 @@ export async function submitRunService(
       runId: body.runId,
       elapsed,
       n: body.actions.length,
+      rank,
     });
     throw new ApiError(
       429,
@@ -401,18 +421,6 @@ export async function submitRunService(
       "Esa run se jugó demasiado rápido para ser real y no se pagó.",
     );
   }
-  const {
-    engineVersion: stored = 1,
-    dungeon,
-    ascension: storedAsc,
-    ...hero
-  } = row.hero as Character & {
-    engineVersion?: number;
-    dungeon?: RarityId;
-    ascension?: number;
-  };
-  const ascension = rank0(storedAsc);
-  const rank = isDungeonRank(dungeon) ? dungeon : null;
   if (body.engineVersion !== undefined && body.engineVersion !== stored)
     throw new ApiError(
       409,
@@ -443,6 +451,16 @@ export async function submitRunService(
   );
   let verdict: Verdict = "accepted";
   let reason: string | null = null;
+  // Keep the action log of every S+ clear so its pace can be reviewed later.
+  const highRank = rank !== null && HIGH_RANKS.includes(rank);
+  const doubtful =
+    highRank &&
+    elapsed !== null &&
+    elapsed + MIN_ACTION_GRACE_MS < body.actions.length * DOUBT_ACTION_MS_HIGH;
+  const keepLog =
+    highRank &&
+    (isVictory(rep.run) || doubtful) &&
+    body.actions.length <= 2000;
   if (rep.rejectedAt !== null) {
     verdict = "truncated";
     reason = `illegal action at ${rep.rejectedAt}`;
@@ -465,7 +483,7 @@ export async function submitRunService(
       p_run_id: body.runId,
       p_coins: coins,
       p_max_floor: floors,
-      p_log: verdict === "accepted" ? null : body.actions,
+      p_log: verdict === "accepted" && !keepLog ? null : body.actions,
       p_verdict: SQL_VERDICT[verdict],
       p_reason: reason,
       // First clear / better clear of the dungeon, as the replay says.
@@ -482,6 +500,13 @@ export async function submitRunService(
         name: p.name,
       })),
     });
+    if (doubtful)
+      await audit(d.rpc, playerId, "run_slow_pace", {
+        runId: body.runId,
+        elapsed,
+        n: body.actions.length,
+        rank,
+      });
     if (verdict !== "accepted" || r.capped || coins < rep.run.coins)
       await audit(d.rpc, playerId, "run_" + verdict, {
         runId: body.runId,

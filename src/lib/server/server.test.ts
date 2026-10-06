@@ -613,10 +613,10 @@ describe("run anti-farming", () => {
   };
   const log = playBot(4242, hero, 2000, "f");
   const truth = replayRun(4242, hero, log, ENGINE_VERSION, "f").run;
-  const open = (db: FakeDb, startedAt?: number) => {
+  const open = (db: FakeDb, startedAt?: number, dungeon = "f") => {
     db.run = {
       seed: 4242,
-      hero: { ...hero, engineVersion: ENGINE_VERSION, dungeon: "f" },
+      hero: { ...hero, engineVersion: ENGINE_VERSION, dungeon },
       status: "open",
       startedAt,
     };
@@ -637,6 +637,21 @@ describe("run anti-farming", () => {
     });
     expect(db.banked[0]).toMatchObject({ p_verdict: "rejected", p_coins: 0 });
     expect(db.audits).toContain("run_too_fast");
+  });
+
+  it("S+ dungeons: 0.5 s per action is closed unpaid, 0.85 s pays but is audited with its log", async () => {
+    const db = new FakeDb();
+    open(db, Date.now() - log.length * 500, "s");
+    expect(await catchErr(sub(db))).toMatchObject({ code: "too_fast" });
+    const doubt = new FakeDb();
+    open(doubt, Date.now() - log.length * 850, "s");
+    await sub(doubt);
+    expect(doubt.banked[0].p_log).not.toBeNull();
+    expect(doubt.audits).toContain("run_slow_pace");
+    const lowRank = new FakeDb();
+    open(lowRank, Date.now() - log.length * 500); // same pace in F still pays
+    await sub(lowRank);
+    expect(lowRank.banked[0].p_coins).toBe(truth.coins);
   });
 
   it("a plausible pace still pays, and the daily coin cap stops the rest", async () => {

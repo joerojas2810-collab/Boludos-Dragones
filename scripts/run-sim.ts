@@ -223,7 +223,16 @@ function play(seed: number, strat: Strategy): Result {
         ...base,
         rarity: HERO_RANK,
         stars: HERO_STARS,
-        stats: scaleStats(base.stats, HERO_RANK, HERO_STARS),
+        stats: (() => {
+          const st = scaleStats(base.stats, HERO_RANK, HERO_STARS);
+          // GEAR_HP/GEAR_DEF/GEAR_ATK: worn-gear bonus fractions (e.g. 0.3)
+          return {
+            ...st,
+            hp: st.hp * (1 + Number(process.env.GEAR_HP ?? 0)),
+            def: st.def * (1 + Number(process.env.GEAR_DEF ?? 0)),
+            atk: st.atk * (1 + Number(process.env.GEAR_ATK ?? 0)),
+          };
+        })(),
       }
     : base;
   let run = createRun(
@@ -338,6 +347,7 @@ function play(seed: number, strat: Strategy): Result {
   }
   res.floor = run.maxFloor;
   res.won = isVictory(run);
+  if (res.won && process.env.WINS) console.log(`WIN prompts ${res.turns} fights ${res.fights}`);
   res.lives = run.lives;
   res.relics = run.relics;
   res.level = run.hero.level;
