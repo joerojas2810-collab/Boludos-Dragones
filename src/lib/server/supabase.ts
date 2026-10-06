@@ -75,13 +75,30 @@ export function realDeps(): Deps {
     async getRun(playerId, runId) {
       const { data } = await sb
         .from("runs")
-        .select("seed, hero, status")
+        .select("seed, hero, status, started_at")
         .eq("player_id", playerId)
         .eq("id", runId)
         .maybeSingle();
       return data
-        ? { seed: Number(data.seed), hero: data.hero, status: data.status }
+        ? {
+            seed: Number(data.seed),
+            hero: data.hero,
+            status: data.status,
+            startedAt: Date.parse(String(data.started_at)),
+          }
         : null;
+    },
+    async coinsToday(playerId) {
+      const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+      const { data } = await sb
+        .from("runs")
+        .select("coins_earned")
+        .eq("player_id", playerId)
+        .gte("finished_at", since);
+      return (data ?? []).reduce(
+        (n, r) => n + Number((r as { coins_earned: number }).coins_earned),
+        0,
+      );
     },
   };
 }

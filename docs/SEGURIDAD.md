@@ -282,3 +282,17 @@ Falta (mismo patrón): `rooms`, `room_players` (`chips check >= 0`), `chip_ledge
 - [S21] https://owasp.org/www-project-juice-shop/
 - [S22] https://supabase.com/docs/guides/deployment/going-into-prod
 - Anti-trampa por repetición: patrón descrito en https://gigazine.net/gsc_news/en/20211110-open-hexagon-against-cheet y https://accelbyte.io/blog/server-authoritative-logic-to-prevent-cheating
+
+## Auditoría 2026-10-06 (código + base)
+
+**Revisado y sin hallazgos:** ningún cliente escribe en la base (RLS en todo, solo SELECT propio, `revoke` a anon/authenticated, funciones solo para `service_role` desde 0018); el servidor decide todo (tiradas con semilla propia, forja y mercado con el mismo código puro, monedas/botín/partes/limpiezas de la repetición, daño del jefe cooperativo de la repetición); entradas con zod estricto y tope de tamaño; CSRF por Origin; login con límites por nombre e IP y mensajes iguales; PIN derivado con secreto del servidor (llamar a Supabase Auth directo no sirve sin el secreto); sin secretos en git; CSP y cabeceras.
+
+**Riesgo real encontrado (corregido):** el motor es determinista y el cliente conoce la semilla, así que un script con IA podía jugar runs a velocidad de CPU y entregarlas en bucle (granja de monedas/botín, o descartar semillas malas). Ahora (`services.ts`):
+- una run no puede ser más rápida que `MIN_ACTION_MS` (400 ms) por acción registrada: se cierra sin pagar y se anota `run_too_fast`;
+- tope de `RUN_COINS_PER_DAY` (10.000) monedas de runs por jugador y 24 h (lo que pase paga 0 monedas);
+- límites: 20 inicios de run por hora y 60 runs entregadas por día;
+- `clientIp` prefiere `x-vercel-forwarded-for` (no falsificable en Vercel).
+
+**Riesgo aceptado (no se puede cerrar sin combate en el servidor):** una IA puede *jugar bien*, incluso mirar la semilla y elegir las mejores acciones; solo se la limita a ritmo humano y a los topes de arriba. Lo mismo vale para el daño del jefe cooperativo (acotado por el tiempo de la fase).
+
+**Revisar a mano en Supabase tras cada migración:** ejecutar `supabase/tests/check_exposure.sql` (las 4 consultas deben devolver 0 filas); en Authentication desactivar "Allow new users to sign up"; en Realtime desactivar "Allow public access".

@@ -250,6 +250,7 @@ export async function startRunService(
   body: RunStartBody,
 ) {
   await limit(d.rpc, `runstart:${playerId}`, 10, 60);
+  await limit(d.rpc, `runstarth:${playerId}`, 20, 3600);
   const me = await loadMe(d.rpc, playerId);
   const rank = body.rank ?? "f";
   if (!isUnlocked(me.profile.dungeons, rank))
@@ -335,6 +336,14 @@ const rank0 = (v: unknown) =>
 export const runCoinCap = (floors: number, victoryBonus = 0) =>
   floors * 120 + (15 * floors * (floors + 1)) / 2 + victoryBonus;
 
+// Anti-farming (a script can replay the deterministic engine at CPU speed):
+// a run cannot be faster than a person clicking, a day pays a bounded amount of
+// run coins, and starts / banked runs are rate limited.
+export const MIN_ACTION_MS = 400; // fastest believable pace per logged action
+export const MIN_ACTION_GRACE_MS = 3_000; // clock skew between app and database
+export const RUN_COINS_PER_DAY = 10_000; // ~40 normal runs; more pays 0 coins
+export const RUNS_PER_DAY = 60;
+
 export interface RunSubmitBody {
   runId: string;
   actions: RunAction[];
@@ -361,6 +370,37 @@ export async function submitRunService(
   if (!row) throw new ApiError(404, "run_not_found", "Run no encontrada.");
   if (row.status !== "open")
     throw new ApiError(409, "duplicate_run", "Esta run ya fue entregada.");
+  await limit(d.rpc, `rundaily:${playerId}`, RUNS_PER_DAY, 86400);
+  // Impossibly fast log: close the run unpaid (nothing is credited) and say why.
+  const elapsed = row.startedAt ? Date.now() - row.startedAt : null;
+  if (
+    elapsed !== null &&
+    elapsed + MIN_ACTION_GRACE_MS < body.actions.length * MIN_ACTION_MS
+  ) {
+    try {
+      await call(d.rpc, "bank_run", {
+        p_player: playerId,
+        p_run_id: body.runId,
+        p_coins: 0,
+        p_max_floor: 0,
+        p_log: body.actions.length <= 2000 ? body.actions : null,
+        p_verdict: "rejected",
+        p_reason: `too_fast ${elapsed}ms for ${body.actions.length} actions`,
+      });
+    } catch (e) {
+      return mapRpcError(e);
+    }
+    await audit(d.rpc, playerId, "run_too_fast", {
+      runId: body.runId,
+      elapsed,
+      n: body.actions.length,
+    });
+    throw new ApiError(
+      429,
+      "too_fast",
+      "Esa run se jugó demasiado rápido para ser real y no se pagó.",
+    );
+  }
   const {
     engineVersion: stored = 1,
     dungeon,
@@ -392,7 +432,15 @@ export async function submitRunService(
     rank && isVictory(rep.run) && rep.rejectedAt === null
       ? victoryCoins(rank, ascension)
       : 0;
-  const coins = Math.min(rep.run.coins, runCoinCap(floors, clearBonus));
+  const dayLeft = Math.max(
+    0,
+    RUN_COINS_PER_DAY - (await d.coinsToday(playerId)),
+  );
+  const coins = Math.min(
+    rep.run.coins,
+    runCoinCap(floors, clearBonus),
+    dayLeft,
+  );
   let verdict: Verdict = "accepted";
   let reason: string | null = null;
   if (rep.rejectedAt !== null) {

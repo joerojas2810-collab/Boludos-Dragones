@@ -92,7 +92,9 @@ export function checkOrigin(req: Request): void {
   if (!ok) throw E.forbidden();
 }
 
+// On Vercel `x-vercel-forwarded-for` is set by the platform and cannot be forged by the client.
 export const clientIp = (req: Request): string =>
+  req.headers.get("x-vercel-forwarded-for")?.split(",")[0].trim() ||
   req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
   req.headers.get("x-real-ip") ||
   "unknown";

@@ -14,7 +14,13 @@ import { parseEnv } from "./envSchema";
 import { ApiError, checkOrigin, readJson } from "./http";
 import { BAD_CREDENTIALS, login } from "./loginFlow";
 import { limit } from "./rpc";
-import { doForge, doPull, startRunService, submitRunService } from "./services";
+import {
+  doForge,
+  doPull,
+  RUN_COINS_PER_DAY,
+  startRunService,
+  submitRunService,
+} from "./services";
 import { FakeDb, playBot } from "./testkit";
 import {
   credsBody,
@@ -591,6 +597,63 @@ describe("run replay + submit", () => {
       lives: truth.lives,
       asc: 0,
     });
+  });
+});
+
+describe("run anti-farming", () => {
+  const h0 = generateCharacter(createRng(7), "caballero");
+  const hero = {
+    ...h0,
+    stats: {
+      ...h0.stats,
+      hp: h0.stats.hp * 25,
+      atk: h0.stats.atk * 6,
+      def: h0.stats.def * 6,
+    },
+  };
+  const log = playBot(4242, hero, 2000, "f");
+  const truth = replayRun(4242, hero, log, ENGINE_VERSION, "f").run;
+  const open = (db: FakeDb, startedAt?: number) => {
+    db.run = {
+      seed: 4242,
+      hero: { ...hero, engineVersion: ENGINE_VERSION, dungeon: "f" },
+      status: "open",
+      startedAt,
+    };
+  };
+  const sub = (db: FakeDb) =>
+    submitRunService(db.deps, "u1", {
+      runId: UUID,
+      actions: log as never,
+      claimed: { coins: truth.coins, maxFloor: truth.maxFloor },
+    });
+
+  it("a run logged faster than a person can click is closed unpaid", async () => {
+    const db = new FakeDb();
+    open(db, Date.now() - 5_000); // hundreds of actions in 5 s
+    expect(await catchErr(sub(db))).toMatchObject({
+      status: 429,
+      code: "too_fast",
+    });
+    expect(db.banked[0]).toMatchObject({ p_verdict: "rejected", p_coins: 0 });
+    expect(db.audits).toContain("run_too_fast");
+  });
+
+  it("a plausible pace still pays, and the daily coin cap stops the rest", async () => {
+    const db = new FakeDb();
+    open(db, Date.now() - log.length * 1000);
+    await sub(db);
+    expect(db.banked[0].p_coins).toBe(truth.coins);
+    const capped = new FakeDb();
+    open(capped, Date.now() - log.length * 1000);
+    capped.coinsToday = RUN_COINS_PER_DAY - 5;
+    await sub(capped);
+    expect(capped.banked[0].p_coins).toBe(Math.min(5, truth.coins));
+    const full = new FakeDb();
+    open(full, Date.now() - log.length * 1000);
+    full.coinsToday = RUN_COINS_PER_DAY;
+    await sub(full);
+    expect(full.banked[0].p_coins).toBe(0);
   });
 });
 

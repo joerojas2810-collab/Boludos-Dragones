@@ -28,8 +28,14 @@ export class FakeDb {
   calls: { name: string; args: Args }[] = [];
   conflictOnce = false;
   rateLimited = false;
-  run: { seed: number; hero: unknown; status: string } | null = null;
+  run: {
+    seed: number;
+    hero: unknown;
+    status: string;
+    startedAt?: number;
+  } | null = null;
   banked: Args[] = [];
+  coinsToday = 0;
   audits: string[] = [];
 
   deps: Deps = {
@@ -37,6 +43,7 @@ export class FakeDb {
     randomSeed: () => 12345,
     openRunId: async () => null,
     getRun: async () => this.run,
+    coinsToday: async () => this.coinsToday,
   };
 
   private err(m: string): RpcResult {

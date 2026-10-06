@@ -18,7 +18,14 @@ export interface Deps {
   getRun(
     playerId: string,
     runId: string,
-  ): Promise<{ seed: number; hero: unknown; status: string } | null>;
+  ): Promise<{
+    seed: number;
+    hero: unknown;
+    status: string;
+    startedAt?: number; // ms epoch, set by the DB when the run opened
+  } | null>;
+  /** Coins credited by this player's runs in the last 24 h. */
+  coinsToday(playerId: string): Promise<number>;
 }
 
 // SQL errors arrive as the exception message == contract error code.
