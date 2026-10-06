@@ -56,7 +56,7 @@ function ActionButton({
   return (
     <Tooltip tip={tip} className="block" focusable={false}>
       <button
-        className={`btn h-full min-h-14 w-full md:[@media(max-height:700px)]:min-h-12 ${hot ? "!border-yellow-300" : ""}`}
+        className={`btn h-full min-h-14 w-full md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1 ${hot ? "!border-yellow-300" : ""}`}
         disabled={disabled}
         onClick={onClick}
       >

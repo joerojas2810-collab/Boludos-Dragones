@@ -454,3 +454,10 @@ a:focus-visible {
     font-size: 0.8125rem;
   }
 }
+
+/* Very short windows: drop the stat grid so HP, sprites and actions all fit. */
+@media (max-height: 620px) {
+  .hud-stats {
+    display: none;
+  }
+}

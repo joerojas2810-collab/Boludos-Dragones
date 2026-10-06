@@ -75,7 +75,7 @@ export function BattleArena({
   const multi = n > 1;
   const first = b.enemies[Math.min(enemy, n - 1)];
   const sprite =
-    "mt-auto flex min-h-20 flex-1 items-end justify-center pt-1 w-full";
+    "mt-auto flex min-h-20 md:[@media(max-height:620px)]:min-h-10 flex-1 items-end justify-center pt-1 w-full";
   const spriteSize =
     "relative h-full max-h-[9.5rem] aspect-square max-w-full [&>svg]:h-full [&>svg]:w-full";
   const big = bigMomentFx(b);

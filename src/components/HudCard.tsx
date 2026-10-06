@@ -166,7 +166,7 @@ export function HudCard({
         {children}
       </div>
       <div
-        className={`mt-1.5 grid gap-x-2 ${compact ? "grid-cols-3" : "grid-cols-2 lg:grid-cols-3 lg:[@media(max-height:760px)]:grid-cols-4"}`}
+        className={`hud-stats mt-1.5 grid gap-x-2 ${compact ? "grid-cols-3" : "grid-cols-2 lg:grid-cols-3 lg:[@media(max-height:760px)]:grid-cols-4"}`}
       >
         {cells.map((cell) => (
           <Tooltip
