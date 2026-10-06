@@ -1276,7 +1276,7 @@ function CharacterSelect({
     return (
       <main className="flex flex-col justify-center gap-4 p-3 pt-8">
         <Panel
-          title={`Equipamiento · ${chosen.name}`}
+          title={`Equipo · ${chosen.name}`}
           className="mx-auto w-full max-w-2xl space-y-3"
         >
           <p className="text-sm text-[#d9d2ca]">
@@ -1312,12 +1312,13 @@ function CharacterSelect({
   return (
     <main className="flex flex-col justify-center gap-4 p-3 pt-8">
       <Panel
-        title={`Elige con quién entrar · ${RARITIES[dungeon].label} ${DUNGEONS[dungeon].name}`}
+        title={`Elige héroe · ${RARITIES[dungeon].label}`}
         className="mx-auto w-full max-w-4xl"
       >
         <p className="mb-3 text-center text-base text-[#d9d2ca]">
-          Tus personajes, del más fuerte al más débil (el poder cuenta rango,
-          estrellas, arma y equipo). El más fuerte viene preseleccionado.
+          {DUNGEONS[dungeon].name}. Tus personajes, del más fuerte al más débil
+          (el poder cuenta rango, estrellas, arma y equipo). El más fuerte viene
+          preseleccionado.
         </p>
         <div className="grid max-h-[calc(100vh-22rem)] min-h-40 grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] justify-items-center gap-x-2 gap-y-4 overflow-y-auto pr-1">
           {owned.map(({ c, power }, i) => {
