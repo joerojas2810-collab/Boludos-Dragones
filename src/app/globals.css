@@ -3,9 +3,12 @@
 :root {
   --bg: #2b2420;
   --panel: #3f3733;
+  --surface-raised: #493b32;
   --edge: #1d1714;
   --trim: #b8651f;
   --text: #f2ebe3;
+  --muted: #d9d2ca;
+  --focus: #fde047;
 }
 
 @theme inline {
@@ -14,7 +17,7 @@
 }
 
 body {
-  background: var(--bg);
+  background: linear-gradient(180deg, #342a23 0, var(--bg) 24rem);
   color: var(--text);
   font-family: var(--font-pixel), monospace;
 }
@@ -23,7 +26,41 @@ body {
 .pixel-frame {
   background: var(--panel);
   border: 4px solid var(--edge);
-  box-shadow: inset 0 0 0 3px var(--trim);
+  box-shadow: inset 0 0 0 3px var(--trim), 0 3px 0 var(--edge);
+}
+
+.choice-card {
+  min-width: 0;
+  border: 3px solid var(--edge);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 2px var(--trim), inset 0 -5px 0 rgb(0 0 0 / 0.16);
+  transition:
+    filter 120ms steps(2),
+    transform 120ms steps(2);
+}
+.pixel-frame.choice-card {
+  border-width: 4px;
+  box-shadow: inset 0 0 0 3px var(--trim), inset 0 -6px 0 rgb(0 0 0 / 0.16);
+}
+.choice-card:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+.choice-card:active:not(:disabled) {
+  transform: translateY(2px);
+}
+.choice-button {
+  transition:
+    filter 120ms steps(2),
+    transform 120ms steps(2);
+}
+.choice-title {
+  color: #ffe0a1;
+  font-family: var(--font-title), serif;
+  line-height: 1.2;
+}
+.choice-detail {
+  color: var(--muted);
+  line-height: 1.35;
 }
 
 .btn {
@@ -35,6 +72,9 @@ body {
   text-shadow: 1px 1px 0 rgb(29 23 20 / 0.7);
   background: #35903f;
   box-shadow: inset 0 -5px 0 #236b2c;
+  transition:
+    filter 120ms steps(2),
+    transform 120ms steps(2);
 }
 .btn:hover:not(:disabled) {
   filter: brightness(1.12);
@@ -54,6 +94,19 @@ body {
   color: #2b2420;
   text-shadow: none;
   box-shadow: inset 0 -5px 0 #a39f9a;
+}
+
+.btn:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+.choice-card:focus-visible,
+.choice-button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
 }
 
 @keyframes lunge-right {
@@ -259,6 +312,15 @@ body {
   .fx-burst {
     animation: none;
   }
+  .btn,
+  .choice-card,
+  .choice-button {
+    transition: none;
+  }
+  .btn:active:not(:disabled),
+  .choice-card:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 /* tooltips */
@@ -302,8 +364,15 @@ body {
 [role="group"][tabindex]:focus-visible,
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid #fde047;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
+}
+
+.panel-title {
+  color: #ffe0a1;
+  font-family: var(--font-title), serif;
+  letter-spacing: 0.025em;
+  text-shadow: 1px 1px 0 #2a1a0c;
 }
 .stat-cell {
   cursor: help;

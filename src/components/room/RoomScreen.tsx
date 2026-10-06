@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { DoorIcon } from "@/components/DoorIcon";
+import { FloorPlayer } from "@/components/room/FloorPlayer";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
-import { FloorPlayer } from "@/components/room/FloorPlayer";
 import { CLASSES } from "@/lib/game/characters";
 import {
   isFightDoor,
@@ -201,12 +202,13 @@ export function RoomScreen({
               {doors.map((d, i) => (
                 <button
                   key={i}
-                  className={`pixel-frame min-w-32 p-3 hover:brightness-125 ${
+                  className={`pixel-frame choice-card flex min-w-32 flex-col items-center gap-1 p-3 text-center ${
                     myDoor === d.kind ? "!border-green-400" : ""
                   } ${d.kind === "boss" ? "!border-red-700" : ""}`}
                   onClick={() => void run(client.door(view.floor, d.kind))}
                 >
-                  {DOOR_NAME[d.kind]}
+                  <DoorIcon kind={d.kind} className="h-10" />
+                  <span className="choice-title">{DOOR_NAME[d.kind]}</span>
                 </button>
               ))}
             </div>

@@ -554,7 +554,7 @@ function RunScreen() {
                 focusable={false}
               >
                 <button
-                  className="btn h-full w-full"
+                  className="btn choice-button h-full w-full"
                   onClick={() => {
                     log(
                       `Mejora: ${UPGRADES[id].name} (${upgradeLabel(id, run.ups[id] ?? 0)}).`,
@@ -590,7 +590,7 @@ function RunScreen() {
                 focusable={false}
               >
                 <button
-                  className={`btn h-full w-full ${RARITY_BORDER[RELICS[id].rarity]}`}
+                  className={`btn choice-button h-full w-full ${RARITY_BORDER[RELICS[id].rarity]}`}
                   onClick={() => {
                     log(`Reliquia: ${RELICS[id].name}.`);
                     rec({ t: "relic", id });
@@ -638,7 +638,7 @@ function RunScreen() {
                     ? "Ya tienes la vida llena"
                     : null;
               return (
-                <div key={it.id} className="flex items-center gap-3">
+                <div key={it.id} className="choice-card flex items-center gap-3 p-2">
                   <Tooltip
                     tip={shopItemTip(it, run)}
                     className="min-w-0 flex-1"
@@ -653,7 +653,7 @@ function RunScreen() {
                     </span>
                   </Tooltip>
                   <button
-                    className="btn w-32 shrink-0 text-center text-base"
+                      className="btn choice-button w-32 shrink-0 text-center text-base"
                     disabled={bought || poor || useless}
                     onClick={() => {
                       const r = buyItem(run, it.id);
@@ -714,7 +714,7 @@ function RunScreen() {
                     focusable={false}
                   >
                     <button
-                      className="btn w-full"
+                      className="btn choice-button w-full"
                       disabled={!cost.affordable}
                       onClick={() => {
                         const r = resolveEvent(run, i);
@@ -786,7 +786,7 @@ function RunScreen() {
             Piso {run.floor} · {world.name}
           </div>
           <div
-            className={`grid gap-3 ${isBoss ? "" : doors.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}
+              className={`grid gap-3 ${isBoss ? "" : doors.length === 3 ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}
           >
             {doors.map((d, i) => (
               <Tooltip
@@ -797,17 +797,17 @@ function RunScreen() {
               >
                 <button
                   onClick={() => openDoor(i)}
-                  className={`pixel-frame flex h-full w-full flex-col items-center gap-1 p-3 text-center hover:brightness-125 active:translate-y-0.5 ${
+                  className={`pixel-frame choice-card flex h-full w-full flex-col items-center gap-1 p-3 text-center ${
                     d.kind === "boss" ? "animate-pulse !border-red-700" : ""
                   }`}
                 >
                   <DoorIcon kind={d.kind} className="h-14 md:h-16" />
                   <span
-                    className={`text-base font-semibold ${d.kind === "boss" ? "text-red-400" : d.kind === "hard" ? "text-orange-300" : ""}`}
+                    className={`choice-title text-base font-semibold ${d.kind === "boss" ? "!text-red-300" : d.kind === "hard" ? "!text-orange-200" : ""}`}
                   >
                     {DOOR_LABEL[d.kind]}
                   </span>
-                  <span className="text-sm text-[#d9d2ca]">
+                  <span className="choice-detail text-sm">
                     {doorHint(d.kind, run)}
                   </span>
                 </button>

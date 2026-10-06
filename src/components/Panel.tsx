@@ -19,7 +19,7 @@ export function Panel({
     >
       {title && (
         <h2
-          className={`pixel-frame absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-0.5 text-base ${titleClass}`}
+          className={`pixel-frame panel-title absolute -top-4 left-1/2 max-w-[calc(100vw-3rem)] -translate-x-1/2 whitespace-normal px-4 py-0.5 text-center text-base leading-tight sm:max-w-none sm:whitespace-nowrap ${titleClass}`}
         >
           {title}
         </h2>

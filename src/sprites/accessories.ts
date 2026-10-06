@@ -54,7 +54,7 @@ const ANCHORS: Record<ClassId, Record<Anchor, Pos>> = {
     wL: [27, 4],
     wR: [27, 24],
     pL: [27, 0],
-    pR: [27, 24],
+    pR: [27, 26],
   },
   mago: {
     tl: [10, 7],
@@ -79,7 +79,7 @@ const ANCHORS: Record<ClassId, Record<Anchor, Pos>> = {
     wL: [27, 0],
     wR: [28, 28],
     pL: [27, 0],
-    pR: [27, 24],
+    pR: [27, 26],
   },
   picaro: {
     tl: [6, 10],
@@ -104,7 +104,7 @@ const ANCHORS: Record<ClassId, Record<Anchor, Pos>> = {
     wL: [27, 4],
     wR: [27, 24],
     pL: [27, 0],
-    pR: [27, 24],
+    pR: [27, 26],
   },
   clerigo: {
     tl: [5, 10],
@@ -129,7 +129,7 @@ const ANCHORS: Record<ClassId, Record<Anchor, Pos>> = {
     wL: [27, 0],
     wR: [27, 28],
     pL: [27, 0],
-    pR: [27, 24],
+    pR: [27, 26],
   },
 };
 
@@ -282,31 +282,28 @@ export const ACCESSORIES: Record<
       ],
     },
   ],
-  // big drumstick
+  // small floating drumstick
   glotón: [
     {
-      at: "bl",
+      at: "ml",
       px: [
-        [0, 0, ".oooo."],
-        [1, 0, "oddddo"],
+        [0, 2, "..wwww"],
+        [1, 1, ".wdddo"],
         [2, 0, "odddho"],
-        [3, 0, "oddhho"],
-        [4, 0, ".oddo."],
-        [5, 0, "..owo."],
-        [6, 0, ".owwwo"],
-        [7, 0, "..ooo."],
+        [3, 0, ".odddo"],
+        [4, 0, "..ooo."],
       ],
     },
   ],
-  // medical-cross plaster with dark border
+  // bright bandage with a red center mark
   fragil: [
     {
       at: "ck",
       px: [
         [0, 0, ".ooo."],
-        [1, 0, "owrwo"],
-        [2, 0, "orrro"],
-        [3, 0, "owrwo"],
+        [1, 0, "okkk."],
+        [2, 0, "okrko"],
+        [3, 0, ".kkko"],
         [4, 0, ".ooo."],
       ],
     },
@@ -322,26 +319,22 @@ export const ACCESSORIES: Record<
       ],
     },
   ],
-  // dust puffs on the ground
+  // short elemental speed streaks at the feet
   escurridizo: [
     {
       at: "pL",
       px: [
-        [0, 0, "..ww.w.."],
-        [1, 0, ".wwwwww."],
-        [2, 0, "wwwwwwww"],
-        [3, 0, "wwmwwmww"],
-        [4, 0, ".nnnnnn."],
+        [0, 0, "..ccc"],
+        [1, 0, ".ccccc"],
+        [2, 0, "cc.."],
       ],
     },
     {
       at: "pR",
       px: [
-        [0, 0, ".w.ww..."],
-        [1, 0, ".wwwwww."],
-        [2, 0, "wwwwwwww"],
-        [3, 0, "wwmwwmww"],
-        [4, 0, ".nnnnnn."],
+        [0, 0, "ccc.."],
+        [1, 0, "ccccc"],
+        [2, 0, "..cc"],
       ],
     },
   ],
@@ -374,21 +367,17 @@ export const ACCESSORIES: Record<
       ],
     },
   ],
-  // lit bomb: dark body with a light rim and a bright spark
+  // compact lit bomb worn at the hip
   temerario: [
     {
       at: "br",
       px: [
         [0, 2, "y"],
-        [1, 1, "ywy"],
-        [2, 2, "y"],
-        [3, 2, "h"],
-        [4, 1, ".n."],
-        [5, 0, ".mmm."],
-        [6, 0, "mwoom"],
-        [7, 0, "mooom"],
-        [8, 0, "mooom"],
-        [9, 0, ".mmm."],
+        [1, 1, "yyy"],
+        [2, 0, "onnno"],
+        [3, 0, "onyyo"],
+        [4, 0, "onnno"],
+        [5, 1, ".ooo."],
       ],
     },
   ],

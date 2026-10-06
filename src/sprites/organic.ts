@@ -194,6 +194,12 @@ function golem(boss: boolean): string[] {
   stamp(g, 27, 6, ["w", "cb", "cb"]);
   stamp(g, 3, 6, ["w", "cb", "cb"]);
   if (boss) {
+    // jagged crown of stone shards that changes the boss's outer contour
+    stamp(g, 10, 0, [".....c", "....cc", "...aaa"]);
+    stamp(g, 17, 0, ["c....", "cc...", "aaa.."]);
+    // shoulder crystals break the normal golem's broad block silhouette
+    stamp(g, 0, 18, ["c", "a", "a"]);
+    stamp(g, 31, 18, ["c", "a", "a"]);
     stamp(g, 6, 3, ["w", "c", "cb", "cb"]);
     stamp(g, 13, 0, ["w", "c", "cb"]);
     stamp(g, 18, 1, ["w", "cb", "cb"]);
@@ -260,6 +266,9 @@ function ghost(boss: boolean): string[] {
   if (boss) {
     stamp(g, 12, 0, ["y.y.y"]);
     stamp(g, 11, 1, ["yyyyyyy"]);
+    // outward antler-like horns distinguish the storm boss at arena scale
+    stamp(g, 7, 6, ["...c", "..cc", ".cca", "caaa"]);
+    stamp(g, 21, 6, ["c...", "cc..", "acca", "aaac"]);
     stamp(g, 5, 7, ["oco", "oco"]);
     stamp(g, 26, 6, ["oco", "oco"]);
     stamp(g, 4, 22, ["wwwwwww", ".wcc..."]);
