@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Sprite } from "@/components/Sprite";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import { CLASSES } from "@/lib/game/characters";
+import { activeSets, setLine } from "@/lib/game/gear";
 import { slotKey, type OwnedCharacter, type Profile } from "@/lib/game/profile";
 import { RARITIES } from "@/lib/game/rarity";
 import {
@@ -32,6 +33,15 @@ export function EquipmentEditor({
   act: (job: () => Promise<void>) => void;
 }) {
   const [sel, setSel] = useState<Slot>("arma");
+  const wornElements = (
+    ["arma", "casco", "peto", "piernas", "zapatos", "collar"] as const
+  ).flatMap((sl) => {
+    const w = profile.weapons.find(
+      (x) => x.id === profile.equipped[slotKey(c.id, sl)],
+    );
+    return w ? [w.element] : [];
+  });
+  const sets = activeSets(wornElements, c.element);
   return (
     <>
       <div className="doll" aria-label="Equipo del héroe">
@@ -77,6 +87,15 @@ export function EquipmentEditor({
         />
       </div>
 
+      <div className="text-sm text-[#d9d2ca]">
+        {sets.length === 0
+          ? "Sets: 2 piezas del mismo elemento dan un bono, 4 uno mayor (×1.5 si es el elemento del héroe)."
+          : sets.map((st) => (
+              <div key={st.element} className="text-green-300">
+                {setLine(st)}
+              </div>
+            ))}
+      </div>
       {[sel].map((slot) => {
         const worn = profile.weapons.find(
           (w) => w.id === profile.equipped[slotKey(c.id, slot)],

@@ -13,7 +13,14 @@ import { ELEMENTS, type Element } from "./elements";
 import type { Clears } from "./dungeons";
 import type { RunPiece } from "./loot";
 import { addParts, isPartKey, MAX_STACK, type Parts } from "./parts";
-import { applyGear, gearBonus, NO_GEAR } from "./gear";
+import {
+  activeSets,
+  applyGear,
+  combineGear,
+  gearBonus,
+  NO_GEAR,
+  setBonus,
+} from "./gear";
 import {
   MAX_STARS,
   PITY_SSR_THRESHOLD,
@@ -377,11 +384,22 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
   if (!c) return null;
   const stats = scaleStats(c.stats, c.rarity, c.stars);
   const w = p.weapons.find((x) => x.id === p.equipped[c.id]);
-  const gear = gearBonus(
-    GEAR_TYPES.flatMap((t) => {
-      const g = p.weapons.find((x) => x.id === p.equipped[slotKey(c.id, t)]);
-      return g && g.type === t ? [g] : [];
-    }),
+  const worn = GEAR_TYPES.flatMap((t) => {
+    const g = p.weapons.find((x) => x.id === p.equipped[slotKey(c.id, t)]);
+    return g && g.type === t ? [g] : [];
+  });
+  const usableWeapon =
+    w && !isGearType(w.type) && canUseWeapon(c.classId, w.type) ? w : null;
+  const gear = combineGear(
+    gearBonus(worn),
+    setBonus(
+      activeSets(
+        [...worn, ...(usableWeapon ? [usableWeapon] : [])].map(
+          (x) => x.element,
+        ),
+        c.element,
+      ),
+    ),
   );
   const geared = applyGear(stats, gear);
   const hasGear = JSON.stringify(gear) !== JSON.stringify(NO_GEAR);

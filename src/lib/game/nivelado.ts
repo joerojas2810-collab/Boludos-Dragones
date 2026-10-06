@@ -38,7 +38,8 @@ export function normalizeHero(hero: Character, mode: RoomMode): Character {
   const gr = { ...NO_GEAR, ...hero.gear }; // gear is undone: nivelado ignores it
   // Personal variation = what remains after removing rarity/stars/weapon.
   const vHp = hero.stats.hp / (1 + gr.hp) / m / base.hp;
-  const vAtk = Math.max(0, hero.stats.atk - weapon) / m / base.atk;
+  const vAtk =
+    Math.max(0, (hero.stats.atk - weapon) / (1 + gr.atk)) / m / base.atk;
   const vDef = hero.stats.def / (1 + gr.def) / m / base.def;
   const stats: Stats = {
     hp: Math.max(1, Math.round(base.hp * squash(vHp) * bonus)),
