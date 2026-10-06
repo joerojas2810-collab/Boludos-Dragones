@@ -37,6 +37,11 @@ export const ENGINE_VERSION = 2;
 export const START_LIVES = 3;
 export const MAX_LIVES = 5;
 export const BOSS_EVERY = 5;
+// Clearing this floor ends the run as a victory (bounds replay cost and payload size).
+export const MAX_FLOOR = 100;
+export const VICTORY_COINS = 500;
+export const isVictory = (run: Run) =>
+  run.status === "over" && run.lives > 0 && run.maxFloor >= MAX_FLOOR;
 export const RELIC_EVERY = 3;
 // First floor where each enemy modifier appears (all stay on afterwards).
 export const MODIFIER_FLOORS: Readonly<Record<EnemyMod, number>> = {
@@ -51,7 +56,11 @@ export const MODIFIER_FLOORS: Readonly<Record<EnemyMod, number>> = {
 export const EARLY_EASE_START = 0.6;
 export const EARLY_EASE_FLOORS = 9;
 export const earlyEase = (floor: number) =>
-  Math.min(1, EARLY_EASE_START + ((1 - EARLY_EASE_START) * (floor - 1)) / EARLY_EASE_FLOORS);
+  Math.min(
+    1,
+    EARLY_EASE_START +
+      ((1 - EARLY_EASE_START) * (floor - 1)) / EARLY_EASE_FLOORS,
+  );
 
 export const FIGHT_POWER = { easy: 0.3, hard: 0.4, boss: 0.22 } as const;
 // Extra multiplier on enemy hp only (longer fights, same damage per turn).
@@ -504,6 +513,8 @@ export function nextFloor(run: Run): Run {
     run.pendingRelic !== null
   )
     return run;
+  if (run.floor >= MAX_FLOOR)
+    return { ...run, status: "over", coins: run.coins + VICTORY_COINS };
   const floor = run.floor + 1;
   return {
     ...run,

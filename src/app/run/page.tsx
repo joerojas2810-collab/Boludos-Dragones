@@ -70,6 +70,8 @@ import {
   chooseDoor,
   chooseRelic,
   chooseSkill,
+  isVictory,
+  MAX_FLOOR,
   createRun,
   eventCost,
   fleeCost,
@@ -421,7 +423,13 @@ function RunScreen() {
     main = (
       <Center>
         <Panel title="Fin de la run" className="text-center">
-          <div className="text-2xl text-red-400">Caíste en la mazmorra</div>
+          {isVictory(run) ? (
+            <div className="text-2xl text-yellow-300">
+              ¡Victoria! Completaste los {MAX_FLOOR} pisos
+            </div>
+          ) : (
+            <div className="text-2xl text-red-400">Caíste en la mazmorra</div>
+          )}
           <div className="mt-2 text-yellow-300">
             Puntaje (piso máximo): {runScore(run)}
           </div>

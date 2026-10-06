@@ -54,6 +54,9 @@ import {
   MODIFIER_FLOORS,
   modsAtFloor,
   nextFloor,
+  isVictory,
+  MAX_FLOOR,
+  VICTORY_COINS,
   pickUpgrade,
   relicOffer,
   resolveEvent,
@@ -702,7 +705,10 @@ describe("upgrade stacking and tier 2", () => {
     const gain = (n: number) =>
       applyUpgrade(c, "ataque", n).stats.atk / c.stats.atk;
     expect(gain(2)).toBeGreaterThan(gain(0));
-    expect(gain(99)).toBeCloseTo(1 + 0.1 * UPGRADE_POWER * UPGRADE_STACK_CAP, 1);
+    expect(gain(99)).toBeCloseTo(
+      1 + 0.1 * UPGRADE_POWER * UPGRADE_STACK_CAP,
+      1,
+    );
   });
   it("pickUpgrade records the stack and describes the next value", () => {
     let r: Run = { ...fresh(), pendingPicks: 3 };
@@ -711,7 +717,9 @@ describe("upgrade stacking and tier 2", () => {
     expect(r.hero.stats.atk).toBeGreaterThan(
       applyUpgrade(applyUpgrade(fresh().hero, "ataque"), "ataque").stats.atk,
     );
-    expect(describeUpgrade("ataque", 0)).toBe(`+${Math.round(10 * UPGRADE_POWER)}% ATQ`);
+    expect(describeUpgrade("ataque", 0)).toBe(
+      `+${Math.round(10 * UPGRADE_POWER)}% ATQ`,
+    );
     expect(describeUpgrade("ataque", 4)).toBe(
       `+${Math.round(10 * UPGRADE_POWER * stackMult(4))}% ATQ`,
     );
@@ -769,5 +777,30 @@ describe("hp is always whole", () => {
     expect(Number.isInteger(r.hero.stats.hp)).toBe(true);
     expect(Number.isInteger(maxHp(r))).toBe(true);
     expect(Number.isInteger(r.hp)).toBe(true);
+  });
+});
+
+describe("floor cap", () => {
+  it("clearing the last floor ends the run as a victory with a bonus", () => {
+    const base = fresh();
+    const r = nextFloor({
+      ...base,
+      floor: MAX_FLOOR,
+      maxFloor: MAX_FLOOR,
+      floorCleared: true,
+    });
+    expect(r.status).toBe("over");
+    expect(isVictory(r)).toBe(true);
+    expect(r.coins).toBe(base.coins + VICTORY_COINS);
+    expect(r.floor).toBe(MAX_FLOOR);
+  });
+  it("a death at the last floor is not a victory", () => {
+    const r = {
+      ...fresh(),
+      status: "over" as const,
+      lives: 0,
+      maxFloor: MAX_FLOOR,
+    };
+    expect(isVictory(r)).toBe(false);
   });
 });
