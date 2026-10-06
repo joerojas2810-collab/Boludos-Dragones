@@ -81,15 +81,15 @@ const tierIds = (t: 1 | 2) =>
 
 // Repeating an upgrade compounds: the n-th repeat gets
 // min(UPGRADE_STACK_CAP, 1 + UPGRADE_STACK_STEP * n) times its positive effects.
-export const UPGRADE_STACK_STEP = 0.4;
-export const UPGRADE_STACK_CAP = 3;
+export const UPGRADE_STACK_STEP = 0.15;
+export const UPGRADE_STACK_CAP = 1.75;
 export const stackMult = (stacks: number) =>
   Math.min(UPGRADE_STACK_CAP, 1 + UPGRADE_STACK_STEP * stacks);
 export const TIER2_LEVEL = 5;
 export const TIER2_CHANCE = 0.3; // per offer slot, once level >= TIER2_LEVEL
 
 // Fewer level-ups, each one stronger: every upgrade effect is scaled by UPGRADE_POWER.
-export const UPGRADE_POWER = 4.8;
+export const UPGRADE_POWER = 5.0;
 const fxValue = (v: number, stacks: number) =>
   UPGRADE_POWER * (v > 0 ? v * stackMult(stacks) : v);
 
