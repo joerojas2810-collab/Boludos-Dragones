@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { GameTitle } from "@/components/GameTitle";
+import { TitleScene } from "@/components/TitleScene";
 import { Panel } from "@/components/Panel";
 import { logout, repo, useProfile } from "@/lib/useProfile";
 
 export default function Home() {
   const { profile, session } = useProfile();
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <Panel title="Boludos & Dragones" className="w-full max-w-sm text-center">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-4">
+      <TitleScene />
+      <GameTitle />
+      <Panel title="Menú" className="w-full max-w-sm text-center">
         <p className="mb-2 text-sm opacity-80">
           RPG por turnos para noches de juegos
         </p>

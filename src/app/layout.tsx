@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
-import { Chakra_Petch } from "next/font/google";
+import { Chakra_Petch, MedievalSharp } from "next/font/google";
 import "./globals.css";
 
 const pixel = Chakra_Petch({
   variable: "--font-pixel",
   subsets: ["latin"],
   weight: ["400", "600"],
+});
+
+const title = MedievalSharp({
+  variable: "--font-title",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -15,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${pixel.variable} h-full antialiased`}>
+    <html lang="es" className={`${pixel.variable} ${title.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

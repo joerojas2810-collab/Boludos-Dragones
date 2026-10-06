@@ -293,3 +293,39 @@ a:focus-visible {
   color: #e7c76a;
   font-size: 0.8125rem;
 }
+
+/* Game title plaque (login / menu) */
+.title-plaque {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.2em 0.35em;
+  width: 100%;
+  max-width: 28rem;
+  padding: 0.9rem 1.25rem 1.1rem;
+  background: linear-gradient(#7a4a1e, #5a3414);
+  border: 4px solid #2a1a0c;
+  outline: 3px solid #d9822b;
+  outline-offset: -8px;
+  box-shadow: 0 4px 0 #1a0f06;
+  font-family: var(--font-title), serif;
+  text-align: center;
+}
+.title-main {
+  font-size: clamp(2rem, 8vw, 3rem);
+  line-height: 1;
+  background: linear-gradient(#ffd45a, #e8641a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(2px 0 0 #3a1a06) drop-shadow(-2px 0 0 #3a1a06)
+    drop-shadow(0 2px 0 #3a1a06) drop-shadow(0 -2px 0 #3a1a06)
+    drop-shadow(0 4px 0 #2a1204);
+}
+.title-amp {
+  font-size: clamp(1.5rem, 6vw, 2.25rem);
+  color: #6fc3ff;
+  text-shadow: 2px 0 #0c2a4a, -2px 0 #0c2a4a, 0 2px #0c2a4a, 0 -2px #0c2a4a,
+    0 4px #0c2a4a;
+}
