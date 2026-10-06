@@ -1,0 +1,55 @@
+import type { Element } from "@/lib/game/elements";
+
+// 8x8 icons; a/b/c = element main/dark/light colors
+export const ELEMENT_ICONS: Record<Element, readonly string[]> = {
+  fuego: [
+    "...a....",
+    "..aa.a..",
+    "..aaaa..",
+    ".aaccaa.",
+    ".aaccaa.",
+    ".abccba.",
+    ".abbbba.",
+    "..bbbb..",
+  ],
+  agua: [
+    "...c....",
+    "...a....",
+    "..acaa..",
+    ".aacaaa.",
+    ".aaaaaa.",
+    ".abaaaa.",
+    ".abbbba.",
+    "..bbbb..",
+  ],
+  tierra: [
+    "........",
+    "...bb...",
+    "..bccb..",
+    ".bcaaab.",
+    ".bcaaaab",
+    "bcaaaaab",
+    "baaaaaab",
+    "bbbbbbbb",
+  ],
+  rayo: [
+    "....ccc.",
+    "...cca..",
+    "..cca...",
+    ".cccaaa.",
+    "...cca..",
+    "..cca...",
+    "..ca....",
+    "..a.....",
+  ],
+  viento: [
+    "........",
+    ".cccca..",
+    "......a.",
+    "..aaaaa.",
+    ".a......",
+    ".bbbbba.",
+    "......b.",
+    "..bbbb..",
+  ],
+};

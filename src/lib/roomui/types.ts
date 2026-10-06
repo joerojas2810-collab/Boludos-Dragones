@@ -1,0 +1,146 @@
+// View model + transport contract of the room UI. The UI only talks to a
+// RoomClient: a real one (fetch + Supabase Realtime) or the scripted fake used
+// by /sala/demo. Game rules stay in lib/game/room.ts.
+import type { ClassId } from "../game/characters";
+import type { Element } from "../game/elements";
+import type { RarityId } from "../game/rarity";
+import type { RunAction } from "../game/replay";
+import type { Run } from "../game/run";
+import type { TraitId } from "../game/traits";
+import type {
+  Bet,
+  BetOutcome,
+  BetPrediction,
+  DoorKind,
+  FightOutcome,
+  InterfereKind,
+  Phase,
+  RoomError,
+  RoomMode,
+  VoidReason,
+} from "../game/room";
+
+export type EmoteId = "laugh" | "fire" | "skull" | "clap" | "clown" | "luck";
+
+export interface HeroSummary {
+  name: string;
+  classId: ClassId;
+  element: Element;
+  rarity: RarityId;
+  stars: number;
+  traits: TraitId[];
+}
+
+export interface PlayerView {
+  id: string;
+  name: string;
+  hero: HeroSummary | null;
+  heroId: string | null;
+  chips: number;
+  lives: number;
+  eliminated: boolean;
+  present: boolean;
+  ready: boolean;
+  isHost: boolean;
+  activeFromFloor: number;
+  roundMaxFloor: number;
+  nightMaxFloor: number;
+  doorChosen: boolean;
+  door: DoorKind | null; // null until the door is public (betting onwards)
+  outcome: FightOutcome | "skipped" | null;
+  fights: boolean; // has an open/locked/settled battle this floor
+}
+
+export interface BattleView {
+  fighter: string;
+  bets: Bet[]; // public: who bet what on this fighter
+  status: "open" | "locked" | "settled";
+  outcome: BetOutcome | null;
+  voidReason: VoidReason | null;
+  interferedByMe: InterfereKind | null;
+  interfered: boolean; // visible to the target, the author and (reveal) everybody
+  interferenceFrom: string | null; // only at reveal
+}
+
+export interface Award {
+  id: "gafe" | "apostador" | "saboteador";
+  player: string;
+  value: number;
+}
+
+export interface RoomView {
+  code: string;
+  me: string;
+  mode: RoomMode;
+  turnSeconds: number;
+  phase: Phase;
+  phaseSeq: number;
+  round: number;
+  floor: number;
+  deadline: number; // ms on the CLIENT clock (Date.now()); 0 = none
+  seed: number | null;
+  hostId: string;
+  players: PlayerView[];
+  battles: Record<string, BattleView>;
+  awards: Award[] | null; // night_summary
+  connection: "online" | "reconnecting";
+}
+
+export interface TurnInfo {
+  fighter: string;
+  n: number;
+  actor: "p" | "e";
+  kind: "hit" | "crit" | "miss";
+  dmg: number;
+  pHp: number;
+  eHp: number;
+}
+
+export type RoomEvent =
+  | { type: "turn"; msg: TurnInfo }
+  | { type: "emote"; from: string; id: EmoteId }
+  | { type: "closed" }
+  | { type: "kicked" };
+
+export type Res<T extends object = object> =
+  | ({ ok: true } & T)
+  | { ok: false; error: RoomError | string };
+
+/** Authoritative Run at the start of the current floor (GET /run). */
+export interface FloorRun {
+  run: Run;
+  floor: number;
+  seed: number;
+  door: DoorKind | null;
+  enemyBoost: InterfereKind | null; // only while fighting, only for the target
+}
+
+export interface RoomClient {
+  readonly kind: "fake" | "remote";
+  getView(): RoomView | null;
+  subscribe(cb: (v: RoomView | null) => void): () => void;
+  onEvent(cb: (e: RoomEvent) => void): () => void;
+  hero(heroId: string): Promise<Res>;
+  ready(ready: boolean): Promise<Res>;
+  setMode(mode: RoomMode): Promise<Res>;
+  setTurnSeconds(seconds: number): Promise<Res>;
+  startRound(): Promise<Res>;
+  advance(phaseSeq: number): Promise<Res>;
+  door(floor: number, door: DoorKind): Promise<Res>;
+  getRun(): Promise<Res<{ floorRun: FloorRun }>>;
+  // The server replays `actions` from the floor-start Run and decides the outcome.
+  submit(
+    floor: number,
+    actions: RunAction[],
+  ): Promise<Res<{ outcome: FightOutcome | null; eliminated: boolean }>>;
+  bet(fighter: string, prediction: BetPrediction, stake: number): Promise<Res>;
+  interfere(fighter: string, kind: InterfereKind): Promise<Res>;
+  kick(target: string): Promise<Res>;
+  transferHost(to: string): Promise<Res>;
+  endNight(): Promise<Res>;
+  close(): Promise<Res>;
+  leave(): Promise<Res>;
+  turn(msg: Omit<TurnInfo, "fighter">): void;
+  emote(id: EmoteId): void;
+  dispose(): void;
+}

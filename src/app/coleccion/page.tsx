@@ -1,0 +1,426 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { Chip } from "@/components/Chip";
+import { ItemCard } from "@/components/ItemCard";
+import { Panel } from "@/components/Panel";
+import { TopBar } from "@/components/TopBar";
+import { Tooltip } from "@/components/Tooltip";
+import { WeaponSprite } from "@/components/WeaponSprite";
+import {
+  CLASSES,
+  CLASS_IDS,
+  type ClassId,
+  type Stats,
+} from "@/lib/game/characters";
+import { ELEMENT_LABEL } from "@/lib/game/elements";
+import {
+  previewCombatant,
+  statTip,
+  STAT_NAME,
+  traitTip,
+} from "@/lib/game/explain";
+import {
+  FRAGMENTS_PER_STAR,
+  fragmentKey,
+  heroFromOwned,
+  type OwnedCharacter,
+  type Profile,
+} from "@/lib/game/profile";
+import {
+  MAX_STARS,
+  RARITIES,
+  RARITY_IDS,
+  type RarityId,
+} from "@/lib/game/rarity";
+import { TRAITS } from "@/lib/game/traits";
+import { repo, useProfile } from "@/lib/useProfile";
+import {
+  characterView,
+  filterSortCharacters,
+  weaponEffect,
+  weaponView,
+  type CollectionFilter,
+} from "@/lib/viewModels";
+
+const STAT_ORDER: (keyof Stats)[] = [
+  "hp",
+  "atk",
+  "def",
+  "speed",
+  "crit",
+  "dodge",
+  "accuracy",
+  "flee",
+];
+const FRACTION = ["hp", "atk", "def", "speed"];
+const fmt = (k: keyof Stats, v: number) =>
+  FRACTION.includes(k) ? `${+v.toFixed(1)}` : `${Math.round(v * 100)}%`;
+
+const selectCls =
+  "border-2 border-[var(--edge)] bg-[var(--panel)] px-2 py-1.5 text-base";
+
+function Detail({
+  c,
+  profile,
+  act,
+}: {
+  c: OwnedCharacter;
+  profile: Profile;
+  act: (job: () => Promise<void>) => void;
+}) {
+  const hero = heroFromOwned(profile, c.id);
+  if (!hero) return null;
+  const cmb = {
+    ...previewCombatant(c.classId),
+    char: hero,
+    hp: hero.stats.hp,
+  };
+  const wid = profile.equipped[c.id];
+  const weapon = profile.weapons.find((w) => w.id === wid);
+  const free = profile.weapons.filter(
+    (w) => !Object.values(profile.equipped).includes(w.id),
+  );
+  const fKey = fragmentKey(c.classId, c.rarity);
+  const have = profile.fragments[fKey] ?? 0;
+  const reason =
+    c.stars >= MAX_STARS
+      ? "Ya tiene el máximo de estrellas"
+      : have < FRAGMENTS_PER_STAR
+        ? `Te faltan ${FRAGMENTS_PER_STAR - have} fragmentos`
+        : null;
+  return (
+    <Panel title={c.name} className="space-y-3">
+      <div className="flex items-center gap-3">
+        <ItemCard item={characterView(c, { lines: [] })} size={80} />
+        <div className="space-y-1 text-base">
+          <div>
+            {CLASSES[c.classId].name} · {ELEMENT_LABEL[c.element]} · Nv{" "}
+            {c.level}
+          </div>
+          <div style={{ color: RARITIES[c.rarity].color }}>
+            {RARITIES[c.rarity].label}
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {c.traits.map((t) => (
+              <Chip key={t} tone="trait" tip={traitTip(t, c)}>
+                {TRAITS[t].name}
+              </Chip>
+            ))}
+          </div>
+        </div>
+      </div>
+      <p className="text-sm italic text-[#d9d2ca]">“{c.catchphrase}”</p>
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {STAT_ORDER.map((k) => (
+          <Tooltip key={k} tip={statTip(k, cmb)}>
+            <span className="stat-cell">
+              <span className="stat-k">{STAT_NAME[k]}</span>
+              <span className="stat-v text-orange-300">
+                {fmt(k, hero.stats[k])}
+              </span>
+            </span>
+          </Tooltip>
+        ))}
+      </div>
+
+      <div className="border-t-2 border-[var(--edge)] pt-2">
+        <div className="mb-1 font-semibold text-yellow-300">Arma</div>
+        {weapon ? (
+          <div className="flex items-center gap-2">
+            <WeaponSprite
+              type={weapon.type}
+              element={weapon.element}
+              rarity={weapon.rarity}
+              className="w-12"
+            />
+            <div className="min-w-0 flex-1 text-sm">
+              <div className="truncate font-semibold">{weapon.name}</div>
+              <div>ATQ +{weapon.atkBonus}</div>
+              <div className="text-[#d9d2ca]">{weaponEffect(weapon)}</div>
+            </div>
+            <button
+              className="btn btn-gray text-center"
+              onClick={() => act(() => repo.equip(c.id, null))}
+            >
+              Quitar
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-[#d9d2ca]">Sin arma equipada.</p>
+        )}
+        {free.length > 0 ? (
+          <ul className="mt-2 space-y-1">
+            {free.map((w) => (
+              <li key={w.id} className="flex items-center gap-2 text-sm">
+                <WeaponSprite
+                  type={w.type}
+                  element={w.element}
+                  rarity={w.rarity}
+                  className="w-8"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{w.name}</span>
+                  <span className="block text-xs text-[#d9d2ca]">
+                    ATQ +{w.atkBonus} · {weaponEffect(w)}
+                  </span>
+                </span>
+                <button
+                  className="btn text-center"
+                  onClick={() => act(() => repo.equip(c.id, w.id))}
+                >
+                  Equipar
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          !weapon && (
+            <p className="mt-1 text-sm">
+              No tienes armas libres.{" "}
+              <Link href="/gacha" className="text-cyan-300 underline">
+                Ir al gacha
+              </Link>
+            </p>
+          )
+        )}
+      </div>
+
+      <div className="border-t-2 border-[var(--edge)] pt-2">
+        <div className="flex items-center justify-between gap-2">
+          <Tooltip
+            tip={{
+              title: "Fragmentos",
+              kind: "info",
+              lines: [
+                `Los fragmentos son de clase + rareza (${CLASSES[c.classId].name} ${RARITIES[c.rarity].label}).`,
+                `${FRAGMENTS_PER_STAR} fragmentos suben una estrella a un personaje de ese grupo.`,
+              ],
+            }}
+          >
+            <span className="cursor-help">
+              Fragmentos: {have} / {FRAGMENTS_PER_STAR}
+            </span>
+          </Tooltip>
+          <button
+            className="btn text-center"
+            disabled={reason !== null}
+            onClick={() => act(() => repo.spendFragments(c.id))}
+          >
+            Subir estrella
+          </button>
+        </div>
+        {reason && <p className="mt-1 text-sm text-red-300">{reason}</p>}
+      </div>
+    </Panel>
+  );
+}
+
+export default function CollectionPage() {
+  const { profile, ready } = useProfile();
+  const [notice, setNotice] = useState<string | null>(null);
+  const act = (job: () => Promise<void>) => {
+    setNotice(null);
+    job().catch((e: unknown) =>
+      setNotice(
+        `${repo.mode === "remote" ? "El servidor rechazó el cambio: " : ""}${e instanceof Error ? e.message : "error"}`,
+      ),
+    );
+  };
+  const [tab, setTab] = useState<"characters" | "weapons">("characters");
+  const [filter, setFilter] = useState<CollectionFilter>({
+    classId: "all",
+    rarity: "all",
+    sort: "rarity",
+  });
+  const [selected, setSelected] = useState<string | null>(null);
+
+  if (!ready || !profile) return null;
+  const list = filterSortCharacters(profile.characters, filter);
+  const sel = profile.characters.find((c) => c.id === selected) ?? null;
+  const frags = Object.entries(profile.fragments).filter(([, n]) => n > 0);
+  const owner = (wid: string) =>
+    profile.characters.find((c) => profile.equipped[c.id] === wid);
+  const empty = (what: string) => (
+    <p className="py-6 text-center">
+      Aún no tienes {what}.{" "}
+      <Link href="/gacha" className="text-cyan-300 underline">
+        Ir al gacha
+      </Link>
+    </p>
+  );
+
+  return (
+    <main className="flex flex-col gap-4 p-3 pt-4">
+      <TopBar current="/coleccion" />
+      {notice && (
+        <p role="alert" className="text-center text-sm text-red-300">
+          {notice}
+        </p>
+      )}
+      <div className="mx-auto w-full max-w-4xl text-center text-base text-[#d9d2ca]">
+        Runs jugadas: {profile.runsPlayed} · Mejor piso: {profile.bestFloor} ·
+        Personajes: {profile.characters.length} · Armas:{" "}
+        {profile.weapons.length}
+      </div>
+      <div className="mx-auto flex w-full max-w-4xl gap-2" role="tablist">
+        {(
+          [
+            ["characters", "Personajes"],
+            ["weapons", "Armas"],
+          ] as const
+        ).map(([k, label]) => (
+          <button
+            key={k}
+            role="tab"
+            aria-selected={tab === k}
+            className={`btn flex-1 text-center ${tab === k ? "" : "btn-gray"}`}
+            onClick={() => setTab(k)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "characters" ? (
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 md:grid md:grid-cols-[1fr_22rem] md:items-start">
+          <Panel title="Personajes" className="min-w-0">
+            {profile.characters.length === 0 ? (
+              empty("personajes")
+            ) : (
+              <>
+                <div className="mb-3 flex flex-wrap gap-2">
+                  <select
+                    aria-label="Clase"
+                    className={selectCls}
+                    value={filter.classId}
+                    onChange={(e) =>
+                      setFilter({
+                        ...filter,
+                        classId: e.target.value as ClassId | "all",
+                      })
+                    }
+                  >
+                    <option value="all">Todas las clases</option>
+                    {CLASS_IDS.map((id) => (
+                      <option key={id} value={id}>
+                        {CLASSES[id].name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Rareza"
+                    className={selectCls}
+                    value={filter.rarity}
+                    onChange={(e) =>
+                      setFilter({
+                        ...filter,
+                        rarity: e.target.value as RarityId | "all",
+                      })
+                    }
+                  >
+                    <option value="all">Todas las rarezas</option>
+                    {RARITY_IDS.map((id) => (
+                      <option key={id} value={id}>
+                        {RARITIES[id].label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Orden"
+                    className={selectCls}
+                    value={filter.sort}
+                    onChange={(e) =>
+                      setFilter({
+                        ...filter,
+                        sort: e.target.value as CollectionFilter["sort"],
+                      })
+                    }
+                  >
+                    <option value="rarity">Orden: rareza</option>
+                    <option value="stars">Orden: estrellas</option>
+                  </select>
+                </div>
+                {list.length === 0 && (
+                  <p className="py-4 text-center">
+                    Ninguno coincide con el filtro.
+                  </p>
+                )}
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] justify-items-center gap-x-2 gap-y-4">
+                  {list.map((c) => (
+                    <button
+                      key={c.id}
+                      aria-label={c.name}
+                      aria-pressed={selected === c.id}
+                      onClick={() => setSelected(c.id)}
+                    >
+                      <ItemCard
+                        item={characterView(c)}
+                        size={80}
+                        selected={selected === c.id}
+                      />
+                    </button>
+                  ))}
+                </div>
+                {frags.length > 0 && (
+                  <p className="mt-4 text-sm text-[#d9d2ca]">
+                    Fragmentos:{" "}
+                    {frags
+                      .map(([k, n]) => {
+                        const [cl, r] = k.split(":") as [ClassId, RarityId];
+                        return `${CLASSES[cl].name} ${RARITIES[r].label} ${n}`;
+                      })
+                      .join(" · ")}
+                  </p>
+                )}
+              </>
+            )}
+          </Panel>
+          {sel ? (
+            <div className="order-first min-w-0 md:order-none">
+              <Detail c={sel} profile={profile} act={act} />
+            </div>
+          ) : (
+            profile.characters.length > 0 && (
+              <p className="text-center text-sm text-[#d9d2ca]">
+                Toca un personaje para ver sus detalles.
+              </p>
+            )
+          )}
+        </div>
+      ) : (
+        <Panel title="Armas" className="mx-auto w-full max-w-4xl">
+          {profile.weapons.length === 0 ? (
+            empty("armas")
+          ) : (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] justify-items-center gap-x-2 gap-y-5">
+              {[...profile.weapons]
+                .sort(
+                  (a, b) =>
+                    RARITY_IDS.indexOf(b.rarity) -
+                      RARITY_IDS.indexOf(a.rarity) || b.stars - a.stars,
+                )
+                .map((w) => {
+                  const o = owner(w.id);
+                  return (
+                    <ItemCard
+                      key={w.id}
+                      item={weaponView(w, {
+                        lines: [
+                          weaponEffect(w),
+                          o ? `Equipada: ${o.name}` : "Sin equipar",
+                        ],
+                      })}
+                      size={80}
+                      className="!w-full"
+                    />
+                  );
+                })}
+            </div>
+          )}
+        </Panel>
+      )}
+    </main>
+  );
+}

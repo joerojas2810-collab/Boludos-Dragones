@@ -1,0 +1,295 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #2b2420;
+  --panel: #3f3733;
+  --edge: #1d1714;
+  --trim: #b8651f;
+  --text: #f2ebe3;
+}
+
+@theme inline {
+  --font-sans: var(--font-pixel);
+  --font-mono: var(--font-pixel);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-pixel), monospace;
+}
+
+/* double pixel border: dark outer, orange inner */
+.pixel-frame {
+  background: var(--panel);
+  border: 4px solid var(--edge);
+  box-shadow: inset 0 0 0 3px var(--trim);
+}
+
+.btn {
+  border: 3px solid var(--edge);
+  padding: 0.5rem 0.75rem;
+  min-height: 2.75rem;
+  text-align: left;
+  color: #fff;
+  text-shadow: 1px 1px 0 rgb(29 23 20 / 0.7);
+  background: #35903f;
+  box-shadow: inset 0 -5px 0 #236b2c;
+}
+.btn:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(2px);
+}
+.btn:disabled {
+  background: #5a534e;
+  box-shadow: inset 0 -5px 0 #403a36;
+  color: #ddd5cd;
+  text-shadow: none;
+  cursor: not-allowed;
+}
+.btn-gray {
+  background: #d9d6d2;
+  color: #2b2420;
+  text-shadow: none;
+  box-shadow: inset 0 -5px 0 #a39f9a;
+}
+
+@keyframes lunge-right {
+  40% {
+    transform: translateX(20%);
+  }
+}
+@keyframes lunge-left {
+  40% {
+    transform: translateX(-20%);
+  }
+}
+@keyframes hurt {
+  0%,
+  100% {
+    transform: translateX(0);
+    filter: none;
+  }
+  20% {
+    transform: translateX(-3%);
+    filter: brightness(3);
+  }
+  60% {
+    transform: translateX(3%);
+    filter: brightness(2);
+  }
+}
+.fx-lunge-right {
+  animation: lunge-right 0.35s ease-out;
+}
+.fx-lunge-left {
+  animation: lunge-left 0.35s ease-out;
+}
+.fx-hurt {
+  animation: hurt 0.35s linear;
+  animation-delay: 0.1s;
+}
+
+/* rarity frames */
+.rarity-frame {
+  position: relative;
+  box-sizing: border-box;
+  border: 3px solid var(--rc);
+  background: color-mix(in srgb, var(--rc) 16%, #1d1714);
+  box-shadow:
+    inset 0 0 0 2px #1d1714,
+    0 0 0 2px #1d1714;
+  overflow: hidden;
+}
+.rarity-frame[data-selected="true"] {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+.rarity-notch {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: var(--bg);
+}
+.rarity-frame[data-rarity="legendario"] {
+  animation: gold-glow 1.6s steps(4) infinite;
+}
+.rarity-frame[data-rarity="legendario"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 40%,
+    rgba(255, 240, 160, 0.55) 50%,
+    transparent 60%
+  );
+  background-size: 250% 100%;
+  animation: gold-shine 2.2s steps(10) infinite;
+}
+@keyframes gold-shine {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -30% 0;
+  }
+}
+@keyframes gold-glow {
+  50% {
+    box-shadow:
+      inset 0 0 0 2px #1d1714,
+      0 0 0 2px #1d1714,
+      0 0 14px 2px #fbbf24;
+  }
+}
+
+/* gacha reveal */
+@keyframes pull-shake {
+  0%,
+  100% {
+    transform: translate(0);
+  }
+  25% {
+    transform: translate(-4px, 2px);
+  }
+  50% {
+    transform: translate(4px, -2px);
+  }
+  75% {
+    transform: translate(-2px, -3px);
+  }
+}
+@keyframes pull-flash {
+  0% {
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes card-flip {
+  0% {
+    transform: perspective(500px) rotateY(90deg) scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: perspective(500px) rotateY(0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes burst {
+  0% {
+    transform: scale(0.2);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+.fx-shake {
+  animation: pull-shake 0.25s steps(4) infinite;
+}
+.fx-flash {
+  animation: pull-flash 0.5s steps(5) forwards;
+}
+.fx-flip {
+  animation: card-flip 0.35s steps(6) both;
+}
+.fx-burst {
+  animation: burst 0.7s steps(7) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rarity-frame[data-rarity="legendario"],
+  .rarity-frame[data-rarity="legendario"]::after,
+  .fx-shake,
+  .fx-flash,
+  .fx-flip,
+  .fx-burst {
+    animation: none;
+  }
+}
+
+/* tooltips */
+.tip-panel {
+  background: #2a1d16;
+  border: 4px solid var(--edge);
+  box-shadow: inset 0 0 0 3px var(--trim);
+  padding: 0.65rem 0.8rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--text);
+  text-align: left;
+}
+.tip-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+.tip-line + .tip-line {
+  margin-top: 0.3rem;
+}
+.tip-source {
+  margin-top: 0.45rem;
+  padding-top: 0.35rem;
+  border-top: 2px solid #4a3a30;
+  font-size: 0.75rem;
+  color: #c9bfb5;
+}
+
+/* small labelled chips (passives, traits, modifiers, relics) */
+.chip {
+  cursor: help;
+  border: 2px solid var(--edge);
+  background: rgb(0 0 0 / 0.4);
+  padding: 0 0.4rem;
+  font-size: 0.8125rem;
+  line-height: 1.4rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+[role="group"][tabindex]:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #fde047;
+  outline-offset: 2px;
+}
+.stat-cell {
+  cursor: help;
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  line-height: 1.3rem;
+  white-space: nowrap;
+}
+.stat-k {
+  color: #b5aea7;
+}
+.stat-v {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.log-line {
+  padding: 0.1rem 0.4rem;
+  border-left: 3px solid transparent;
+  line-height: 1.35;
+}
+.log-new {
+  background: rgb(253 224 71 / 0.12);
+  border-left-color: #fde047;
+  font-weight: 600;
+}
+.log-round {
+  margin-top: 0.3rem;
+  border-top: 2px dashed #5a4a40;
+  color: #e7c76a;
+  font-size: 0.8125rem;
+}

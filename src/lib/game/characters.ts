@@ -1,0 +1,281 @@
+import { ELEMENTS, type Element } from "./elements";
+import type { RarityId } from "./rarity";
+import type { Rng } from "./rng";
+import type { SkillId } from "./skills";
+import {
+  CATCHPHRASES,
+  rollTraits,
+  TRAITS,
+  type Trait,
+  type TraitId,
+  type TraitMods,
+} from "./traits";
+
+export type ClassId = "caballero" | "mago" | "picaro" | "clerigo";
+export const CLASS_IDS: readonly ClassId[] = [
+  "caballero",
+  "mago",
+  "picaro",
+  "clerigo",
+];
+
+export interface Stats {
+  hp: number;
+  atk: number;
+  def: number;
+  crit: number;
+  dodge: number;
+  accuracy: number; // additive to attack accuracy
+  flee: number; // additive to flee chance
+  speed: number; // initiative
+}
+
+export interface Attack {
+  name: string;
+  power: number;
+  accuracy: number;
+  cooldown: number;
+  heal: number; // fraction of max hp restored on use
+}
+
+export type PassiveId = "muralla" | "focoArcano" | "filoMortal" | "bendicion";
+
+export interface Passive {
+  id: PassiveId;
+  name: string;
+  description: string;
+}
+
+// Class passive strengths (tuned with scripts/balance.ts).
+export const CLASS_PASSIVE_DMG_REDUCTION = 0.1; // Caballero: incoming damage
+export const CLASS_PASSIVE_ADVANTAGE_BONUS = 0.4; // Mago: replaces ADVANTAGE_BONUS
+export const CLASS_PASSIVE_CRIT_MULT = 2; // Pícaro: replaces CRIT_MULTIPLIER
+export const CLASS_PASSIVE_REGEN = 0.015; // Clérigo: max hp per turn
+
+const pct = (v: number) => `${+(v * 100).toFixed(1)}%`;
+
+export interface ClassTemplate {
+  name: string;
+  passive: Passive;
+  stats: Stats;
+  attack1: Attack;
+  attack2: Attack;
+}
+
+export const STAT_VARIANCE = 0.15;
+
+export const CLASSES: Record<ClassId, ClassTemplate> = {
+  caballero: {
+    name: "Caballero",
+    passive: {
+      id: "muralla",
+      name: "Muralla",
+      description: `Recibe ${pct(CLASS_PASSIVE_DMG_REDUCTION)} menos daño de todos los golpes.`,
+    },
+    stats: {
+      hp: 120,
+      atk: 15,
+      def: 8,
+      crit: 0.05,
+      dodge: 0.05,
+      accuracy: 0,
+      flee: 0,
+      speed: 9.5,
+    },
+    attack1: { name: "Tajo", power: 1, accuracy: 0.95, cooldown: 0, heal: 0 },
+    attack2: {
+      name: "Golpe de escudo",
+      power: 1.9,
+      accuracy: 0.7,
+      cooldown: 2,
+      heal: 0,
+    },
+  },
+  mago: {
+    name: "Mago",
+    passive: {
+      id: "focoArcano",
+      name: "Foco arcano",
+      description: `Con ventaja elemental su daño sube ${pct(CLASS_PASSIVE_ADVANTAGE_BONUS)} en vez de 25%.`,
+    },
+    stats: {
+      hp: 85,
+      atk: 23,
+      def: 3,
+      crit: 0.1,
+      dodge: 0.05,
+      accuracy: 0,
+      flee: 0,
+      speed: 10,
+    },
+    attack1: {
+      name: "Chispa",
+      power: 0.9,
+      accuracy: 0.95,
+      cooldown: 0,
+      heal: 0,
+    },
+    attack2: {
+      name: "Cataclismo",
+      power: 2.4,
+      accuracy: 0.6,
+      cooldown: 2,
+      heal: 0,
+    },
+  },
+  picaro: {
+    name: "Pícaro",
+    passive: {
+      id: "filoMortal",
+      name: "Filo mortal",
+      description: `Sus críticos hacen x${CLASS_PASSIVE_CRIT_MULT.toFixed(1)} de daño en vez de x1.5.`,
+    },
+    stats: {
+      hp: 85,
+      atk: 16.2,
+      def: 4,
+      crit: 0.25,
+      dodge: 0.2,
+      accuracy: 0,
+      flee: 0,
+      speed: 10.5,
+    },
+    attack1: {
+      name: "Puñalada",
+      power: 1,
+      accuracy: 0.95,
+      cooldown: 0,
+      heal: 0,
+    },
+    attack2: {
+      name: "Golpe bajo",
+      power: 2.1,
+      accuracy: 0.65,
+      cooldown: 2,
+      heal: 0,
+    },
+  },
+  clerigo: {
+    name: "Clérigo",
+    passive: {
+      id: "bendicion",
+      name: "Bendición",
+      description: `Recupera ${pct(CLASS_PASSIVE_REGEN)} de su vida máxima al final de cada turno.`,
+    },
+    stats: {
+      hp: 106,
+      atk: 14.5,
+      def: 5,
+      crit: 0.05,
+      dodge: 0.05,
+      accuracy: 0,
+      flee: 0,
+      speed: 10,
+    },
+    attack1: { name: "Maza", power: 1, accuracy: 0.95, cooldown: 0, heal: 0 },
+    attack2: {
+      name: "Plegaria",
+      power: 0.6,
+      accuracy: 0.9,
+      cooldown: 2,
+      heal: 0.25,
+    },
+  },
+};
+
+export interface Character {
+  name: string;
+  classId: ClassId;
+  element: Element;
+  stats: Stats;
+  traits: TraitId[];
+  catchphrase: string;
+  level: number;
+  xp: number;
+  // Gacha fields; absent means común / 0 stars / no weapon.
+  rarity?: RarityId;
+  stars?: number;
+  // Equipped weapon snapshot: element replaces the hero's ATTACK element in
+  // combat. atkBonus is informational: heroFromOwned already adds it to stats.atk.
+  weapon?: { element: Element; atkBonus: number };
+  // Third skill, picked at SKILL_LEVEL (run/sandbox state, never saved in the collection).
+  skill?: SkillId;
+}
+
+const SYLLABLES = [
+  "ka",
+  "lo",
+  "mir",
+  "tha",
+  "zu",
+  "ren",
+  "bo",
+  "vel",
+  "dra",
+  "sin",
+  "gor",
+  "elu",
+];
+
+function rollStat(rng: Rng, base: number): number {
+  return base * (1 - STAT_VARIANCE + rng.next() * 2 * STAT_VARIANCE);
+}
+
+const clamp = (v: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, v));
+
+// Total trait bonus/penalty on a multiplicative stat is capped so combos of
+// two traits cannot produce extreme characters.
+export const TRAIT_MULT_CAP = 0.25;
+
+const asTrait = (t: Trait): Trait => t;
+
+function applyTraits(stats: Stats, ids: readonly TraitId[]): Stats {
+  const sum = (k: keyof TraitMods) =>
+    ids.reduce((acc, id) => acc + (asTrait(TRAITS[id]).mods[k] ?? 0), 0);
+  const mult = (k: keyof TraitMods) =>
+    1 + clamp(sum(k), -TRAIT_MULT_CAP, TRAIT_MULT_CAP);
+  return {
+    hp: Math.max(1, Math.round(stats.hp * mult("hp"))),
+    atk: Math.round(stats.atk * mult("atk") * 10) / 10,
+    def: Math.round(stats.def * mult("def") * 10) / 10,
+    crit: clamp(stats.crit + sum("crit"), 0, 0.6),
+    dodge: clamp(stats.dodge + sum("dodge"), 0, 0.6),
+    accuracy: sum("accuracy"),
+    flee: sum("flee"),
+    speed: Math.round(stats.speed * mult("speed") * 10) / 10,
+  };
+}
+
+export function generateCharacter(
+  rng: Rng,
+  classId: ClassId = rng.pick(CLASS_IDS),
+): Character {
+  const base = CLASSES[classId].stats;
+  // Roll order matters for seeds: keep it equal to the Stats declaration order.
+  const raw: Stats = {
+    hp: rollStat(rng, base.hp),
+    atk: rollStat(rng, base.atk),
+    def: rollStat(rng, base.def),
+    crit: rollStat(rng, base.crit),
+    dodge: rollStat(rng, base.dodge),
+    accuracy: rollStat(rng, base.accuracy),
+    flee: rollStat(rng, base.flee),
+    speed: rollStat(rng, base.speed),
+  };
+  const traits = rollTraits(rng);
+  const stats = applyTraits({ ...raw, accuracy: 0, flee: 0 }, traits);
+  const name = Array.from({ length: rng.int(2, 3) }, () =>
+    rng.pick(SYLLABLES),
+  ).join("");
+  return {
+    name: name[0].toUpperCase() + name.slice(1),
+    classId,
+    element: rng.pick(ELEMENTS),
+    stats,
+    traits,
+    catchphrase: rng.pick(CATCHPHRASES),
+    level: 1,
+    xp: 0,
+  };
+}

@@ -1,0 +1,93 @@
+import { ApiError } from "./http";
+
+// Injectable shape of supabase.rpc(): tests pass a fake.
+export type RpcResult = {
+  data: unknown;
+  error: { message: string } | null;
+};
+export type Rpc = (
+  name: string,
+  args: Record<string, unknown>,
+) => PromiseLike<RpcResult>;
+
+export interface Deps {
+  rpc: Rpc;
+  randomSeed(): number; // uint32 from crypto in production
+  // Table reads that have no RPC (service role, never exposed to clients).
+  openRunId(playerId: string): Promise<string | null>;
+  getRun(
+    playerId: string,
+    runId: string,
+  ): Promise<{ seed: number; hero: unknown; status: string } | null>;
+}
+
+// SQL errors arrive as the exception message == contract error code.
+export class RpcError extends Error {}
+
+export async function call<T = Record<string, unknown>>(
+  rpc: Rpc,
+  name: string,
+  args: Record<string, unknown>,
+): Promise<T> {
+  const { data, error } = await rpc(name, args);
+  if (error) throw new RpcError(error.message.trim());
+  return data as T;
+}
+
+const KNOWN: Record<string, [number, string]> = {
+  insufficient_coins: [409, "No te alcanzan las monedas."],
+  conflict: [409, "Tu perfil cambió. Intenta de nuevo."],
+  already_claimed: [409, "Ya reclamaste tu tirada gratis de hoy."],
+  character_not_found: [404, "Personaje no encontrado."],
+  not_owned: [404, "No tienes ese objeto."],
+  max_stars: [409, "Ya tiene el máximo de estrellas."],
+  insufficient_fragments: [409, "Te faltan fragmentos."],
+  duplicate_run: [409, "Esta run ya fue entregada."],
+  run_not_found: [404, "Run no encontrada."],
+  run_open: [409, "Ya tienes una run abierta."],
+  forbidden: [403, "No permitido."],
+  player_not_found: [404, "Jugador no encontrado."],
+  name_taken: [409, "Ese nombre ya existe."],
+  invalid_name: [400, "Nombre inválido."],
+};
+
+// Known contract codes -> friendly API error; unknown -> generic (rethrown).
+export const mapRpcError = (e: unknown): never => {
+  if (e instanceof RpcError && KNOWN[e.message]) {
+    const [status, msg] = KNOWN[e.message];
+    throw new ApiError(status, e.message, msg);
+  }
+  throw e;
+};
+
+// Per-key counter in Postgres (rate_limit_hit never throws for "denied").
+export async function limit(
+  rpc: Rpc,
+  key: string,
+  max: number,
+  windowSec: number,
+): Promise<void> {
+  const r = await call<{ allowed: boolean }>(rpc, "rate_limit_hit", {
+    p_key: key,
+    p_max: max,
+    p_window_seconds: windowSec,
+  });
+  if (!r.allowed)
+    throw new ApiError(429, "rate_limited", "Espera un momento.", {
+      retryAfter: windowSec,
+    });
+}
+
+export const audit = (
+  rpc: Rpc,
+  actor: string | null,
+  event: string,
+  detail: Record<string, unknown> = {},
+) =>
+  call(rpc, "log_audit", {
+    p_actor: actor,
+    p_event: event,
+    p_detail: detail,
+  }).catch(
+    () => undefined, // auditing must never break the request
+  );

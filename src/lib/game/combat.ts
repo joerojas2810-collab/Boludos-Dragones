@@ -1,0 +1,815 @@
+import {
+  CLASS_PASSIVE_ADVANTAGE_BONUS,
+  CLASS_PASSIVE_CRIT_MULT,
+  CLASS_PASSIVE_DMG_REDUCTION,
+  CLASS_PASSIVE_REGEN,
+  CLASSES,
+  type Attack,
+  type Character,
+  type ClassId,
+} from "./characters";
+import {
+  ADVANTAGE_BONUS,
+  ELEMENTS,
+  elementMultiplier,
+  ELEMENT_LABEL,
+} from "./elements";
+import type { Rng } from "./rng";
+import {
+  COUNTER_REFLECT,
+  COUNTER_ROUNDS,
+  COUNTER_TAKEN,
+  SKILLS,
+  type Skill,
+} from "./skills";
+
+export type AttackKey = "attack1" | "attack2";
+export type MoveKey = AttackKey | "attack3"; // attack3 = class skill (skills.ts)
+export type Action = MoveKey | "defend" | "flee";
+export type Intent = AttackKey | "defend";
+export type Status = "ongoing" | "won" | "lost" | "fled";
+
+export const CRIT_MULTIPLIER = 1.5;
+export const DEFEND_FACTOR = 0.5;
+export const DEF_WEIGHT = 0.5;
+export const BASE_FLEE_CHANCE = 0.4;
+export const MAX_ENEMIES = 3;
+
+// Perfect guard: choosing Defender while at least one STRONG hit (Ataque 2) is
+// still announced this round. That strong hit is cut to PERFECT_GUARD_FACTOR of
+// its damage (instead of DEFEND_FACTOR; it replaces it, it does not stack) and
+// the hero's next damaging action deals +GUARD_COUNTER_BONUS. Weaker hits in the
+// same round still get the normal DEFEND_FACTOR.
+export const PERFECT_GUARD_FACTOR = 0.25;
+export const GUARD_COUNTER_BONUS = 0.5;
+export const isStrongIntent = (k: MoveKey | Intent): boolean => k === "attack2";
+
+// Speed -> actions ("acciones acumuladas"). Per (hero, enemy) pair the slower
+// side acts once per round; the faster side acts floor(carry) times, where
+// carry grows by fast/slow every round and keeps its fractional remainder
+// (12 vs 8 -> 1,2,1,2...; 12 vs 6 -> 2 every round). Capped per combatant. With
+// several enemies every enemy keeps its own carry against the hero, and the
+// hero gets the MOST actions any pair gives him (see planRound).
+export const MAX_ACTIONS_PER_ROUND = 3;
+const CARRY_EPS = 1e-9;
+
+// Enemy modifiers unlocked every 10 floors in runs (see run.ts). They apply to
+// EVERY enemy of the group.
+export type EnemyMod =
+  "regeneracion" | "escudo" | "dobleAtaque" | "elementoCambiante";
+export const REGEN_FRACTION = 0.03; // of max hp, per round
+export const SHIELD_FRACTION = 0.3; // of max hp, absorbs damage first
+export const DOUBLE_ATTACK_FACTOR = 0.5; // damage of the extra attack
+export const ELEMENT_SHIFT_EVERY = 2; // rounds
+
+// Relic-driven combat perks (player only).
+export interface Perks {
+  lifesteal?: number; // fraction of damage dealt healed
+  critDamage?: number; // added to CRIT_MULTIPLIER
+  regen?: number; // fraction of max hp healed at the end of each round
+  dmgReduction?: number; // fraction of incoming damage ignored
+  dmgMult?: number; // multiplier on damage dealt
+}
+
+export interface BattleOptions {
+  perks?: Perks;
+  playerHp?: number; // carried hp (runs); defaults to full
+  playerShield?: number;
+  freeHits?: number; // enemy attacks the player evades automatically
+  mods?: EnemyMod[];
+}
+
+export interface BattleEvent {
+  actor: "player" | "enemy";
+  kind: "hit" | "crit" | "miss" | "buff";
+  classId: ClassId;
+  move: MoveKey;
+  enemy: number; // index in Battle.enemies of the enemy involved
+}
+
+export type Side = "player" | "enemy";
+
+export interface Combatant {
+  char: Character;
+  hp: number;
+  cooldown: number; // rounds before attack2 is usable again
+  cooldown3?: number; // same for the class skill (attack3)
+  defending: boolean; // lasts until the end of the round
+  // (an enemy's Defender is active from round start: it is announced)
+  guard?: boolean; // perfect guard earned this round (see PERFECT_GUARD_FACTOR)
+  riposte?: boolean; // next damaging action gets GUARD_COUNTER_BONUS
+  reflect?: number; // rounds left of Contraataque
+  carry?: number; // enemies: speed remainder against the hero
+  shield?: number;
+  freeHits?: number;
+  perks?: Perks;
+}
+
+// A round is a queue of action slots (see buildQueue). `step` resolves one
+// player action plus every enemy slot up to the next player slot. An enemy slot
+// carries its announced intent; `n` is its ordinal among that enemy's actions
+// this round.
+export type EnemySlot = { e: number; n: number; intent: Intent };
+export type Slot = "player" | EnemySlot;
+
+export interface Battle {
+  player: Combatant;
+  enemies: Combatant[]; // 1..MAX_ENEMIES; dead ones stay (hp 0) to keep indices
+  queue: Slot[]; // action slots still to resolve this round
+  playerActions: number; // player's total actions this round
+  turn: number; // round number
+  actions: number; // player actions resolved so far (0 = fight not started)
+  status: Status;
+  log: string[];
+  events: BattleEvent[]; // what happened in the last step, for sfx/animation
+  mods?: EnemyMod[];
+}
+
+const clamp = (v: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, v));
+
+export const skillOf = (c: Combatant): Skill | undefined =>
+  c.char.skill ? SKILLS[c.char.skill] : undefined;
+
+function attackOf(c: Combatant, key: MoveKey): Attack {
+  if (key === "attack3") {
+    const s = skillOf(c);
+    if (s)
+      return {
+        name: s.name,
+        power: s.power,
+        accuracy: s.accuracy,
+        cooldown: s.cooldown,
+        heal: 0,
+      };
+    key = "attack1";
+  }
+  return CLASSES[c.char.classId][key];
+}
+
+const newCombatant = (char: Character): Combatant => ({
+  char,
+  hp: char.stats.hp,
+  cooldown: 0,
+  defending: false,
+});
+
+// ---- queries (also used by the UI and the auto policy) ----
+
+// Indices (in Battle.enemies) of the enemies still standing.
+export const livingEnemies = (b: Battle): number[] =>
+  b.enemies.flatMap((e, i) => (e.hp > 0 ? [i] : []));
+
+// Enemy slots not resolved yet this round (dead enemies skipped).
+export const pendingIntents = (b: Battle): EnemySlot[] =>
+  b.queue.filter(
+    (s): s is EnemySlot => s !== "player" && b.enemies[s.e].hp > 0,
+  );
+
+export const enemyIntents = (b: Battle, e: number): Intent[] =>
+  pendingIntents(b)
+    .filter((s) => s.e === e)
+    .map((s) => s.intent);
+
+// A strong hit is still coming: Defender now would be a perfect guard.
+export const strongPending = (b: Battle): boolean =>
+  pendingIntents(b).some((s) => isStrongIntent(s.intent));
+
+export const actionsLeft = (b: Battle): number =>
+  b.queue.filter((s) => s === "player").length;
+
+// One intent per enemy action; at most one Ataque 2 per round (cooldown).
+export function pickIntents(enemy: Combatant, n: number, rng: Rng): Intent[] {
+  const out: Intent[] = [];
+  let cd = enemy.cooldown;
+  for (let i = 0; i < n; i++) {
+    const roll = rng.next();
+    if (roll < 0.2) out.push("defend");
+    else if (roll < 0.5 && cd === 0) {
+      out.push("attack2");
+      cd = 1;
+    } else out.push("attack1");
+  }
+  return out;
+}
+
+// Actions each side gets this round and the new carry.
+export function actionCounts(
+  playerSpeed: number,
+  enemySpeed: number,
+  carry: number,
+): { player: number; enemy: number; carry: number } {
+  const playerFast = playerSpeed >= enemySpeed;
+  const slow = Math.max(0.1, playerFast ? enemySpeed : playerSpeed);
+  const total = carry + (playerFast ? playerSpeed : enemySpeed) / slow;
+  const n = Math.floor(total + CARRY_EPS);
+  const fast = Math.min(MAX_ACTIONS_PER_ROUND, n);
+  return {
+    player: playerFast ? fast : 1,
+    enemy: playerFast ? 1 : fast,
+    carry: Math.max(0, total - n), // the excess over the cap is discarded
+  };
+}
+
+// Round order. `lead` enemy slots act before the hero's first action (the
+// enemies whose initiative beat his); after that it alternates hero / enemy
+// side and the leftovers follow (hero first, 2 vs 1: P E P; lead 1, 1 vs 2:
+// E P E).
+export function buildQueue(
+  playerN: number,
+  enemyActs: readonly EnemySlot[],
+  lead: number,
+): Slot[] {
+  const es = [...enemyActs];
+  const q: Slot[] = es.splice(0, Math.max(0, lead));
+  let p = playerN;
+  let next: Side = "player";
+  while (p + es.length > 0) {
+    if (next === "player" && p === 0) next = "enemy";
+    else if (next === "enemy" && es.length === 0) next = "player";
+    if (next === "player") {
+      q.push("player");
+      p--;
+    } else q.push(es.shift() as EnemySlot);
+    next = next === "player" ? "enemy" : "player";
+  }
+  return q;
+}
+
+// Enemy action slots of a round: pass k lists every enemy with a k-th action,
+// in initiative order.
+function enemySlots(
+  order: readonly number[],
+  intents: readonly (readonly Intent[])[],
+): EnemySlot[] {
+  const out: EnemySlot[] = [];
+  const most = Math.max(0, ...intents.map((i) => i.length));
+  for (let n = 0; n < most; n++)
+    for (const e of order)
+      if (intents[e]?.[n]) out.push({ e, n, intent: intents[e][n] });
+  return out;
+}
+
+const roll = (c: Combatant, rng: Rng) =>
+  c.char.stats.speed * (0.7 + 0.6 * rng.next());
+
+// Rolls everything announced for a new round. An enemy's Defender (if any of
+// its intents is one) is active from the start, so shown estimates stay honest.
+// RNG order: intents (enemy by enemy), then initiative (enemies, then hero).
+function planRound(
+  player: Combatant,
+  enemies: Combatant[],
+  turn: number,
+  rng: Rng,
+): {
+  queue: Slot[];
+  playerActions: number;
+  enemies: Combatant[];
+  lines: string[];
+} {
+  const live = enemies.flatMap((e, i) => (e.hp > 0 ? [i] : []));
+  const counts = enemies.map((e) =>
+    e.hp > 0
+      ? actionCounts(player.char.stats.speed, e.char.stats.speed, e.carry ?? 0)
+      : null,
+  );
+  const intents: Intent[][] = enemies.map((e, i) =>
+    counts[i] ? pickIntents(e, counts[i].enemy, rng) : [],
+  );
+  const rolls = enemies.map((e) => (e.hp > 0 ? roll(e, rng) : -1));
+  const mine = roll(player, rng);
+  const order = [...live].sort((a, b) => rolls[b] - rolls[a] || a - b);
+  const lead = live.filter((i) => rolls[i] > mine).length;
+  const playerActions = Math.max(1, ...live.map((i) => counts[i]?.player ?? 1));
+  const lines = [`— Ronda ${turn} —`];
+  if (playerActions > 1)
+    lines.push(
+      `${player.char.name} es más veloz: actúa ${playerActions} veces.`,
+    );
+  for (const i of live)
+    if ((counts[i]?.enemy ?? 1) > 1)
+      lines.push(
+        `${enemies[i].char.name} es más veloz: actúa ${counts[i]?.enemy} veces.`,
+      );
+  return {
+    queue: buildQueue(playerActions, enemySlots(order, intents), lead),
+    playerActions,
+    enemies: enemies.map((e, i) => ({
+      ...e,
+      carry: counts[i]?.carry ?? e.carry,
+      defending: intents[i].includes("defend"),
+    })),
+    lines,
+  };
+}
+
+// Forces the round layout (tests, scripted fights): how many enemy slots open
+// the round (true = 1), the announced actions (one list for the first enemy, or
+// one list per enemy) and how many actions the hero gets.
+export function withRound(
+  b: Battle,
+  enemyFirst: boolean | number,
+  intents: readonly Intent[] | readonly (readonly Intent[])[],
+  playerActions = 1,
+): Battle {
+  const per: (readonly Intent[])[] = (intents as readonly unknown[]).every(
+    (i) => Array.isArray(i),
+  )
+    ? (intents as (readonly Intent[])[])
+    : [intents as readonly Intent[]];
+  const order = b.enemies.map((_, i) => i);
+  return {
+    ...b,
+    playerActions,
+    queue: buildQueue(
+      playerActions,
+      enemySlots(order, per),
+      enemyFirst === true ? 1 : enemyFirst === false ? 0 : enemyFirst,
+    ),
+    enemies: b.enemies.map((e, i) => ({
+      ...e,
+      defending: (per[i] ?? []).includes("defend"),
+    })),
+  };
+}
+
+export function startBattle(
+  player: Character,
+  foes: Character | readonly Character[],
+  rng: Rng,
+  opts: BattleOptions = {},
+): Battle {
+  const mods = opts.mods ?? [];
+  const list: readonly Character[] = "name" in foes ? [foes] : foes;
+  const es = list.slice(0, MAX_ENEMIES).map((c) => {
+    const e = newCombatant(c);
+    if (mods.includes("escudo"))
+      e.shield = Math.round(c.stats.hp * SHIELD_FRACTION);
+    return e;
+  });
+  const p = newCombatant(player);
+  if (opts.playerHp !== undefined) p.hp = opts.playerHp;
+  if (opts.playerShield) p.shield = opts.playerShield;
+  if (opts.freeHits) p.freeHits = opts.freeHits;
+  if (opts.perks) p.perks = opts.perks;
+  const plan = planRound(p, es, 1, rng);
+  return {
+    ...(mods.length ? { mods } : {}),
+    queue: plan.queue,
+    playerActions: plan.playerActions,
+    player: p,
+    enemies: plan.enemies,
+    turn: 1,
+    actions: 0,
+    status: "ongoing",
+    events: [],
+    log: [
+      ...list
+        .slice(0, MAX_ENEMIES)
+        .map((c) => `${c.name} (${ELEMENT_LABEL[c.element]}) aparece.`),
+      `${list[0].name}: «${list[0].catchphrase}»`,
+      `${player.name}: «${player.catchphrase}»`,
+      ...plan.lines,
+    ],
+  };
+}
+
+export function hitChance(
+  att: Combatant,
+  def: Combatant,
+  key: MoveKey,
+): number {
+  return clamp(
+    (attackOf(att, key).accuracy + att.char.stats.accuracy) *
+      (1 - def.char.stats.dodge),
+    0.05,
+    1,
+  );
+}
+
+// Damage multiplier of the defender's stance against this move.
+const stanceFactor = (def: Combatant, key: MoveKey): number =>
+  !def.defending
+    ? 1
+    : def.guard && isStrongIntent(key)
+      ? PERFECT_GUARD_FACTOR
+      : DEFEND_FACTOR;
+
+// Skill bonus vs a weakened target (Ejecutar).
+function executeFactor(att: Combatant, def: Combatant, key: MoveKey): number {
+  const s = key === "attack3" ? skillOf(att) : undefined;
+  return s?.executeBelow !== undefined &&
+    def.hp < def.char.stats.hp * s.executeBelow
+    ? (s.executeMult ?? 1)
+    : 1;
+}
+
+// Expected damage of a non-critical hit (one strike).
+export function estimateDamage(
+  att: Combatant,
+  def: Combatant,
+  key: MoveKey,
+): number {
+  const a = attackOf(att, key);
+  const raw =
+    att.char.stats.atk * a.power * attackElementMultiplier(att, def) -
+    def.char.stats.def * DEF_WEIGHT;
+  return Math.max(
+    1,
+    Math.round(
+      raw *
+        stanceFactor(def, key) *
+        (att.perks?.dmgMult ?? 1) *
+        (1 - (def.perks?.dmgReduction ?? 0)) *
+        (def.char.classId === "caballero"
+          ? 1 - CLASS_PASSIVE_DMG_REDUCTION
+          : 1) *
+        ((def.reflect ?? 0) > 0 ? COUNTER_TAKEN : 1) *
+        (att.riposte ? 1 + GUARD_COUNTER_BONUS : 1) *
+        executeFactor(att, def, key),
+    ),
+  );
+}
+
+// Crit multiplier: Pícaro passive replaces the base; relic bonus adds on top.
+export const critMultiplier = (c: Combatant): number =>
+  (c.char.classId === "picaro" ? CLASS_PASSIVE_CRIT_MULT : CRIT_MULTIPLIER) +
+  (c.perks?.critDamage ?? 0);
+
+// Element multiplier with the Mago passive (stronger advantage when attacking).
+export function attackElementMultiplier(
+  att: Combatant,
+  def: Combatant,
+): number {
+  const m = elementMultiplier(
+    att.char.weapon?.element ?? att.char.element,
+    def.char.element,
+  );
+  return att.char.classId === "mago" && m > 1
+    ? m - ADVANTAGE_BONUS + CLASS_PASSIVE_ADVANTAGE_BONUS
+    : m;
+}
+
+// Flee chance: base + esquive + huida, clamped.
+export const fleeChance = (c: Combatant): number =>
+  clamp(BASE_FLEE_CHANCE + c.char.stats.dodge + c.char.stats.flee, 0.05, 0.95);
+
+// Clérigo passive, applied to whichever side is a Clérigo and still alive.
+function bless(c: Combatant, log: string[]): Combatant {
+  if (c.char.classId !== "clerigo") return c;
+  const hp = Math.min(
+    c.char.stats.hp,
+    c.hp + Math.round(c.char.stats.hp * CLASS_PASSIVE_REGEN),
+  );
+  if (hp > c.hp) log.push(`${c.char.name} se bendice y recupera ${hp - c.hp}.`);
+  return { ...c, hp };
+}
+
+interface Strike {
+  attacker: Combatant;
+  defender: Combatant;
+  dmg: number; // damage dealt after crit (0 on a miss or a dodge)
+}
+
+function strike(
+  att: Combatant,
+  def: Combatant,
+  key: MoveKey,
+  rng: Rng,
+  log: string[],
+  events: BattleEvent[],
+  actor: BattleEvent["actor"],
+  enemy: number,
+  dmgFactor = 1,
+): Strike {
+  const a = attackOf(att, key);
+  const skill = key === "attack3" ? skillOf(att) : undefined;
+  const who = att.char.name;
+  const on = actor === "player" ? ` sobre ${def.char.name}` : "";
+  let hp = att.hp;
+  if (a.heal > 0) {
+    hp = Math.min(
+      att.char.stats.hp,
+      hp + Math.round(att.char.stats.hp * a.heal),
+    );
+    log.push(`${who} usa ${a.name} y recupera ${hp - att.hp} de vida.`);
+  }
+  const attacker: Combatant = {
+    ...att,
+    hp,
+    ...(key === "attack2" && { cooldown: a.cooldown + 1 }),
+    ...(key === "attack3" && { cooldown3: a.cooldown + 1 }),
+  };
+  const ev = (kind: BattleEvent["kind"]) =>
+    events.push({ actor, kind, classId: att.char.classId, move: key, enemy });
+  if (def.freeHits) {
+    log.push(`${def.char.name} esquiva el golpe de ${who}.`);
+    return {
+      attacker,
+      defender: { ...def, freeHits: def.freeHits - 1 },
+      dmg: 0,
+    };
+  }
+  if (!rng.chance(hitChance(att, def, key))) {
+    if (a.heal === 0) log.push(`${who} usa ${a.name}${on} y falla.`);
+    ev("miss");
+    return { attacker, defender: def, dmg: 0 };
+  }
+  const crit = rng.chance(att.char.stats.crit);
+  const dmg = Math.round(
+    estimateDamage(att, def, key) *
+      (crit ? critMultiplier(att) : 1) *
+      dmgFactor,
+  );
+  ev(crit ? "crit" : "hit");
+  log.push(
+    `${who} usa ${a.name}${on}: ${dmg} de daño${crit ? " (¡crítico!)" : ""}.`,
+  );
+  const absorbed = Math.min(def.shield ?? 0, dmg);
+  if (absorbed > 0)
+    log.push(`El escudo de ${def.char.name} absorbe ${absorbed}.`);
+  const steal = Math.round(
+    dmg * ((att.perks?.lifesteal ?? 0) + (skill?.lifesteal ?? 0)),
+  );
+  let defender: Combatant = {
+    ...def,
+    hp: Math.max(0, def.hp - (dmg - absorbed)),
+    ...(def.shield !== undefined && { shield: def.shield - absorbed }),
+  };
+  let back = 0;
+  if ((def.reflect ?? 0) > 0) {
+    // Contraataque: the hit was already reduced; the attacker eats it in full.
+    back = Math.round((dmg / COUNTER_TAKEN) * COUNTER_REFLECT);
+    defender = { ...defender, reflect: 0 };
+    log.push(`${def.char.name} contraataca y devuelve ${back} a ${who}.`);
+  }
+  return {
+    attacker: {
+      ...attacker,
+      hp: Math.max(0, Math.min(att.char.stats.hp, attacker.hp + steal) - back),
+    },
+    defender,
+    dmg,
+  };
+}
+
+// Stalemate breaker: past this turn every enemy gains +ENRAGE_STEP ATQ per turn.
+export const ENRAGE_AFTER_TURN = 40;
+export const ENRAGE_STEP = 0.1;
+
+// Resolves the player's current action, then every slot up to the player's next
+// one (or the end of the round). An enemy opener acts after the player CHOSE
+// (so Defender covers it). Cooldowns, regen, mods and the round counter tick
+// once per round, not per action. Fleeing uses one action; a win, death or
+// successful flee ends the round on the spot. `target` indexes the LIVING
+// enemies (default: the first one); single-target moves use it, area moves,
+// Defender and flee ignore it. An out-of-range target is an illegal action.
+export function step(
+  b: Battle,
+  action: Action,
+  rng: Rng,
+  target?: number,
+): Battle {
+  if (b.status !== "ongoing" || !b.queue.includes("player")) return b;
+  if (action === "attack2" && b.player.cooldown > 0) return b;
+  const skill = action === "attack3" ? skillOf(b.player) : undefined;
+  if (action === "attack3" && (!skill || (b.player.cooldown3 ?? 0) > 0))
+    return b;
+  const alive = livingEnemies(b);
+  if (
+    target !== undefined &&
+    (!Number.isInteger(target) || target < 0 || target >= alive.length)
+  )
+    return b;
+  const tIdx = alive[target ?? 0];
+  const log: string[] = [];
+  const events: BattleEvent[] = [];
+  let player: Combatant = { ...b.player };
+  const enemies: Combatant[] = b.enemies.map((e) => ({ ...e }));
+  const fallen = enemies.map((e) => e.hp <= 0);
+
+  if (action === "defend" || skill?.guard) {
+    player.defending = true;
+    if (action === "defend") log.push(`${player.char.name} se defiende.`);
+    if (!player.guard && strongPending(b)) {
+      player.guard = true;
+      player.riposte = true;
+      log.push(
+        `¡Guardia perfecta! ${player.char.name} resistirá el golpe fuerte y contraatacará.`,
+      );
+    }
+  }
+
+  const queue = [...b.queue];
+  let playerDone = b.playerActions - queue.filter((s) => s === "player").length;
+  let playerActed = false;
+  let end: Status | null = null;
+
+  // The hero's move. Strikes update `player` and `enemies` in place.
+  const hit = (i: number, key: MoveKey, factor = 1) => {
+    const r = strike(
+      player,
+      enemies[i],
+      key,
+      rng,
+      log,
+      events,
+      "player",
+      i,
+      factor,
+    );
+    player = r.attacker;
+    enemies[i] = r.defender;
+    return r.dmg;
+  };
+  const playMove = () => {
+    if (action === "attack1" || action === "attack2") {
+      const dealt = hit(tIdx, action);
+      if (dealt > 0) player.riposte = false;
+      return;
+    }
+    if (!skill) return;
+    const cd = skill.cooldown + 1;
+    if (skill.power === 0) {
+      player.cooldown3 = cd;
+      const m = player.char.stats.hp;
+      const bits: string[] = [];
+      if (skill.heal) {
+        const hp = Math.min(m, player.hp + Math.round(m * skill.heal));
+        bits.push(`recupera ${hp - player.hp} de vida`);
+        player.hp = hp;
+      }
+      if (skill.shield) {
+        const s = Math.round(m * skill.shield);
+        player.shield = (player.shield ?? 0) + s;
+        bits.push(`gana un escudo de ${s}`);
+      }
+      if (skill.counter) {
+        player.reflect = COUNTER_ROUNDS;
+        bits.push("se prepara para devolver el próximo golpe");
+      }
+      if (skill.guard) bits.push("se protege");
+      log.push(`${player.char.name} usa ${skill.name}: ${bits.join(" y ")}.`);
+      events.push({
+        actor: "player",
+        kind: "buff",
+        classId: player.char.classId,
+        move: "attack3",
+        enemy: tIdx,
+      });
+      return;
+    }
+    let dealt = 0;
+    if (skill.area) {
+      for (const i of alive) if (enemies[i].hp > 0) dealt += hit(i, "attack3");
+    } else {
+      for (let h = 0; h < (skill.hits ?? 1) && enemies[tIdx].hp > 0; h++)
+        dealt += hit(tIdx, "attack3");
+    }
+    player.cooldown3 = cd;
+    if (dealt > 0) player.riposte = false;
+  };
+
+  while (queue.length && !end) {
+    const slot = queue[0];
+    if (slot === "player" && playerActed) break;
+    queue.shift();
+    if (slot === "player") {
+      playerActed = true;
+      if (playerDone++ > 0) log.push(`${player.char.name} actúa de nuevo.`);
+      if (action === "flee") {
+        if (rng.chance(fleeChance(player))) end = "fled";
+        else log.push(`${player.char.name} no logra huir.`);
+      } else if (action !== "defend") playMove();
+    } else if (enemies[slot.e].hp > 0) {
+      let foe = enemies[slot.e];
+      if (slot.n > 0) log.push(`${foe.char.name} actúa de nuevo.`);
+      if (slot.intent === "defend") {
+        log.push(`${foe.char.name} se defiende.`);
+        continue;
+      }
+      const r = strike(
+        foe,
+        player,
+        slot.intent,
+        rng,
+        log,
+        events,
+        "enemy",
+        slot.e,
+      );
+      foe = r.attacker;
+      player = r.defender;
+      if (b.mods?.includes("dobleAtaque") && player.hp > 0 && foe.hp > 0) {
+        const x = strike(
+          foe,
+          player,
+          "attack1",
+          rng,
+          log,
+          events,
+          "enemy",
+          slot.e,
+          DOUBLE_ATTACK_FACTOR,
+        );
+        foe = x.attacker;
+        player = x.defender;
+      }
+      enemies[slot.e] = foe;
+    }
+    if (end === "fled") log.push(`${player.char.name} huye.`);
+    else {
+      enemies.forEach((e, i) => {
+        if (e.hp <= 0 && !fallen[i]) {
+          fallen[i] = true;
+          log.push(`${e.char.name} cae.`);
+        }
+      });
+      if (enemies.every((e) => e.hp <= 0)) end = "won";
+      else if (player.hp <= 0) {
+        end = "lost";
+        log.push(`${player.char.name} cae.`);
+      }
+    }
+  }
+
+  const actions = b.actions + 1;
+  if (end || queue.length)
+    return {
+      ...b,
+      player,
+      enemies,
+      queue: end ? [] : queue,
+      status: end ?? "ongoing",
+      events,
+      actions,
+      log: [...b.log, ...log],
+    };
+
+  // ---- end of round ----
+  player = {
+    ...player,
+    defending: false,
+    guard: false,
+    cooldown: Math.max(0, player.cooldown - 1),
+    cooldown3: Math.max(0, (player.cooldown3 ?? 0) - 1),
+    reflect: Math.max(0, (player.reflect ?? 0) - 1),
+  };
+  player = bless(player, log);
+  if (player.perks?.regen) {
+    const hp = Math.min(
+      player.char.stats.hp,
+      player.hp + Math.round(player.char.stats.hp * player.perks.regen),
+    );
+    if (hp > player.hp) log.push(`${player.char.name} se recupera.`);
+    player = { ...player, hp };
+  }
+  const turn = b.turn + 1;
+  const next = enemies.map((e): Combatant => {
+    if (e.hp <= 0) return e;
+    let c: Combatant = {
+      ...e,
+      defending: false,
+      cooldown: Math.max(0, e.cooldown - 1),
+    };
+    c = bless(c, log);
+    if (b.mods?.includes("regeneracion")) {
+      const hp = Math.min(
+        c.char.stats.hp,
+        c.hp + Math.round(c.char.stats.hp * REGEN_FRACTION),
+      );
+      if (hp > c.hp) log.push(`${c.char.name} se regenera.`);
+      c = { ...c, hp };
+    }
+    if (
+      b.mods?.includes("elementoCambiante") &&
+      b.turn % ELEMENT_SHIFT_EVERY === 0
+    ) {
+      const element = rng.pick(ELEMENTS.filter((x) => x !== c.char.element));
+      c = { ...c, char: { ...c.char, element } };
+      log.push(`${c.char.name} cambia a ${ELEMENT_LABEL[element]}.`);
+    }
+    if (turn > ENRAGE_AFTER_TURN) {
+      const stats = {
+        ...c.char.stats,
+        atk: c.char.stats.atk * (1 + ENRAGE_STEP),
+      };
+      c = { ...c, char: { ...c.char, stats } };
+      log.push(`${c.char.name} se enfurece.`);
+    }
+    return c;
+  });
+  const plan = planRound(player, next, turn, rng);
+  return {
+    ...b,
+    queue: plan.queue,
+    playerActions: plan.playerActions,
+    player,
+    enemies: plan.enemies,
+    turn,
+    actions,
+    status: "ongoing",
+    events,
+    log: [...b.log, ...log, ...plan.lines],
+  };
+}

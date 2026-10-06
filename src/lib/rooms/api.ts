@@ -1,0 +1,240 @@
+// Contract of the room HTTP API + the Realtime events the SERVER publishes.
+// Requests reuse messages.ts (clientMsg / createRoomMsg / joinRoomMsg).
+// Both sides import this file: keep it stable (see docs/API_SALAS.md).
+import { z } from "zod";
+import type { Run } from "../game/run";
+import type { Phase } from "../game/room";
+import {
+  doorKindEnum,
+  phaseMsg,
+  REALTIME_MAX_BYTES,
+  interfereKindEnum,
+  MSG_VERSION,
+  phaseEnum,
+  roomModeEnum,
+} from "./messages";
+
+export {
+  clientMsg,
+  createRoomMsg,
+  joinRoomMsg,
+  type ClientMsg,
+} from "./messages";
+
+const uuid = z.uuid();
+const int = z.number().int();
+
+/** Paths. `{id}` = room uuid. `{type}` = ClientMsg["type"] except create/join. */
+export const ROOM_ROUTES = {
+  create: "/api/rooms", // POST
+  join: "/api/rooms/join", // POST
+  snapshot: (id: string) => `/api/rooms/${id}`, // GET
+  run: (id: string) => `/api/rooms/${id}/run`, // GET
+  summary: (id: string) => `/api/rooms/${id}/summary`, // GET
+  action: (id: string, type: string) => `/api/rooms/${id}/${type}`, // POST
+} as const;
+
+/** Every error body: { error: { code, message, retryAfter? } } */
+export const ROOM_ERROR_CODES = [
+  "unauthorized",
+  "forbidden",
+  "invalid_input",
+  "too_large",
+  "rate_limited",
+  "room_not_found",
+  "room_full",
+  "room_closed",
+  "not_member",
+  "not_active",
+  "wrong_phase",
+  "wrong_floor",
+  "door_locked",
+  "invalid_door",
+  "not_fighting",
+  "not_enough_players",
+  "max_rounds",
+  "coop_disabled",
+  "battle_not_found",
+  "battle_locked",
+  "self_bet",
+  "self_interfere",
+  "stake_too_low",
+  "insufficient_chips",
+  "duplicate_bet",
+  "already_interfered",
+  "hero_not_owned",
+  "engine_outdated",
+  "invalid_log",
+  "target_hosts_other_room",
+  "room_limit",
+  "server_error",
+] as const;
+
+// ---------------------------------------------------------------- shared views
+export const phaseView = z.object({
+  phase: phaseEnum,
+  phaseSeq: int,
+  round: int,
+  floor: int,
+  deadlineMs: int, // 0 = no deadline
+  hostId: uuid,
+  mode: roomModeEnum,
+  turnSeconds: int,
+  serverNowMs: int, // for clock skew
+});
+export type PhaseView = z.infer<typeof phaseView>;
+
+export const playerView = z.object({
+  id: uuid,
+  name: z.string(),
+  chips: int,
+  present: z.boolean(),
+  ready: z.boolean(),
+  eliminated: z.boolean(),
+  activeFromFloor: int,
+  heroKey: z.string().nullable(),
+  door: doorKindEnum.nullable(), // current floor, once picked
+  outcome: z.enum(["won", "lost", "fled", "timeout", "skipped"]).nullable(),
+  roundMaxFloor: int,
+  nightMaxFloor: int,
+});
+export type PlayerView = z.infer<typeof playerView>;
+
+export const battleView = z.object({
+  key: z.string(),
+  fighter: uuid,
+  status: z.enum(["open", "locked", "settled"]),
+  outcome: z.enum(["win", "lose", "void"]).nullable(),
+  interfered: z.boolean(), // WHO interfered stays secret until settled
+});
+export type BattleView = z.infer<typeof battleView>;
+
+export const roomSnapshot = z.object({
+  roomId: uuid,
+  code: z.string(),
+  you: uuid,
+  state: phaseView,
+  players: z.array(playerView),
+  battles: z.array(battleView),
+  rankChips: z.array(uuid), // player ids, best first
+  rankFloor: z.array(uuid),
+});
+export type RoomSnapshot = z.infer<typeof roomSnapshot>;
+
+// ---------------------------------------------------------------- responses
+export const createRoomRes = z.object({
+  roomId: uuid,
+  code: z.string().length(4),
+  expiresAt: z.string(),
+  state: phaseView,
+});
+export type CreateRoomRes = z.infer<typeof createRoomRes>;
+
+export const joinRoomRes = z.object({
+  roomId: uuid,
+  code: z.string(),
+  hostId: uuid,
+});
+export type JoinRoomRes = z.infer<typeof joinRoomRes>;
+
+/** Default response of every POST /api/rooms/{id}/{type}: the new state. */
+export const actionRes = z.object({ ok: z.literal(true), state: phaseView });
+export type ActionRes = z.infer<typeof actionRes>;
+
+export const advanceRes = z.object({
+  advanced: z.boolean(),
+  reason: z.enum(["stale", "not_due", "manual_phase"]).optional(),
+  state: phaseView,
+});
+export type AdvanceRes = z.infer<typeof advanceRes>;
+
+export const doorRes = actionRes.extend({
+  door: doorKindEnum,
+  replayed: z.boolean(),
+});
+export const chipsRes = actionRes.extend({ chips: int });
+export const submitRes = actionRes.extend({
+  outcome: z.enum(["won", "lost", "fled", "timeout"]).nullable(), // null: non-fight floor saved
+  replayed: z.boolean(),
+  eliminated: z.boolean(),
+});
+export type SubmitRes = z.infer<typeof submitRes>;
+
+/**
+ * GET /run: the server's authoritative Run at the START of the current floor
+ * (relic offers / pending picks already resolved or auto-resolved). The client
+ * plays this floor from here and submits ONLY the floor's actions (see doc).
+ * `enemyBoost` is only sent to the fighter during `fighting`.
+ */
+export interface RunView {
+  run: Run;
+  floor: number;
+  seed: number; // round seed (= run.seed)
+  doors: { kind: z.infer<typeof doorKindEnum> }[];
+  door: z.infer<typeof doorKindEnum> | null; // door you picked
+  enemyBoost: z.infer<typeof interfereKindEnum> | null;
+  engineVersion: number;
+}
+
+export const summaryRes = z.object({
+  phase: phaseEnum,
+  round: int,
+  players: z.array(
+    z.object({
+      player_id: uuid,
+      name: z.string(),
+      chips: int,
+      max_floor: int,
+      wins: int,
+      losses: int,
+      bet_net: int,
+      interferences: int,
+    }),
+  ),
+  awards: z.object({
+    gafe: uuid.nullable(),
+    apostador: uuid.nullable(),
+    saboteador: uuid.nullable(),
+  }),
+});
+export type SummaryRes = z.infer<typeof summaryRes>;
+
+// ---------------------------------------------------------------- Realtime
+/**
+ * Channel: `room:<roomId>` (private). The SERVER publishes through the REST
+ * broadcast API (service role); event name == payload.type. Clients subscribe
+ * with { config: { private: true } } and validate with parseServerEvent().
+ * Clients may SEND only `turn` and `emote` (members only, informational).
+ * seq of server events = phaseSeq (order inside a phase: phase, rank, settle).
+ */
+export const roomTopic = (roomId: string) => `room:${roomId}`;
+
+const baseEv = { v: z.literal(MSG_VERSION), room: uuid, seq: int };
+export const rankEv = z.strictObject({
+  ...baseEv,
+  type: z.literal("rank"),
+  by: z.enum(["chips", "floor"]),
+  r: z.array(z.string().length(8)).max(7), // first 8 chars of player uuids, best first
+});
+export const settleEv = z.strictObject({
+  ...baseEv,
+  type: z.literal("settle"),
+  fighter: uuid,
+  out: z.enum(["win", "lose", "void"]),
+});
+export type RankEv = z.infer<typeof rankEv>;
+export type SettleEv = z.infer<typeof settleEv>;
+
+export const SERVER_EVENTS = ["phase", "rank", "settle"] as const;
+export type ServerEventType = (typeof SERVER_EVENTS)[number];
+export type PhaseName = Phase;
+
+const serverEv = z.discriminatedUnion("type", [phaseMsg, rankEv, settleEv]);
+export type ServerEvent = z.infer<typeof serverEv>;
+/** Validates an inbound server event (size, shape, version). null = drop. */
+export function parseServerEvent(raw: unknown): ServerEvent | null {
+  if (new TextEncoder().encode(JSON.stringify(raw)).length > REALTIME_MAX_BYTES)
+    return null;
+  const r = serverEv.safeParse(raw);
+  return r.success ? r.data : null;
+}
