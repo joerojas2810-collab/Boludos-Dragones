@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ActionPanel } from "@/components/ActionPanel";
 import { BattleArena } from "@/components/BattleArena";
 import { EnemySprite } from "@/components/EnemySprite";
+import { EventResult } from "@/components/EventResult";
 import { Panel } from "@/components/Panel";
 import { SkillChoice } from "@/components/SkillChoice";
 import { useTargeting } from "@/components/useTargeting";
@@ -15,6 +16,8 @@ import {
   eventCost,
   fleeCost,
   itemUseless,
+  resolveEvent,
+  type EventChange,
   skillOffer,
   upgradeOffer,
 } from "@/lib/game/run";
@@ -49,6 +52,12 @@ export function FloorPlayer({ client, floor, door }: Props) {
   const [loc, setLoc] = useState<Local | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
+  // What my encounter just did (same pure code the server replays).
+  const [evRes, setEvRes] = useState<{
+    text: string;
+    paid: EventChange[];
+    changes: EventChange[];
+  } | null>(null);
   const log = useRef<RunAction[]>([]);
   const sending = useRef(false);
 
@@ -366,7 +375,12 @@ export function FloorPlayer({ client, floor, door }: Props) {
               key={i}
               className="btn"
               disabled={!eventCost(run, c).affordable}
-              onClick={() => apply({ t: "event", i })}
+              onClick={() => {
+                const r = resolveEvent(run, i);
+                if (r)
+                  setEvRes({ text: r.text, paid: r.paid, changes: r.changes });
+                apply({ t: "event", i });
+              }}
             >
               {c.label}
             </button>
@@ -379,7 +393,11 @@ export function FloorPlayer({ client, floor, door }: Props) {
   if (!node && run.floorCleared)
     return (
       <Panel title="Evento" className="text-center">
-        <div className="text-yellow-300">Hecho.</div>
+        {evRes ? (
+          <EventResult {...evRes} />
+        ) : (
+          <div className="text-yellow-300">Hecho.</div>
+        )}
         {leave}
       </Panel>
     );
