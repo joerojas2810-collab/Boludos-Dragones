@@ -3,6 +3,8 @@
 // (next phase via game/room.ts `advance`, floor results via engine replay);
 // SQL persists, validates and makes it idempotent.
 import type { z } from "zod";
+import { isUnlocked } from "../game/dungeons";
+import type { RarityId } from "../game/rarity";
 import { enemyFor, doorsFor, type Run } from "../game/run";
 import { ENGINE_VERSION } from "../game/replay";
 import {
@@ -78,6 +80,7 @@ const ERR: Record<string, [number, string]> = {
   duplicate_bet: [409, "Ya apostaste en esta pelea."],
   already_interfered: [409, "Ya interfirieron esta pelea."],
   hero_not_owned: [404, "No tienes ese héroe."],
+  rank_locked: [409, "Alguien en la sala aún no desbloqueó ese rango."],
   forbidden: [403, "No permitido."],
   invalid_args: [400, "Datos inválidos."],
   invalid_transition: [409, "Ahora no se puede hacer eso."],
@@ -91,7 +94,8 @@ const ERR: Record<string, [number, string]> = {
 /** Contract/model error code -> ApiError. Unknown errors propagate (500). */
 export function roomError(e: unknown): never {
   if (e instanceof ApiError) throw e;
-  const code = e instanceof RpcError ? e.message : typeof e === "string" ? e : "";
+  const code =
+    e instanceof RpcError ? e.message : typeof e === "string" ? e : "";
   const hit = ERR[code];
   if (hit) throw new ApiError(hit[0], code, hit[1]);
   throw e;
@@ -115,11 +119,20 @@ export const phaseViewOf = (s: RoomState, nowMs: number): PhaseView => ({
   deadlineMs: s.deadline,
   hostId: s.hostId,
   mode: s.mode,
+  rank: s.rank,
   turnSeconds: s.turnSeconds,
   serverNowMs: nowMs,
 });
 
 const pre = (id: string) => id.slice(0, 8);
+
+/** Every listed player must have cleared the rank below (UNLOCK rules of dungeons.ts). */
+async function assertUnlocked(d: RoomDeps, players: string[], rank: RarityId) {
+  for (const id of players) {
+    const { profile } = await d.loadProfile(id);
+    if (!isUnlocked(profile.dungeons, rank)) return fail("rank_locked");
+  }
+}
 
 async function load(d: RoomDeps, room: string): Promise<RoomState> {
   const s = await d.store.loadState(room);
@@ -128,7 +141,10 @@ async function load(d: RoomDeps, room: string): Promise<RoomState> {
 }
 
 /** Server -> channel events for the current state (compact, validated by tests). */
-export function eventsFor(room: string, s: RoomState): Record<string, unknown>[] {
+export function eventsFor(
+  room: string,
+  s: RoomState,
+): Record<string, unknown>[] {
   const base = { v: MSG_VERSION, room, seq: s.phaseSeq };
   const out: Record<string, unknown>[] = [
     {
@@ -162,7 +178,12 @@ export function eventsFor(room: string, s: RoomState): Record<string, unknown>[]
   if (s.phase === "reveal")
     for (const b of Object.values(s.battles))
       if (b.status === "settled" && b.outcome)
-        out.push({ ...base, type: "settle", fighter: b.fighter, out: b.outcome });
+        out.push({
+          ...base,
+          type: "settle",
+          fighter: b.fighter,
+          out: b.outcome,
+        });
   return out;
 }
 
@@ -212,8 +233,20 @@ async function resolveFloorVote(d: RoomDeps, s: RoomState, room: string) {
   if (s.phase !== "reveal" || !hasVote(s.floor) || s.roundSeed === null) return;
   const v = await d.store.loadVote(room, s.round, s.floor);
   if (v.result) return;
-  const r = resolveVoteResult(s.roundSeed, s.round, s.floor, v.votes, voters(s));
-  await d.store.resolveVote(room, s.round, s.floor, r.outcome !== null, r.delta);
+  const r = resolveVoteResult(
+    s.roundSeed,
+    s.round,
+    s.floor,
+    v.votes,
+    voters(s),
+  );
+  await d.store.resolveVote(
+    room,
+    s.round,
+    s.floor,
+    r.outcome !== null,
+    r.delta,
+  );
 }
 
 // ---------------------------------------------------------------- lobby-level
@@ -235,6 +268,10 @@ export async function createRoomService(
     if (!made) throw new ApiError(503, "server_error", "Intenta de nuevo.");
     if (msg.mode && msg.mode !== "nivelado")
       await d.store.setMode(player, made.roomId, msg.mode);
+    if (msg.rank && msg.rank !== "f") {
+      await assertUnlocked(d, [player], msg.rank);
+      await d.store.setRank(player, made.roomId, msg.rank);
+    }
     if (msg.turnSeconds && msg.turnSeconds !== 30)
       await d.store.setTurnSeconds(player, made.roomId, msg.turnSeconds);
     const s = await load(d, made.roomId);
@@ -265,7 +302,12 @@ export async function joinRoomService(
 }
 
 /** Every room request: membership check + heartbeat + stale-presence sweep. */
-async function touch(d: RoomDeps, player: string, room: string, present = true) {
+async function touch(
+  d: RoomDeps,
+  player: string,
+  room: string,
+  present = true,
+) {
   await d.store.markPresence(player, room, present); // not_member if not in the room
   await d.store.sweepPresence(room, d.now());
 }
@@ -306,7 +348,8 @@ export async function snapshotService(
         status: b.status,
         outcome: b.outcome,
         interfered: b.interference !== null,
-        interferedBy: s.phase === "reveal" ? (b.interference?.from ?? null) : null,
+        interferedBy:
+          s.phase === "reveal" ? (b.interference?.from ?? null) : null,
         bets: visibleBets(s.phase, b, player),
       })),
       rankChips: rankByChips(s).map((x) => x.id),
@@ -360,7 +403,7 @@ async function runAtFloorStart(
     const { profile } = await d.loadProfile(player);
     const heroKey = s.players.find((p) => p.id === player)?.heroId ?? null;
     const hero = heroForRound(profile, heroKey, s.mode, s.roundSeed, player);
-    base = newRoomRun(s.roundSeed, hero);
+    base = newRoomRun(s.roundSeed, hero, s.rank);
     await d.store.saveFloorRun(room, s.round, s.floor, player, {
       actions: { base },
     });
@@ -381,12 +424,14 @@ export async function runViewService(
     const run = await runAtFloorStart(d, s, room, player, rows);
     const b = s.battles[player];
     const boost =
-      s.phase === "fighting" && b ? await d.store.interferenceOn(room, b.key) : null;
+      s.phase === "fighting" && b
+        ? await d.store.interferenceOn(room, b.key)
+        : null;
     return {
       run,
       floor: s.floor,
       seed: run.seed,
-      doors: doorsFor(run.seed, s.floor),
+      doors: doorsFor(run.seed, s.floor, null, s.rank),
       door: thisFloorRow(rows, s.floor)?.doorKind ?? null,
       enemyBoost: boost,
       engineVersion: ENGINE_VERSION,
@@ -569,7 +614,13 @@ export async function advanceService(
               return {
                 player: b.fighter,
                 door_kind: kind,
-                fight_seed: enemyFor(seedNow, n.floor, kind as "easy").battleSeed,
+                fight_seed: enemyFor(
+                  seedNow,
+                  n.floor,
+                  kind as "easy",
+                  null,
+                  n.rank,
+                ).battleSeed,
               };
             })
           : null,
@@ -609,7 +660,8 @@ export async function roomAction(
   msg: ClientMsg,
 ): Promise<Record<string, unknown>> {
   if (msg.room !== room) throw E.badInput();
-  if (msg.type === "advance") return advanceService(d, player, room, msg.phaseSeq);
+  if (msg.type === "advance")
+    return advanceService(d, player, room, msg.phaseSeq);
   if (msg.type === "submit") return submitService(d, player, room, msg);
   return guarded(async () => {
     const [max, win] = LIMITS[msg.type] ?? [120, 60];
@@ -642,15 +694,23 @@ export async function roomAction(
         await st.leaveRoom(player, room);
         publishAfter = true;
         break;
-      case "start_round":
+      case "start_round": {
+        // A player who joined after the host picked the rank may not have it.
+        const s = await load(d, room);
+        if (s.rank !== "f") await assertUnlocked(d, voters(s), s.rank);
         await st.startRound(player, room, d.randomSeed(), now);
         publishAfter = true;
         break;
+      }
       case "door": {
         const s = await load(d, room);
         if (s.roundSeed === null || msg.floor !== s.floor)
           return fail("wrong_floor");
-        if (!doorsFor(s.roundSeed, s.floor).some((x) => x.kind === msg.door))
+        if (
+          !doorsFor(s.roundSeed, s.floor, null, s.rank).some(
+            (x) => x.kind === msg.door,
+          )
+        )
           return fail("invalid_door");
         const r = await st.chooseDoor(player, room, msg.floor, msg.door);
         extra = { door: r.door, replayed: r.replayed };
@@ -666,7 +726,13 @@ export async function roomAction(
         const bad = validateBet(msg.stake, me.chips, msg.fighter === player);
         if (bad) return fail(bad as "self_bet");
         if (b.status !== "open") return fail("battle_locked");
-        extra = await st.placeBet(room, player, b.key, msg.prediction, msg.stake);
+        extra = await st.placeBet(
+          room,
+          player,
+          b.key,
+          msg.prediction,
+          msg.stake,
+        );
         break;
       }
       case "interfere": {
@@ -681,7 +747,8 @@ export async function roomAction(
       }
       case "vote": {
         const s = await load(d, room);
-        if (s.phase !== "reveal" || !hasVote(s.floor)) return fail("wrong_phase");
+        if (s.phase !== "reveal" || !hasVote(s.floor))
+          return fail("wrong_phase");
         if (msg.floor !== s.floor) return fail("wrong_floor");
         if (now >= voteClosesAt(s.deadline)) return fail("wrong_phase");
         await st.castVote(player, room, msg.floor, msg.yes);
@@ -702,6 +769,12 @@ export async function roomAction(
       case "set_mode":
         await st.setMode(player, room, msg.mode);
         break;
+      case "set_rank": {
+        const s = await load(d, room);
+        await assertUnlocked(d, voters(s), msg.rank);
+        await st.setRank(player, room, msg.rank);
+        break;
+      }
       case "set_turn_seconds":
         await st.setTurnSeconds(player, room, msg.seconds);
         break;
@@ -719,7 +792,10 @@ export async function roomAction(
       case "end_night":
       case "start_coop": {
         const s = await load(d, room);
-        const r = msg.type === "end_night" ? endNight(s, player, now) : startCoop(s, player, now);
+        const r =
+          msg.type === "end_night"
+            ? endNight(s, player, now)
+            : startCoop(s, player, now);
         if (!r.ok) return fail(r.error as "forbidden");
         await st.advance({
           room,

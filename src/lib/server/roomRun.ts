@@ -2,9 +2,7 @@
 // timeouts) and the authoritative replay of one floor. No I/O.
 import type { Character } from "../game/characters";
 import { generateCharacter } from "../game/characters";
-import {
-  applyRoomAction,
-} from "../game/interference";
+import { applyRoomAction } from "../game/interference";
 import { normalizeHero } from "../game/nivelado";
 import { heroFromOwned, type Profile } from "../game/profile";
 import {
@@ -12,6 +10,7 @@ import {
   type ReplayState,
   type RunAction,
 } from "../game/replay";
+import type { RarityId } from "../game/rarity";
 import { createRng, hashSeed } from "../game/rng";
 import {
   isFightDoor,
@@ -59,8 +58,11 @@ export function heroForRound(
   return normalizeHero(hero, mode);
 }
 
-export const newRoomRun = (roundSeed: number, hero: Character): Run =>
-  createRun(roundSeed, hero);
+export const newRoomRun = (
+  roundSeed: number,
+  hero: Character,
+  rank: RarityId = "f",
+): Run => createRun(roundSeed, hero, false, null, rank);
 
 /** Resolves owed picks (and optionally the relic offer) with the first option. */
 export function settleRun(run: Run, relic: boolean): Run {
@@ -129,7 +131,10 @@ export function replayFloor(
   for (const a of actions) {
     if (a.t === "door") {
       if (++doors > 1) return BAD("second_door");
-      if (doorsFor(s.run.seed, s.run.floor)[a.i]?.kind !== o.kind)
+      if (
+        doorsFor(s.run.seed, s.run.floor, null, s.run.difficulty)[a.i]?.kind !==
+        o.kind
+      )
         return BAD("wrong_door");
     }
     const n = applyRoomAction(s, a, o.boost);
@@ -156,7 +161,12 @@ export function replayFloor(
     if (!f.result) {
       // unfinished fight when the log ends: counts as a loss
       const run = timeoutRun(start);
-      return { ok: true, outcome: "timeout", run, eliminated: run.status === "over" };
+      return {
+        ok: true,
+        outcome: "timeout",
+        run,
+        eliminated: run.status === "over",
+      };
     }
     const status = f.battle.status;
     const fin = applyRunAction(s, { t: "fin" });

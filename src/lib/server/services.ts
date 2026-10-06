@@ -13,7 +13,11 @@ import {
   type PullResult,
   type Profile,
 } from "../game/profile";
+import { isDungeonRank, isUnlocked } from "../game/dungeons";
+import { applyForge, type ForgeOp } from "../game/forge";
+import type { RarityId } from "../game/rarity";
 import { ENGINE_VERSION, replayRun, type RunAction } from "../game/replay";
+import { isVictory } from "../game/run";
 import { createRng } from "../game/rng";
 import { isDayKey, type DailyState } from "../game/streak";
 import { ApiError } from "./http";
@@ -35,6 +39,9 @@ interface RawProfile {
   stateVersion: number;
   coins: number;
   pity: { character: number; weapon: number };
+  pitySsr?: { character: number; weapon: number };
+  dungeons?: Record<string, number>;
+  parts?: Record<string, number>;
   characters: {
     id: string;
     classId: string;
@@ -68,6 +75,9 @@ export function toMe(raw: RawProfile): Me {
   const profile = migrate({
     coins: raw.coins,
     pity: raw.pity,
+    dungeons: raw.dungeons,
+    parts: raw.parts,
+    pitySsr: raw.pitySsr,
     bestFloor: raw.bestFloor,
     equipped: raw.equipped,
     fragments: raw.fragments,
@@ -188,6 +198,7 @@ export async function doPull(
         p_banner: body.banner,
         p_cost: cost,
         p_pity: out.profile.pity[body.banner],
+        p_pity_ssr: out.profile.pitySsr[body.banner],
         p_seed: seed,
         p_daily: daily,
         p_items: items,
@@ -222,6 +233,7 @@ export async function doPull(
 export interface RunStartBody {
   classId: ClassId;
   characterId: string | null;
+  rank?: RarityId;
 }
 
 export async function startRunService(
@@ -231,6 +243,13 @@ export async function startRunService(
 ) {
   await limit(d.rpc, `runstart:${playerId}`, 10, 60);
   const me = await loadMe(d.rpc, playerId);
+  const rank = body.rank ?? "f";
+  if (!isUnlocked(me.profile.dungeons, rank))
+    throw new ApiError(
+      403,
+      "dungeon_locked",
+      "Ese dungeon todavía está bloqueado.",
+    );
   const seed = d.randomSeed();
   let hero: Character;
   if (body.characterId) {
@@ -250,7 +269,7 @@ export async function startRunService(
     p_seed: seed,
     // The engine version rides inside the hero json (no schema change): a log
     // is only replayable by the engine that recorded it.
-    p_hero: { ...hero, engineVersion: ENGINE_VERSION },
+    p_hero: { ...hero, engineVersion: ENGINE_VERSION, dungeon: rank },
   };
   try {
     let r: { run_id: string };
@@ -273,7 +292,7 @@ export async function startRunService(
       await audit(d.rpc, playerId, "run_replaced", { stale });
       r = await call(d.rpc, "start_run", args);
     }
-    return { runId: r.run_id, seed, hero, engineVersion: ENGINE_VERSION };
+    return { runId: r.run_id, seed, hero, rank, engineVersion: ENGINE_VERSION };
   } catch (e) {
     return mapRpcError(e);
   }
@@ -309,16 +328,22 @@ export async function submitRunService(
   if (!row) throw new ApiError(404, "run_not_found", "Run no encontrada.");
   if (row.status !== "open")
     throw new ApiError(409, "duplicate_run", "Esta run ya fue entregada.");
-  const { engineVersion: stored = 1, ...hero } = row.hero as Character & {
+  const {
+    engineVersion: stored = 1,
+    dungeon,
+    ...hero
+  } = row.hero as Character & {
     engineVersion?: number;
+    dungeon?: RarityId;
   };
+  const rank = isDungeonRank(dungeon) ? dungeon : null;
   if (body.engineVersion !== undefined && body.engineVersion !== stored)
     throw new ApiError(
       409,
       "engine_outdated",
       "La run se jugó con otra versión del juego. Recarga la página y empieza una nueva.",
     );
-  const rep = replayRun(row.seed, hero, body.actions, stored);
+  const rep = replayRun(row.seed, hero, body.actions, stored, rank);
   if (rep.error)
     throw new ApiError(
       409,
@@ -354,6 +379,19 @@ export async function submitRunService(
       p_log: verdict === "accepted" ? null : body.actions,
       p_verdict: SQL_VERDICT[verdict],
       p_reason: reason,
+      // First clear / better clear of the dungeon, as the replay says.
+      p_parts: rep.run.partSecured,
+      p_clear:
+        rank && isVictory(rep.run) && rep.rejectedAt === null
+          ? { rank, lives: rep.run.lives }
+          : null,
+      // Pieces locked in by defeated bosses, as the REPLAY says (never the client).
+      p_loot: rep.run.secured.slice(0, 80).map((p) => ({
+        type: p.type,
+        element: p.element,
+        rarity: p.rarity,
+        name: p.name,
+      })),
     });
     if (verdict !== "accepted" || r.capped || coins < rep.run.coins)
       await audit(d.rpc, playerId, "run_" + verdict, {
@@ -365,4 +403,30 @@ export async function submitRunService(
   } catch (e) {
     return mapRpcError(e);
   }
+}
+
+// ---- forge ----
+
+// The server runs the same pure forge as the client and persists its diff
+// atomically (apply_forge). Rejected combinations never reach the database.
+export async function doForge(d: Deps, playerId: string, op: ForgeOp) {
+  await limit(d.rpc, `forge:${playerId}`, 60, 60);
+  const me = await loadMe(d.rpc, playerId);
+  const r = applyForge(me.profile, op);
+  if (!r.ok) throw new ApiError(400, "forge_invalid", r.error);
+  try {
+    await call(d.rpc, "apply_forge", {
+      p_player: playerId,
+      p_version: me.version,
+      p_coins: r.diff.coins,
+      p_spend: r.diff.spend,
+      p_gain: r.diff.gain,
+      p_grant: r.diff.grant,
+      p_remove: r.diff.remove,
+    });
+  } catch (e) {
+    return mapRpcError(e);
+  }
+  const fresh = await loadMe(d.rpc, playerId);
+  return { text: r.text, profile: fresh.profile };
 }

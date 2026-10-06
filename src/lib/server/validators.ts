@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { isPieceKey } from "../game/market";
+import { isFairTrade, isPieceKey } from "../game/market";
+import { RARITY_IDS } from "../game/rarity";
+import { SLOTS, WEAPON_TYPES } from "../game/weapons";
 import { UPGRADES, type UpgradeId } from "../game/progression";
 import { SKILL_IDS, type SkillId } from "../game/skills";
 import { RELIC_IDS } from "../game/relics";
@@ -50,6 +52,7 @@ export const pullBody = z.strictObject({
 export const equipBody = z.strictObject({
   characterId: z.string().min(1).max(100),
   weaponId: z.string().min(1).max(100).nullable(),
+  slot: z.enum(SLOTS).optional(), // only for unequip (equip derives it from the piece)
 });
 export const spendFragmentsBody = z.strictObject({
   characterId: z.string().min(1).max(100),
@@ -57,6 +60,7 @@ export const spendFragmentsBody = z.strictObject({
 export const runStartBody = z.strictObject({
   classId: z.enum(["caballero", "mago", "picaro", "clerigo"]),
   characterId: z.string().min(1).max(100).nullable(),
+  rank: z.enum(RARITY_IDS).default("f"),
 });
 
 const id = (max: number) => z.string().min(1).max(max);
@@ -86,6 +90,10 @@ export const runActionSchema = z.discriminatedUnion("t", [
       ],
     ),
   }),
+  z.strictObject({
+    t: z.literal("loot"),
+    i: z.number().int().min(-1).max(3),
+  }),
   z.strictObject({ t: z.literal("buy"), id: id(20) }),
   z.strictObject({ t: z.literal("event"), i: z.number().int().min(0).max(5) }),
   z.strictObject({ t: z.literal("leave") }),
@@ -112,10 +120,38 @@ export const marketOfferBody = z
     kind: z.enum(["character", "weapon"]),
     give: pieceKey,
     want: pieceKey.nullable(),
+    coins: z.number().int().min(-100000).max(100000).default(0),
   })
   .refine(
     (b) =>
       isPieceKey(b.kind, b.give) &&
-      (b.want === null || (isPieceKey(b.kind, b.want) && b.want !== b.give)),
+      (b.want === null || (isPieceKey(b.kind, b.want) && b.want !== b.give)) &&
+      isFairTrade(b.give, b.want, b.coins),
   );
 export const marketIdBody = z.strictObject({ offerId: uuidSchema });
+
+// ---- forge ----
+const element = z.enum(["agua", "fuego", "viento", "tierra", "rayo"]);
+const itemType = z.enum(WEAPON_TYPES);
+const rank = z.enum(RARITY_IDS);
+export const forgeBody = z.discriminatedUnion("op", [
+  z.strictObject({ op: z.literal("craft"), type: itemType, element, rank }),
+  z.strictObject({
+    op: z.literal("combineParts"),
+    type: itemType,
+    rank,
+    core: element,
+  }),
+  z.strictObject({
+    op: z.literal("combinePieces"),
+    ids: z.array(z.string().min(1).max(60)).min(2).max(8),
+    element,
+  }),
+  z.strictObject({
+    op: z.literal("refine"),
+    spend: z.record(z.string().max(40), z.number().int().min(1).max(9)),
+    toType: itemType,
+    rank,
+  }),
+  z.strictObject({ op: z.literal("dismantle"), id: z.string().min(1).max(60) }),
+]);

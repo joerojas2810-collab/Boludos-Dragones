@@ -6,6 +6,7 @@
 import { computeAwards } from "../game/awards";
 import { interfereCostFor } from "../game/room";
 import { doorsFor } from "../game/run";
+import type { RarityId } from "../game/rarity";
 import type { RunAction } from "../game/replay";
 import type {
   BetPrediction,
@@ -15,11 +16,7 @@ import type {
   RoomMode,
 } from "../game/room";
 import { MSG_VERSION } from "../rooms/messages";
-import {
-  type RoomSnapshot,
-  type RunView,
-  type SummaryRes,
-} from "../rooms/api";
+import { type RoomSnapshot, type RunView, type SummaryRes } from "../rooms/api";
 import type {
   Award,
   BattleView,
@@ -62,7 +59,10 @@ async function call<T>(
     });
     const j: unknown = await res.json().catch(() => null);
     if (res.ok) return { ok: true, data: j as T };
-    return { ok: false, error: (j as ApiErr | null)?.error?.code ?? "server_error" };
+    return {
+      ok: false,
+      error: (j as ApiErr | null)?.error?.code ?? "server_error",
+    };
   } catch {
     return { ok: false, error: "network" };
   }
@@ -171,7 +171,10 @@ export class RemoteRoomClient implements RoomClient {
       !this.summarizing
     ) {
       this.summarizing = true;
-      const g = await call<SummaryRes>("GET", `/api/rooms/${this.o.roomId}/summary`);
+      const g = await call<SummaryRes>(
+        "GET",
+        `/api/rooms/${this.o.roomId}/summary`,
+      );
       this.summarizing = false;
       if (g.ok) this.awards = { phase: st.phase, list: toAwards(g.data) };
     }
@@ -229,6 +232,7 @@ export class RemoteRoomClient implements RoomClient {
       code: s.code,
       me: s.you,
       mode: st.mode,
+      rank: st.rank,
       turnSeconds: st.turnSeconds,
       phase: st.phase,
       phaseSeq: st.phaseSeq,
@@ -289,7 +293,9 @@ export class RemoteRoomClient implements RoomClient {
   hero = (heroId: string) => this.act("hero", { heroId });
   ready = (ready: boolean) => this.act("ready", { ready });
   setMode = (mode: RoomMode) => this.act("set_mode", { mode });
-  setTurnSeconds = (seconds: number) => this.act("set_turn_seconds", { seconds });
+  setRank = (rank: RarityId) => this.act("set_rank", { rank });
+  setTurnSeconds = (seconds: number) =>
+    this.act("set_turn_seconds", { seconds });
   startRound = () => this.act("start_round");
   advance = (phaseSeq: number) => this.act("advance", { phaseSeq });
   door = (floor: number, door: DoorKind) => this.act("door", { floor, door });
@@ -378,5 +384,9 @@ function toAwards(s: SummaryRes): Award[] {
 }
 
 /** Door index inside the floor's door list (what the floor log's `door` action needs). */
-export const doorIndex = (seed: number, floor: number, kind: DoorKind) =>
-  doorsFor(seed, floor).findIndex((d) => d.kind === kind);
+export const doorIndex = (
+  seed: number,
+  floor: number,
+  kind: DoorKind,
+  difficulty: RarityId | null = null,
+) => doorsFor(seed, floor, null, difficulty).findIndex((d) => d.kind === kind);

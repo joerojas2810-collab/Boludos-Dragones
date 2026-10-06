@@ -10,6 +10,7 @@ import type {
   RoomMode,
   RoomState,
 } from "../game/room";
+import type { RarityId } from "../game/rarity";
 import type { Run } from "../game/run";
 import type { Profile } from "../game/profile";
 import type { SummaryRes } from "../rooms/api";
@@ -68,6 +69,7 @@ export interface RoomStore {
   kick(host: string, room: string, target: string): Promise<void>;
   transferHost(host: string, room: string, to: string): Promise<void>;
   setMode(player: string, room: string, mode: RoomMode): Promise<void>;
+  setRank(player: string, room: string, rank: RarityId): Promise<void>;
   setTurnSeconds(player: string, room: string, secs: number): Promise<void>;
   chooseHero(player: string, room: string, heroKey: string): Promise<void>;
   setReady(player: string, room: string, ready: boolean): Promise<void>;
@@ -106,7 +108,12 @@ export interface RoomStore {
     battleKey: string,
     kind: InterfereKind,
   ): Promise<{ chips: number }>;
-  castVote(player: string, room: string, floor: number, yes: boolean): Promise<void>;
+  castVote(
+    player: string,
+    room: string,
+    floor: number,
+    yes: boolean,
+  ): Promise<void>;
   /** TS tallied and decided; SQL applies `delta` once to every present member. */
   resolveVote(
     room: string,
@@ -139,7 +146,10 @@ export interface RoomStore {
     player: string,
     patch: { actions?: unknown; runAfter?: Run },
   ): Promise<void>;
-  interferenceOn(room: string, battleKey: string): Promise<InterfereKind | null>;
+  interferenceOn(
+    room: string,
+    battleKey: string,
+  ): Promise<InterfereKind | null>;
 }
 
 export interface RoomDeps {

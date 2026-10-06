@@ -1,3 +1,4 @@
+import type { RarityId } from "../game/rarity";
 // Test helpers: in-memory fake of the Supabase RPC surface (no real backend).
 import { applyRunAction, initialReplay, type RunAction } from "../game/replay";
 import { skillOffer, upgradeOffer } from "../game/run";
@@ -19,7 +20,10 @@ export class FakeDb {
   coins = 1500;
   version = 0;
   pity = { character: 0, weapon: 0 };
+  pitySsr = { character: 0, weapon: 0 };
   rows: Row[] = [];
+  parts: Record<string, number> = {};
+  forged: Args[] = [];
   idem = new Map<string, unknown>();
   calls: { name: string; args: Args }[] = [];
   conflictOnce = false;
@@ -57,6 +61,8 @@ export class FakeDb {
           stateVersion: this.version,
           coins: this.coins,
           pity: this.pity,
+          pitySsr: this.pitySsr,
+          parts: this.parts,
           characters: this.rows
             .filter((r) => r.kind === "char")
             .map((r) => ({
@@ -99,6 +105,9 @@ export class FakeDb {
         this.coins -= Number(a.p_cost);
         this.version++;
         this.pity[a.p_banner as "character" | "weapon"] = Number(a.p_pity);
+        this.pitySsr[a.p_banner as "character" | "weapon"] = Number(
+          a.p_pity_ssr,
+        );
         for (const it of a.p_items as Args[]) {
           const kind = it.class ? "char" : "weap";
           const k = `${kind === "char" ? "c" : "w"}-${it.class ?? it.type}-${it.element}-${it.rarity}`;
@@ -124,6 +133,12 @@ export class FakeDb {
         this.idem.set(idem, res);
         return this.okv(res);
       }
+      case "apply_forge":
+        if (a.p_version !== this.version) return this.err("conflict");
+        this.forged.push(a);
+        this.coins -= Number(a.p_coins);
+        this.version++;
+        return this.okv({ coins: this.coins, version: this.version });
       case "bank_run":
         this.banked.push(a);
         if (this.run) this.run.status = "closed";
@@ -150,8 +165,9 @@ export function playBot(
   seed: number,
   hero: Character,
   maxActions = 400,
+  rank: RarityId | null = null,
 ): RunAction[] {
-  let s = initialReplay(seed, hero);
+  let s = initialReplay(seed, hero, rank);
   const log: RunAction[] = [];
   const push = (a: RunAction): boolean => {
     const n = applyRunAction(s, a);
@@ -171,6 +187,7 @@ export function playBot(
       done = r.pendingSkill
         ? push({ t: "skill", id: skillOffer(r)[0] })
         : push({ t: "pick", id: upgradeOffer(r)[0] });
+    else if (r.pendingLoot) done = push({ t: "loot", i: 0 });
     else if (r.pendingRelic) done = push({ t: "relic", id: r.pendingRelic[0] });
     else if (r.node?.type === "event") {
       for (let i = 0; i < 4 && !done; i++) done = push({ t: "event", i });

@@ -1,6 +1,7 @@
 // zod schemas for every client -> server request and every Realtime message of
 // the room flow. All strict (unknown keys rejected) and size-bounded.
 import { z } from "zod";
+import { RARITY_IDS } from "../game/rarity";
 import { runActionSchema } from "../server/validators";
 
 export const MSG_VERSION = 1;
@@ -45,6 +46,7 @@ export const doorKindEnum = z.enum([
   "event",
 ]);
 export const roomModeEnum = z.enum(["nivelado", "completo"]);
+export const roomRankEnum = z.enum(RARITY_IDS);
 export const predictionEnum = z.enum(["win", "lose"]);
 export const interfereKindEnum = z.enum(["stronger_enemy", "adverse_element"]);
 export const roomCodeSchema = z
@@ -57,6 +59,7 @@ export const createRoomMsg = z.strictObject({
   v,
   type: z.literal("create"),
   mode: roomModeEnum.optional(),
+  rank: roomRankEnum.optional(),
   turnSeconds: z.number().int().min(10).max(120).optional(),
 });
 export const joinRoomMsg = z.strictObject({
@@ -88,6 +91,7 @@ export const clientMsg = z.discriminatedUnion("type", [
   z.strictObject({ ...m("hero"), heroId: z.string().min(1).max(100) }),
   z.strictObject({ ...m("ready"), ready: z.boolean() }),
   z.strictObject({ ...m("set_mode"), mode: roomModeEnum }),
+  z.strictObject({ ...m("set_rank"), rank: roomRankEnum }),
   z.strictObject({
     ...m("set_turn_seconds"),
     seconds: z.number().int().min(10).max(120),

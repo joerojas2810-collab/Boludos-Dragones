@@ -81,6 +81,7 @@ export interface RoomView {
   code: string;
   me: string;
   mode: RoomMode;
+  rank: RarityId; // dungeon rank of the night (enemy difficulty)
   turnSeconds: number;
   phase: Phase;
   phaseSeq: number;
@@ -115,8 +116,7 @@ export type RoomEvent =
   | { type: "kicked" };
 
 export type Res<T extends object = object> =
-  | ({ ok: true } & T)
-  | { ok: false; error: RoomError | string };
+  ({ ok: true } & T) | { ok: false; error: RoomError | string };
 
 /** Authoritative Run at the start of the current floor (GET /run). */
 export interface FloorRun {
@@ -135,6 +135,7 @@ export interface RoomClient {
   hero(heroId: string): Promise<Res>;
   ready(ready: boolean): Promise<Res>;
   setMode(mode: RoomMode): Promise<Res>;
+  setRank(rank: RarityId): Promise<Res>;
   setTurnSeconds(seconds: number): Promise<Res>;
   startRound(): Promise<Res>;
   advance(phaseSeq: number): Promise<Res>;

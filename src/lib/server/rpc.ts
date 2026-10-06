@@ -55,6 +55,12 @@ const KNOWN: Record<string, [number, string]> = {
   already_offered: [409, "Ya tienes una oferta abierta de esa pieza."],
   too_many_offers: [409, "Tienes demasiadas ofertas abiertas."],
   invalid_name: [400, "Nombre inválido."],
+  unfair_trade: [
+    409,
+    "El intercambio no es equivalente (hasta ±25% de diferencia de valor).",
+  ],
+  insufficient_parts: [409, "No tienes suficientes partes."],
+  equipped: [409, "Esa pieza está equipada."],
 };
 
 // Known contract codes -> friendly API error; unknown -> generic (rethrown).

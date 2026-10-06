@@ -10,7 +10,7 @@ export const heroSummary = (c: Character): HeroSummary => ({
   name: c.name,
   classId: c.classId,
   element: c.element,
-  rarity: c.rarity ?? "comun",
+  rarity: c.rarity ?? "f",
   stars: c.stars ?? 0,
   traits: c.traits,
 });
@@ -29,5 +29,8 @@ export function demoHero(
   seed: number,
 ): Character {
   const owned = p && key && key !== DEFAULT_HERO ? heroFromOwned(p, key) : null;
-  return normalizeHero(owned ?? generateCharacter(createRng(hashSeed(seed, 7))), mode);
+  return normalizeHero(
+    owned ?? generateCharacter(createRng(hashSeed(seed, 7))),
+    mode,
+  );
 }

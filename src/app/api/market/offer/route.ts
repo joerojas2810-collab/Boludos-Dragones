@@ -16,6 +16,7 @@ export const POST = route(async (req) => {
       p_kind: b.kind,
       p_give: b.give,
       p_want: b.want,
+      p_coins: b.coins,
     });
     await audit(rpc, id, "market_offer", { ...b });
     return ok(r);

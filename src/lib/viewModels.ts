@@ -3,7 +3,8 @@ import type { ItemView } from "../components/ItemCard";
 import type { ClassId, Stats } from "./game/characters";
 import type { OwnedCharacter, OwnedWeapon, PullResult } from "./game/profile";
 import { RARITIES, RARITY_IDS, scaleStats, type RarityId } from "./game/rarity";
-import { WEAPON_TYPE_DATA } from "./game/weapons";
+import { gearLine } from "./game/gear";
+import { WEAPON_TYPE_DATA, isGearType } from "./game/weapons";
 
 export const statLine = (s: Stats) =>
   `PV ${Math.round(s.hp)} · ATQ ${s.atk} · DEF ${s.def}`;
@@ -26,6 +27,9 @@ export function characterView(
   };
 }
 
+export const pieceLine = (w: OwnedWeapon) =>
+  isGearType(w.type) ? gearLine(w) : `ATQ +${w.atkBonus}`;
+
 export const weaponEffect = (w: OwnedWeapon) =>
   `${WEAPON_TYPE_DATA[w.type].label}: ${WEAPON_TYPE_DATA[w.type].description}`;
 
@@ -40,7 +44,7 @@ export function weaponView(
     rarity: w.rarity,
     stars: w.stars,
     element: w.element,
-    lines: [`ATQ +${w.atkBonus}`, ...(opts.lines ?? [])],
+    lines: [pieceLine(w), ...(opts.lines ?? [])],
     badge: opts.badge,
   };
 }
@@ -66,7 +70,7 @@ export function summarizePull(rs: PullResult[]): string {
   const best = rs.reduce<RarityId>(
     (b, r) =>
       RARITY_IDS.indexOf(r.rarity) > RARITY_IDS.indexOf(b) ? r.rarity : b,
-    "comun",
+    "f",
   );
   const frags = rs.reduce((a, r) => a + r.fragmentGain, 0);
   const refund = rs.reduce((a, r) => a + r.refund, 0);

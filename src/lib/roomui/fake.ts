@@ -20,6 +20,7 @@ import {
   placeInterference,
   reportOutcome,
   setMode,
+  setRank,
   setPresence,
   setReady,
   setTurnSeconds,
@@ -38,6 +39,7 @@ import {
 } from "../game/room";
 import { resolveVoteResult, voteClosesAt, VOTE_EVENT } from "../game/vote";
 import { createRun, doorsFor, type Run } from "../game/run";
+import type { RarityId } from "../game/rarity";
 import { autoResolvePicks, replayFloor } from "./play";
 import type {
   Award,
@@ -62,6 +64,7 @@ export interface FakeOpts {
   players: number; // total including me, 2..7
   speed: number; // virtual clock multiplier (QA: 5-10)
   mode?: RoomMode;
+  rank?: RarityId;
   turnSeconds?: number;
   /** Builds my hero (already normalized for the mode) from a collection id. */
   makeHero: (heroId: string | null, mode: RoomMode, seed: number) => Character;
@@ -71,7 +74,7 @@ const summaryOf = (c: Character): HeroSummary => ({
   name: c.name,
   classId: c.classId,
   element: c.element,
-  rarity: c.rarity ?? "comun",
+  rarity: c.rarity ?? "f",
   stars: c.stars ?? 0,
   traits: c.traits,
 });
@@ -110,6 +113,7 @@ export class FakeRoomClient implements RoomClient {
     const now = this.vnow();
     this.st = createRoomState(ME, now, {
       mode: opts.mode ?? "nivelado",
+      rank: opts.rank ?? "f",
       turnSeconds: opts.turnSeconds ?? 30,
     });
     this.names.set(ME, opts.meName);
@@ -161,7 +165,11 @@ export class FakeRoomClient implements RoomClient {
   }
   private stat(id: string) {
     let s = this.stats.get(id);
-    if (!s) this.stats.set(id, (s = { defeats: 0, wins: 0, betNet: 0, interferes: 0 }));
+    if (!s)
+      this.stats.set(
+        id,
+        (s = { defeats: 0, wins: 0, betNet: 0, interferes: 0 }),
+      );
     return s;
   }
   private onSettled(key: string) {
@@ -225,8 +233,7 @@ export class FakeRoomClient implements RoomClient {
         outcome: b.outcome,
         voidReason: b.voidReason,
         interferedByMe: mine ? b.interference!.kind : null,
-        interfered:
-          !!b.interference && (reveal || mine || b.fighter === ME),
+        interfered: !!b.interference && (reveal || mine || b.fighter === ME),
         interferenceFrom: reveal && b.interference ? b.interference.from : null,
       };
     }
@@ -234,6 +241,7 @@ export class FakeRoomClient implements RoomClient {
       code: "DEMO",
       me: ME,
       mode: s.mode,
+      rank: s.rank,
       turnSeconds: s.turnSeconds,
       phase: s.phase,
       phaseSeq: s.phaseSeq,
@@ -258,7 +266,8 @@ export class FakeRoomClient implements RoomClient {
 
   // ------------------------------------------------------------ votes
   private voteKey = () => `${this.st.round}:${this.st.floor}`;
-  private voters = () => this.st.players.filter((p) => !p.left && p.present).map((p) => p.id);
+  private voters = () =>
+    this.st.players.filter((p) => !p.left && p.present).map((p) => p.id);
   private voteInfo(): VoteInfo | null {
     const s = this.st;
     if (s.phase !== "reveal" || !hasVote(s.floor)) return null;
@@ -280,8 +289,15 @@ export class FakeRoomClient implements RoomClient {
   private resolveVote() {
     const s = this.st;
     const k = this.voteKey();
-    if (s.phase !== "reveal" || !hasVote(s.floor) || this.voteDone.has(k)) return;
-    const r = resolveVoteResult(s.roundSeed ?? 0, s.round, s.floor, this.votes.get(k) ?? {}, this.voters());
+    if (s.phase !== "reveal" || !hasVote(s.floor) || this.voteDone.has(k))
+      return;
+    const r = resolveVoteResult(
+      s.roundSeed ?? 0,
+      s.round,
+      s.floor,
+      this.votes.get(k) ?? {},
+      this.voters(),
+    );
     this.voteDone.set(k, { opened: r.outcome !== null, delta: r.delta });
     if (r.delta === 0) return;
     const n = structuredClone(s);
@@ -313,7 +329,8 @@ export class FakeRoomClient implements RoomClient {
         for (const id of bots)
           this.after(this.rng.int(800, 5000), () => {
             const p = this.st.players.find((x) => x.id === id);
-            if (p && !p.heroId) this.apply(chooseHero(this.st, id, `bot:${id}`));
+            if (p && !p.heroId)
+              this.apply(chooseHero(this.st, id, `bot:${id}`));
           });
         break;
       case "floor_intro":
@@ -339,7 +356,10 @@ export class FakeRoomClient implements RoomClient {
             this.after(this.rng.int(500, 5000), () => {
               const k = this.voteKey();
               if (this.st.phase === "reveal" && !this.voteDone.has(k))
-                this.votes.set(k, { ...this.votes.get(k), [id]: this.rng.chance(0.6) });
+                this.votes.set(k, {
+                  ...this.votes.get(k),
+                  [id]: this.rng.chance(0.6),
+                });
             });
         for (const id of bots)
           if (this.rng.chance(0.4))
@@ -347,7 +367,14 @@ export class FakeRoomClient implements RoomClient {
               this.emit({
                 type: "emote",
                 from: id,
-                id: this.rng.pick(["laugh", "fire", "skull", "clap", "clown", "luck"] as const),
+                id: this.rng.pick([
+                  "laugh",
+                  "fire",
+                  "skull",
+                  "clap",
+                  "clown",
+                  "luck",
+                ] as const),
               }),
             );
         break;
@@ -370,8 +397,12 @@ export class FakeRoomClient implements RoomClient {
     if (s.phase !== "doors") return;
     const p = s.players.find((x) => x.id === id);
     if (!p || !p.present || p.door !== null) return;
-    const kinds = doorsFor(s.roundSeed ?? 0, s.floor).map((d) => d.kind);
-    const fights = kinds.filter((k) => k === "easy" || k === "hard" || k === "boss");
+    const kinds = doorsFor(s.roundSeed ?? 0, s.floor, null, s.rank).map(
+      (d) => d.kind,
+    );
+    const fights = kinds.filter(
+      (k) => k === "easy" || k === "hard" || k === "boss",
+    );
     const pool = this.rng.chance(0.75) && fights.length ? fights : kinds;
     this.apply(chooseDoor(s, id, this.rng.pick(pool)));
   }
@@ -387,12 +418,21 @@ export class FakeRoomClient implements RoomClient {
     if (targets.length) {
       const b = this.rng.pick(targets);
       const door = s.players.find((x) => x.id === b.fighter)?.door;
-      const pred: BetPrediction = this.rng.chance(door === "hard" || door === "boss" ? 0.4 : 0.7) ? "win" : "lose";
+      const pred: BetPrediction = this.rng.chance(
+        door === "hard" || door === "boss" ? 0.4 : 0.7,
+      )
+        ? "win"
+        : "lose";
       const stake = this.rng.pick([10, 10, 25, 50]);
       this.apply(placeBet(this.st, id, b.fighter, pred, stake));
       if (this.rng.chance(0.15)) {
-        const k: InterfereKind = this.rng.pick(["stronger_enemy", "adverse_element"] as const);
-        const r = this.apply(placeInterference(this.st, id, this.rng.pick(targets).fighter, k));
+        const k: InterfereKind = this.rng.pick([
+          "stronger_enemy",
+          "adverse_element",
+        ] as const);
+        const r = this.apply(
+          placeInterference(this.st, id, this.rng.pick(targets).fighter, k),
+        );
         if (r.ok) this.stat(id).interferes += 1;
       }
     }
@@ -413,28 +453,52 @@ export class FakeRoomClient implements RoomClient {
       (b.interference ? 0.15 : 0);
     const win = this.rng.chance(pWin);
     const pMax = this.rng.int(90, 170);
-    const eMax = Math.round(pMax * (boss ? 1.6 : p.door === "hard" ? 1.2 : 0.8));
+    const eMax = Math.round(
+      pMax * (boss ? 1.6 : p.door === "hard" ? 1.2 : 0.8),
+    );
     const turns = this.rng.int(4, boss ? 11 : 8);
     const gap = Math.round((boss ? 3000 : 2200) + this.rng.int(0, 1200));
     let pHp = pMax;
     let eHp = eMax;
-    const send = (n: number, actor: "p" | "e", kind: TurnInfo["kind"], dmg: number) =>
-      this.emit({ type: "turn", msg: { fighter: id, n, actor, kind, dmg, pHp, eHp } });
+    const send = (
+      n: number,
+      actor: "p" | "e",
+      kind: TurnInfo["kind"],
+      dmg: number,
+    ) =>
+      this.emit({
+        type: "turn",
+        msg: { fighter: id, n, actor, kind, dmg, pHp, eHp },
+      });
     this.after(300, () => send(0, "p", "miss", 0));
     for (let k = 1; k <= turns; k++) {
       this.after(300 + gap * k, () => {
         if (this.st.phase !== "fighting") return;
         const actor: "p" | "e" = k % 2 === 1 ? "p" : "e";
-        const kind: TurnInfo["kind"] = this.rng.chance(0.15) ? "miss" : this.rng.chance(0.2) ? "crit" : "hit";
+        const kind: TurnInfo["kind"] = this.rng.chance(0.15)
+          ? "miss"
+          : this.rng.chance(0.2)
+            ? "crit"
+            : "hit";
         const last = k >= turns - 1;
         let dmg = 0;
         if (kind !== "miss") {
           if (actor === "p") {
-            dmg = Math.round((eMax / Math.ceil(turns / 2)) * (kind === "crit" ? 1.6 : 1));
-            eHp = win && last ? 0 : Math.max(win ? 1 : Math.round(eMax * 0.15), eHp - dmg);
+            dmg = Math.round(
+              (eMax / Math.ceil(turns / 2)) * (kind === "crit" ? 1.6 : 1),
+            );
+            eHp =
+              win && last
+                ? 0
+                : Math.max(win ? 1 : Math.round(eMax * 0.15), eHp - dmg);
           } else {
-            dmg = Math.round((pMax / Math.ceil(turns / 2)) * (kind === "crit" ? 1.6 : 1));
-            pHp = !win && last ? 0 : Math.max(win ? Math.round(pMax * 0.1) : 1, pHp - dmg);
+            dmg = Math.round(
+              (pMax / Math.ceil(turns / 2)) * (kind === "crit" ? 1.6 : 1),
+            );
+            pHp =
+              !win && last
+                ? 0
+                : Math.max(win ? Math.round(pMax * 0.1) : 1, pHp - dmg);
           }
         }
         send(k, actor, kind, dmg);
@@ -477,7 +541,8 @@ export class FakeRoomClient implements RoomClient {
       this.lastSeq = this.st.phaseSeq;
       this.onPhase();
     }
-    if (this.st.phase === "reveal" && now >= voteClosesAt(this.st.deadline)) this.resolveVote();
+    if (this.st.phase === "reveal" && now >= voteClosesAt(this.st.deadline))
+      this.resolveVote();
     const r = advance(this.st, now, this.st.phaseSeq, { seed: this.seed() });
     if (r.ok && r.advanced) this.apply(r);
     else if (this.view && this.view.deadline !== 0) this.publish();
@@ -503,6 +568,9 @@ export class FakeRoomClient implements RoomClient {
   async setMode(mode: RoomMode) {
     return this.apply(setMode(this.st, ME, mode));
   }
+  async setRank(rank: RarityId) {
+    return this.apply(setRank(this.st, ME, rank));
+  }
   async setTurnSeconds(seconds: number) {
     return this.apply(setTurnSeconds(this.st, ME, seconds));
   }
@@ -522,12 +590,19 @@ export class FakeRoomClient implements RoomClient {
     if (!this.myRun || this.myRunRound !== s.round) {
       const p = s.players.find((x) => x.id === ME);
       const hero = this.opts.makeHero(p?.heroId ?? null, s.mode, s.roundSeed);
-      this.myRun = createRun(s.roundSeed, hero);
+      this.myRun = createRun(s.roundSeed, hero, false, null, s.rank);
       this.myRunRound = s.round;
     }
     let run = this.myRun;
     if (run.floor < s.floor)
-      run = { ...run, floor: s.floor, node: null, floorCleared: false, bought: [], rerolls: 0 };
+      run = {
+        ...run,
+        floor: s.floor,
+        node: null,
+        floorCleared: false,
+        bought: [],
+        rerolls: 0,
+      };
     const b = s.battles[ME];
     return {
       ok: true,
@@ -536,7 +611,8 @@ export class FakeRoomClient implements RoomClient {
         floor: s.floor,
         seed: s.roundSeed,
         door: s.players.find((x) => x.id === ME)?.door ?? null,
-        enemyBoost: s.phase === "fighting" ? (b?.interference?.kind ?? null) : null,
+        enemyBoost:
+          s.phase === "fighting" ? (b?.interference?.kind ?? null) : null,
       },
     };
   }
@@ -544,7 +620,8 @@ export class FakeRoomClient implements RoomClient {
     const s = this.st;
     const key = `${s.round}:${floor}`;
     if (floor !== s.floor) return err("wrong_floor");
-    if (s.phase !== "betting" && s.phase !== "fighting") return err("wrong_phase");
+    if (s.phase !== "betting" && s.phase !== "fighting")
+      return err("wrong_phase");
     if (this.submitted.has(key)) return err("duplicate");
     const got = await this.getRun();
     if (!got.ok) return got;
@@ -573,8 +650,15 @@ export class FakeRoomClient implements RoomClient {
     const s = this.st;
     if (s.phase !== "reveal" || !hasVote(s.floor)) return err("wrong_phase");
     if (floor !== s.floor) return err("wrong_floor");
-    if (this.vnow() >= voteClosesAt(s.deadline) || this.voteDone.has(this.voteKey())) return err("wrong_phase");
-    this.votes.set(this.voteKey(), { ...this.votes.get(this.voteKey()), [ME]: yes });
+    if (
+      this.vnow() >= voteClosesAt(s.deadline) ||
+      this.voteDone.has(this.voteKey())
+    )
+      return err("wrong_phase");
+    this.votes.set(this.voteKey(), {
+      ...this.votes.get(this.voteKey()),
+      [ME]: yes,
+    });
     this.publish();
     return ok();
   }

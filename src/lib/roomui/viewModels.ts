@@ -209,10 +209,7 @@ export function betMessage(
   return e ? errorText(e) : null;
 }
 
-export function betBlockReason(
-  v: RoomView,
-  fighterId: string,
-): string | null {
+export function betBlockReason(v: RoomView, fighterId: string): string | null {
   const b = v.battles[fighterId];
   if (!b || b.status !== "open") return errorText("battle_not_found");
   if (fighterId === v.me) return errorText("self_bet");
@@ -309,7 +306,10 @@ export function playerStatus(
       if (p.outcome === "fled") return { text: "Huyó", kind: "warn" };
       if (p.outcome === "skipped") return { text: "Sin pelea", kind: "idle" };
       if (v.phase === "betting")
-        return { text: p.door ? DOOR_NAME[p.door] : "Por pelear", kind: "fight" };
+        return {
+          text: p.door ? DOOR_NAME[p.door] : "Por pelear",
+          kind: "fight",
+        };
       return {
         text: hpPct === null ? "Peleando" : `Peleando ${hpPct}%`,
         kind: "fight",

@@ -1,5 +1,5 @@
 import type { BattleEvent, Status } from "@/lib/game/combat";
-import type { RarityId } from "@/lib/game/rarity";
+import { isTopRank, type RarityId } from "@/lib/game/rarity";
 
 let ctx: AudioContext | null = null;
 let muted = false;
@@ -206,11 +206,15 @@ export function playEvents(
 
 // Gacha pull: soft chime scaling with rarity; legendary = rising arpeggio.
 const PULL_NOTES: Record<RarityId, number[]> = {
-  comun: [523],
-  pococomun: [523, 659],
-  raro: [523, 659, 784],
-  epico: [523, 659, 784, 988],
-  legendario: [523, 659, 784, 1047, 1319, 1568, 2093],
+  f: [523],
+  e: [523, 659],
+  d: [523, 659, 784],
+  c: [523, 659, 784, 988],
+  b: [523, 659, 784, 988, 1175],
+  a: [523, 659, 784, 988, 1175, 1319],
+  s: [523, 659, 784, 1047, 1319, 1568, 2093],
+  ss: [523, 659, 784, 1047, 1319, 1568, 2093, 2349],
+  ssr: [523, 659, 784, 1047, 1319, 1568, 2093, 2349, 2637],
 };
 
 export function playPullSound(rarity: RarityId) {
@@ -219,7 +223,7 @@ export function playPullSound(rarity: RarityId) {
     ctx ??= new AudioContext();
     if (ctx.state === "suspended") void ctx.resume();
     const t = ctx.currentTime;
-    const legend = rarity === "legendario";
+    const legend = isTopRank(rarity);
     PULL_NOTES[rarity].forEach((f, i) =>
       note(ctx!, t + i * (legend ? 0.08 : 0.1), f, legend ? 0.6 : 0.3, 0.12),
     );

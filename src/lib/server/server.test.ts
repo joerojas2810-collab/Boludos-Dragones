@@ -7,16 +7,18 @@ import {
   type RunAction,
   ENGINE_VERSION,
 } from "../game/replay";
+import { isVictory } from "../game/run";
 import { createRng } from "../game/rng";
 import { derivePassword, safeEqual, syntheticEmail } from "./credentials";
 import { parseEnv } from "./envSchema";
 import { ApiError, checkOrigin, readJson } from "./http";
 import { BAD_CREDENTIALS, login } from "./loginFlow";
 import { limit } from "./rpc";
-import { doPull, startRunService, submitRunService } from "./services";
+import { doForge, doPull, startRunService, submitRunService } from "./services";
 import { FakeDb, playBot } from "./testkit";
 import {
   credsBody,
+  forgeBody,
   nameKeyOf,
   nameSchema,
   pinSchema,
@@ -438,6 +440,19 @@ describe("run replay + submit", () => {
       p_player: "u1",
     });
   });
+  it("pays the loot the REPLAY secured, never what the client sends", async () => {
+    const db = new FakeDb();
+    open(db);
+    const log = playBot(4242, hero);
+    const truth = replayRun(4242, hero, log).run;
+    expect(truth.secured.length).toBeGreaterThan(0); // bot passes bosses and takes loot
+    await sub(db, log, { coins: truth.coins, maxFloor: truth.maxFloor });
+    const loot = db.banked[0].p_loot as { type: string }[];
+    expect(loot).toHaveLength(Math.min(80, truth.secured.length));
+    expect(loot[0]).toMatchObject({ type: truth.secured[0].type });
+    expect(db.banked[0].p_parts).toEqual(truth.partSecured); // parts: replay, not client
+    expect(Object.keys(truth.partSecured).length).toBeGreaterThan(0);
+  });
   it("inflated claims are ignored: paid value = replay, verdict mismatch + audit", async () => {
     const db = new FakeDb();
     open(db);
@@ -538,5 +553,98 @@ describe("run replay + submit", () => {
         }),
       ),
     ).toMatchObject({ status: 404 });
+  });
+
+  it("dungeons: locked ranks are refused; a verified clear is recorded with the lives left", async () => {
+    const db = new FakeDb();
+    expect(
+      await catchErr(
+        startRunService(db.deps, "u1", {
+          classId: "mago",
+          characterId: null,
+          rank: "e",
+        }),
+      ),
+    ).toMatchObject({ status: 403, code: "dungeon_locked" });
+    const f = await startRunService(db.deps, "u1", {
+      classId: "mago",
+      characterId: null,
+      rank: "f",
+    });
+    expect(f.rank).toBe("f");
+    expect(db.calls.find((c) => c.name === "start_run")!.args).toMatchObject({
+      p_hero: { dungeon: "f" },
+    });
+    // Replay a strong hero through dungeon F (8 floors) and submit the log.
+    db.run = {
+      seed: 4242,
+      hero: { ...hero, engineVersion: ENGINE_VERSION, dungeon: "f" },
+      status: "open",
+    };
+    const log = playBot(4242, hero, 2000, "f");
+    const truth = replayRun(4242, hero, log, ENGINE_VERSION, "f").run;
+    expect(truth.status).toBe("over");
+    expect(isVictory(truth)).toBe(true);
+    await sub(db, log, { coins: truth.coins, maxFloor: truth.maxFloor });
+    expect(db.banked[0].p_clear).toEqual({ rank: "f", lives: truth.lives });
+  });
+});
+
+describe("forge service", () => {
+  it("runs the pure forge and persists exactly its diff; invalid combos never reach the DB", async () => {
+    const db = new FakeDb();
+    db.parts = { "p-espada-f": 3, "core-fuego": 1 };
+    const r = await doForge(db.deps, "u1", {
+      op: "craft",
+      type: "espada",
+      element: "fuego",
+      rank: "f",
+    });
+    expect(r.text).toMatch(/Forjas/);
+    expect(db.forged[0]).toMatchObject({
+      p_coins: 3,
+      p_spend: { "p-espada-f": 3, "core-fuego": 1 },
+      p_gain: {},
+      p_remove: [],
+      p_grant: [{ type: "espada", element: "fuego", rarity: "f" }],
+    });
+    db.parts = {};
+    expect(
+      await catchErr(
+        doForge(db.deps, "u1", {
+          op: "craft",
+          type: "espada",
+          element: "fuego",
+          rank: "f",
+        }),
+      ),
+    ).toMatchObject({ status: 400, code: "forge_invalid" });
+    expect(db.forged).toHaveLength(1);
+  });
+  it("validates the request body (unknown op / bad key / too many ids)", () => {
+    expect(
+      forgeBody.safeParse({
+        op: "craft",
+        type: "espada",
+        element: "fuego",
+        rank: "f",
+      }).success,
+    ).toBe(true);
+    expect(
+      forgeBody.safeParse({
+        op: "craft",
+        type: "sable",
+        element: "fuego",
+        rank: "f",
+      }).success,
+    ).toBe(false);
+    expect(forgeBody.safeParse({ op: "hack" }).success).toBe(false);
+    expect(
+      forgeBody.safeParse({
+        op: "combinePieces",
+        ids: Array(9).fill("w-a-b-c"),
+        element: "agua",
+      }).success,
+    ).toBe(false);
   });
 });

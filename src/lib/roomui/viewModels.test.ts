@@ -36,6 +36,7 @@ const V = (o: Partial<RoomView> = {}): RoomView => ({
   code: "ABCD",
   me: "a",
   mode: "nivelado",
+  rank: "f",
   turnSeconds: 30,
   phase: "betting",
   phaseSeq: 1,
@@ -78,7 +79,11 @@ describe("rankRows", () => {
     P("c", { chips: 120, nightMaxFloor: 4 }),
   ];
   it("sorts by chips then floor", () => {
-    expect(rankRows(ps, "chips", "a").map((r) => r.id)).toEqual(["c", "b", "a"]);
+    expect(rankRows(ps, "chips", "a").map((r) => r.id)).toEqual([
+      "c",
+      "b",
+      "a",
+    ]);
   });
   it("sorts by floor then chips and marks me", () => {
     const r = rankRows(ps, "floor", "a");
@@ -133,7 +138,9 @@ describe("phaseComplete", () => {
   it("betting needs every connected player ready", () => {
     expect(phaseComplete(V())).toBe(false);
     expect(
-      phaseComplete(V({ players: [P("a", { ready: true }), P("b", { ready: true })] })),
+      phaseComplete(
+        V({ players: [P("a", { ready: true }), P("b", { ready: true })] }),
+      ),
     ).toBe(true);
     expect(
       phaseComplete(
@@ -144,7 +151,10 @@ describe("phaseComplete", () => {
   it("fighting needs every fighter outcome", () => {
     const v = V({
       phase: "fighting",
-      players: [P("a", { fights: true, outcome: "won" }), P("b", { fights: true })],
+      players: [
+        P("a", { fights: true, outcome: "won" }),
+        P("b", { fights: true }),
+      ],
     });
     expect(phaseComplete(v)).toBe(false);
   });
@@ -160,9 +170,9 @@ describe("playerStatus", () => {
     expect(playerStatus(v, P("b", { fights: true }), 62).text).toBe(
       "Peleando 62%",
     );
-    expect(playerStatus(v, P("b", { fights: true, outcome: "won" }), 10).text).toBe(
-      "Ganó",
-    );
+    expect(
+      playerStatus(v, P("b", { fights: true, outcome: "won" }), 10).text,
+    ).toBe("Ganó");
   });
 });
 

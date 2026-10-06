@@ -30,7 +30,8 @@ export const createOffer = (
   kind: PieceKind,
   give: string,
   want: string | null,
-) => api("/api/market/offer", { kind, give, want });
+  coins = 0,
+) => api("/api/market/offer", { kind, give, want, coins });
 export const cancelOffer = (offerId: string) =>
   api("/api/market/cancel", { offerId });
 export const acceptOffer = async (offerId: string) =>

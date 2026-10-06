@@ -12,6 +12,7 @@ import {
   MSG_VERSION,
   phaseEnum,
   roomModeEnum,
+  roomRankEnum,
 } from "./messages";
 
 export {
@@ -63,6 +64,7 @@ export const ROOM_ERROR_CODES = [
   "duplicate_bet",
   "already_interfered",
   "hero_not_owned",
+  "rank_locked",
   "engine_outdated",
   "invalid_log",
   "target_hosts_other_room",
@@ -79,6 +81,7 @@ export const phaseView = z.object({
   deadlineMs: int, // 0 = no deadline
   hostId: uuid,
   mode: roomModeEnum,
+  rank: roomRankEnum,
   turnSeconds: int,
   serverNowMs: int, // for clock skew
 });

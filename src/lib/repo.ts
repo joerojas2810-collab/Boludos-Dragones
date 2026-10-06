@@ -20,6 +20,12 @@ import {
   type Profile,
   type PullResult,
 } from "./game/profile";
+import { isUnlocked } from "./game/dungeons";
+import { applyForge, type ForgeOp } from "./game/forge";
+import type { RunPiece } from "./game/loot";
+import type { Parts } from "./game/parts";
+import type { RarityId } from "./game/rarity";
+import type { Slot } from "./game/weapons";
 import { ENGINE_VERSION, type RunAction } from "./game/replay";
 import { createRng } from "./game/rng";
 import { claimDaily, dayKey } from "./game/streak";
@@ -41,6 +47,7 @@ export interface RunStartInfo {
   runId: string;
   seed: number;
   hero: Character;
+  rank: RarityId;
 }
 export interface RunBankInfo {
   coinsAdded: number;
@@ -58,17 +65,29 @@ export interface ProfileRepo {
   load(): Promise<Me | null>; // null = not signed in
   pull(banner: Banner, count: 1 | 10): Promise<PullOutcome>;
   dailyPull(banner: Banner): Promise<PullOutcome>;
-  equip(characterId: string, weaponId: string | null): Promise<void>;
+  equip(
+    characterId: string,
+    weaponId: string | null,
+    slot?: Slot,
+  ): Promise<void>;
   spendFragments(characterId: string): Promise<void>;
+  forge(op: ForgeOp): Promise<{ text: string }>;
   startRun(
     classId: ClassId,
     characterId: string | null,
     seedHint?: number,
+    rank?: RarityId,
   ): Promise<RunStartInfo>;
   submitRun(
     runId: string,
     actions: RunAction[],
-    claimed: { coins: number; maxFloor: number },
+    claimed: {
+      coins: number;
+      maxFloor: number;
+      loot?: RunPiece[];
+      clear?: { rank: RarityId; lives: number }; // local mode only; the server replays
+      parts?: Parts;
+    },
     keepalive?: boolean,
   ): Promise<RunBankInfo>;
 }
@@ -131,18 +150,38 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
         );
       return { results: out.rs };
     },
-    equip: async (c, w) =>
-      store.update((p) => (w ? equipWeapon(p, c, w) : unequipWeapon(p, c))),
+    equip: async (c, w, slot) =>
+      store.update((p) =>
+        w ? equipWeapon(p, c, w) : unequipWeapon(p, c, slot),
+      ),
     spendFragments: async (c) => store.update((p) => spendFragments(p, c) ?? p),
-    startRun: async (classId, characterId, seedHint) => {
+    forge: async (op) => {
+      const r = applyForge(store.get(), op);
+      if (!r.ok) throw new RepoError("forge_invalid", r.error);
+      store.replace(r.profile);
+      return { text: r.text };
+    },
+    startRun: async (classId, characterId, seedHint, rank = "f") => {
+      if (!isUnlocked(store.get().dungeons, rank))
+        throw new RepoError("dungeon_locked", "Dungeon bloqueado.");
       const seed = seedHint ?? Date.now();
       const hero =
         (characterId && heroFromOwned(store.get(), characterId)) ||
         generateCharacter(createRng(seed), classId);
-      return { runId: `${seed}-${Date.now()}`, seed, hero };
+      return { runId: `${seed}-${Date.now()}`, seed, hero, rank };
     },
     submitRun: async (runId, _actions, claimed) => {
-      store.update((p) => bankRun(p, claimed.coins, claimed.maxFloor, runId));
+      store.update((p) =>
+        bankRun(
+          p,
+          claimed.coins,
+          claimed.maxFloor,
+          runId,
+          claimed.loot,
+          claimed.clear,
+          claimed.parts,
+        ),
+      );
       return { coinsAdded: claimed.coins, verdict: "local", capped: false };
     },
   };
@@ -214,12 +253,21 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       store.replace(r.profile);
       return { results: r.results };
     },
-    equip: (characterId, weaponId) =>
-      withProfile("/api/collection/equip", { characterId, weaponId }),
+    equip: (characterId, weaponId, slot) =>
+      withProfile("/api/collection/equip", {
+        characterId,
+        weaponId,
+        ...(slot ? { slot } : {}),
+      }),
     spendFragments: (characterId) =>
       withProfile("/api/collection/spend-fragments", { characterId }),
-    startRun: (classId, characterId) =>
-      api<RunStartInfo>("/api/run/start", { classId, characterId }),
+    forge: async (op) => {
+      const r = await api<{ text: string; profile: Profile }>("/api/forge", op);
+      store.replace(r.profile);
+      return { text: r.text };
+    },
+    startRun: (classId, characterId, _seed, rank = "f") =>
+      api<RunStartInfo>("/api/run/start", { classId, characterId, rank }),
     submitRun: async (runId, actions, claimed, keepalive) => {
       const r = await api<{
         coinsAdded: number;

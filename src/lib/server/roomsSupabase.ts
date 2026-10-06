@@ -17,6 +17,7 @@ import { env } from "./env";
 import { audit, call, limit, RpcError } from "./rpc";
 import { loadMe } from "./services";
 import { adminClient } from "./supabase";
+import type { RarityId } from "../game/rarity";
 import type { FloorRow, RoomDeps, RoomMeta, RoomStore } from "./roomsStore";
 
 type Obj = Record<string, unknown>;
@@ -30,6 +31,7 @@ interface RoomRow {
 }
 interface StateRow {
   mode: RoomMode;
+  rank: RarityId;
   phase: Phase;
   phase_seq: number;
   round: number;
@@ -117,8 +119,15 @@ export function realRoomStore(): RoomStore {
     async setMode(p, room, mode) {
       await c("set_room_mode", { p_player: p, p_room: room, p_mode: mode });
     },
+    async setRank(p, room, rank) {
+      await c("set_room_rank", { p_player: p, p_room: room, p_rank: rank });
+    },
     async setTurnSeconds(p, room, secs) {
-      await c("set_turn_seconds", { p_player: p, p_room: room, p_seconds: secs });
+      await c("set_turn_seconds", {
+        p_player: p,
+        p_room: room,
+        p_seconds: secs,
+      });
     },
     async chooseHero(p, room, key) {
       await c("choose_hero", { p_player: p, p_room: room, p_hero_key: key });
@@ -196,7 +205,12 @@ export function realRoomStore(): RoomStore {
       return { chips: Number(r.chips) };
     },
     async castVote(player, room, floor, yes) {
-      await c("cast_vote", { p_player: player, p_room: room, p_floor: floor, p_yes: yes });
+      await c("cast_vote", {
+        p_player: player,
+        p_room: room,
+        p_floor: floor,
+        p_yes: yes,
+      });
     },
     async resolveVote(room, round, floor, opened, delta) {
       const r = await c("resolve_vote", {
@@ -242,7 +256,9 @@ export function realRoomStore(): RoomStore {
       await c("sweep_presence", { p_room: room, p_now: iso(nowMs) });
     },
     async nightSummary(room) {
-      return (await c("night_summary", { p_room: room })) as unknown as SummaryRes;
+      return (await c("night_summary", {
+        p_room: room,
+      })) as unknown as SummaryRes;
     },
 
     async loadMeta(room): Promise<RoomMeta> {
@@ -321,7 +337,10 @@ export function realRoomStore(): RoomStore {
           .like("battle_key", `${prefix}%`),
       );
       const led = rows<{ delta: number; reason: string }>(
-        await sb.from("chip_ledger").select("delta, reason").eq("room_id", room),
+        await sb
+          .from("chip_ledger")
+          .select("delta, reason")
+          .eq("room_id", room),
       );
       const sum = (f: (r: { delta: number; reason: string }) => boolean) =>
         led.filter(f).reduce((a, r) => a + r.delta, 0);
@@ -351,14 +370,17 @@ export function realRoomStore(): RoomStore {
           activeFromFloor: p.active_from_floor,
           roundMaxFloor: Math.max(
             0,
-            ...mine.filter((f) => won(f) && f.round === st.round).map((f) => f.floor),
+            ...mine
+              .filter((f) => won(f) && f.round === st.round)
+              .map((f) => f.floor),
           ),
           nightMaxFloor: Math.max(
             0,
             ...mine.filter(won).map((f) => effectiveFloor(f.round, f.floor)),
           ),
           door: cur?.door_kind ?? null,
-          outcome: cur?.outcome ?? (cur?.status === "skipped" ? "skipped" : null),
+          outcome:
+            cur?.outcome ?? (cur?.status === "skipped" ? "skipped" : null),
           // ponytail: not persisted; a missed turn counts as timeout instead of 2-miss flee
           missedTurns: 0,
         };
@@ -379,8 +401,11 @@ export function realRoomStore(): RoomStore {
           interference:
             itf
               .filter((x) => x.battle_key === b.battle_key)
-              .map((x) => ({ from: x.from_player, kind: x.kind, cost: x.cost }))[0] ??
-            null,
+              .map((x) => ({
+                from: x.from_player,
+                kind: x.kind,
+                cost: x.cost,
+              }))[0] ?? null,
           status: b.status,
           outcome: b.outcome,
           voidReason: b.void_reason,
@@ -393,6 +418,7 @@ export function realRoomStore(): RoomStore {
         floor: st.floor,
         deadline: ms(st.deadline),
         mode: st.mode,
+        rank: st.rank ?? "f",
         turnSeconds: rm.turn_seconds,
         hostId: rm.host_id,
         players,
@@ -401,7 +427,9 @@ export function realRoomStore(): RoomStore {
         roundStartedAt: ms(st.round_started_at),
         nightStartedAt: ms(st.night_started_at),
         totals: {
-          issued: sum((r) => r.reason === "initial" || r.reason === "night_start"),
+          issued: sum(
+            (r) => r.reason === "initial" || r.reason === "night_start",
+          ),
           interfereSpent: -sum(
             (r) => r.reason === "interfere" || r.reason === "interfere_refund",
           ),
@@ -415,7 +443,9 @@ export function realRoomStore(): RoomStore {
       return rows<FloorDb>(
         await sb
           .from("room_floor")
-          .select("round, floor, player_id, door_kind, status, outcome, actions, run_after")
+          .select(
+            "round, floor, player_id, door_kind, status, outcome, actions, run_after",
+          )
           .eq("room_id", room)
           .eq("round", round)
           .eq("player_id", player),
@@ -468,26 +498,32 @@ export function realRoomDeps(): RoomDeps {
     store: realRoomStore(),
     async broadcast(room, events) {
       const e = env();
-      const res = await fetch(`${e.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`, {
-        method: "POST",
-        headers: {
-          apikey: e.SUPABASE_SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${e.SUPABASE_SERVICE_ROLE_KEY}`,
-          "Content-Type": "application/json",
+      const res = await fetch(
+        `${e.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`,
+        {
+          method: "POST",
+          headers: {
+            apikey: e.SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${e.SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: events.map((p) => ({
+              topic: `room:${room}`,
+              event: String(p.type),
+              payload: p,
+              private: true,
+            })),
+          }),
         },
-        body: JSON.stringify({
-          messages: events.map((p) => ({
-            topic: `room:${room}`,
-            event: String(p.type),
-            payload: p,
-            private: true,
-          })),
-        }),
-      });
+      );
       if (!res.ok) throw new Error("broadcast_failed");
     },
     async loadProfile(player) {
-      const me = await loadMe((n: string, a: Record<string, unknown>) => sb.rpc(n, a), player);
+      const me = await loadMe(
+        (n: string, a: Record<string, unknown>) => sb.rpc(n, a),
+        player,
+      );
       return { profile: me.profile, name: me.name };
     },
     randomSeed: () => randomBytes(4).readUInt32BE(0),
