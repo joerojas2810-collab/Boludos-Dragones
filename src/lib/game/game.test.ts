@@ -78,8 +78,8 @@ describe("traits", () => {
       expect(c.stats.hp).toBeGreaterThan(0);
     }
   });
-  it("has 20 traits", () => {
-    expect(TRAIT_IDS).toHaveLength(20);
+  it("has 20 classic traits plus 4 rule traits", () => {
+    expect(TRAIT_IDS).toHaveLength(24);
   });
 });
 

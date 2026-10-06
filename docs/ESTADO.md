@@ -10,7 +10,8 @@
 - Racha diaria (+50 día 3, +100 día 7; `streak.ts`), sonido y sacudida en crítico/guardia perfecta/legendario/jefe, mercado de trueque `/mercado` (una estrella por trueque, solo repetidas, 5 ofertas, 7 días).
 - Balance de nivel: `XP_BASE 165`, `XP_GROWTH 1.2`, `UPGRADE_POWER 5.0`, apilamiento `STEP 0.15` y `CAP 1.75`, `STORM_POWER 0.8` (Tormenta del Mago bajada de 1.1). Simulación 300 runs: mediana 12-15, p90 ~30, p99 ~42; jefe del piso 10 bajó a ~12-13% de las muertes con `FIGHT_POWER.boss 0.22`; Tormenta (med 12, p90 30) y Escudo arcano (med 13, p90 32) quedan parejos (`ONLY_CLASS` y `MAGO_SKILL` en run-sim.ts).
 - Tope de 100 pisos (`MAX_FLOOR`, `run.ts`): al limpiar el piso 100 la run termina en victoria con +500 monedas (`VICTORY_COINS`).
-- 344 tests Vitest, pglite: rooms 271, run 450, market 47.
+- 4 rasgos con regla de run (`ENGINE_VERSION = 3`: runs abiertas de la versión 2 se rechazan con `engine_outdated`). Balance de rasgos con 150000 peleas: nuevos entre −1.6 y +2.2; Blindado −5.1 y Cobarde −4.2 quedan algo fuera de ±3.5 (revisar). Runs: mediana 15, p90 29, p99 45.
+- 352 tests Vitest, pglite: rooms 271, run 450, market 47.
 
 ## Pendiente
 1. Probar en vivo con dos cuentas: tirada diaria con racha, sala completa (temporizador, apuestas, votación), `/mercado`. Nada de lo nuevo se ha visto en navegador.

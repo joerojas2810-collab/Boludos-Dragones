@@ -1,9 +1,10 @@
 import { ELEMENTS, type Element } from "./elements";
 import type { RarityId } from "./rarity";
-import type { Rng } from "./rng";
+import { createRng, hashSeed, type Rng } from "./rng";
 import type { SkillId } from "./skills";
 import {
   CATCHPHRASES,
+  rollRuleTrait,
   rollTraits,
   TRAITS,
   type Trait,
@@ -263,7 +264,24 @@ export function generateCharacter(
     flee: rollStat(rng, base.flee),
     speed: rollStat(rng, base.speed),
   };
-  const traits = rollTraits(rng);
+  const classic = rollTraits(rng);
+  // Rule traits (engine v3) use their own RNG derived from the raw rolls, so the
+  // main stream (name, element, catchphrase, later characters) is unchanged.
+  const rule = rollRuleTrait(
+    createRng(
+      hashSeed(
+        Math.round(raw.hp * 1e4),
+        Math.round(raw.atk * 1e4),
+        Math.round(raw.speed * 1e4),
+      ),
+    ),
+    classId,
+  );
+  const traits = !rule
+    ? classic
+    : classic.length === 2
+      ? [classic[0], rule]
+      : [...classic, rule];
   const stats = applyTraits({ ...raw, accuracy: 0, flee: 0 }, traits);
   const name = Array.from({ length: rng.int(2, 3) }, () =>
     rng.pick(SYLLABLES),

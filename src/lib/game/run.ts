@@ -31,7 +31,7 @@ import { WORLD_ELEMENT_BIAS, worldOf, type World } from "./worlds";
 
 // Bump when a change makes old action logs replay differently. The server
 // rejects logs from another version with a clear error (replay.ts).
-export const ENGINE_VERSION = 2;
+export const ENGINE_VERSION = 3;
 
 // ---- Tunable constants ----
 export const START_LIVES = 3;

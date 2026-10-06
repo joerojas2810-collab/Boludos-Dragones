@@ -14,6 +14,7 @@ import {
   elementMultiplier,
   ELEMENT_LABEL,
 } from "./elements";
+import { RELIC_CAPS } from "./relics";
 import type { Rng } from "./rng";
 import {
   COUNTER_REFLECT,
@@ -22,6 +23,7 @@ import {
   SKILLS,
   type Skill,
 } from "./skills";
+import { traitTotals } from "./traits";
 
 export type AttackKey = "attack1" | "attack2";
 export type MoveKey = AttackKey | "attack3"; // attack3 = class skill (skills.ts)
@@ -128,6 +130,25 @@ export interface Battle {
 
 const clamp = (v: number, min: number, max: number) =>
   Math.min(max, Math.max(min, v));
+
+// ---- trait rules (engine v3). Additive with relic perks, then capped by the
+// relic caps so traits and relics never stack past the same ceiling.
+const rulesOf = (c: Combatant) => traitTotals(c.char.traits);
+
+// Fraction of incoming damage ignored: relic perk + Último aliento (grows as hp
+// drops), capped at RELIC_CAPS.dmgReduction.
+export const dmgReductionOf = (c: Combatant): number => {
+  const low = rulesOf(c).lowHpReduction;
+  const missing = 1 - clamp(c.hp / c.char.stats.hp, 0, 1);
+  const perk = c.perks?.dmgReduction ?? 0;
+  return Math.min(
+    Math.max(perk, RELIC_CAPS.dmgReduction),
+    perk + low * missing,
+  );
+};
+
+// Every heal (attack heal, skills, lifesteal, regen, Clérigo blessing).
+const healMult = (c: Combatant): number => 1 - rulesOf(c).healPenalty;
 
 export const skillOf = (c: Combatant): Skill | undefined =>
   c.char.skill ? SKILLS[c.char.skill] : undefined;
@@ -410,6 +431,7 @@ export function estimateDamage(
   att: Combatant,
   def: Combatant,
   key: MoveKey,
+  crit = false, // true: skip the non-crit penalty (the crit multiplier is applied by the caller)
 ): number {
   const a = attackOf(att, key);
   const raw =
@@ -421,7 +443,8 @@ export function estimateDamage(
       raw *
         stanceFactor(def, key) *
         (att.perks?.dmgMult ?? 1) *
-        (1 - (def.perks?.dmgReduction ?? 0)) *
+        (1 - dmgReductionOf(def)) *
+        (crit ? 1 : 1 - rulesOf(att).nonCritPenalty) *
         (def.char.classId === "caballero"
           ? 1 - CLASS_PASSIVE_DMG_REDUCTION
           : 1) *
@@ -435,7 +458,10 @@ export function estimateDamage(
 // Crit multiplier: Pícaro passive replaces the base; relic bonus adds on top.
 export const critMultiplier = (c: Combatant): number =>
   (c.char.classId === "picaro" ? CLASS_PASSIVE_CRIT_MULT : CRIT_MULTIPLIER) +
-  (c.perks?.critDamage ?? 0);
+  Math.min(
+    Math.max(c.perks?.critDamage ?? 0, RELIC_CAPS.critDamage),
+    (c.perks?.critDamage ?? 0) + rulesOf(c).critDamage,
+  );
 
 // Element multiplier with the Mago passive (stronger advantage when attacking).
 export function attackElementMultiplier(
@@ -460,7 +486,7 @@ function bless(c: Combatant, log: string[]): Combatant {
   if (c.char.classId !== "clerigo") return c;
   const hp = Math.min(
     c.char.stats.hp,
-    c.hp + Math.round(c.char.stats.hp * CLASS_PASSIVE_REGEN),
+    c.hp + Math.round(c.char.stats.hp * CLASS_PASSIVE_REGEN * healMult(c)),
   );
   if (hp > c.hp) log.push(`${c.char.name} se bendice y recupera ${hp - c.hp}.`);
   return { ...c, hp };
@@ -491,7 +517,7 @@ function strike(
   if (a.heal > 0) {
     hp = Math.min(
       att.char.stats.hp,
-      hp + Math.round(att.char.stats.hp * a.heal),
+      hp + Math.round(att.char.stats.hp * a.heal * healMult(att)),
     );
     log.push(`${who} usa ${a.name} y recupera ${hp - att.hp} de vida.`);
   }
@@ -517,10 +543,14 @@ function strike(
     return { attacker, defender: def, dmg: 0 };
   }
   const crit = rng.chance(att.char.stats.crit);
+  // Apostador: one extra draw per landed hit, only for gamblers (old streams intact).
+  const spread = rulesOf(att).spread;
+  const gamble = spread > 0 ? 1 + spread * (2 * rng.next() - 1) : 1;
   const dmg = Math.round(
-    estimateDamage(att, def, key) *
+    estimateDamage(att, def, key, crit) *
       (crit ? critMultiplier(att) : 1) *
-      dmgFactor,
+      dmgFactor *
+      gamble,
   );
   ev(crit ? "crit" : "hit");
   log.push(
@@ -530,7 +560,9 @@ function strike(
   if (absorbed > 0)
     log.push(`El escudo de ${def.char.name} absorbe ${absorbed}.`);
   const steal = Math.round(
-    dmg * ((att.perks?.lifesteal ?? 0) + (skill?.lifesteal ?? 0)),
+    dmg *
+      ((att.perks?.lifesteal ?? 0) + (skill?.lifesteal ?? 0)) *
+      healMult(att),
   );
   let defender: Combatant = {
     ...def,
@@ -543,6 +575,11 @@ function strike(
     back = Math.round((dmg / COUNTER_TAKEN) * COUNTER_REFLECT);
     defender = { ...defender, reflect: 0 };
     log.push(`${def.char.name} contraataca y devuelve ${back} a ${who}.`);
+  }
+  const thorns = Math.round(dmg * rulesOf(def).thorns);
+  if (thorns > 0) {
+    back += thorns;
+    log.push(`Las espinas de ${def.char.name} devuelven ${thorns} a ${who}.`);
   }
   return {
     attacker: {
@@ -637,7 +674,10 @@ export function step(
       const m = player.char.stats.hp;
       const bits: string[] = [];
       if (skill.heal) {
-        const hp = Math.min(m, player.hp + Math.round(m * skill.heal));
+        const hp = Math.min(
+          m,
+          player.hp + Math.round(m * skill.heal * healMult(player)),
+        );
         bits.push(`recupera ${hp - player.hp} de vida`);
         player.hp = hp;
       }
@@ -762,7 +802,10 @@ export function step(
   if (player.perks?.regen) {
     const hp = Math.min(
       player.char.stats.hp,
-      player.hp + Math.round(player.char.stats.hp * player.perks.regen),
+      player.hp +
+        Math.round(
+          player.char.stats.hp * player.perks.regen * healMult(player),
+        ),
     );
     if (hp > player.hp) log.push(`${player.char.name} se recupera.`);
     player = { ...player, hp };

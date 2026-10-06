@@ -347,6 +347,31 @@ export function traitTip(id: TraitId, owner?: Character): Tip {
     tags.push(
       `Ganas ${GAFE_LOSS_XP} XP extra cuando pierdes una pelea en una run.`,
     );
+  const r = "rules" in t ? t.rules : undefined;
+  if (r && "critDamage" in r)
+    tags.push(
+      `Tus críticos pegan +${n1(r.critDamage)} más (suma con reliquias, tope +${n1(RELIC_CAPS.critDamage)}).`,
+    );
+  if (r && "nonCritPenalty" in r)
+    tags.push(
+      `Los golpes que no son críticos pegan ${pct(r.nonCritPenalty)} menos.`,
+    );
+  if (r && "lowHpReduction" in r)
+    tags.push(
+      `Cuanta menos vida tienes, menos daño recibes: hasta −${pct(r.lowHpReduction)} con 0 de vida (suma con reliquias, tope ${pct(RELIC_CAPS.dmgReduction)}).`,
+    );
+  if (r && "healPenalty" in r)
+    tags.push(
+      `Toda cura en combate (ataques, habilidades, regeneración, robo de vida, Bendición) rinde ${pct(r.healPenalty)} menos.`,
+    );
+  if (r && "thorns" in r)
+    tags.push(
+      `Devuelves ${pct(r.thorns)} del daño que recibes a quien te golpea. No aparece en Caballeros (ya tienen Contraataque).`,
+    );
+  if (r && "spread" in r)
+    tags.push(
+      `Cada golpe que acierta pega entre x${n1(1 - r.spread)} y x${n1(1 + r.spread)} de su daño; el promedio es el mismo y la precisión no cambia. El daño estimado muestra el promedio.`,
+    );
   const lines = [...effects.map((e) => `${e}.`), ...tags];
   if (effects.some((e) => e.includes("puntos")))
     lines.push(

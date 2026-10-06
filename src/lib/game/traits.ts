@@ -12,10 +12,24 @@ export interface TraitMods {
   speed?: number;
 }
 
+// "Run rules": behavior effects that the combat engine reads (engine v3). All
+// are additive across a character's traits and read through traitTotals.
+export interface TraitRules {
+  critDamage?: number; // added to the crit multiplier (shares RELIC_CAPS.critDamage)
+  nonCritPenalty?: number; // fraction of damage lost on NON-critical hits
+  lowHpReduction?: number; // extra damage reduction at 0 hp, scaled by missing hp
+  healPenalty?: number; // fraction lost on every heal / regen / lifesteal
+  thorns?: number; // fraction of damage received returned to the attacker
+  spread?: number; // every hit deals x(1 +- spread), same mean
+}
+
 export interface Trait {
   name: string;
   description: string;
   mods: TraitMods;
+  rules?: TraitRules;
+  // not in the classic random pool; see rollRuleTrait
+  noClass?: readonly string[]; // classes that can never roll it
   // effects that need runs/levels (stage 2), stored but not applied yet
   tag?: "healOnWin" | "xpOnLoss";
 }
@@ -123,13 +137,73 @@ export const TRAITS = {
     description: "+3 crítico, +3 precisión, +2% ATQ",
     mods: { crit: 0.03, accuracy: 0.03, atk: 0.02 },
   },
+  // ---- run-rule traits (engine v3): cost/commitment, rolled via rollRuleTrait ----
+  filoAzar: {
+    name: "Filo del azar",
+    description:
+      "+15 crítico y +0.5 de daño crítico, pero los golpes no críticos pegan 20% menos",
+    mods: { crit: 0.15 },
+    rules: { critDamage: 0.5, nonCritPenalty: 0.2 },
+  },
+  ultimoAliento: {
+    name: "Último aliento",
+    description:
+      "Cuanta menos vida, menos daño recibes (hasta -30%), pero toda cura se reduce 60%",
+    mods: {},
+    rules: { lowHpReduction: 0.3, healPenalty: 0.6 },
+  },
+  espinas: {
+    name: "Espinas",
+    description: "Devuelves 5% del daño que recibes (no sale en Caballeros)",
+    mods: {},
+    rules: { thorns: 0.05 },
+    noClass: ["caballero"],
+  },
+  apostador: {
+    name: "Apostador",
+    description:
+      "Cada golpe pega entre x0.2 y x1.8 de su daño (mismo promedio, misma precisión)",
+    mods: {},
+    rules: { spread: 0.8 },
+  },
 } as const satisfies Record<string, Trait>;
 
 export type TraitId = keyof typeof TRAITS;
 export const TRAIT_IDS = Object.keys(TRAITS) as TraitId[];
+// The original 20: the only pool rollTraits draws from, so existing seeds keep
+// producing the same characters.
+export const CLASSIC_TRAIT_IDS = TRAIT_IDS.slice(0, 20);
+export const RULE_TRAIT_IDS = TRAIT_IDS.slice(20);
+// Chance that a generated character swaps its LAST trait for a rule trait.
+export const RULE_TRAIT_CHANCE = 0.2;
+
+// Rolled from its own RNG (seeded from values the caller already has), so the
+// main generation stream is never consumed: old seeds give the same characters
+// except the ~RULE_TRAIT_CHANCE that gain a rule trait. Respects noClass.
+export function rollRuleTrait(rng: Rng, classId: string): TraitId | null {
+  if (!rng.chance(RULE_TRAIT_CHANCE)) return null;
+  const pool = RULE_TRAIT_IDS.filter(
+    (id) => !(TRAITS[id] as Trait).noClass?.includes(classId),
+  );
+  return rng.pick(pool);
+}
+
+// Sum of the rule fields of a trait list (additive within each field).
+export const traitTotals = (ids: readonly TraitId[]): Required<TraitRules> => {
+  const sum = (k: keyof TraitRules) =>
+    ids.reduce((a, id) => a + ((TRAITS[id] as Trait).rules?.[k] ?? 0), 0);
+  return {
+    critDamage: sum("critDamage"),
+    nonCritPenalty: Math.min(0.5, sum("nonCritPenalty")),
+    lowHpReduction: sum("lowHpReduction"),
+    healPenalty: Math.min(0.9, sum("healPenalty")),
+    thorns: Math.min(0.3, sum("thorns")),
+    spread: Math.min(0.9, sum("spread")),
+  };
+};
 
 export function rollTraits(rng: Rng): TraitId[] {
-  const pool = [...TRAIT_IDS];
+  const pool = [...CLASSIC_TRAIT_IDS];
   return Array.from(
     { length: rng.int(1, 2) },
     () => pool.splice(rng.int(0, pool.length - 1), 1)[0],

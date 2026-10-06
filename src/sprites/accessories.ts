@@ -426,6 +426,59 @@ export const ACCESSORIES: Record<
       ],
     },
   ],
+  // red die floating beside the head
+  filoAzar: [
+    {
+      at: "sr",
+      px: [
+        [0, 0, "wwwww"],
+        [1, 0, "wrwrw"],
+        [2, 0, "wwrww"],
+        [3, 0, "wrwrw"],
+        [4, 0, "wwwww"],
+      ],
+    },
+  ],
+  // small red heart on the chest
+  ultimoAliento: [
+    {
+      at: "chest",
+      px: [
+        [0, 0, "rr.rr"],
+        [1, 0, "rrrrr"],
+        [2, 1, "rrr"],
+        [3, 2, "r"],
+      ],
+    },
+  ],
+  // spikes on both shoulders
+  espinas: [
+    {
+      at: "shL",
+      px: [
+        [-1, 0, "m"],
+        [0, 0, "mm"],
+      ],
+    },
+    {
+      at: "shR",
+      px: [
+        [-1, 0, "m"],
+        [0, 0, "mm"],
+      ],
+    },
+  ],
+  // gold coin on the cheek
+  apostador: [
+    {
+      at: "ck",
+      px: [
+        [0, 0, "yyy"],
+        [1, 0, "yoy"],
+        [2, 0, "yyy"],
+      ],
+    },
+  ],
 };
 
 export function accessoryPatches(trait: TraitId, classId: ClassId): Patch[] {
