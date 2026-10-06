@@ -32,6 +32,11 @@ Juego web RPG por turnos, con runs infinitas y tiradas gacha, para jugar con ami
 - Revisión visual en el navegador: preferir texto/DOM (`read_page`, `get_page_text`) a capturas; capturas a escala 0.5, pocas y solo al final de un cambio visual; máximo 2 vueltas de ajuste.
 - Máximo 2 agentes en paralelo; modelo por tarea (Sonnet para arte, diseño y lógica; Haiku para tareas mecánicas). Reportes finales cortos.
 
+## Versiones (acordado)
+- Cambios grandes (sistema nuevo, pantalla nueva, motor o base cambian) suben la versión principal: v1, v2, v3… Cambios pequeños (ajustes, pulido, balance, arreglos) suben el decimal: v2.1, v3.1… Cada versión es una etiqueta de git (`git tag vX.Y <commit>`; se empuja con `git push --tags`) y se anota aquí.
+- v1.0 base: runs, gacha, cuentas, salas y mercado · v1.1 balance, economía y visual · v2.0 rangos F–SSR, forja, equipo, dungeons y hub · v2.1 atajos de forja, ayudas en salas, sets, mejoras aditivas, celular · v3.0 ascensión y jefe cooperativo · v3.1 resultado de forja, cuadro de encuentros (también en salas), selector de ascensión, anti-granjas.
+- Versión actual: **v3.1**. La próxima etiqueta se decide al cerrar cada tanda de cambios (no por commit).
+
 ## Idioma
 - Textos del juego, nombres de personajes y mensajes de UI: **español**.
 - Código (variables, funciones, tipos, commits, comentarios): **inglés**.
