@@ -6,7 +6,8 @@ import type { ClassId } from "../game/characters";
 import type { Element } from "../game/elements";
 import type { RarityId } from "../game/rarity";
 import type { RunAction } from "../game/replay";
-import type { Run } from "../game/run";
+import type { FightNode, Run } from "../game/run";
+import type { CoopView } from "../rooms/api";
 import type { TraitId } from "../game/traits";
 import type {
   Bet,
@@ -97,6 +98,7 @@ export interface RoomView {
   /** My interfere price; absent = flat ROOM_K.interfereCost (real server is still flat). */
   interfereCost?: number;
   vote?: VoteInfo | null;
+  coop?: CoopView | null; // coop boss: shared bar (coop_boss and the summary)
   connection: "online" | "reconnecting";
 }
 
@@ -153,6 +155,13 @@ export interface RoomClient {
   kick(target: string): Promise<Res>;
   transferHost(to: string): Promise<Res>;
   endNight(): Promise<Res>;
+  startCoop(): Promise<Res>;
+  /** Coop boss: your fresh hero Run and the boss fight to play. */
+  getCoop(): Promise<Res<{ run: Run; node: FightNode }>>;
+  /** The fight so far; the server replays it and keeps the damage. */
+  coopSubmit(
+    actions: RunAction[],
+  ): Promise<Res<{ damage: number; finished: boolean }>>;
   close(): Promise<Res>;
   leave(): Promise<Res>;
   turn(msg: Omit<TurnInfo, "fighter">): void;

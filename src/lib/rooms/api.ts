@@ -2,7 +2,7 @@
 // Requests reuse messages.ts (clientMsg / createRoomMsg / joinRoomMsg).
 // Both sides import this file: keep it stable (see docs/API_SALAS.md).
 import { z } from "zod";
-import type { Run } from "../game/run";
+import type { FightNode, Run } from "../game/run";
 import type { Phase } from "../game/room";
 import {
   doorKindEnum,
@@ -134,6 +134,17 @@ export const voteView = z.object({
 });
 export type VoteView = z.infer<typeof voteView>;
 
+/** Coop boss: shared bar and what each player has dealt (server-replayed). */
+export const coopView = z.object({
+  pool: int, // shared bar size (scales with players)
+  total: int, // damage dealt so far, capped at pool
+  won: z.boolean(),
+  mvp: uuid.nullable(),
+  bossName: z.string(),
+  players: z.array(z.object({ id: uuid, damage: int, finished: z.boolean() })),
+});
+export type CoopView = z.infer<typeof coopView>;
+
 export const roomSnapshot = z.object({
   roomId: uuid,
   code: z.string(),
@@ -157,6 +168,7 @@ export const roomSnapshot = z.object({
   ),
   emotes: z.array(z.object({ from: uuid, id: z.string(), at: int })),
   vote: voteView.nullable().optional(),
+  coop: coopView.nullable().optional(),
 });
 export type RoomSnapshot = z.infer<typeof roomSnapshot>;
 
@@ -213,6 +225,8 @@ export interface RunView {
   door: z.infer<typeof doorKindEnum> | null; // door you picked
   enemyBoost: z.infer<typeof interfereKindEnum> | null;
   engineVersion: number;
+  /** Only during coop_boss: your fresh hero Run and the boss fight to play. */
+  coop?: { node: FightNode };
 }
 
 export const summaryRes = z.object({

@@ -355,6 +355,12 @@ export function phaseComplete(v: RoomView): boolean {
       return v.players.filter((p) => p.fights).every((p) => p.outcome !== null);
     case "round_end":
       return present.length > 0 && present.every((p) => p.ready);
+    case "coop_boss": {
+      const done = new Set(
+        v.coop?.players.filter((c) => c.finished).map((c) => c.id),
+      );
+      return present.length > 0 && present.every((p) => done.has(p.id));
+    }
     default:
       return false;
   }

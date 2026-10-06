@@ -476,6 +476,40 @@ export function realRoomStore(): RoomStore {
       if (r.error) throw new Error("db_write");
     },
 
+    async loadCoop(room) {
+      return rows<{ player_id: string; damage: number; finished: boolean }>(
+        await sb
+          .from("room_coop")
+          .select("player_id, damage, finished")
+          .eq("room_id", room),
+      ).map((r) => ({
+        playerId: r.player_id,
+        damage: r.damage,
+        finished: r.finished,
+      }));
+    },
+
+    async saveCoop(room, player, row) {
+      const [old] = rows<{ damage: number }>(
+        await sb
+          .from("room_coop")
+          .select("damage")
+          .eq("room_id", room)
+          .eq("player_id", player)
+          .limit(1),
+      );
+      if (old && old.damage > row.damage) return;
+      const r = await sb.from("room_coop").upsert({
+        room_id: room,
+        player_id: player,
+        damage: row.damage,
+        finished: row.finished,
+        actions: row.actions,
+        updated_at: iso(Date.now()),
+      });
+      if (r.error) throw new Error("db_write");
+    },
+
     async interferenceOn(room, key) {
       const [r] = rows<{ kind: InterfereKind }>(
         await sb

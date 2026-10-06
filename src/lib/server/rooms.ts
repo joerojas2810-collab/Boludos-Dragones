@@ -3,6 +3,13 @@
 // (next phase via game/room.ts `advance`, floor results via engine replay);
 // SQL persists, validates and makes it idempotent.
 import type { z } from "zod";
+import {
+  coopNode,
+  coopPool,
+  coopRank,
+  coopTally,
+  replayCoop,
+} from "../game/coop";
 import { isUnlocked } from "../game/dungeons";
 import type { RarityId } from "../game/rarity";
 import { enemyFor, doorsFor, type Run } from "../game/run";
@@ -35,6 +42,7 @@ import {
   type AdvanceRes,
   type PhaseView,
   type RoomSnapshot,
+  type CoopView,
   type RunView,
   type VoteView,
   type SubmitRes,
@@ -249,6 +257,99 @@ async function resolveFloorVote(d: RoomDeps, s: RoomState, room: string) {
   );
 }
 
+// ------------------------------------------------------------- coop boss
+/** Your fresh hero and the boss fight everybody plays during `coop_boss`. */
+async function coopRun(d: RoomDeps, s: RoomState, player: string) {
+  if (s.roundSeed === null) return fail("wrong_phase");
+  const { profile } = await d.loadProfile(player);
+  const heroKey = s.players.find((p) => p.id === player)?.heroId ?? null;
+  const hero = heroForRound(profile, heroKey, s.mode, s.roundSeed, player);
+  return {
+    run: newRoomRun(s.roundSeed, hero, s.rank),
+    node: coopNode(s.roundSeed, coopRank(s.mode, s.rank)),
+  };
+}
+
+/** Shared bar + per-player damage; null outside the boss and its summary. */
+async function coopViewOf(
+  d: RoomDeps,
+  s: RoomState,
+  room: string,
+): Promise<CoopView | null> {
+  if (s.roundSeed === null) return null;
+  if (!["coop_boss", "night_summary", "closed"].includes(s.phase)) return null;
+  const rows = await d.store.loadCoop(room);
+  if (s.phase !== "coop_boss" && rows.length === 0) return null;
+  const rank = coopRank(s.mode, s.rank);
+  const pool = coopPool(
+    s.roundSeed,
+    rank,
+    s.players.filter((p) => !p.left).length,
+  );
+  const t = coopTally(
+    pool,
+    Object.fromEntries(rows.map((r) => [r.playerId, r.damage])),
+  );
+  return {
+    ...t,
+    bossName: coopNode(s.roundSeed, rank).enemy.name,
+    players: rows.map((r) => ({
+      id: r.playerId,
+      damage: r.damage,
+      finished: r.finished,
+    })),
+  };
+}
+
+/** Everybody present has finished their fight: the boss can end early. */
+async function coopAllDone(d: RoomDeps, s: RoomState, room: string) {
+  const rows = await d.store.loadCoop(room);
+  const done = new Set(rows.filter((r) => r.finished).map((r) => r.playerId));
+  const present = s.players.filter((p) => !p.left && p.present);
+  return present.length > 0 && present.every((p) => done.has(p.id));
+}
+
+export async function coopSubmitService(
+  d: RoomDeps,
+  player: string,
+  room: string,
+  msg: Extract<ClientMsg, { type: "coop_submit" }>,
+) {
+  return guarded(async () => {
+    await d.store.limit(`roomcoop:${player}`, 90, 60);
+    await touch(d, player, room);
+    if (msg.engineVersion !== undefined && msg.engineVersion !== ENGINE_VERSION)
+      return fail("engine_outdated");
+    const s = await load(d, room);
+    if (s.phase === "closed") return fail("room_closed");
+    if (s.phase !== "coop_boss") return fail("wrong_phase");
+    if (s.deadline > 0 && d.now() > s.deadline + FIGHT_GRACE_MS)
+      return fail("wrong_phase");
+    const { run, node } = await coopRun(d, s, player);
+    if (run.engineVersion !== ENGINE_VERSION) return fail("engine_outdated");
+    const rep = replayCoop(run, node, msg.actions);
+    await d.store.saveCoop(room, player, {
+      damage: rep.damage,
+      finished: rep.finished,
+      actions: msg.actions,
+    });
+    if (rep.rejectedAt !== null) {
+      await d.store.audit(player, "room_coop_rejected", {
+        room,
+        at: rep.rejectedAt,
+        n: msg.actions.length,
+      });
+      return fail("invalid_log");
+    }
+    return {
+      ok: true,
+      state: phaseViewOf(s, d.now()),
+      damage: rep.damage,
+      finished: rep.finished,
+    };
+  });
+}
+
 // ---------------------------------------------------------------- lobby-level
 export async function createRoomService(
   d: RoomDeps,
@@ -357,6 +458,7 @@ export async function snapshotService(
       rankChips: rankByChips(s).map((x) => x.id),
       rankFloor: rankByFloor(s).map((x) => x.id),
       vote: await voteViewOf(d, s, room, player, d.now()),
+      coop: await coopViewOf(d, s, room),
       ...readLive(room, `${s.round}:${s.floor}`, d.now()),
     };
   });
@@ -422,6 +524,19 @@ export async function runViewService(
     await d.store.limit(`roomrun:${player}`, 60, 60);
     await touch(d, player, room);
     const s = await load(d, room);
+    if (s.phase === "coop_boss") {
+      const { run, node } = await coopRun(d, s, player);
+      return {
+        run,
+        floor: s.floor,
+        seed: run.seed,
+        doors: [],
+        door: null,
+        enemyBoost: null,
+        engineVersion: ENGINE_VERSION,
+        coop: { node },
+      };
+    }
     const rows = await d.store.floorRows(room, s.round, player);
     const run = await runAtFloorStart(d, s, room, player, rows);
     const b = s.battles[player];
@@ -584,7 +699,8 @@ export async function advanceService(
     if (s.phase === "closed") return fail("room_closed");
     if (s.phaseSeq !== phaseSeq) return stale("stale");
     const seed = d.randomSeed();
-    let r = modelAdvance(s, now, phaseSeq, { seed });
+    const coopDone = s.phase === "coop_boss" && (await coopAllDone(d, s, room));
+    let r = modelAdvance(s, now, phaseSeq, { seed, coopDone });
     if (!r.ok) return fail(r.error as "room_closed");
     if (!r.advanced) return stale(r.reason as AdvanceRes["reason"]);
     if (s.phase === "fighting") {
@@ -665,6 +781,8 @@ export async function roomAction(
   if (msg.type === "advance")
     return advanceService(d, player, room, msg.phaseSeq);
   if (msg.type === "submit") return submitService(d, player, room, msg);
+  if (msg.type === "coop_submit")
+    return coopSubmitService(d, player, room, msg);
   return guarded(async () => {
     const [max, win] = LIMITS[msg.type] ?? [120, 60];
     await d.store.limit(`roomact:${msg.type}:${player}`, max, win);

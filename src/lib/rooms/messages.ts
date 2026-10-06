@@ -106,6 +106,12 @@ export const clientMsg = z.discriminatedUnion("type", [
   z.strictObject({ ...m("close") }),
   z.strictObject({ ...m("end_night") }),
   z.strictObject({ ...m("start_coop") }),
+  // coop boss: the whole fight so far; the server replays it and keeps the damage.
+  z.strictObject({
+    ...m("coop_submit"),
+    actions: z.array(runActionSchema).max(400),
+    engineVersion: z.number().int().min(1).max(1000).optional(),
+  }),
   z.strictObject({ ...m("heartbeat"), present: z.boolean() }),
   // ephemeral extras served through the snapshot (no Realtime session needed)
   z.strictObject({

@@ -5,7 +5,8 @@
 // Fight HP and emotes ride on the snapshot (server keeps them in memory).
 import { computeAwards } from "../game/awards";
 import { interfereCostFor } from "../game/room";
-import { doorsFor } from "../game/run";
+import { doorsFor, type FightNode, type Run } from "../game/run";
+import { ENGINE_VERSION } from "../game/replay";
 import type { RarityId } from "../game/rarity";
 import type { RunAction } from "../game/replay";
 import type {
@@ -250,6 +251,7 @@ export class RemoteRoomClient implements RoomClient {
         s.you,
       ),
       vote: s.vote ?? null,
+      coop: s.coop ?? null,
       connection: "online",
     };
   }
@@ -308,6 +310,7 @@ export class RemoteRoomClient implements RoomClient {
   kick = (target: string) => this.act("kick", { target });
   transferHost = (to: string) => this.act("transfer_host", { to });
   endNight = () => this.act("end_night");
+  startCoop = () => this.act("start_coop");
   close = () => this.act("close");
   leave = () => this.act("leave");
 
@@ -325,6 +328,33 @@ export class RemoteRoomClient implements RoomClient {
         enemyBoost: d.enemyBoost,
       },
     };
+  }
+
+  async getCoop(): Promise<Res<{ run: Run; node: FightNode }>> {
+    const r = await call<RunView>("GET", `/api/rooms/${this.o.roomId}/run`);
+    if (!r.ok) return r;
+    if (!r.data.coop) return { ok: false, error: "wrong_phase" };
+    return { ok: true, run: r.data.run, node: r.data.coop.node };
+  }
+
+  async coopSubmit(
+    actions: RunAction[],
+  ): Promise<Res<{ damage: number; finished: boolean }>> {
+    const r = await call<{ damage: number; finished: boolean }>(
+      "POST",
+      `/api/rooms/${this.o.roomId}/coop_submit`,
+      {
+        v: MSG_VERSION,
+        type: "coop_submit",
+        room: this.o.roomId,
+        actions,
+        engineVersion: ENGINE_VERSION,
+      },
+    );
+    if (!r.ok) return r;
+    if (this.timer) clearTimeout(this.timer);
+    void this.poll();
+    return { ok: true, damage: r.data.damage, finished: r.data.finished };
   }
 
   async submit(

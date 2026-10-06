@@ -26,6 +26,12 @@ export interface FloorRow {
   runAfter: Run | null;
 }
 
+export interface CoopRow {
+  playerId: string;
+  damage: number;
+  finished: boolean;
+}
+
 export interface AdvanceArgs {
   room: string;
   expectedSeq: number;
@@ -150,6 +156,14 @@ export interface RoomStore {
     room: string,
     battleKey: string,
   ): Promise<InterfereKind | null>;
+  /** Coop boss: best replayed damage per player (room_coop). */
+  loadCoop(room: string): Promise<CoopRow[]>;
+  /** Keeps the better of the stored and the new damage. */
+  saveCoop(
+    room: string,
+    player: string,
+    row: { damage: number; finished: boolean; actions: unknown },
+  ): Promise<void>;
 }
 
 export interface RoomDeps {

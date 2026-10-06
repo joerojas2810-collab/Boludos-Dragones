@@ -1,0 +1,163 @@
+// Coop final boss of a room (pure, shared by client play and server replay).
+// Everybody fights the SAME boss on their own screen, one life, with the normal
+// battle engine. The boss each player faces has a huge hp pool (nobody kills it
+// alone); the damage each player deals is replayed by the server and summed into
+// one shared bar. The party wins when the sum reaches the pool, which scales with
+// the number of players (2 to 7).
+import { step, type Battle } from "./combat";
+import type { RarityId } from "./rarity";
+import type { RunAction } from "./replay";
+import type { RoomMode } from "./room";
+import { enemyFor, startFight, type FightNode, type Run } from "./run";
+import { hashSeed, type Rng } from "./rng";
+
+export const COOP_K = {
+  bossFloor: 7, // [K] strength of a floor-10 boss at the room's rank
+  bossHpMult: 12, // [K] hp of the boss each player fights (keeps it unkillable alone)
+  poolPerPlayer: 1.6, // [K] shared bar = this many normal-boss hp per player present
+  maxActions: 400,
+} as const;
+
+// A Clérigo boss regenerates a share of its (huge) max hp every round: nobody
+// could ever hurt it, so those seeds are skipped (deterministically).
+function pickBoss(seed: number, rank: RarityId | null) {
+  for (let k = 0; ; k++) {
+    const f = enemyFor(
+      k === 0 ? seed : hashSeed(seed, k),
+      COOP_K.bossFloor,
+      "boss",
+      null,
+      rank,
+    );
+    if (f.enemies[0].classId !== "clerigo" || k >= 12) return f;
+  }
+}
+
+/**
+ * Difficulty rank of the boss. Levelled rooms ignore the room rank (heroes are
+ * level-1 and equal, so the boss is the same at every rank); full-power rooms
+ * scale it like the rest of the night.
+ */
+export const coopRank = (mode: RoomMode, rank: RarityId): RarityId | null =>
+  mode === "nivelado" ? null : rank;
+
+/** Fight node of the coop boss: one enemy, same stream for everybody. */
+export function coopNode(seed: number, rank: RarityId | null): FightNode {
+  const f = pickBoss(seed, rank);
+  const boss = {
+    ...f.enemies[0],
+    name: `${f.enemies[0].name} Supremo`,
+    stats: {
+      ...f.enemies[0].stats,
+      hp: Math.round(f.enemies[0].stats.hp * COOP_K.bossHpMult),
+    },
+  };
+  return {
+    type: "fight",
+    kind: "boss",
+    enemy: boss,
+    enemies: [boss],
+    mods: f.mods,
+    battleSeed: f.battleSeed,
+  };
+}
+
+/** Hp of a normal boss at this seed/rank: the unit the shared bar is measured in. */
+export const bossUnit = (seed: number, rank: RarityId | null): number =>
+  pickBoss(seed, rank).enemies[0].stats.hp;
+
+/** Shared bar size for `players` present players. */
+export const coopPool = (
+  seed: number,
+  rank: RarityId | null,
+  players: number,
+) =>
+  Math.round(
+    bossUnit(seed, rank) * COOP_K.poolPerPlayer * Math.max(1, players),
+  );
+
+/** Opens the fight of `run` (its hero at full hp) against `node`. */
+export function startCoop(
+  run: Run,
+  node: FightNode,
+): { battle: Battle; rng: Rng } | null {
+  const f = startFight({ ...run, node });
+  return f && { battle: f.battle, rng: f.rng };
+}
+
+/** Hp the boss has lost in this battle. */
+export const damageDealt = (b: Battle): number =>
+  Math.max(0, b.enemies[0].char.stats.hp - Math.max(0, b.enemies[0].hp));
+
+export interface CoopReplay {
+  damage: number;
+  finished: boolean; // hero dead (or fled): this player is done
+  actions: number; // how many actions were applied
+  rejectedAt: number | null; // first illegal action
+}
+
+/** Server replay: only plain `act` actions are legal (no quick resolve, no doors). */
+export function replayCoop(
+  start: Run,
+  node: FightNode,
+  actions: readonly RunAction[],
+): CoopReplay {
+  const f = startCoop(start, node);
+  if (!f) return { damage: 0, finished: false, actions: 0, rejectedAt: 0 };
+  let b = f.battle;
+  for (let i = 0; i < actions.length; i++) {
+    const a = actions[i];
+    if (a.t !== "act" || i >= COOP_K.maxActions)
+      return {
+        damage: damageDealt(b),
+        finished: b.status !== "ongoing",
+        actions: i,
+        rejectedAt: i,
+      };
+    if (b.status !== "ongoing")
+      return {
+        damage: damageDealt(b),
+        finished: true,
+        actions: i,
+        rejectedAt: i,
+      };
+    const n = step(b, a.a, f.rng, a.target);
+    if (n === b)
+      return {
+        damage: damageDealt(b),
+        finished: false,
+        actions: i,
+        rejectedAt: i,
+      };
+    b = n;
+  }
+  return {
+    damage: damageDealt(b),
+    finished: b.status !== "ongoing",
+    actions: actions.length,
+    rejectedAt: null,
+  };
+}
+
+export interface CoopTally {
+  pool: number;
+  total: number; // damage dealt by everybody (capped at pool)
+  won: boolean;
+  mvp: string | null; // player with the most damage
+}
+
+/** Shared bar state from per-player damage. */
+export function coopTally(
+  pool: number,
+  damage: Readonly<Record<string, number>>,
+): CoopTally {
+  const entries = Object.entries(damage);
+  const sum = entries.reduce((a, [, d]) => a + d, 0);
+  const mvp = entries.sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0];
+  return {
+    pool,
+    total: Math.min(pool, sum),
+    won: sum >= pool,
+    mvp: mvp && mvp[1] > 0 ? mvp[0] : null,
+  };
+}

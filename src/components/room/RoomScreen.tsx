@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { DoorIcon } from "@/components/DoorIcon";
+import { CoopBar, CoopFight } from "@/components/room/CoopBoss";
 import { FloorPlayer } from "@/components/room/FloorPlayer";
 import { Podium } from "@/components/room/Podium";
 import { Sprite } from "@/components/Sprite";
@@ -193,6 +194,16 @@ export function RoomScreen({
                   {view.phase === "lobby" ? "Iniciar ronda" : "Siguiente ronda"}
                 </button>
               )}
+            {isHost &&
+              view.phase === "round_end" &&
+              view.round >= ROOM_K.coopMinRound && (
+                <button
+                  className="btn !border-red-700"
+                  onClick={() => void run(client.startCoop())}
+                >
+                  Jefe final (todos juntos)
+                </button>
+              )}
             {isHost && view.phase === "round_end" && (
               <button
                 className="btn btn-gray"
@@ -296,41 +307,52 @@ export function RoomScreen({
         </>
       );
       break;
+    case "coop_boss":
+      main = (
+        <>
+          <CoopBar view={view} />
+          {me && <CoopFight client={client} />}
+        </>
+      );
+      break;
     case "night_summary":
     case "closed":
       main = (
-        <Panel title="Resumen de la noche">
-          <Podium
-            ranked={rows.map((r) => view.players.find((x) => x.id === r.id)!)}
-            titles={titles}
-          />
-          {view.awards?.map((a) => (
-            <div key={a.id} className="mb-2 text-center">
-              <div className="font-bold">
-                {AWARD_INFO[a.id].title}:{" "}
-                {view.players.find((p) => p.id === a.player)?.name ?? "?"}
+        <>
+          {view.coop && <CoopBar view={view} />}
+          <Panel title="Resumen de la noche">
+            <Podium
+              ranked={rows.map((r) => view.players.find((x) => x.id === r.id)!)}
+              titles={titles}
+            />
+            {view.awards?.map((a) => (
+              <div key={a.id} className="mb-2 text-center">
+                <div className="font-bold">
+                  {AWARD_INFO[a.id].title}:{" "}
+                  {view.players.find((p) => p.id === a.player)?.name ?? "?"}
+                </div>
+                <div className="text-sm opacity-80">
+                  {AWARD_INFO[a.id].blurb(a.value)}
+                </div>
               </div>
-              <div className="text-sm opacity-80">
-                {AWARD_INFO[a.id].blurb(a.value)}
-              </div>
+            ))}
+            {titles && (
+              <ul className="mt-3 space-y-1 border-t border-white/10 pt-3 text-center text-sm">
+                {rows.map((r) => (
+                  <li key={r.id}>
+                    <b>{r.name}</b>:{" "}
+                    <span className="text-yellow-300">{titles[r.id]}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-3 text-center">
+              <button className="btn" onClick={onExit}>
+                Salir
+              </button>
             </div>
-          ))}
-          {titles && (
-            <ul className="mt-3 space-y-1 border-t border-white/10 pt-3 text-center text-sm">
-              {rows.map((r) => (
-                <li key={r.id}>
-                  <b>{r.name}</b>:{" "}
-                  <span className="text-yellow-300">{titles[r.id]}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="mt-3 text-center">
-            <button className="btn" onClick={onExit}>
-              Salir
-            </button>
-          </div>
-        </Panel>
+          </Panel>
+        </>
       );
       break;
     default:

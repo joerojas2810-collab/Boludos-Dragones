@@ -10,7 +10,7 @@ import type { RarityId } from "./rarity";
 export const ROOM_K = {
   floorsPerRound: 10,
   maxRounds: 5,
-  coopMinRound: 4, // host sees "Jefe final" after this round
+  coopMinRound: 2, // host sees "Jefe final" after this round
   bossEvery: 5,
   roundOffsetPerRound: 3, // [K] difficulty offset: 3 * (round - 1)
   lives: 3,
@@ -47,8 +47,8 @@ export const ROOM_K = {
   missedTurnsToFlee: 2,
 } as const;
 
-/** Coop final boss is phase 2: keep false until the engine supports it. */
-export const COOP_BOSS_ENABLED = false;
+/** Coop final boss (lib/game/coop.ts); false = refuse start_coop. */
+export const COOP_BOSS_ENABLED = true;
 
 export const PHASES = [
   "lobby",
@@ -957,7 +957,7 @@ export function advance(
   s: RoomState,
   now: number,
   phaseSeq: number,
-  opts: { seed?: number } = {},
+  opts: { seed?: number; coopDone?: boolean } = {},
 ): Result {
   const stale = (reason: string): Result => ({
     ok: true,
@@ -970,7 +970,12 @@ export function advance(
   if (phaseSeq !== s.phaseSeq) return stale("stale");
   if (s.phase === "lobby" || s.phase === "night_summary")
     return stale("manual_phase");
-  if (!(now >= s.deadline || phaseDone(s))) return stale("not_due");
+  if (!(
+    now >= s.deadline ||
+    phaseDone(s) ||
+    (s.phase === "coop_boss" && opts.coopDone)
+  ))
+    return stale("not_due");
 
   const n = clone(s);
   const effects: Effect[] = [];

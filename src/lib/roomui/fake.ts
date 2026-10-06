@@ -27,6 +27,7 @@ import {
   settlePool,
   hasVote,
   interfereCostFor,
+  startCoop,
   startRound,
   transferHost,
   type BetPrediction,
@@ -38,8 +39,17 @@ import {
   type RoomState,
 } from "../game/room";
 import { resolveVoteResult, voteClosesAt, VOTE_EVENT } from "../game/vote";
-import { createRun, doorsFor, type Run } from "../game/run";
+import {
+  bossUnit,
+  coopNode,
+  coopPool,
+  coopRank,
+  coopTally,
+  replayCoop,
+} from "../game/coop";
+import { createRun, doorsFor, type FightNode, type Run } from "../game/run";
 import type { RarityId } from "../game/rarity";
+import type { CoopView } from "../rooms/api";
 import { autoResolvePicks, replayFloor } from "./play";
 import type {
   Award,
@@ -107,6 +117,7 @@ export class FakeRoomClient implements RoomClient {
   private view: RoomView | null = null;
   private timer: ReturnType<typeof setInterval>;
   private flaky: string | null = null;
+  private coopDmg = new Map<string, { damage: number; finished: boolean }>();
 
   constructor(opts: FakeOpts) {
     this.opts = opts;
@@ -261,8 +272,50 @@ export class FakeRoomClient implements RoomClient {
         ME,
       ),
       vote: this.voteInfo(),
+      coop: this.coopView(),
       connection: "online",
     };
+  }
+
+  // ------------------------------------------------------------ coop boss
+  private coopView(): CoopView | null {
+    const s = this.st;
+    if (s.roundSeed === null || this.coopDmg.size === 0) return null;
+    const rank = coopRank(s.mode, s.rank);
+    const pool = coopPool(
+      s.roundSeed,
+      rank,
+      s.players.filter((p) => !p.left).length,
+    );
+    const t = coopTally(
+      pool,
+      Object.fromEntries([...this.coopDmg].map(([id, c]) => [id, c.damage])),
+    );
+    return {
+      ...t,
+      bossName: coopNode(s.roundSeed, rank).enemy.name,
+      players: [...this.coopDmg].map(([id, c]) => ({ id, ...c })),
+    };
+  }
+  private coopHero(): Run | null {
+    const s = this.st;
+    if (s.roundSeed === null) return null;
+    const p = s.players.find((x) => x.id === ME);
+    const hero = this.opts.makeHero(p?.heroId ?? null, s.mode, s.roundSeed);
+    return createRun(s.roundSeed, hero, false, null, s.rank);
+  }
+  private botCoop(id: string) {
+    const s = this.st;
+    if (s.roundSeed === null) return;
+    const unit = bossUnit(s.roundSeed, coopRank(s.mode, s.rank));
+    this.after(this.rng.int(4_000, 25_000), () => {
+      if (this.st.phase !== "coop_boss") return;
+      this.coopDmg.set(id, {
+        damage: Math.round(unit * (0.4 + this.rng.next() * 3)),
+        finished: true,
+      });
+      this.publish();
+    });
   }
 
   // ------------------------------------------------------------ votes
@@ -385,6 +438,10 @@ export class FakeRoomClient implements RoomClient {
             this.apply(setReady(this.st, id, true)),
           );
         if (s.hostId !== ME) this.after(9_000, () => this.botHostStarts());
+        break;
+      case "coop_boss":
+        this.coopDmg.clear();
+        for (const id of bots) this.botCoop(id);
         break;
       case "night_summary":
         this.awards = this.computeAwards();
@@ -544,7 +601,10 @@ export class FakeRoomClient implements RoomClient {
     }
     if (this.st.phase === "reveal" && now >= voteClosesAt(this.st.deadline))
       this.resolveVote();
-    const r = advance(this.st, now, this.st.phaseSeq, { seed: this.seed() });
+    const r = advance(this.st, now, this.st.phaseSeq, {
+      seed: this.seed(),
+      coopDone: this.coopAllDone(),
+    });
     if (r.ok && r.advanced) this.apply(r);
     else if (this.view && this.view.deadline !== 0) this.publish();
   }
@@ -578,8 +638,41 @@ export class FakeRoomClient implements RoomClient {
   async startRound() {
     return this.apply(startRound(this.st, ME, this.vnow(), this.seed()));
   }
+  private coopAllDone = () =>
+    this.st.phase === "coop_boss" &&
+    this.st.players
+      .filter((p) => !p.left && p.present)
+      .every((p) => this.coopDmg.get(p.id)?.finished);
+  async startCoop() {
+    return this.apply(startCoop(this.st, ME, this.vnow()));
+  }
+  async getCoop(): Promise<Res<{ run: Run; node: FightNode }>> {
+    const run = this.coopHero();
+    if (!run || this.st.phase !== "coop_boss") return err("wrong_phase");
+    return {
+      ok: true,
+      run,
+      node: coopNode(run.seed, coopRank(this.st.mode, this.st.rank)),
+    };
+  }
+  async coopSubmit(actions: RunAction[]) {
+    const run = this.coopHero();
+    if (!run || this.st.phase !== "coop_boss") return err("wrong_phase");
+    const rep = replayCoop(
+      run,
+      coopNode(run.seed, coopRank(this.st.mode, this.st.rank)),
+      actions,
+    );
+    if (rep.rejectedAt !== null) return err("invalid_log");
+    this.coopDmg.set(ME, { damage: rep.damage, finished: rep.finished });
+    this.publish();
+    return { ok: true as const, damage: rep.damage, finished: rep.finished };
+  }
   async advance(phaseSeq: number) {
-    const r = advance(this.st, this.vnow(), phaseSeq, { seed: this.seed() });
+    const r = advance(this.st, this.vnow(), phaseSeq, {
+      seed: this.seed(),
+      coopDone: this.coopAllDone(),
+    });
     return r.ok && r.advanced ? this.apply(r) : r.ok ? ok() : err(r.error);
   }
   async door(_floor: number, door: DoorKind) {

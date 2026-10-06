@@ -324,14 +324,30 @@ describe("round flow", () => {
     expect(advance(s, T0 + 1e9, s.phaseSeq)).toMatchObject({ advanced: false });
     expect(ok(closeRoom(s, A, T0)).phase).toBe("closed");
   });
-  it("round_end early when all ready; host can end night; coop stub refused", () => {
+  it("round_end early when all ready; host can end night; coop boss rules", () => {
     let s = ok(startRound(lobby([A, B]), A, T0, 1));
     s = { ...s, round: 2, phase: "round_end", deadline: T0 + 1e6, phaseSeq: 5 };
     expect(advance(s, T0, 5, { seed: 3 })).toMatchObject({ advanced: false });
     s = ok(setReady(ok(setReady(s, A)), B));
     expect(ok(advance(s, T0, 5, { seed: 3 })).phase).toBe("round_setup");
-    expect(startCoop(s, A, T0)).toEqual({ ok: false, error: "coop_disabled" });
     expect(startCoop(s, B, T0)).toEqual({ ok: false, error: "forbidden" });
+    expect(startCoop({ ...s, round: 1 }, A, T0)).toEqual({
+      ok: false,
+      error: "wrong_phase",
+    });
+    const boss = ok(startCoop(s, A, T0));
+    expect(boss.phase).toBe("coop_boss");
+    expect(boss.deadline).toBe(T0 + K.coopMs);
+    // ends early only when the server says everybody finished, else at the deadline
+    expect(advance(boss, T0 + 1, boss.phaseSeq)).toMatchObject({
+      advanced: false,
+    });
+    expect(
+      ok(advance(boss, T0 + 1, boss.phaseSeq, { coopDone: true })).phase,
+    ).toBe("night_summary");
+    expect(ok(advance(boss, boss.deadline, boss.phaseSeq)).phase).toBe(
+      "night_summary",
+    );
     expect(ok(endNight(s, A, T0)).phase).toBe("night_summary");
   });
   it("round_setup finishes early when everyone chose a hero", () => {
