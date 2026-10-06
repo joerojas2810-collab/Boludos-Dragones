@@ -350,6 +350,8 @@ export async function snapshotService(
         interfered: b.interference !== null,
         interferedBy:
           s.phase === "reveal" ? (b.interference?.from ?? null) : null,
+        interferedKind:
+          s.phase === "reveal" ? (b.interference?.kind ?? null) : null,
         bets: visibleBets(s.phase, b, player),
       })),
       rankChips: rankByChips(s).map((x) => x.id),

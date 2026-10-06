@@ -48,7 +48,12 @@ export const doorKindEnum = z.enum([
 export const roomModeEnum = z.enum(["nivelado", "completo"]);
 export const roomRankEnum = z.enum(RARITY_IDS);
 export const predictionEnum = z.enum(["win", "lose"]);
-export const interfereKindEnum = z.enum(["stronger_enemy", "adverse_element"]);
+export const interfereKindEnum = z.enum([
+  "stronger_enemy",
+  "adverse_element",
+  "heal",
+  "ward",
+]);
 export const roomCodeSchema = z
   .string()
   .regex(/^[A-Za-z]{4}$/)

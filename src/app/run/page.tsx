@@ -47,12 +47,7 @@ import {
   upgradeTip,
 } from "@/lib/game/explain";
 import { CLASSES, CLASS_IDS, type ClassId } from "@/lib/game/characters";
-import {
-  bestOfClass,
-  charactersOfClass,
-  heroFromOwned,
-  type Profile,
-} from "@/lib/game/profile";
+import { heroFromOwned, heroPower, type Profile } from "@/lib/game/profile";
 import { RARITIES, RARITY_IDS } from "@/lib/game/rarity";
 import { Notice } from "@/components/Notice";
 import { proceedRun, type RunAction } from "@/lib/game/replay";
@@ -63,11 +58,12 @@ import {
   type Clears,
 } from "@/lib/game/dungeons";
 import type { RarityId } from "@/lib/game/rarity";
-import { canUseWeapon, slotOf } from "@/lib/game/weapons";
+import { canUseWeapon, isGearType, slotOf } from "@/lib/game/weapons";
 import { pieceSummary } from "@/lib/game/loot";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import { pushNotice, repo, useProfile } from "@/lib/useProfile";
-import { characterView, filterSortCharacters } from "@/lib/viewModels";
+import { EquipmentEditor } from "@/components/EquipmentEditor";
+import { characterView } from "@/lib/viewModels";
 import { autoBlockReason, autoResolve } from "@/lib/game/auto";
 import { step, type Action, type Battle } from "@/lib/game/combat";
 import { SkillChoice } from "@/components/SkillChoice";
@@ -280,7 +276,7 @@ function RunScreen() {
   const targeting = useTargeting(screen.t === "fight" ? screen.battle : null);
 
   const [seed, setSeed] = useState<number | null>(null);
-  const [chooseClass, setChooseClass] = useState<ClassId | null>(null);
+  const [randomHero, setRandomHero] = useState(false); // classic run: no collection hero
   const [dungeon, setDungeon] = useState<RarityId | null>(null);
   const { profile, ready } = useProfile();
 
@@ -358,7 +354,7 @@ function RunScreen() {
       );
       runIdRef.current = info.runId;
       actionsRef.current = [];
-      setChooseClass(null);
+      setRandomHero(false);
       setRun(createRun(info.seed, info.hero, true, info.rank));
       setScreen({ t: "doors" });
       setMsgs([
@@ -372,15 +368,12 @@ function RunScreen() {
       setStarting(false);
     }
   };
-  const pickClass = (classId: ClassId) => {
-    if (seed === null || !profile) return;
-    if (charactersOfClass(profile, classId).length > 0) setChooseClass(classId);
-    else void start(classId, null);
-  };
+
   const toSelect = () => {
     bank();
     setRun(null);
     setDungeon(null);
+    setRandomHero(false);
     setSeed(Date.now());
   };
   useEffect(() => {
@@ -390,25 +383,33 @@ function RunScreen() {
     setSeed(Number.isFinite(q) && q > 0 ? Math.floor(q) : Date.now());
   }, []);
   if (seed === null || !ready || !profile) return null;
-  if (!run && chooseClass)
-    return (
-      <CharacterSelect
-        classId={chooseClass}
-        profile={profile}
-        onPick={(id) => void start(chooseClass, id)}
-        onBack={() => setChooseClass(null)}
-      />
-    );
   if (!run && !dungeon)
     return (
       <DungeonSelect clears={profile.dungeons} onPick={(r) => setDungeon(r)} />
+    );
+  if (!run && !randomHero && profile.characters.length > 0)
+    return (
+      <CharacterSelect
+        profile={profile}
+        dungeon={dungeon!}
+        onPick={(id) => {
+          const c = profile.characters.find((x) => x.id === id);
+          if (c) void start(c.classId, id);
+        }}
+        onRandom={() => setRandomHero(true)}
+        onBack={() => setDungeon(null)}
+      />
     );
   if (!run)
     return (
       <ClassSelect
         dungeon={dungeon!}
-        onPick={pickClass}
-        onBack={() => setDungeon(null)}
+        onPick={(c) => void start(c, null)}
+        onBack={() =>
+          profile.characters.length > 0
+            ? setRandomHero(false)
+            : setDungeon(null)
+        }
       />
     );
 
@@ -1157,7 +1158,7 @@ function ClassSelect({
           Dungeon {RARITIES[dungeon].label}: {DUNGEONS[dungeon].name}. Elemento,
           rasgos y stats se sortean al empezar.{" "}
           <button className="text-cyan-300 underline" onClick={onBack}>
-            Cambiar dungeon
+            Volver
           </button>
         </p>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
@@ -1236,75 +1237,66 @@ function fightSummary(
     : `Derrota: pierdes una vida (te quedan ${after.lives}).`;
 }
 
+// Step 1 of a dungeon: pick who goes in. Your heroes come first, strongest to
+// weakest; the last tile starts a classic run with a random hero (then you pick a class).
 function CharacterSelect({
-  classId,
   profile,
+  dungeon,
   onPick,
+  onRandom,
   onBack,
 }: {
-  classId: ClassId;
   profile: Profile;
-  onPick: (ownedId: string | null) => void;
+  dungeon: RarityId;
+  onPick: (ownedId: string) => void;
+  onRandom: () => void;
   onBack: () => void;
 }) {
-  const owned = filterSortCharacters(charactersOfClass(profile, classId), {
-    classId: "all",
-    rarity: "all",
-    sort: "rarity",
-  });
-  const [sel, setSel] = useState(bestOfClass(profile, classId)?.id ?? null);
+  const owned = [...profile.characters]
+    .map((c) => ({ c, power: heroPower(profile, c.id) }))
+    .sort((a, b) => b.power - a.power || a.c.name.localeCompare(b.c.name));
+  const [sel, setSel] = useState<string | null>(owned[0]?.c.id ?? null);
   const [askWeapon, setAskWeapon] = useState(false);
-  const chosen = owned.find((c) => c.id === sel);
+  const chosen = profile.characters.find((c) => c.id === sel) ?? null;
   // Usable weapons not worn by another hero: offered when the hero has none.
-  const usable = profile.weapons.filter(
-    (w) =>
-      canUseWeapon(classId, w.type) &&
-      !Object.values(profile.equipped).includes(w.id),
-  );
+  const usable = chosen
+    ? profile.weapons.filter(
+        (w) =>
+          !isGearType(w.type) &&
+          canUseWeapon(chosen.classId, w.type) &&
+          !Object.values(profile.equipped).includes(w.id),
+      )
+    : [];
   const go = () =>
     chosen && !profile.equipped[chosen.id] && usable.length > 0
       ? setAskWeapon(true)
-      : onPick(sel);
-  if (askWeapon && chosen)
+      : sel && onPick(sel);
+  if (askWeapon && chosen) {
+    const hero = heroFromOwned(profile, chosen.id);
     return (
       <main className="flex flex-col justify-center gap-4 p-3 pt-8">
         <Panel
-          title={`¿Equipar a ${chosen.name}?`}
-          className="mx-auto w-full max-w-2xl"
+          title={`Equipamiento · ${chosen.name}`}
+          className="mx-auto w-full max-w-2xl space-y-3"
         >
-          <ul className="space-y-2">
-            {usable.map((w) => (
-              <li key={w.id} className="flex items-center gap-2 text-sm">
-                <WeaponSprite
-                  type={w.type}
-                  element={w.element}
-                  rarity={w.rarity}
-                  className="w-8"
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate">{w.name}</span>
-                  <span className="block text-xs text-[#d9d2ca]">
-                    ATQ +{w.atkBonus}
-                  </span>
-                </span>
-                <button
-                  className="btn text-center"
-                  onClick={async () => {
-                    await repo.equip(chosen.id, w.id);
-                    onPick(sel);
-                  }}
-                >
-                  Equipar y empezar
-                </button>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <p className="text-sm text-[#d9d2ca]">
+            Arma y armadura que llevará en el dungeon. Poder{" "}
+            {heroPower(profile, chosen.id)}
+            {hero &&
+              ` · PV ${Math.round(hero.stats.hp)} · ATQ ${hero.stats.atk} · DEF ${hero.stats.def}`}
+            .{!profile.equipped[chosen.id] && " Todavía no tiene arma."}
+          </p>
+          <EquipmentEditor
+            c={chosen}
+            profile={profile}
+            act={(job) => void job()}
+          />
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
             <button
-              className="btn btn-gray text-center"
-              onClick={() => onPick(sel)}
+              className="btn text-center"
+              onClick={() => onPick(chosen.id)}
             >
-              Empezar sin arma
+              Entrar al dungeon
             </button>
             <button
               className="btn btn-gray text-center"
@@ -1316,17 +1308,19 @@ function CharacterSelect({
         </Panel>
       </main>
     );
+  }
   return (
     <main className="flex flex-col justify-center gap-4 p-3 pt-8">
       <Panel
-        title={`Elige tu ${CLASSES[classId].name}`}
+        title={`Elige con quién entrar · ${RARITIES[dungeon].label} ${DUNGEONS[dungeon].name}`}
         className="mx-auto w-full max-w-4xl"
       >
         <p className="mb-3 text-center text-base text-[#d9d2ca]">
-          Tus personajes de esta clase (el mejor viene preseleccionado).
+          Tus personajes, del más fuerte al más débil (el poder cuenta rango,
+          estrellas, arma y equipo). El más fuerte viene preseleccionado.
         </p>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] justify-items-center gap-x-2 gap-y-4">
-          {owned.map((c) => {
+          {owned.map(({ c, power }, i) => {
             const hero = heroFromOwned(profile, c.id);
             return (
               <button
@@ -1336,7 +1330,10 @@ function CharacterSelect({
                 onClick={() => setSel(c.id)}
               >
                 <ItemCard
-                  item={characterView(c, { stats: hero?.stats })}
+                  item={characterView(c, {
+                    stats: hero?.stats,
+                    lines: [`Poder ${power}${i === 0 ? " ★ mejor" : ""}`],
+                  })}
                   size={80}
                   selected={sel === c.id}
                 />
@@ -1350,12 +1347,16 @@ function CharacterSelect({
           </button>
           <button
             className="btn btn-gray text-center"
-            onClick={() => onPick(null)}
+            disabled={!chosen}
+            onClick={() => setAskWeapon(true)}
           >
-            Personaje al azar (rango F)
+            Equipamiento
+          </button>
+          <button className="btn btn-gray text-center" onClick={onRandom}>
+            Personaje al azar (run clásica)
           </button>
           <button className="btn btn-gray text-center" onClick={onBack}>
-            Cambiar de clase
+            Cambiar de dungeon
           </button>
         </div>
       </Panel>

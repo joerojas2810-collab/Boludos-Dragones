@@ -520,6 +520,36 @@ describe("bets and interference", () => {
     expect(s.players[1].chips).toBe(70);
     expect(chipSupply(s).held).toBe(chipSupply(s).expected);
   });
+  it("aid: flat cost 20, shares the slot, helper gets 10 back when the helped fighter wins", () => {
+    let s = atBetting();
+    s = ok(placeInterference(s, B, A, "heal"));
+    expect(s.players[1].chips).toBe(80); // flat 20, no catch-up discount
+    expect(placeInterference(s, C, A, "stronger_enemy")).toEqual({
+      ok: false,
+      error: "already_interfered",
+    }); // one intervention per fight, hostile or friendly
+    expect(placeInterference(s, C, A, "ward")).toEqual({
+      ok: false,
+      error: "already_interfered",
+    });
+    s = next(s);
+    for (const id of [A, B, C])
+      s = ok(reportOutcome(s, id, id === A ? "won" : "lost"));
+    s = next(s);
+    expect(s.players[0].chips).toBe(100); // no compensation for the target
+    expect(s.players[1].chips).toBe(90); // 100 - 20 + 10
+    expect(chipSupply(s).held).toBe(chipSupply(s).expected);
+  });
+  it("aid: no refund when the helped fighter loses", () => {
+    let s = atBetting();
+    s = ok(placeInterference(s, B, A, "ward"));
+    s = next(s);
+    for (const id of [A, B, C])
+      s = ok(reportOutcome(s, id, id === A ? "lost" : "won"));
+    s = next(s);
+    expect(s.players[1].chips).toBe(80);
+    expect(chipSupply(s).held).toBe(chipSupply(s).expected);
+  });
   it("interference kept (no refund) when target loses or flees", () => {
     for (const o of ["lost", "fled"] as const) {
       let s = atBetting();

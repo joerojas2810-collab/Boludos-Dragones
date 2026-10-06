@@ -235,6 +235,7 @@ export class FakeRoomClient implements RoomClient {
         interferedByMe: mine ? b.interference!.kind : null,
         interfered: !!b.interference && (reveal || mine || b.fighter === ME),
         interferenceFrom: reveal && b.interference ? b.interference.from : null,
+        interferenceKind: reveal && b.interference ? b.interference.kind : null,
       };
     }
     return {

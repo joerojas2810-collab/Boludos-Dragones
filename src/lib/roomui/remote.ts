@@ -227,6 +227,7 @@ export class RemoteRoomClient implements RoomClient {
         interferedByMe: null,
         interfered: b.interfered,
         interferenceFrom: b.interferedBy,
+        interferenceKind: b.interferedKind,
       };
     return {
       code: s.code,

@@ -2,10 +2,13 @@
 import type { Character } from "./characters";
 import { ELEMENTS, elementMultiplier } from "./elements";
 import { applyRunAction, type ReplayState, type RunAction } from "./replay";
-import { chooseDoor, startFight, type FightNode } from "./run";
-import type { InterfereKind } from "./room";
+import type { Battle } from "./combat";
+import { chooseDoor, maxHp, startFight, type FightNode, type Run } from "./run";
+import { isAid, type InterfereKind } from "./room";
 
 export const STRONGER_ENEMY_MULT = 1.2; // [K] +20% hp/atk/def
+export const HEAL_FRACTION = 0.4; // [K] aid "heal": hp restored before the fight (of max hp)
+export const WARD_MULT = 1.15; // [K] aid "ward": +15% atk and def during the fight
 
 const boostEnemy = (e: Character): Character => ({
   ...e,
@@ -35,6 +38,26 @@ export function applyEnemyBoost(
   return { ...node, enemies, enemy: enemies[0] };
 }
 
+const healRun = (r: Run): Run => ({
+  ...r,
+  hp: Math.min(maxHp(r), r.hp + Math.round(maxHp(r) * HEAL_FRACTION)),
+});
+
+const wardBattle = (b: Battle): Battle => ({
+  ...b,
+  player: {
+    ...b.player,
+    char: {
+      ...b.player.char,
+      stats: {
+        ...b.player.char.stats,
+        atk: Math.round(b.player.char.stats.atk * WARD_MULT * 10) / 10,
+        def: Math.round(b.player.char.stats.def * WARD_MULT * 10) / 10,
+      },
+    },
+  },
+});
+
 /**
  * `applyRunAction` + interference: the `door` that opens a fight node gets the
  * boosted enemies. Client (playing) and server (replaying) both use this, so
@@ -52,12 +75,21 @@ export function applyRoomAction(
   const r = chooseDoor(run, a.i);
   if (!r) return null;
   if (r.node.type !== "fight") return applyRunAction(s, a);
-  const node = applyEnemyBoost(r.node, boost, run.hero);
-  const f = startFight({ ...r.run, node });
+  const aid = isAid(boost);
+  const node = aid ? r.node : applyEnemyBoost(r.node, boost, run.hero);
+  const f = startFight({
+    ...(boost === "heal" ? healRun(r.run) : r.run),
+    node,
+  });
   if (!f) return null;
   return {
     ...s,
     run: f.run,
-    fight: { battle: f.battle, rng: f.rng, node, result: null },
+    fight: {
+      battle: boost === "ward" ? wardBattle(f.battle) : f.battle,
+      rng: f.rng,
+      node,
+      result: null,
+    },
   };
 }

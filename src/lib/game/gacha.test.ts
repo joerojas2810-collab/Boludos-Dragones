@@ -19,6 +19,7 @@ import {
   fragmentKey,
   spendFragments,
   equipWeapon,
+  heroPower,
   heroFor,
   heroFromOwned,
   migrate,
@@ -273,6 +274,38 @@ describe("run loot banking", () => {
     for (let i = 0; i < 6; i++) p = bankRun(p, 0, 3, `x${i}`, [piece]);
     expect(p.weapons[0].stars).toBe(5);
     expect(p.coins).toBeGreaterThan(10); // refunds once maxed
+  });
+});
+
+describe("heroPower (hero sort order)", () => {
+  it("grows with rank, stars and equipped gear", () => {
+    const base = pullCharacter(rich(), createRng(3))!.profile;
+    const c = base.characters[0];
+    const mk = (rarity: "f" | "s", stars: number): Profile => ({
+      ...base,
+      characters: [{ ...c, id: "x", rarity, stars }],
+    });
+    expect(heroPower(mk("s", 0), "x")).toBeGreaterThan(
+      heroPower(mk("f", 0), "x"),
+    );
+    expect(heroPower(mk("f", 3), "x")).toBeGreaterThan(
+      heroPower(mk("f", 0), "x"),
+    );
+    expect(heroPower(mk("f", 0), "nope")).toBe(0);
+    const geared: Profile = {
+      ...mk("f", 0),
+      weapons: [
+        {
+          ...generateWeapon(createRng(1), "ssr"),
+          type: "casco",
+          id: weaponKey("casco", "fuego", "ssr"),
+          element: "fuego",
+          atkBonus: 0,
+        },
+      ],
+    };
+    const worn = equipWeapon(geared, "x", weaponKey("casco", "fuego", "ssr"));
+    expect(heroPower(worn, "x")).toBeGreaterThan(heroPower(geared, "x"));
   });
 });
 

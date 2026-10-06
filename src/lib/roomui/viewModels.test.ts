@@ -123,6 +123,7 @@ describe("settlementToast", () => {
           interferedByMe: null,
           interfered: false,
           interferenceFrom: null,
+          interferenceKind: null,
         },
       },
     });

@@ -2,6 +2,7 @@
 // ranking order, bet validation messages, settlement summary, phase completion.
 import {
   ROOM_K,
+  isAid,
   isBossFloor,
   revealMsFor,
   settlePool,
@@ -28,7 +29,8 @@ const ERRORS: Record<string, string> = {
   stake_too_low: `La apuesta mínima es ${ROOM_K.minBet} fichas.`,
   insufficient_chips: "No te alcanzan las fichas.",
   duplicate_bet: "Ya apostaste en esta pelea.",
-  already_interfered: "Esa pelea ya fue interferida.",
+  already_interfered:
+    "Esa pelea ya tiene una intervención (de ayuda o de estorbo).",
   seed_required: "Falta la semilla de la ronda.",
   coop_disabled: "El jefe cooperativo todavía no está disponible.",
   max_rounds: "La noche ya llegó a su límite de rondas.",
@@ -246,7 +248,12 @@ export function mySettlements(v: RoomView): {
         payout: po?.payout ?? 0,
       });
     }
-    if (b.fighter === v.me && b.interfered && b.outcome === "win")
+    if (
+      b.fighter === v.me &&
+      b.interfered &&
+      b.outcome === "win" &&
+      !isAid(b.interferenceKind)
+    )
       comp += ROOM_K.interfereComp;
   }
   const net = rows.reduce((a, r) => a + r.payout - r.stake, 0) + comp;

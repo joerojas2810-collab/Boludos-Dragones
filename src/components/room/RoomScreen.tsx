@@ -10,6 +10,7 @@ import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
 import { CLASSES } from "@/lib/game/characters";
 import {
+  isAid,
   isFightDoor,
   ROOM_K,
   type DoorKind,
@@ -554,9 +555,18 @@ function FightStrip({
                     <span className="opacity-70"> · {DOOR_NAME[p.door]}</span>
                   )}
                   {b.interfered && (
-                    <span className="text-red-400">
+                    <span
+                      className={
+                        isAid(b.interferenceKind)
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }
+                    >
                       {" "}
-                      · interferido
+                      ·{" "}
+                      {isAid(b.interferenceKind)
+                        ? `ayudado (${AID_LABEL[b.interferenceKind]})`
+                        : "interferido"}
                       {b.interferenceFrom
                         ? ` por ${nameOf(b.interferenceFrom)}`
                         : ""}
@@ -649,6 +659,11 @@ const INTERFERE: [InterfereKind, string][] = [
   ["stronger_enemy", "Enemigo +20%"],
   ["adverse_element", "Elemento adverso"],
 ];
+const AID_LABEL = { heal: "Curación", ward: "Bendición" } as const;
+const AID: [InterfereKind, string][] = [
+  ["heal", "Curar +40% vida"],
+  ["ward", "Bendecir +15% ATQ/DEF"],
+];
 
 function BetPanel({
   view,
@@ -735,6 +750,21 @@ function BetPanel({
                   onClick={() => void go(`i${p.id}`, client.interfere(p.id, k))}
                 >
                   {label} ({cost})
+                </button>
+              ))}
+              {AID.map(([k, label]) => (
+                <button
+                  key={k}
+                  className="btn !px-3"
+                  title={`Ayuda a ${p.name}: si gana, recuperas ${ROOM_K.aidRefund} fichas. Una intervención por pelea.`}
+                  disabled={
+                    !open ||
+                    done.has(`i${p.id}`) ||
+                    (me?.chips ?? 0) < ROOM_K.aidCost
+                  }
+                  onClick={() => void go(`i${p.id}`, client.interfere(p.id, k))}
+                >
+                  {label} ({ROOM_K.aidCost})
                 </button>
               ))}
             </li>

@@ -110,6 +110,7 @@ export const battleView = z.object({
   outcome: z.enum(["win", "lose", "void"]).nullable(),
   interfered: z.boolean(), // WHO interfered stays secret until reveal
   interferedBy: uuid.nullable(), // only during reveal
+  interferedKind: interfereKindEnum.nullable(), // only during reveal (hostile or aid)
   bets: z.array(
     z.object({
       bettor: uuid,

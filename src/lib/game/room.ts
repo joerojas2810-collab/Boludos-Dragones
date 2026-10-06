@@ -20,6 +20,8 @@ export const ROOM_K = {
   minBet: 10,
   interfereCost: 30,
   interfereComp: 15, // paid to the target when it wins anyway
+  aidCost: 20, // [K] heal / ward a fighter (flat: no catch-up discount)
+  aidRefund: 10, // [K] given back to the helper when the helped fighter wins
   catchUpDiscount: 10, // [K] interfere is this much cheaper for the player last in chips
   catchUpMinGap: 50, // [K] ...only if they trail the leader by at least this many chips
   catchUpMinPlayers: 3, // [K] ...and at least this many players are in the room
@@ -73,7 +75,13 @@ export type FightOutcome = "won" | "lost" | "fled" | "timeout";
 export type BetPrediction = "win" | "lose";
 export type BetOutcome = "win" | "lose" | "void";
 export type VoidReason = "fled" | "no_fight" | "room_closed";
-export type InterfereKind = "stronger_enemy" | "adverse_element";
+// Aid (cooperative): spend chips to help a fighter instead of hindering them. It
+// shares the interference slot: ONE intervention per fight, hostile or friendly.
+export const AID_KINDS = ["heal", "ward"] as const;
+export type AidKind = (typeof AID_KINDS)[number];
+export type InterfereKind = "stronger_enemy" | "adverse_element" | AidKind;
+export const isAid = (k: InterfereKind | null | undefined): k is AidKind =>
+  k === "heal" || k === "ward";
 /** hero id meaning "server picks a random Común from the round seed". */
 export const DEFAULT_HERO = "seed_default";
 
@@ -418,7 +426,11 @@ export function interferenceSettlement(
   outcome: BetOutcome,
   reason: VoidReason | null,
   cost: number = ROOM_K.interfereCost,
+  kind?: InterfereKind,
 ): { compToTarget: number; refundToSource: number } {
+  // Aid: no compensation for the target; the helper gets a part back on a win.
+  if (isAid(kind) && outcome === "win")
+    return { compToTarget: 0, refundToSource: ROOM_K.aidRefund };
   if (outcome === "win")
     return { compToTarget: ROOM_K.interfereComp, refundToSource: 0 };
   const refundable = outcome === "void" && reason !== "fled" && reason !== null;
@@ -460,7 +472,12 @@ function settleBattleIn(
     if (p) p.chips += po.payout;
   }
   n.totals.dust += dust;
-  const it = interferenceSettlement(outcome, reason, b.interference?.cost);
+  const it = interferenceSettlement(
+    outcome,
+    reason,
+    b.interference?.cost,
+    b.interference?.kind,
+  );
   if (b.interference) {
     const target = byId(n, b.fighter);
     if (target && it.compToTarget) {
@@ -749,10 +766,12 @@ export function placeInterference(
   if (from === fighter) return fail("self_interfere");
   const p = byId(s, from)!;
   if (!p.present) return fail("not_member");
-  const cost = interfereCostFor(
-    Object.fromEntries(members(s).map((m) => [m.id, m.chips])),
-    from,
-  );
+  const cost = isAid(kind)
+    ? ROOM_K.aidCost
+    : interfereCostFor(
+        Object.fromEntries(members(s).map((m) => [m.id, m.chips])),
+        from,
+      );
   if (p.chips < cost) return fail("insufficient_chips");
   if (b.interference) return fail("already_interfered");
   const n = clone(s);

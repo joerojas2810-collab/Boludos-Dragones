@@ -61,6 +61,7 @@ export interface BattleView {
   interferedByMe: InterfereKind | null;
   interfered: boolean; // visible to the target, the author and (reveal) everybody
   interferenceFrom: string | null; // only at reveal
+  interferenceKind: InterfereKind | null; // only at reveal
 }
 
 export type Award = AwardResult;

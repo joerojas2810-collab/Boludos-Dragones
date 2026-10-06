@@ -402,6 +402,15 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
   };
 }
 
+// Single number to sort heroes by strength: effective stats (rank, stars, weapon
+// and gear included). Higher is stronger.
+export function heroPower(p: Profile, ownedId: string): number {
+  const h = heroFromOwned(p, ownedId);
+  if (!h) return 0;
+  const s = h.stats;
+  return Math.round((s.hp * (s.atk + s.def * 0.5)) / 50);
+}
+
 // Best owned character of the class: rarity, then stars. null when none.
 export function bestOfClass(
   p: Profile,
