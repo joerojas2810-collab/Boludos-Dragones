@@ -252,12 +252,167 @@ export function dismantle(p: Profile, a: { id: string }): ForgeResult {
   );
 }
 
+// ---------------------------------------------------------------- shortcuts
+// Bulk operations: they simulate the single operations above on a copy of the
+// profile and return ONE net diff, so the server persists them atomically.
+interface Acc {
+  p: Profile;
+  diff: ForgeDiff;
+  ops: number;
+}
+const startAcc = (p: Profile): Acc => ({
+  p,
+  ops: 0,
+  diff: { coins: 0, spend: {}, gain: {}, grant: [], remove: [] },
+});
+function step(acc: Acc, r: ForgeResult): boolean {
+  if (!r.ok) return false;
+  acc.p = r.profile;
+  acc.ops++;
+  acc.diff.coins += r.diff.coins;
+  acc.diff.spend = addParts(acc.diff.spend, r.diff.spend);
+  acc.diff.gain = addParts(acc.diff.gain, r.diff.gain);
+  acc.diff.grant.push(...r.diff.grant);
+  acc.diff.remove.push(...r.diff.remove);
+  return true;
+}
+// Parts both gained and spent in the same plan (intermediate ranks) cancel out.
+function netDiff(d: ForgeDiff): ForgeDiff {
+  const spend: Parts = {};
+  const gain: Parts = {};
+  for (const k of new Set([...Object.keys(d.spend), ...Object.keys(d.gain)])) {
+    const n = (d.gain[k] ?? 0) - (d.spend[k] ?? 0);
+    if (n > 0) gain[k] = n;
+    else if (n < 0) spend[k] = -n;
+  }
+  return { ...d, spend, gain };
+}
+const finishBulk = (p: Profile, acc: Acc, what: string): ForgeResult => {
+  if (acc.ops === 0) return fail(`No hay nada que ${what}.`);
+  const d = netDiff(acc.diff);
+  const cores = Object.entries(d.spend)
+    .filter(([k]) => k.startsWith("core-"))
+    .reduce((n, [, q]) => n + q, 0);
+  const got = Object.entries(d.gain)
+    .map(([k, q]) => `${q} × ${partLabel(k)}`)
+    .join(", ");
+  return finish(
+    p,
+    d,
+    `${acc.ops} operaciones: gastas ${d.coins} monedas${cores ? ` y ${cores} núcleos` : ""}${got ? `; obtienes ${got}` : ""}${d.grant.length ? `; forjas ${d.grant.length} piezas` : ""}${d.remove.length ? `; desmontas ${d.remove.length} piezas` : ""}.`,
+  );
+};
+
+const bestCore = (p: Profile): Element | null => {
+  let best: Element | null = null;
+  for (const e of Object.keys(ELEMENT_LABEL) as Element[])
+    if ((p.parts[coreKey(e)] ?? 0) > (best ? (p.parts[coreKey(best)] ?? 0) : 0))
+      best = e;
+  return best;
+};
+
+// Merge every group of parts of `rank` it can afford (cores and coins permitting).
+function mergeAllAt(acc: Acc, rank: RarityId) {
+  for (const type of Object.keys(WEAPON_TYPE_DATA) as WeaponType[]) {
+    for (let guard = 0; guard < 500; guard++) {
+      const core = bestCore(acc.p);
+      if (!core || !step(acc, combineParts(acc.p, { type, rank, core }))) break;
+    }
+  }
+}
+
+// Refine leftovers so the biggest stack reaches the next full merge group.
+function refineAt(acc: Acc, rank: RarityId) {
+  const rule = COMBINE[rank];
+  if (!rule) return;
+  for (let guard = 0; guard < 200; guard++) {
+    const stacks = (Object.keys(WEAPON_TYPE_DATA) as WeaponType[])
+      .map((t) => [t, acc.p.parts[partKey(t, rank)] ?? 0] as const)
+      .filter(([, n]) => n > 0)
+      .sort((a, b) => b[1] - a[1]);
+    if (stacks.length < 2) return;
+    const [target, count] = stacks[0];
+    if (count % rule.ratio === 0) return; // already a full group
+    const donors = stacks.slice(1);
+    if (donors.reduce((n, [, q]) => n + q, 0) < REFINE_RATIO) return;
+    const spend: Parts = {};
+    let need = REFINE_RATIO;
+    for (const [t, q] of donors) {
+      const take = Math.min(q, need);
+      if (take > 0) spend[partKey(t, rank)] = take;
+      need -= take;
+      if (need === 0) break;
+    }
+    if (!step(acc, refine(acc.p, { spend, toType: target, rank }))) return;
+  }
+}
+
+export function mergeAll(p: Profile, a: { rank: RarityId }): ForgeResult {
+  const acc = startAcc(p);
+  mergeAllAt(acc, a.rank);
+  return finishBulk(p, acc, "fusionar");
+}
+
+// Merge rank by rank up to `maxRank` (optionally refining leftovers first).
+export function chain(
+  p: Profile,
+  a: { maxRank: RarityId; refine: boolean },
+): ForgeResult {
+  const acc = startAcc(p);
+  for (const r of RARITY_IDS.slice(0, rankIdx(a.maxRank))) {
+    if (a.refine) refineAt(acc, r);
+    mergeAllAt(acc, r);
+  }
+  return finishBulk(p, acc, "fusionar");
+}
+
+export function refineAll(p: Profile, a: { rank: RarityId }): ForgeResult {
+  const acc = startAcc(p);
+  refineAt(acc, a.rank);
+  return finishBulk(p, acc, "refinar");
+}
+
+// Dismantle every unequipped piece of rank <= maxRank with <= maxStars stars.
+export function dismantleLow(
+  p: Profile,
+  a: { maxRank: RarityId; maxStars: number },
+): ForgeResult {
+  const acc = startAcc(p);
+  const worn = new Set(Object.values(p.equipped));
+  const ids = p.weapons
+    .filter(
+      (w) =>
+        !worn.has(w.id) &&
+        rankIdx(w.rarity) <= rankIdx(a.maxRank) &&
+        w.stars <= a.maxStars,
+    )
+    .slice(0, 60)
+    .map((w) => w.id);
+  for (const id of ids) step(acc, dismantle(acc.p, { id }));
+  return finishBulk(p, acc, "desmontar");
+}
+
+// Craft the same piece until the materials or the stars run out.
+export function craftMax(
+  p: Profile,
+  a: { type: WeaponType; element: Element; rank: RarityId },
+): ForgeResult {
+  const acc = startAcc(p);
+  for (let i = 0; i <= MAX_STARS; i++) if (!step(acc, craft(acc.p, a))) break;
+  return finishBulk(p, acc, "forjar");
+}
+
 export type ForgeOp =
   | ({ op: "craft" } & Parameters<typeof craft>[1])
   | ({ op: "combineParts" } & Parameters<typeof combineParts>[1])
   | ({ op: "combinePieces" } & Parameters<typeof combinePieces>[1])
   | ({ op: "refine" } & Parameters<typeof refine>[1])
-  | ({ op: "dismantle" } & Parameters<typeof dismantle>[1]);
+  | ({ op: "dismantle" } & Parameters<typeof dismantle>[1])
+  | ({ op: "mergeAll" } & Parameters<typeof mergeAll>[1])
+  | ({ op: "chain" } & Parameters<typeof chain>[1])
+  | ({ op: "refineAll" } & Parameters<typeof refineAll>[1])
+  | ({ op: "dismantleLow" } & Parameters<typeof dismantleLow>[1])
+  | ({ op: "craftMax" } & Parameters<typeof craftMax>[1]);
 
 export function applyForge(p: Profile, o: ForgeOp): ForgeResult {
   switch (o.op) {
@@ -271,5 +426,15 @@ export function applyForge(p: Profile, o: ForgeOp): ForgeResult {
       return refine(p, o);
     case "dismantle":
       return dismantle(p, o);
+    case "mergeAll":
+      return mergeAll(p, o);
+    case "chain":
+      return chain(p, o);
+    case "refineAll":
+      return refineAll(p, o);
+    case "dismantleLow":
+      return dismantleLow(p, o);
+    case "craftMax":
+      return craftMax(p, o);
   }
 }

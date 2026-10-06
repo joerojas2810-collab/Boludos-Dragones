@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Panel } from "@/components/Panel";
 import { PartsList } from "@/components/PartsList";
 import { WeaponSprite } from "@/components/WeaponSprite";
@@ -33,8 +33,9 @@ import { repo, useProfile } from "@/lib/useProfile";
 
 const selectCls =
   "border-2 border-[var(--edge)] bg-[var(--panel)] px-2 py-1.5 text-base";
-type Tab = "craft" | "merge" | "refine" | "dismantle";
+type Tab = "shortcuts" | "craft" | "merge" | "refine" | "dismantle";
 const TABS: [Tab, string][] = [
+  ["shortcuts", "Atajos"],
   ["craft", "Armar"],
   ["merge", "Fusionar"],
   ["refine", "Refinar"],
@@ -43,7 +44,11 @@ const TABS: [Tab, string][] = [
 
 export default function ForgePage() {
   const { profile, ready } = useProfile();
-  const [tab, setTab] = useState<Tab>("craft");
+  const [tab, setTab] = useState<Tab>("shortcuts");
+  const [maxRank, setMaxRank] = useState<RarityId>("c");
+  const [refineFirst, setRefineFirst] = useState(true);
+  const [maxStars, setMaxStars] = useState(0);
+  const [dismRank, setDismRank] = useState<RarityId>("f"); // safe default for a destructive shortcut
   const [type, setType] = useState<WeaponType>("espada");
   const [element, setElement] = useState<Element>("fuego");
   const [rank, setRank] = useState<RarityId>("f");
@@ -51,6 +56,23 @@ export default function ForgePage() {
   const [spend, setSpend] = useState<Parts>({}); // parts to refine
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  // Keyboard: 1-5 switch tabs (ignored while typing in a field).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const i = Number(e.key) - 1;
+      if (i >= 0 && i < TABS.length) {
+        setTab(TABS[i][0]);
+        setMsg(null);
+        setPicked([]);
+        setSpend({});
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   if (!ready || !profile) return null;
 
   const run = async (op: ForgeOp) => {
@@ -163,6 +185,138 @@ export default function ForgePage() {
           </button>
         ))}
       </div>
+
+      {tab === "shortcuts" && (
+        <Panel title="Atajos de forja" className="space-y-4">
+          <p className="text-sm opacity-80">
+            Acciones en bloque: ves qué pasaría antes de ejecutar. Atajo de
+            teclado: las teclas 1 a 5 cambian de pestaña.
+          </p>
+          {(() => {
+            const block = (
+              title: string,
+              desc: string,
+              op: ForgeOp,
+              label: string,
+              controls: React.ReactNode,
+              confirm?: string,
+            ) => {
+              const r = applyForge(profile, op);
+              return (
+                <section className="space-y-1 border-t-2 border-[var(--edge)] pt-3 first:border-0 first:pt-0">
+                  <h3 className="font-semibold text-yellow-300">{title}</h3>
+                  <p className="text-sm opacity-80">{desc}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {controls}
+                  </div>
+                  <p
+                    className={`text-sm ${r.ok ? "text-green-300" : "text-[#d9d2ca]"}`}
+                  >
+                    {r.ok ? r.text : r.error}
+                  </p>
+                  <button
+                    className="btn"
+                    disabled={busy || !r.ok}
+                    onClick={() => {
+                      if (confirm && !window.confirm(confirm)) return;
+                      void run(op);
+                    }}
+                  >
+                    {label}
+                  </button>
+                </section>
+              );
+            };
+            const rankPick = (
+              value: RarityId,
+              set: (r: RarityId) => void,
+              max: RarityId,
+              label: string,
+            ) => (
+              <select
+                className={selectCls}
+                value={value}
+                onChange={(e) => set(e.target.value as RarityId)}
+                aria-label={label}
+              >
+                {RARITY_IDS.slice(0, RARITY_IDS.indexOf(max) + 1).map((r) => (
+                  <option key={r} value={r}>
+                    Rango {RARITIES[r].label}
+                  </option>
+                ))}
+              </select>
+            );
+            return (
+              <>
+                {block(
+                  "Fusionar todo",
+                  "Fusiona todas las partes de un rango que puedas pagar (usa el núcleo que más tengas).",
+                  { op: "mergeAll", rank },
+                  "Fusionar todo",
+                  rankPick(rank, setRank, "ss", "Rango a fusionar"),
+                )}
+                {block(
+                  "Subir en cadena",
+                  "Fusiona rango por rango hasta el rango elegido; lo intermedio se reutiliza.",
+                  { op: "chain", maxRank, refine: refineFirst },
+                  "Subir en cadena",
+                  <>
+                    {rankPick(maxRank, setMaxRank, "ssr", "Rango final")}
+                    <label className="flex items-center gap-1 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={refineFirst}
+                        onChange={(e) => setRefineFirst(e.target.checked)}
+                      />
+                      Refinar sobrantes primero
+                    </label>
+                  </>,
+                )}
+                {block(
+                  "Refinar sobrantes",
+                  "Convierte las partes sueltas de otros tipos para completar el grupo del tipo que más tienes.",
+                  { op: "refineAll", rank },
+                  "Refinar sobrantes",
+                  rankPick(rank, setRank, "ssr", "Rango a refinar"),
+                )}
+                {block(
+                  "Desmontar lo que no usas",
+                  "Desmonta las piezas sin equipar de ese rango o menor y con pocas estrellas (hasta 60 a la vez).",
+                  { op: "dismantleLow", maxRank: dismRank, maxStars },
+                  "Desmontar",
+                  <>
+                    {rankPick(dismRank, setDismRank, "ssr", "Rango máximo")}
+                    <select
+                      className={selectCls}
+                      value={maxStars}
+                      onChange={(e) => setMaxStars(Number(e.target.value))}
+                      aria-label="Estrellas máximas"
+                    >
+                      {[0, 1, 2, 3, 4, 5].map((n) => (
+                        <option key={n} value={n}>
+                          hasta {n}★
+                        </option>
+                      ))}
+                    </select>
+                  </>,
+                  "¿Desmontar esas piezas? No se puede deshacer.",
+                )}
+                {block(
+                  "Armar al máximo",
+                  "Forja la misma pieza hasta que se acaben los materiales o llegue a 5 estrellas.",
+                  { op: "craftMax", type, element, rank },
+                  "Armar al máximo",
+                  <>
+                    {typeSelect}
+                    {elementSelect("Elemento")}
+                    {rankPick(rank, setRank, "ssr", "Rango")}
+                  </>,
+                )}
+              </>
+            );
+          })()}
+        </Panel>
+      )}
 
       {tab === "craft" && (
         <Panel title="Armar una pieza" className="space-y-3">

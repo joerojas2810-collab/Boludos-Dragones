@@ -154,4 +154,18 @@ export const forgeBody = z.discriminatedUnion("op", [
     rank,
   }),
   z.strictObject({ op: z.literal("dismantle"), id: z.string().min(1).max(60) }),
+  // shortcuts (bulk): the server plans them itself, nothing from the client is trusted
+  z.strictObject({ op: z.literal("mergeAll"), rank }),
+  z.strictObject({
+    op: z.literal("chain"),
+    maxRank: rank,
+    refine: z.boolean(),
+  }),
+  z.strictObject({ op: z.literal("refineAll"), rank }),
+  z.strictObject({
+    op: z.literal("dismantleLow"),
+    maxRank: rank,
+    maxStars: z.number().int().min(0).max(5),
+  }),
+  z.strictObject({ op: z.literal("craftMax"), type: itemType, element, rank }),
 ]);

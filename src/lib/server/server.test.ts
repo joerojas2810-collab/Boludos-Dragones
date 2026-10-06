@@ -621,6 +621,20 @@ describe("forge service", () => {
     ).toMatchObject({ status: 400, code: "forge_invalid" });
     expect(db.forged).toHaveLength(1);
   });
+  it("bulk shortcuts are planned by the server and persisted as ONE net diff", async () => {
+    const db = new FakeDb();
+    db.parts = { "p-espada-f": 9, "p-hacha-f": 4, "core-fuego": 5 };
+    const r = await doForge(db.deps, "u1", { op: "mergeAll", rank: "f" });
+    expect(r.text).toMatch(/3 operaciones/);
+    expect(db.forged).toHaveLength(1);
+    expect(db.forged[0]).toMatchObject({
+      p_coins: 15,
+      p_spend: { "p-espada-f": 8, "p-hacha-f": 4, "core-fuego": 3 },
+      p_gain: { "p-espada-e": 2, "p-hacha-e": 1 },
+      p_grant: [],
+      p_remove: [],
+    });
+  });
   it("validates the request body (unknown op / bad key / too many ids)", () => {
     expect(
       forgeBody.safeParse({
@@ -639,6 +653,16 @@ describe("forge service", () => {
       }).success,
     ).toBe(false);
     expect(forgeBody.safeParse({ op: "hack" }).success).toBe(false);
+    expect(
+      forgeBody.safeParse({ op: "chain", maxRank: "c", refine: true }).success,
+    ).toBe(true);
+    expect(
+      forgeBody.safeParse({ op: "chain", maxRank: "zz", refine: true }).success,
+    ).toBe(false);
+    expect(
+      forgeBody.safeParse({ op: "dismantleLow", maxRank: "d", maxStars: 9 })
+        .success,
+    ).toBe(false);
     expect(
       forgeBody.safeParse({
         op: "combinePieces",
