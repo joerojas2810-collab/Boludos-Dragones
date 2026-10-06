@@ -54,7 +54,7 @@ import {
   type Element,
 } from "./elements";
 import {
-  applyUpgrade,
+  upgradeStats,
   FLOOR_SCALE,
   UPGRADE_STACK_CAP,
   UPGRADE_STACK_STEP,
@@ -1049,9 +1049,16 @@ const fmtStat = (k: keyof Stats, v: number) =>
 
 // ---------- upgrades (level-up cards and shop training) ----------
 
-export function upgradeTip(id: UpgradeId, hero: Character, stacks = 0): Tip {
+export function upgradeTip(
+  id: UpgradeId,
+  run: Pick<Run, "hero" | "ups" | "upBase">,
+): Tip {
   const u = UPGRADES[id];
-  const after = applyUpgrade(hero, id, stacks);
+  const hero = run.hero;
+  const stacks = run.ups[id] ?? 0;
+  const after = {
+    stats: upgradeStats(hero.stats, run.upBase, run.ups, id),
+  };
   const lines = [`Efecto ahora: ${upgradeLabel(id, stacks)}.`];
   const changes = u.fx
     .map(
@@ -1064,6 +1071,9 @@ export function upgradeTip(id: UpgradeId, hero: Character, stacks = 0): Tip {
     stacks > 0
       ? `Ya la tienes ${stacks} ${stacks === 1 ? "vez" : "veces"}: cada repetición suma +${pct(UPGRADE_STACK_STEP)} a los bonos positivos (tope x${UPGRADE_STACK_CAP}).`
       : `Si la repites, cada vez suma +${pct(UPGRADE_STACK_STEP)} a los bonos positivos (tope x${UPGRADE_STACK_CAP}).`,
+  );
+  lines.push(
+    "Las mejoras se SUMAN sobre tu valor inicial (no se multiplican entre sí) y cada stat tiene un tope total.",
   );
   if (u.tier === 2)
     lines.push("Mejora de nivel 2: solo aparece desde nivel 5.");
@@ -1309,7 +1319,7 @@ export function shopItemTip(item: ShopItem, run: Run): Tip {
       break;
     case "stat":
       return {
-        ...upgradeTip(item.stat, run.hero, run.ups[item.stat] ?? 0),
+        ...upgradeTip(item.stat, run),
         source: `Entrenamiento del mercader · cuesta ${item.price} monedas`,
       };
   }

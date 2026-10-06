@@ -89,7 +89,7 @@ export const TIER2_LEVEL = 5;
 export const TIER2_CHANCE = 0.3; // per offer slot, once level >= TIER2_LEVEL
 
 // Fewer level-ups, each one stronger: every upgrade effect is scaled by UPGRADE_POWER.
-export const UPGRADE_POWER = 5.0;
+export const UPGRADE_POWER = 9;
 const fxValue = (v: number, stacks: number) =>
   UPGRADE_POWER * (v > 0 ? v * stackMult(stacks) : v);
 
@@ -120,6 +120,55 @@ export function rollUpgrades(
     const pool = pools[t].length > 0 ? pools[t] : pools[1];
     return pool.splice(rng.int(0, pool.length - 1), 1)[0];
   });
+}
+
+// ---- Additive upgrades with caps (used by runs) ----
+// Every pick adds its fraction of the run's STARTING stat; the fractions of one stat sum and
+// are capped, so repeated picks can no longer compound into absurd numbers.
+export type UpgradeBase = Pick<Stats, "hp" | "atk" | "def" | "speed">;
+export const UPGRADE_TOTAL_CAP: Record<keyof UpgradeBase, number> = {
+  hp: 5,
+  atk: 4,
+  def: 4,
+  speed: 1.5,
+};
+export const UPGRADE_TOTAL_FLOOR = -0.5; // negative trade-offs (Furia, Coloso) cannot sink a stat
+const capTotal = (k: keyof UpgradeBase, x: number) =>
+  Math.min(UPGRADE_TOTAL_CAP[k], Math.max(UPGRADE_TOTAL_FLOOR, x));
+
+// Sum of the fractions given by the picks already taken (the n-th repeat uses its stack bonus).
+export function upgradeSums(
+  ups: Partial<Record<UpgradeId, number>>,
+): Record<keyof UpgradeBase, number> {
+  const out = { hp: 0, atk: 0, def: 0, speed: 0 };
+  for (const id of UPGRADE_IDS)
+    for (let n = 0; n < (ups[id] ?? 0); n++)
+      for (const { k, v } of asUpgrade(UPGRADES[id]).fx)
+        if (k in out) out[k as keyof UpgradeBase] += fxValue(v, n);
+  return out;
+}
+
+// Stats after one more pick of `id`: % stats move by base x (change of the capped sum),
+// flat ones (crit, dodge...) are added like before.
+export function upgradeStats(
+  stats: Stats,
+  base: UpgradeBase,
+  ups: Partial<Record<UpgradeId, number>>,
+  id: UpgradeId,
+): Stats {
+  const sums = upgradeSums(ups);
+  const out = { ...stats };
+  for (const { k, v } of asUpgrade(UPGRADES[id]).fx) {
+    const x = fxValue(v, ups[id] ?? 0);
+    if (k in sums) {
+      const key = k as keyof UpgradeBase;
+      const d = capTotal(key, sums[key] + x) - capTotal(key, sums[key]);
+      const val = out[key] + base[key] * d;
+      out[key] =
+        key === "hp" ? Math.max(1, Math.round(val)) : Math.round(val * 10) / 10;
+    } else out[k] = Math.min(0.6, Math.max(0, out[k] + x));
+  }
+  return out;
 }
 
 export function applyUpgrade(

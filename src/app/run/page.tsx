@@ -747,7 +747,7 @@ function RunScreen() {
             {upgradeOffer(run).map((id) => (
               <Tooltip
                 key={id}
-                tip={upgradeTip(id, run.hero, run.ups[id] ?? 0)}
+                tip={upgradeTip(id, run)}
                 className="block"
                 focusable={false}
               >

@@ -23,7 +23,8 @@ import {
   type GameEvent,
 } from "./events";
 import {
-  applyUpgrade,
+  upgradeStats,
+  type UpgradeBase,
   gainXp,
   rollUpgrades,
   scaleForFloor,
@@ -47,7 +48,7 @@ import { WORLD_ELEMENT_BIAS, WORLDS, worldOf, type World } from "./worlds";
 
 // Bump when a change makes old action logs replay differently. The server
 // rejects logs from another version with a clear error (replay.ts).
-export const ENGINE_VERSION = 4; // 4: run loot (weapons/gear found in the run)
+export const ENGINE_VERSION = 5; // 5: additive capped upgrades; 4: run loot (weapons/gear found in the run)
 
 // ---- Tunable constants ----
 export const START_LIVES = 3;
@@ -186,6 +187,7 @@ export interface Run {
   relics: RelicId[];
   status: "active" | "over";
   ups: Partial<Record<UpgradeId, number>>; // times each upgrade was taken
+  upBase: UpgradeBase; // hero stats at the start: upgrades add fractions of these
   pendingPicks: number; // level-up picks owed
   pendingRelic: RelicId[] | null; // relic offer owed
   rerolls: number; // merchant relic rerolls for the next offer
@@ -509,6 +511,12 @@ export function createRun(
     relics: [],
     status: "active",
     ups: {},
+    upBase: {
+      hp: hero.stats.hp,
+      atk: hero.stats.atk,
+      def: hero.stats.def,
+      speed: hero.stats.speed,
+    },
     pendingPicks: 0,
     pendingRelic: null,
     rerolls: 0,
@@ -572,7 +580,15 @@ export const upgradeOffer = (run: Run): UpgradeId[] =>
 
 // Applies an upgrade, compounding with earlier picks of the same one.
 const learn = (run: Run, id: UpgradeId): Partial<Run> => ({
-  hero: applyUpgrade(run.hero, id, run.ups[id] ?? 0),
+  hero: {
+    ...run.hero,
+    stats: upgradeStats(
+      run.hero.stats,
+      run.upBase ?? run.hero.stats, // runs saved before upBase existed
+      run.ups,
+      id,
+    ),
+  },
   ups: { ...run.ups, [id]: (run.ups[id] ?? 0) + 1 },
 });
 

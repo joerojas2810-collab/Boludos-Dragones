@@ -188,7 +188,7 @@ export default function Prueba() {
                 {picks.map((id) => (
                   <Tooltip
                     key={id}
-                    tip={upgradeTip(id, hero)}
+                    tip={upgradeTip(id, { hero, ups: {}, upBase: hero.stats })}
                     className="block"
                     focusable={false}
                   >
