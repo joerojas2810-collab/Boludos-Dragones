@@ -8,12 +8,12 @@
 - Supabase real con 9 migraciones ejecutadas (`supabase/setup.sql`; 0007 votación + descuento al último, 0008 racha diaria, 0009 mercado). Interruptores de Supabase (registro, confirmar email, canales públicos) apagados. Cuenta admin "Pol".
 - Salas reales: servidor `/api/rooms/**`, pantallas `/sala`, `/sala/[code]`, demo `/sala/demo`. Polling cada 2 s (5 s en lobby/resumen, 15 s con pestaña oculta); vida de rivales, apuestas ajenas y emotes viajan en el snapshot (vida/emotes en memoria del servidor: pueden fallar con varias instancias). Temporizador por turno, expulsar, premios (`awards.ts`), títulos por noche, votación de piso 3 y 7 (cofre maldito, `vote.ts`), interferir a 20 si eres el último (≥3 jugadores, ≥50 de diferencia).
 - Racha diaria (+50 día 3, +100 día 7; `streak.ts`), sonido y sacudida en crítico/guardia perfecta/legendario/jefe, mercado de trueque `/mercado` (una estrella por trueque, solo repetidas, 5 ofertas, 7 días).
-- Balance de nivel: `XP_BASE 165`, `XP_GROWTH 1.2`, `UPGRADE_POWER 4.8`, `STORM_POWER 0.8` (Tormenta del Mago bajada de 1.1). Simulación 300 runs: mediana 13-14, p90 ~33; jefe del piso 10 aún mata ~22% al bot "smart".
+- Balance de nivel: `XP_BASE 165`, `XP_GROWTH 1.2`, `UPGRADE_POWER 4.8`, `STORM_POWER 0.8` (Tormenta del Mago bajada de 1.1). Simulación 300 runs: mediana 13-14, p90 ~33; jefe del piso 10 bajó a ~12-13% de las muertes con `FIGHT_POWER.boss 0.22`; Tormenta (med 12, p90 30) y Escudo arcano (med 13, p90 32) quedan parejos (`ONLY_CLASS` y `MAGO_SKILL` en run-sim.ts).
 - 342 tests Vitest, pglite: rooms 271, run 450, market 47.
 
 ## Pendiente
 1. Probar en vivo con dos cuentas: tirada diaria con racha, sala completa (temporizador, apuestas, votación), `/mercado`. Nada de lo nuevo se ha visto en navegador.
-2. Balance: jefe del piso 10 muy letal; p90 aún sobre el objetivo (~30); Tormenta aún no medida contra Escudo arcano por separado; la DEF casi no sirve en pisos profundos.
+2. Balance: mediana 13-14 (objetivo 16-18) y p90 ~33 (objetivo ~30); la DEF casi no sirve en pisos profundos.
 3. Limitaciones de salas: `missedTurns` no se guarda (turno perdido = timeout, no "2 seguidos = huida"); sin Realtime real; sin pruebas de integración contra Supabase real (`scripts/rooms-smoke.ts` sin ejecutar).
 4. Ideas aprobadas por hacer: títulos/apodos persistentes semanales, racha ya hecha. Ideas candidatas: fantasmas de amigos como enemigos, jefe cooperativo con roles y traición, misiones diarias, temporadas con reglas rotativas.
 5. Pendientes menores: revisión visual de accesorios y jefes de Tormenta/Cavernas, pantallas de mercader/evento/habilidad en celular; confirmar CSP `unsafe-inline`; vigilar uso de Vercel (Usage).

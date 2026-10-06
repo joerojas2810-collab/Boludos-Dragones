@@ -132,7 +132,7 @@ function pickDoor(run: Run, strat: Strategy, lost: Set<string>): number {
 // Which of the two class skills the bots learn at level 5.
 const SKILL_PICK: Record<string, SkillId> = {
   caballero: SKILLS_BY_CLASS.caballero[0],
-  mago: SKILLS_BY_CLASS.mago[0],
+  mago: SKILLS_BY_CLASS.mago[Number(process.env.MAGO_SKILL ?? 0)],
   picaro: SKILLS_BY_CLASS.picaro[1],
   clerigo: SKILLS_BY_CLASS.clerigo[1],
 };
@@ -193,7 +193,7 @@ function play(seed: number, strat: Strategy): Result {
   const lost = new Set<string>();
   const fled = new Set<number>(); // floors where the smart bot already fled
   const rng = createRng(seed);
-  let run = createRun(seed, generateCharacter(rng, rng.pick(CLASS_IDS)));
+  let run = createRun(seed, generateCharacter(rng, process.env.ONLY_CLASS ? (process.env.ONLY_CLASS as (typeof CLASS_IDS)[number]) : rng.pick(CLASS_IDS)));
   const res: Result = {
     floor: 1,
     fights: 0,

@@ -53,7 +53,7 @@ export const EARLY_EASE_FLOORS = 9;
 export const earlyEase = (floor: number) =>
   Math.min(1, EARLY_EASE_START + ((1 - EARLY_EASE_START) * (floor - 1)) / EARLY_EASE_FLOORS);
 
-export const FIGHT_POWER = { easy: 0.3, hard: 0.4, boss: 0.27 } as const;
+export const FIGHT_POWER = { easy: 0.3, hard: 0.4, boss: 0.22 } as const;
 // Extra multiplier on enemy hp only (longer fights, same damage per turn).
 export const ENEMY_HP_MULT = 2;
 // Hero hp fraction restored after a win, per fight kind.
