@@ -24,6 +24,7 @@ import {
   reportOutcome,
   setMode,
   setPresence,
+  setRank,
   setReady,
   settlePool,
   startCoop,
@@ -84,8 +85,24 @@ describe("lobby and permissions", () => {
       error: "wrong_phase",
     });
   });
+  it("the rank is chosen by the host, in the lobby, and only valid ranks", () => {
+    let s = lobby([A, B]);
+    expect(s.rank).toBe("f");
+    s = ok(setRank(s, A, "c"));
+    expect(s.rank).toBe("c");
+    expect(setRank(s, B, "d")).toEqual({ ok: false, error: "forbidden" });
+    expect(setRank(s, A, "mythic" as never)).toEqual({
+      ok: false,
+      error: "invalid_args",
+    });
+    s = ok(startRound(s, A, T0, 7));
+    expect(s.rank).toBe("c"); // survives the phase engine
+    expect(setRank(s, A, "e")).toEqual({ ok: false, error: "wrong_phase" });
+  });
   it.each([
     ["lobby", "set_mode", A, true],
+    ["lobby", "set_rank", A, true],
+    ["lobby", "set_rank", B, false],
     ["lobby", "set_mode", B, false],
     ["lobby", "bet", B, false],
     ["lobby", "choose_door", B, false],
@@ -695,7 +712,9 @@ describe("visibleBets", () => {
     expect(visibleBets("betting", b, "z")).toHaveLength(0);
   });
   it("locked or reveal: everyone sees all", () => {
-    expect(visibleBets("fighting", { ...b, status: "locked" }, "z")).toHaveLength(2);
+    expect(
+      visibleBets("fighting", { ...b, status: "locked" }, "z"),
+    ).toHaveLength(2);
     expect(visibleBets("reveal", b, "z")).toHaveLength(2);
   });
 });

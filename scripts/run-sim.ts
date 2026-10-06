@@ -18,9 +18,11 @@ import { FLOOR_SCALE } from "../src/lib/game/progression";
 import { RELICS, relicTotals, type RelicId } from "../src/lib/game/relics";
 import {
   applyBattleResult,
-  BOSS_EVERY,
   buyItem,
+  isBossFloor,
+  isVictory,
   chooseDoor,
+  chooseLoot,
   chooseRelic,
   chooseSkill,
   createRun,
@@ -37,6 +39,7 @@ import {
   type DoorKind,
   type Run,
 } from "../src/lib/game/run";
+import { scaleStats, type RarityId } from "../src/lib/game/rarity";
 import { createRng } from "../src/lib/game/rng";
 
 const MAX_FLOOR = 80; // alive runs are cut here (counted as 80)
@@ -51,6 +54,10 @@ const SEED = Number(
 );
 const BUILDS = process.argv.includes("--builds");
 const HIST = process.argv.includes("--hist");
+// DUNGEON=<rank f..ssr>: play that dungeon; HERO_RANK (default = DUNGEON) scales the hero.
+const DUNGEON = (process.env.DUNGEON as RarityId | undefined) ?? null;
+const HERO_RANK = (process.env.HERO_RANK as RarityId | undefined) ?? DUNGEON;
+const HERO_STARS = Number(process.env.HERO_STARS ?? 0);
 const AUTO = process.argv.includes("--auto"); // bots use "Resolver rápido" when allowed
 
 type Strategy = "pelea" | "esquiva" | "mixto" | "smart";
@@ -59,6 +66,17 @@ const STRATEGIES: Strategy[] = ["pelea", "esquiva", "mixto", "smart"];
 // ---- heuristics ----
 // Rough "how well does this hero fight a typical enemy of the current depth".
 // Used to choose relics and upgrades by what they add, like a decent human.
+// Takes the loot piece that raises power the most (or skips).
+function takeLoot(run: Run): Run {
+  if (!run.pendingLoot) return run;
+  const cur = run;
+  const opts = [-1, ...cur.pendingLoot!.map((_, i) => i)];
+  const best = opts
+    .map((i) => [power(chooseLoot(cur, i)), i] as const)
+    .sort((x, y) => y[0] - x[0])[0][1];
+  return chooseLoot(run, best);
+}
+
 function power(run: Run): number {
   const s = effectiveHero(run).stats;
   const t = relicTotals(run.relics);
@@ -117,7 +135,7 @@ function pickDoor(run: Run, strat: Strategy, lost: Set<string>): number {
     order.indexOf(k) +
     (lost.has(`${run.floor}${k}`) && strat !== "esquiva" ? 100 : 0) +
     (strat === "smart" &&
-    (run.floor + 1) % BOSS_EVERY === 0 &&
+    isBossFloor(run.floor + 1, run.rank) &&
     f < 0.95 &&
     k === "rest"
       ? -100
@@ -187,13 +205,33 @@ export interface Result {
   level: number;
   coins: number;
   classId: string;
+  won: boolean;
 }
 
 function play(seed: number, strat: Strategy): Result {
   const lost = new Set<string>();
   const fled = new Set<number>(); // floors where the smart bot already fled
   const rng = createRng(seed);
-  let run = createRun(seed, generateCharacter(rng, process.env.ONLY_CLASS ? (process.env.ONLY_CLASS as (typeof CLASS_IDS)[number]) : rng.pick(CLASS_IDS)));
+  const base = generateCharacter(
+    rng,
+    process.env.ONLY_CLASS
+      ? (process.env.ONLY_CLASS as (typeof CLASS_IDS)[number])
+      : rng.pick(CLASS_IDS),
+  );
+  const hero = HERO_RANK
+    ? {
+        ...base,
+        rarity: HERO_RANK,
+        stars: HERO_STARS,
+        stats: scaleStats(base.stats, HERO_RANK, HERO_STARS),
+      }
+    : base;
+  let run = createRun(
+    seed,
+    hero,
+    process.env.LOOT !== "0", // LOOT=0: compare against runs without loot
+    DUNGEON,
+  );
   const res: Result = {
     floor: 1,
     fights: 0,
@@ -205,6 +243,7 @@ function play(seed: number, strat: Strategy): Result {
     level: 1,
     coins: 0,
     classId: run.hero.classId,
+    won: false,
   };
   for (
     let guard = 0;
@@ -223,7 +262,9 @@ function play(seed: number, strat: Strategy): Result {
         .sort((x, y) => y[0] - x[0])[0][1];
       run = pickUpgrade(run, best);
     }
+    run = takeLoot(run);
     if (run.floorCleared) run = nextFloor(run);
+    if (run.status !== "active") break; // dungeon cleared
     if (run.pendingRelic) {
       res.nodes++;
       const cur = run;
@@ -234,7 +275,7 @@ function play(seed: number, strat: Strategy): Result {
     }
     const open = chooseDoor(run, pickDoor(run, strat, lost));
     if (!open) throw new Error("door refused");
-    run = open.run;
+    run = takeLoot(open.run);
     const node = open.node;
     if (node.type === "fight") {
       const started = startFight(run);
@@ -294,6 +335,7 @@ function play(seed: number, strat: Strategy): Result {
     run = leaveNode(run);
   }
   res.floor = run.maxFloor;
+  res.won = isVictory(run);
   res.lives = run.lives;
   res.relics = run.relics;
   res.level = run.hero.level;
@@ -331,7 +373,8 @@ function report(strat: Strategy) {
     .slice(0, 8)
     .map(([f, c]) => `${f}:${pct(c, N)}`)
     .join(" ");
-  const boss = floors.filter((f) => f % BOSS_EVERY === 0).length;
+  const boss = floors.filter((f) => isBossFloor(f, DUNGEON)).length;
+  const cleared = rs.filter((r) => r.won).length;
   const early = floors.filter((f) => f <= 4).length;
   const fights = rs.reduce((s, r) => s + r.fights, 0);
   const turns = rs.reduce((s, r) => s + r.turns, 0);
@@ -340,13 +383,13 @@ function report(strat: Strategy) {
   const mins = (turns * SEC_TURN + nodes * SEC_NODE) / N / 60;
   const maxBoss = Math.max(
     ...Object.entries(hist)
-      .filter(([f]) => Number(f) % BOSS_EVERY === 0)
+      .filter(([f]) => isBossFloor(Number(f), DUNGEON))
       .map(([, c]) => c),
   );
   const avg = (f: (r: Result) => number) =>
     (rs.reduce((s, r) => s + f(r), 0) / N).toFixed(1);
   console.log(
-    `${strat.padEnd(8)} lvl ${avg((r) => r.level)} rel ${avg((r) => r.relics.length)} | med ${q(0.5)} p10 ${q(0.1)} p90 ${q(0.9)} p99 ${q(0.99)} max ${floors[N - 1]} | <=4: ${pct(early, N)} boss-deaths: ${pct(boss, N)} (max single boss ${pct(maxBoss, N)}) | fights/run ${(fights / N).toFixed(1)} prompts/fight ${(turns / fights).toFixed(1)} rounds/fight ${(rounds / fights).toFixed(1)} | ~${mins.toFixed(1)} min | worst: ${top}`,
+    `${strat.padEnd(8)} ${DUNGEON ? `clear ${pct(cleared, N)} coins ${avg((r) => r.coins)} | ` : ""}lvl ${avg((r) => r.level)} rel ${avg((r) => r.relics.length)} | med ${q(0.5)} p10 ${q(0.1)} p90 ${q(0.9)} p99 ${q(0.99)} max ${floors[N - 1]} | <=4: ${pct(early, N)} boss-deaths: ${pct(boss, N)} (max single boss ${pct(maxBoss, N)}) | fights/run ${(fights / N).toFixed(1)} prompts/fight ${(turns / fights).toFixed(1)} rounds/fight ${(rounds / fights).toFixed(1)} | ~${mins.toFixed(1)} min | worst: ${top}`,
   );
   if (BUILDS) {
     const med = (xs: number[]) =>

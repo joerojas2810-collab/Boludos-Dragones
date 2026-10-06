@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   acceptBlock,
+  isFairTrade,
   isPieceKey,
   parsePieceKey,
   pieceLabel,
   spareKeys,
+  TRADE_VALUE,
+  tradeBand,
   type MarketOffer,
 } from "./market";
 import type { Profile } from "./profile";
@@ -19,41 +22,84 @@ const offer = (o: Partial<MarketOffer>): MarketOffer => ({
   sellerId: "s",
   seller: "Ana",
   kind: "character",
-  give: "c-mago-fuego-raro",
+  give: "c-mago-fuego-c",
   want: null,
+  coins: 0,
   expiresAt: "",
   ...o,
 });
 
 describe("market keys", () => {
   it("accepts real pieces only", () => {
-    expect(parsePieceKey("c-mago-fuego-raro")?.kind).toBe("character");
-    expect(parsePieceKey("w-espada-rayo-epico")?.kind).toBe("weapon");
-    expect(parsePieceKey("c-espada-rayo-epico")).toBeNull();
+    expect(parsePieceKey("c-mago-fuego-c")?.kind).toBe("character");
+    expect(parsePieceKey("w-espada-rayo-a")?.kind).toBe("weapon");
+    expect(parsePieceKey("c-espada-rayo-a")).toBeNull();
     expect(parsePieceKey("c-mago-fuego-mitico")).toBeNull();
     expect(parsePieceKey("c-mago-fuego-raro; drop")).toBeNull();
-    expect(isPieceKey("weapon", "c-mago-fuego-raro")).toBe(false);
-    expect(pieceLabel("c-mago-fuego-raro")).toContain("Mago");
+    expect(isPieceKey("weapon", "c-mago-fuego-c")).toBe(false);
+    expect(pieceLabel("c-mago-fuego-c")).toContain("Mago");
   });
   it("only repeated pieces are tradeable", () => {
     const p = prof([
-      ["c-mago-fuego-raro", 1],
-      ["c-picaro-agua-comun", 0],
+      ["c-mago-fuego-c", 1],
+      ["c-picaro-agua-f", 0],
     ]);
-    expect(spareKeys(p, "character")).toEqual(["c-mago-fuego-raro"]);
+    expect(spareKeys(p, "character")).toEqual(["c-mago-fuego-c"]);
   });
   it("explains why an offer cannot be accepted", () => {
     expect(acceptBlock(prof([]), offer({}), true)).toMatch(/tu oferta/);
     expect(acceptBlock(prof([]), offer({}), false)).toBeNull();
     expect(
-      acceptBlock(prof([["c-mago-fuego-raro", 5]]), offer({}), false),
+      acceptBlock(prof([["c-mago-fuego-c", 5]]), offer({}), false),
     ).toMatch(/máximo/);
-    const swap = offer({ want: "c-picaro-agua-comun" });
+    const swap = offer({ want: "c-picaro-agua-f" });
+    expect(acceptBlock(prof([["c-picaro-agua-f", 0]]), swap, false)).toMatch(
+      /repetida/,
+    );
+    expect(acceptBlock(prof([["c-picaro-agua-f", 1]]), swap, false)).toBeNull();
+  });
+});
+
+describe("equivalent trades (+-25% in value)", () => {
+  it("values follow the gacha price of each rank", () => {
+    expect(TRADE_VALUE.f).toBe(500);
+    expect(TRADE_VALUE.ssr).toBe(30000);
+    const v = Object.values(TRADE_VALUE);
+    expect([...v].sort((a, b) => a - b)).toEqual(v);
+  });
+  it("same rank swaps are fair; gifts and lopsided swaps are not", () => {
+    expect(isFairTrade("w-espada-fuego-f", "w-hacha-agua-f", 0)).toBe(true);
+    expect(isFairTrade("w-espada-fuego-f", null, 0)).toBe(false); // gift
+    expect(isFairTrade("w-espada-fuego-e", "w-hacha-agua-f", 0)).toBe(false); // 200 off > 25% of 700 (175)
+  });
+  it("a higher rank can be paid with a lower one plus coins, within 25%", () => {
+    // E (700) for F (500) + coins: fair at +200, allowed band is +-175 around it
+    const band = tradeBand("w-espada-fuego-e", "w-hacha-agua-f");
+    expect(band.fair).toBe(200);
+    expect(band.min).toBe(25);
+    expect(band.max).toBe(375);
+    expect(isFairTrade("w-espada-fuego-e", "w-hacha-agua-f", 200)).toBe(true);
+    expect(isFairTrade("w-espada-fuego-e", "w-hacha-agua-f", 24)).toBe(false);
+    expect(isFairTrade("w-espada-fuego-e", "w-hacha-agua-f", 376)).toBe(false);
+  });
+  it("selling for coins only: the price must be within 25% of the value", () => {
+    expect(isFairTrade("w-espada-fuego-c", null, 1250)).toBe(true);
+    expect(isFairTrade("w-espada-fuego-c", null, 937)).toBe(false);
+    expect(isFairTrade("w-espada-fuego-c", null, 1562)).toBe(true);
+    expect(isFairTrade("w-espada-fuego-c", null, 1563)).toBe(false);
+  });
+  it("negative coins: the seller tops up a weaker piece", () => {
+    // give F (500), want E (700) and pay 200 on top
+    expect(isFairTrade("w-espada-fuego-f", "w-hacha-agua-e", -200)).toBe(true);
+    expect(isFairTrade("w-espada-fuego-f", "w-hacha-agua-e", 0)).toBe(false);
+  });
+  it("an acceptor without the coins cannot accept", () => {
+    const o = offer({ give: "w-espada-fuego-e", kind: "weapon", coins: 500 });
     expect(
-      acceptBlock(prof([["c-picaro-agua-comun", 0]]), swap, false),
-    ).toMatch(/repetida/);
+      acceptBlock({ ...prof([], []), coins: 100 } as Profile, o, false),
+    ).toMatch(/monedas/);
     expect(
-      acceptBlock(prof([["c-picaro-agua-comun", 1]]), swap, false),
+      acceptBlock({ ...prof([], []), coins: 600 } as Profile, o, false),
     ).toBeNull();
   });
 });

@@ -467,7 +467,7 @@ describe("events with costs", () => {
 });
 
 describe("shop guards", () => {
-  const item = (kind: ShopItem["kind"], price = 10): ShopItem =>
+  const item = (kind: Exclude<ShopItem["kind"], "gear">, price = 10): ShopItem =>
     kind === "stat"
       ? { id: "s", kind, label: "x", price, stat: "ataque" }
       : { id: kind, kind, label: "x", price };

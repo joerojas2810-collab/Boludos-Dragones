@@ -1,6 +1,7 @@
 import { ELEMENTS, type Element } from "./elements";
 import type { RarityId } from "./rarity";
 import { createRng, hashSeed, type Rng } from "./rng";
+import type { GearBonus } from "./gear";
 import type { SkillId } from "./skills";
 import {
   CATCHPHRASES,
@@ -199,6 +200,8 @@ export interface Character {
   // Equipped weapon snapshot: element replaces the hero's ATTACK element in
   // combat. atkBonus is informational: heroFromOwned already adds it to stats.atk.
   weapon?: { element: Element; atkBonus: number };
+  // Worn gear bonus, already folded into stats (kept so nivelado can undo it).
+  gear?: GearBonus;
   // Third skill, picked at SKILL_LEVEL (run/sandbox state, never saved in the collection).
   skill?: SkillId;
 }

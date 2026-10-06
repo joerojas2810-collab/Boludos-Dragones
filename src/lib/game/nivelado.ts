@@ -1,13 +1,14 @@
 // Modo nivelado: everyone fights with comparable power; personality (element,
 // traits, weapon element, rarity frame) is kept. Pure and deterministic.
 import { CLASSES, type Character, type Stats } from "./characters";
+import { NO_GEAR } from "./gear";
 import { RARITIES, starMult, type RarityId } from "./rarity";
 import type { RoomMode } from "./room";
 
 export const NIVELADO_MAX_BONUS = 0.15; // rarity + stars, total
 export const NIVELADO_VARIATION = 0.075; // personal variation, half of ±15%
 export const NIVELADO_WEAPON_CAP = 0.1; // flat weapon ATK, share of class base ATK
-const MAX_ITEM_MULT = RARITIES.legendario.multiplier * starMult(5); // 2.7
+const MAX_ITEM_MULT = RARITIES.ssr.multiplier * starMult(5); // 3.45
 
 const clamp = (v: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, v));
@@ -28,16 +29,17 @@ const squash = (ratio: number) =>
 
 export function normalizeHero(hero: Character, mode: RoomMode): Character {
   if (mode === "completo") return hero;
-  const rarity: RarityId = hero.rarity ?? "comun";
+  const rarity: RarityId = hero.rarity ?? "f";
   const stars = hero.stars ?? 0;
   const base = CLASSES[hero.classId].stats;
   const m = RARITIES[rarity].multiplier * starMult(stars);
   const weapon = hero.weapon?.atkBonus ?? 0;
   const bonus = 1 + niveladoBonus(rarity, stars);
+  const gr = { ...NO_GEAR, ...hero.gear }; // gear is undone: nivelado ignores it
   // Personal variation = what remains after removing rarity/stars/weapon.
-  const vHp = hero.stats.hp / m / base.hp;
+  const vHp = hero.stats.hp / (1 + gr.hp) / m / base.hp;
   const vAtk = Math.max(0, hero.stats.atk - weapon) / m / base.atk;
-  const vDef = hero.stats.def / m / base.def;
+  const vDef = hero.stats.def / (1 + gr.def) / m / base.def;
   const stats: Stats = {
     hp: Math.max(1, Math.round(base.hp * squash(vHp) * bonus)),
     atk: r1(
@@ -45,15 +47,26 @@ export function normalizeHero(hero: Character, mode: RoomMode): Character {
         Math.min(Math.max(0, weapon), base.atk * NIVELADO_WEAPON_CAP),
     ),
     def: r1(base.def * squash(vDef) * bonus),
-    crit: clamp(base.crit * squash(hero.stats.crit / base.crit), 0, 0.6),
-    dodge: clamp(base.dodge * squash(hero.stats.dodge / base.dodge), 0, 0.6),
+    crit: clamp(
+      base.crit * squash((hero.stats.crit - gr.crit) / base.crit),
+      0,
+      0.6,
+    ),
+    dodge: clamp(
+      base.dodge * squash((hero.stats.dodge - gr.dodge) / base.dodge),
+      0,
+      0.6,
+    ),
     // additive trait effects stay (traits are style); speed varies like the rest
-    accuracy: hero.stats.accuracy,
+    accuracy: hero.stats.accuracy - gr.accuracy,
     flee: hero.stats.flee,
-    speed: r1(base.speed * squash(hero.stats.speed / base.speed)),
+    speed: r1(
+      base.speed * squash(hero.stats.speed / (1 + gr.speed) / base.speed),
+    ),
   };
   return {
     ...hero,
+    gear: undefined,
     stats,
     level: 1,
     xp: 0,

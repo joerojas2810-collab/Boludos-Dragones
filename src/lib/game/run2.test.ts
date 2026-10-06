@@ -226,6 +226,7 @@ describe("quick resolve in the action log", () => {
         done = r.pendingSkill
           ? push({ t: "skill", id: skillOffer(r)[0] })
           : push({ t: "pick", id: upgradeOffer(r)[0] });
+      else if (r.pendingLoot) done = push({ t: "loot", i: 0 });
       else if (r.pendingRelic)
         done = push({ t: "relic", id: r.pendingRelic[0] });
       else if (r.node?.type === "event") {

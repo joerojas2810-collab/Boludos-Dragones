@@ -42,6 +42,9 @@ import {
   type MoveKey,
 } from "./combat";
 import { AUTO_MIN_HP, AUTO_STOP_HP } from "./auto";
+import { DUNGEONS } from "./dungeons";
+import { RARITIES } from "./rarity";
+import { pieceSummary } from "./loot";
 import { COUNTER_TAKEN, SKILL_LEVEL } from "./skills";
 import {
   ADVANTAGE_BONUS,
@@ -1075,6 +1078,21 @@ export function upgradeTip(id: UpgradeId, hero: Character, stacks = 0): Tip {
 // ---------- run HUD ----------
 
 export function floorTip(run: Run): Tip {
+  if (run.rank) {
+    const d = DUNGEONS[run.rank];
+    const next = d.bosses.find((b) => b >= run.floor) ?? d.floors;
+    return {
+      title: `Piso ${run.floor} de ${d.floors} · ${d.name}`,
+      kind: "gold",
+      lines: [
+        `Dungeon de rango ${RARITIES[run.rank].label}: vence al jefe final (piso ${d.floors}) para limpiarlo.`,
+        `Jefes en los pisos ${d.bosses.join(", ")} (siguiente: ${next}). Cada jefe asegura el botín que llevas.`,
+        `Los enemigos tienen la fuerza de un piso ${run.floor + d.offset} de la run clásica.`,
+        `Reliquia cada ${RELIC_EVERY} pisos.`,
+      ],
+      source: "Dungeon",
+    };
+  }
   const w = worldOf(run.floor);
   const nextBoss = Math.ceil(run.floor / BOSS_EVERY) * BOSS_EVERY;
   const nextRelic = Math.ceil(run.floor / RELIC_EVERY) * RELIC_EVERY;
@@ -1177,9 +1195,9 @@ export const DOOR_LABEL: Record<DoorKind, string> = {
 export function doorHint(kind: DoorKind, run: Run): string {
   switch (kind) {
     case "easy":
-      return "Poca recompensa, poco riesgo";
+      return "Poca recompensa, poco riesgo · botín modesto";
     case "hard":
-      return "Más recompensa, más riesgo";
+      return "Más recompensa, más riesgo · mejor botín";
     case "boss":
       return "Enemigo temible · gran premio";
     case "chest":
@@ -1213,6 +1231,14 @@ export function doorTip(kind: DoorKind, run: Run): Tip {
       `Premio al ganar: ${r.coins} monedas y ${r.xp} XP, y te cura ${pct(r.healFrac)} de tu vida máxima.`,
       `Si caes pierdes 1 vida (te quedan ${run.lives}). ${fleeCost(run) > 0 ? `Si huyes pagas ${plural(fleeCost(run), "moneda", "monedas")}` : "Si huyes no pagas nada (no tienes monedas)"} y puedes elegir otra puerta.`,
     );
+    if (run.rank && run.lootEnabled)
+      lines.push(
+        kind === "boss"
+          ? "Botín: partes, núcleos y piezas para elegir; lo que lleves queda asegurado."
+          : kind === "hard"
+            ? "Botín extra: más partes y más chance de rango alto que en la pelea fácil (los grupos grandes, más todavía)."
+            : "Botín: pocas partes y poca chance de rango alto.",
+      );
     const mods = modsAtFloor(run.floor);
     if (mods.length)
       lines.push(
@@ -1223,6 +1249,9 @@ export function doorTip(kind: DoorKind, run: Run): Tip {
     lines.push(
       `Te da ${chestCoins(run)} monedas, sin pelea ni riesgo.`,
       "El monto crece con el piso.",
+      ...(run.rank && run.lootEnabled
+        ? ["Siempre trae algo de botín, a veces una pieza para elegir."]
+        : []),
     );
   } else if (kind === "rest") {
     tipKind = "heal";
@@ -1266,6 +1295,12 @@ export function shopItemTip(item: ShopItem, run: Run): Tip {
     case "life":
       kind = "danger";
       lines.push(`Suma 1 vida (tienes ${run.lives}, máximo ${MAX_LIVES}).`);
+      break;
+    case "gear":
+      lines.push(
+        pieceSummary(item.piece),
+        "La llevas puesta en la run y reemplaza lo que lleves en esa casilla. Pasa a tu colección cuando un jefe la asegure.",
+      );
       break;
     case "reroll":
       lines.push(

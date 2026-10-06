@@ -7,6 +7,7 @@ import type { Character } from "./characters";
 import {
   buyItem,
   chooseDoor,
+  chooseLoot,
   chooseRelic,
   chooseSkill,
   createRun,
@@ -22,6 +23,7 @@ import {
   type FightNode,
   type Run,
 } from "./run";
+import type { RarityId } from "./rarity";
 import type { RelicId } from "./relics";
 import type { Rng } from "./rng";
 import type { UpgradeId } from "./progression";
@@ -37,6 +39,7 @@ export type RunAction =
   | { t: "fin" } // "Continuar" after a fight ended
   | { t: "pick"; id: UpgradeId }
   | { t: "relic"; id: RelicId }
+  | { t: "loot"; i: number } // take loot piece i of the offer, -1 = skip
   | { t: "buy"; id: string }
   | { t: "event"; i: number }
   | { t: "leave" }; // leave chest / rest / shop / resolved event
@@ -69,8 +72,12 @@ export interface ReplayState {
   picks: { advance: boolean } | null;
 }
 
-export const initialReplay = (seed: number, hero: Character): ReplayState => ({
-  run: createRun(seed, hero),
+export const initialReplay = (
+  seed: number,
+  hero: Character,
+  rank: RarityId | null = null,
+): ReplayState => ({
+  run: createRun(seed, hero, true, rank),
   fight: null,
   picks: null,
 });
@@ -93,7 +100,8 @@ export function applyRunAction(
   const idle = !s.fight && !s.picks;
   switch (a.t) {
     case "door": {
-      if (!idle || run.pendingRelic || owes(run)) return null;
+      if (!idle || run.pendingRelic || run.pendingLoot || owes(run))
+        return null;
       const r = chooseDoor(run, a.i);
       if (!r) return null;
       if (r.node.type !== "fight") return { ...s, run: r.run };
@@ -152,6 +160,11 @@ export function applyRunAction(
       if (!idle || !run.pendingRelic?.includes(a.id)) return null;
       return { ...s, run: chooseRelic(run, a.id) };
     }
+    case "loot": {
+      if (!idle || !run.pendingLoot) return null;
+      const r = chooseLoot(run, a.i);
+      return r === run ? null : { ...s, run: r };
+    }
     case "buy": {
       if (!idle) return null;
       const r = buyItem(run, a.id);
@@ -163,7 +176,7 @@ export function applyRunAction(
       return r && { ...s, run: r.run };
     }
     case "leave": {
-      if (!idle || run.pendingRelic) return null;
+      if (!idle || run.pendingRelic || run.pendingLoot) return null;
       const n = run.node;
       const canLeave = n
         ? n.type === "chest" || n.type === "rest" || n.type === "shop"
@@ -192,8 +205,9 @@ export function replayRun(
   hero: Character,
   actions: readonly RunAction[],
   engineVersion: number = ENGINE_VERSION,
+  rank: RarityId | null = null,
 ): ReplayResult {
-  let s = initialReplay(seed, hero);
+  let s = initialReplay(seed, hero, rank);
   if (engineVersion !== ENGINE_VERSION)
     return {
       run: s.run,

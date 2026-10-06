@@ -10,11 +10,17 @@ import {
   type Stats,
 } from "./characters";
 import { ELEMENTS, type Element } from "./elements";
+import type { Clears } from "./dungeons";
+import type { RunPiece } from "./loot";
+import { addParts, isPartKey, MAX_STACK, type Parts } from "./parts";
+import { applyGear, gearBonus, NO_GEAR } from "./gear";
 import {
-  isRarity,
   MAX_STARS,
+  PITY_SSR_THRESHOLD,
   PITY_THRESHOLD,
+  LEGACY_RARITY,
   RARITY_IDS,
+  toRank,
   rollRarity,
   scaleStats,
   type RarityId,
@@ -25,6 +31,12 @@ import { TRAIT_IDS, type TraitId } from "./traits";
 import {
   generateWeapon,
   isWeaponType,
+  GEAR_TYPES,
+  SLOTS,
+  canUseWeapon,
+  isGearType,
+  slotOf,
+  type Slot,
   weaponAtk,
   weaponKey,
   weaponSecondary,
@@ -54,13 +66,16 @@ export interface Profile {
   characters: OwnedCharacter[];
   weapons: OwnedWeapon[];
   equipped: Record<string, string>; // characterId -> weaponId
-  pity: Record<Banner, number>; // pulls since last Legendario
+  pity: Record<Banner, number>; // pulls since last SS or better
+  pitySsr: Record<Banner, number>; // pulls since last SSR
   // Character fragments per `${classId}:${rarity}` (see fragmentKey).
   fragments: Record<string, number>;
   daily?: DailyState; // free daily pull streak (see streak.ts)
   lastBankedRunId?: string; // guard against banking the same run twice
   bestFloor: number;
   runsPlayed: number;
+  dungeons: Clears; // dungeon rank -> most lives left in a clear (see dungeons.ts)
+  parts: Parts; // forge parts and cores (see parts.ts)
 }
 
 export const characterKey = (c: ClassId, e: Element, r: RarityId) =>
@@ -75,9 +90,12 @@ export const createProfile = (): Profile => ({
   weapons: [],
   equipped: {},
   pity: { character: 0, weapon: 0 },
+  pitySsr: { character: 0, weapon: 0 },
   fragments: {},
   bestFloor: 0,
   runsPlayed: 0,
+  dungeons: {},
+  parts: {},
 });
 
 const UNIT_COST: Record<Banner, number> = {
@@ -130,9 +148,20 @@ function pull(
   };
   const results: PullResult[] = [];
   for (let i = 0; i < count; i++) {
-    const { rarity, pityTriggered } = rollRarity(rng, p.pity[banner]);
-    const pity = rarity === "legendario" ? 0 : p.pity[banner] + 1;
-    p = { ...p, pity: { ...p.pity, [banner]: pity } };
+    const { rarity, pityTriggered } = rollRarity(
+      rng,
+      p.pity[banner],
+      p.pitySsr[banner],
+    );
+    const topRank = RARITY_IDS.indexOf(rarity) >= RARITY_IDS.indexOf("ss");
+    p = {
+      ...p,
+      pity: { ...p.pity, [banner]: topRank ? 0 : p.pity[banner] + 1 },
+      pitySsr: {
+        ...p.pitySsr,
+        [banner]: rarity === "ssr" ? 0 : p.pitySsr[banner] + 1,
+      },
+    };
     const base = { banner, rarity, pityTriggered };
     let status: PullResult["status"] = "new";
     let refund = 0;
@@ -232,27 +261,77 @@ export function spendFragments(p: Profile, ownedId: string): Profile | null {
   };
 }
 
-// A weapon can be equipped by only one hero: equipping moves it.
+// `equipped` keys: the hero id for the weapon slot, `${heroId}|${slot}` for gear.
+export const slotKey = (characterId: string, slot: Slot) =>
+  slot === "arma" ? characterId : `${characterId}|${slot}`;
+const parseSlotKey = (k: string): [string, Slot | null] => {
+  const [cid, slot = "arma"] = k.split("|");
+  return [
+    cid,
+    (SLOTS as readonly string[]).includes(slot) ? (slot as Slot) : null,
+  ];
+};
+
+// A piece can be equipped by only one hero: equipping moves it; one piece per slot.
 export function equipWeapon(
   p: Profile,
   characterId: string,
   weaponId: string,
 ): Profile {
-  if (
-    !p.characters.some((c) => c.id === characterId) ||
-    !p.weapons.some((w) => w.id === weaponId)
-  )
-    return p;
+  const c = p.characters.find((x) => x.id === characterId);
+  const w = p.weapons.find((x) => x.id === weaponId);
+  if (!c || !w || !canUseWeapon(c.classId, w.type)) return p;
   const equipped = Object.fromEntries(
     Object.entries(p.equipped).filter(([, w]) => w !== weaponId),
   );
-  return { ...p, equipped: { ...equipped, [characterId]: weaponId } };
+  return {
+    ...p,
+    equipped: { ...equipped, [slotKey(characterId, slotOf(w.type))]: weaponId },
+  };
 }
 
-export function unequipWeapon(p: Profile, characterId: string): Profile {
+export function unequipWeapon(
+  p: Profile,
+  characterId: string,
+  slot: Slot = "arma",
+): Profile {
   const equipped = { ...p.equipped };
-  delete equipped[characterId];
+  delete equipped[slotKey(characterId, slot)];
   return { ...p, equipped };
+}
+
+// A run piece that reached the collection: new, +1 star on a duplicate, or a
+// coin refund when the duplicate is already at max stars (same as the gacha).
+export function grantPiece(p: Profile, piece: RunPiece): Profile {
+  const id = weaponKey(piece.type, piece.element, piece.rarity);
+  const owned = p.weapons.find((w) => w.id === id);
+  if (!owned)
+    return {
+      ...p,
+      weapons: [
+        ...p.weapons,
+        {
+          id,
+          name: piece.name,
+          type: piece.type,
+          element: piece.element,
+          rarity: piece.rarity,
+          stars: 0,
+          atkBonus: weaponAtk(piece.rarity, 0, piece.type),
+        },
+      ],
+    };
+  if (owned.stars >= MAX_STARS)
+    return { ...p, coins: p.coins + refundAmount("weapon") };
+  const stars = owned.stars + 1;
+  return {
+    ...p,
+    weapons: p.weapons.map((w) =>
+      w.id === id
+        ? { ...w, stars, atkBonus: weaponAtk(piece.rarity, stars, piece.type) }
+        : w,
+    ),
+  };
 }
 
 // Call EXACTLY ONCE per run, whenever it ends (completed, lost or abandoned).
@@ -263,14 +342,25 @@ export function bankRun(
   runCoins: number,
   maxFloor: number,
   runId?: string,
+  loot: readonly RunPiece[] = [],
+  clear?: { rank: RarityId; lives: number },
+  parts: Parts = {},
 ): Profile {
   if (runId !== undefined && p.lastBankedRunId === runId) return p;
+  const q = loot.reduce(grantPiece, p);
   return {
-    ...p,
+    ...q,
     lastBankedRunId: runId ?? p.lastBankedRunId,
-    coins: p.coins + Math.max(0, Math.floor(runCoins) || 0),
+    coins: q.coins + Math.max(0, Math.floor(runCoins) || 0),
     bestFloor: Math.max(p.bestFloor, Math.floor(maxFloor) || 0),
     runsPlayed: p.runsPlayed + 1,
+    parts: addParts(q.parts, parts),
+    dungeons: clear
+      ? {
+          ...p.dungeons,
+          [clear.rank]: Math.max(p.dungeons[clear.rank] ?? 0, clear.lives),
+        }
+      : p.dungeons,
   };
 }
 
@@ -285,18 +375,28 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
   if (!c) return null;
   const stats = scaleStats(c.stats, c.rarity, c.stars);
   const w = p.weapons.find((x) => x.id === p.equipped[c.id]);
-  if (!w) return { ...c, stats };
+  const gear = gearBonus(
+    GEAR_TYPES.flatMap((t) => {
+      const g = p.weapons.find((x) => x.id === p.equipped[slotKey(c.id, t)]);
+      return g && g.type === t ? [g] : [];
+    }),
+  );
+  const geared = applyGear(stats, gear);
+  const hasGear = JSON.stringify(gear) !== JSON.stringify(NO_GEAR);
+  if (!w || isGearType(w.type) || !canUseWeapon(c.classId, w.type))
+    return { ...c, stats: geared, ...(hasGear ? { gear } : {}) };
   const sec = weaponSecondary(w.type);
   return {
     ...c,
+    ...(hasGear ? { gear } : {}),
     stats: {
-      ...stats,
-      atk: Math.round((stats.atk + w.atkBonus) * 10) / 10,
-      accuracy: Math.round((stats.accuracy + sec.accuracy) * 100) / 100,
+      ...geared,
+      atk: Math.round((geared.atk + w.atkBonus) * 10) / 10,
+      accuracy: Math.round((geared.accuracy + sec.accuracy) * 100) / 100,
       crit:
-        Math.round(Math.min(0.6, Math.max(0, stats.crit + sec.crit)) * 100) /
+        Math.round(Math.min(0.6, Math.max(0, geared.crit + sec.crit)) * 100) /
         100,
-      speed: Math.round(stats.speed * sec.speedMult * 10) / 10,
+      speed: Math.round(geared.speed * sec.speedMult * 10) / 10,
     },
     weapon: { element: w.element, atkBonus: w.atkBonus },
   };
@@ -360,12 +460,13 @@ function parseCharacter(v: unknown): OwnedCharacter | null {
   const classId = CLASS_IDS.find((c) => c === v.classId);
   const element = ELEMENTS.find((e) => e === v.element);
   const stats = parseStats(v.stats);
-  if (!classId || !element || !stats || !isRarity(v.rarity)) return null;
+  const rarity = toRank(v.rarity);
+  if (!classId || !element || !stats || !rarity) return null;
   const traits = (Array.isArray(v.traits) ? v.traits : [])
     .filter((t): t is TraitId => (TRAIT_IDS as readonly unknown[]).includes(t))
     .slice(0, 2);
   return {
-    id: characterKey(classId, element, v.rarity),
+    id: characterKey(classId, element, rarity),
     name: str(v.name, "Sin nombre"),
     classId,
     element,
@@ -374,7 +475,7 @@ function parseCharacter(v: unknown): OwnedCharacter | null {
     catchphrase: str(v.catchphrase, "..."),
     level: Math.max(1, nat(v.level, 999)),
     xp: nat(v.xp),
-    rarity: v.rarity,
+    rarity,
     stars: nat(v.stars, MAX_STARS),
   };
 }
@@ -382,17 +483,18 @@ function parseCharacter(v: unknown): OwnedCharacter | null {
 function parseWeapon(v: unknown): OwnedWeapon | null {
   if (!isObj(v)) return null;
   const element = ELEMENTS.find((e) => e === v.element);
-  if (!element || !isRarity(v.rarity)) return null;
+  const rarity = toRank(v.rarity);
+  if (!element || !rarity) return null;
   const type = isWeaponType(v.type) ? v.type : "espada"; // old saves: no type
   const stars = nat(v.stars, MAX_STARS);
   return {
-    id: weaponKey(type, element, v.rarity),
+    id: weaponKey(type, element, rarity),
     name: str(v.name, "Espada"),
     type,
     element,
-    rarity: v.rarity,
+    rarity,
     stars,
-    atkBonus: weaponAtk(v.rarity, stars, type), // never trusted
+    atkBonus: weaponAtk(rarity, stars, type), // never trusted
   };
 }
 
@@ -405,11 +507,52 @@ function uniqueById<T extends { id: string }>(items: (T | null)[]): T[] {
   });
 }
 
+const canEquipPair = (
+  characters: OwnedCharacter[],
+  weapons: OwnedWeapon[],
+  cid: string,
+  wid: string,
+  slot: Slot,
+) => {
+  const c = characters.find((x) => x.id === cid);
+  const w = weapons.find((x) => x.id === wid);
+  return (
+    !!c && !!w && slotOf(w.type) === slot && canUseWeapon(c.classId, w.type)
+  );
+};
+
+const parseParts = (v: unknown): Parts => {
+  const out: Parts = {};
+  if (isObj(v))
+    for (const [k, n] of Object.entries(v)) {
+      const q = nat(n, MAX_STACK);
+      if (q > 0 && isPartKey(k)) out[k] = q;
+    }
+  return out;
+};
+
+const parseClears = (v: unknown): Clears => {
+  const out: Clears = {};
+  if (isObj(v))
+    for (const r of RARITY_IDS) {
+      const n = nat(v[r], 5);
+      if (n > 0) out[r] = n;
+    }
+  return out;
+};
+
 export function migrate(json: unknown): Profile {
   if (!isObj(json)) return createProfile();
-  const characters = uniqueById(
-    (Array.isArray(json.characters) ? json.characters : []).map(parseCharacter),
-  );
+  const rawChars = Array.isArray(json.characters) ? json.characters : [];
+  const parsedChars = rawChars.map(parseCharacter);
+  const characters = uniqueById(parsedChars);
+  // old id (legacy rarity) -> new id
+  const charAlias = new Map<string, string>();
+  rawChars.forEach((raw, i) => {
+    const c = parsedChars[i];
+    if (c && isObj(raw) && typeof raw.id === "string")
+      charAlias.set(raw.id, c.id);
+  });
   const rawWeapons = Array.isArray(json.weapons) ? json.weapons : [];
   const parsedWeapons = rawWeapons.map(parseWeapon);
   const weapons = uniqueById(parsedWeapons);
@@ -422,27 +565,33 @@ export function migrate(json: unknown): Profile {
   const fragments: Record<string, number> = {};
   if (isObj(json.fragments))
     for (const c of CLASS_IDS)
-      for (const r of RARITY_IDS) {
-        const n = nat(json.fragments[fragmentKey(c, r)]);
-        if (n > 0) fragments[fragmentKey(c, r)] = n;
+      for (const raw of [...RARITY_IDS, ...Object.keys(LEGACY_RARITY)]) {
+        const n = nat(json.fragments[`${c}:${raw}`]);
+        const r = toRank(raw);
+        if (n > 0 && r)
+          fragments[fragmentKey(c, r)] =
+            (fragments[fragmentKey(c, r)] ?? 0) + n;
       }
   const equipped: Record<string, string> = {};
   const usedWeapons = new Set<string>();
   if (isObj(json.equipped))
-    for (const [cid, rawWid] of Object.entries(json.equipped)) {
+    for (const [rawKey, rawWid] of Object.entries(json.equipped)) {
+      const [rawCid, slot] = parseSlotKey(rawKey);
+      if (!slot) continue;
+      const cid = charAlias.get(rawCid) ?? rawCid;
       const wid =
         typeof rawWid === "string" ? (alias.get(rawWid) ?? rawWid) : "";
       if (
         wid &&
-        characters.some((c) => c.id === cid) &&
-        weapons.some((w) => w.id === wid) &&
+        canEquipPair(characters, weapons, cid, wid, slot) &&
         !usedWeapons.has(wid)
       ) {
-        equipped[cid] = wid;
+        equipped[slotKey(cid, slot)] = wid;
         usedWeapons.add(wid);
       }
     }
   const pity = isObj(json.pity) ? json.pity : {};
+  const pitySsr = isObj(json.pitySsr) ? json.pitySsr : {};
   return {
     version: PROFILE_VERSION,
     coins: nat(json.coins),
@@ -452,6 +601,10 @@ export function migrate(json: unknown): Profile {
     pity: {
       character: nat(pity.character, PITY_THRESHOLD),
       weapon: nat(pity.weapon, PITY_THRESHOLD),
+    },
+    pitySsr: {
+      character: nat(pitySsr.character, PITY_SSR_THRESHOLD),
+      weapon: nat(pitySsr.weapon, PITY_SSR_THRESHOLD),
     },
     fragments,
     ...(isObj(json.daily) && isDayKey(json.daily.day)
@@ -467,5 +620,7 @@ export function migrate(json: unknown): Profile {
       : {}),
     bestFloor: nat(json.bestFloor),
     runsPlayed: nat(json.runsPlayed),
+    dungeons: parseClears(json.dungeons),
+    parts: parseParts(json.parts),
   };
 }

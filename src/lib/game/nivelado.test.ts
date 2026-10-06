@@ -34,16 +34,16 @@ function hero(
 
 describe("niveladoBonus", () => {
   it.each([
-    ["comun", 0, 0],
-    ["legendario", 5, NIVELADO_MAX_BONUS],
+    ["f", 0, 0],
+    ["ssr", 5, NIVELADO_MAX_BONUS],
   ] as const)("%s %i★ = %f", (r, st, exp) => {
     expect(niveladoBonus(r, st)).toBeCloseTo(exp, 10);
   });
-  it("epico 3★ is about 8-9% and monotonic", () => {
-    expect(niveladoBonus("epico", 3)).toBeGreaterThan(0.08);
-    expect(niveladoBonus("epico", 3)).toBeLessThan(0.09);
-    expect(niveladoBonus("raro", 0)).toBeLessThan(niveladoBonus("epico", 0));
-    expect(niveladoBonus("legendario", 99)).toBeLessThanOrEqual(
+  it("s 3★ is about 8-9% and monotonic", () => {
+    expect(niveladoBonus("s", 3)).toBeGreaterThan(0.08);
+    expect(niveladoBonus("s", 3)).toBeLessThan(0.09);
+    expect(niveladoBonus("c", 0)).toBeLessThan(niveladoBonus("s", 0));
+    expect(niveladoBonus("s", 99)).toBeLessThanOrEqual(
       NIVELADO_MAX_BONUS,
     );
   });
@@ -51,17 +51,17 @@ describe("niveladoBonus", () => {
 
 describe("normalizeHero", () => {
   it("completo returns the hero unchanged (same reference)", () => {
-    const h = hero(1, "epico", 2);
+    const h = hero(1, "a", 2);
     expect(normalizeHero(h, "completo")).toBe(h);
   });
   it("deterministic and pure", () => {
-    const h = hero(3, "raro", 1, 2);
+    const h = hero(3, "c", 1, 2);
     const copy = structuredClone(h);
     expect(normalizeHero(h, "nivelado")).toEqual(normalizeHero(h, "nivelado"));
     expect(h).toEqual(copy);
   });
   it("keeps identity: traits, element, passive source, weapon element, name", () => {
-    const h = hero(5, "legendario", 5, 3);
+    const h = hero(5, "s", 5, 3);
     const n = normalizeHero(h, "nivelado");
     expect(n).toMatchObject({
       name: h.name,
@@ -69,7 +69,7 @@ describe("normalizeHero", () => {
       element: h.element,
       traits: h.traits,
       catchphrase: h.catchphrase,
-      rarity: "legendario",
+      rarity: "s",
       stars: 5,
       level: 1,
       xp: 0,
@@ -99,8 +99,8 @@ describe("normalizeHero", () => {
     }
   });
   it("a Legendario 5★ and a Común 0★ of the same class differ by at most ~15% + variation", () => {
-    const lo = normalizeHero(hero(4, "comun", 0), "nivelado");
-    const hi = normalizeHero(hero(8, "legendario", 5), "nivelado");
+    const lo = normalizeHero(hero(4, "f", 0), "nivelado");
+    const hi = normalizeHero(hero(8, "s", 5), "nivelado");
     expect(lo.classId).toBe(hi.classId);
     const ratio = hi.stats.hp / lo.stats.hp;
     expect(ratio).toBeLessThan(

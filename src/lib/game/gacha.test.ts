@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { generateCharacter, CLASSES } from "./characters";
+import { generateCharacter, CLASSES, CLASS_IDS } from "./characters";
 import { startBattle, estimateDamage } from "./combat";
+import { normalizeHero } from "./nivelado";
 import {
   MAX_STARS,
+  PITY_SSR_THRESHOLD,
   PITY_THRESHOLD,
   RARITIES,
   RARITY_IDS,
@@ -32,10 +34,14 @@ import {
   generateWeapon,
   weaponAtk,
   weaponKey,
+  CLASS_WEAPONS,
+  canUseWeapon,
   WEAPON_BASE_ATK,
   WEAPON_KEY_SPACE,
   WEAPON_TYPE_DATA,
   WEAPON_TYPES,
+  HAND_TYPES,
+  isGearType,
 } from "./weapons";
 import { ELEMENTS } from "./elements";
 
@@ -59,43 +65,74 @@ describe("rarity", () => {
       );
   });
   it("scales stats by rarity x stars", () => {
-    expect(itemMult("legendario", 5)).toBeCloseTo(2.7, 10);
+    expect(itemMult("s", 5)).toBeCloseTo(2.7, 10);
     const s = CLASSES.mago.stats;
-    const e = scaleStats(s, "legendario", 5);
+    const e = scaleStats(s, "s", 5);
     expect(e.hp).toBe(Math.round(85 * 2.7));
     expect(e.atk).toBeCloseTo(s.atk * 2.7, 1);
     expect(e.crit).toBe(s.crit);
     expect(e.speed).toBe(s.speed);
-    expect(scaleStats(s, "comun", 0)).toEqual(s);
+    expect(scaleStats(s, "f", 0)).toEqual(s);
   });
 });
 
 describe("pity", () => {
-  it("guarantees Legendario exactly on the 101st pull and resets", () => {
+  it("guarantees SS at 100 and SSR at 200 and resets", () => {
     const rng = createRng(5);
-    // rng value that never rolls legendario naturally is not controllable, so
-    // drive the counter directly.
     expect(rollRarity(rng, PITY_THRESHOLD - 1).pityTriggered).toBe(false);
-    expect(rollRarity(rng, PITY_THRESHOLD)).toEqual({
-      rarity: "legendario",
+    const g = rollRarity(rng, PITY_THRESHOLD);
+    expect(["ss", "ssr"]).toContain(g.rarity);
+    expect(rollRarity(rng, 0, PITY_SSR_THRESHOLD)).toEqual({
+      rarity: "ssr",
       pityTriggered: true,
     });
     let p = rich();
-    let sinceLeg = 0;
-    for (let i = 0; i < 2000; i++) {
+    let sinceSs = 0;
+    let sinceSsr = 0;
+    for (let i = 0; i < 3000; i++) {
       const r = pullCharacter(p, rng)!;
       p = r.profile;
       const res = r.results[0];
-      if (res.rarity === "legendario") {
-        sinceLeg = 0;
-        expect(p.pity.character).toBe(0);
-      } else {
-        sinceLeg++;
-        expect(sinceLeg).toBeLessThanOrEqual(PITY_THRESHOLD);
-        expect(p.pity.character).toBe(sinceLeg);
-      }
-      if (res.pityTriggered) expect(res.rarity).toBe("legendario");
+      const top = res.rarity === "ss" || res.rarity === "ssr";
+      sinceSs = top ? 0 : sinceSs + 1;
+      sinceSsr = res.rarity === "ssr" ? 0 : sinceSsr + 1;
+      expect(sinceSs).toBeLessThanOrEqual(PITY_THRESHOLD);
+      expect(sinceSsr).toBeLessThanOrEqual(PITY_SSR_THRESHOLD);
+      expect(p.pity.character).toBe(sinceSs);
+      expect(p.pitySsr.character).toBe(sinceSsr);
     }
+  });
+  it("legacy rarity ids and ids migrate to ranks", () => {
+    const p = migrate({
+      coins: 5,
+      characters: [
+        {
+          id: "c-mago-fuego-legendario",
+          classId: "mago",
+          element: "fuego",
+          rarity: "legendario",
+          stars: 1,
+          stats: CLASSES.mago.stats,
+        },
+      ],
+      weapons: [
+        {
+          id: "w-espada-agua-epico",
+          type: "espada",
+          element: "agua",
+          rarity: "epico",
+          stars: 0,
+        },
+      ],
+      equipped: { "c-mago-fuego-legendario": "w-espada-agua-epico" },
+      fragments: { "mago:raro": 2 },
+    });
+    expect(p.characters[0]).toMatchObject({
+      id: "c-mago-fuego-s",
+      rarity: "s",
+    });
+    expect(p.weapons[0].id).toBe("w-espada-agua-a");
+    expect(p.fragments).toEqual({ "mago:c": 2 });
   });
   it("banners are independent", () => {
     const r = pullCharacter(rich(), createRng(2), 3)!;
@@ -211,27 +248,138 @@ describe("fragments", () => {
   });
 });
 
+// Gives every hero a class that can use the first weapon (class gates equipping).
+const fitClass = (p0: Profile): Profile => {
+  const p = { ...p0, weapons: p0.weapons.filter((w) => !isGearType(w.type)) };
+  const classId = CLASS_IDS.find((k) => canUseWeapon(k, p.weapons[0].type))!;
+  return { ...p, characters: p.characters.map((c) => ({ ...c, classId })) };
+};
+
+describe("run loot banking", () => {
+  const piece = {
+    type: "casco" as const,
+    element: "agua" as const,
+    rarity: "b" as const,
+    name: "Casco de Agua",
+  };
+  it("grants new pieces, +1 star on duplicates and a refund at max stars", () => {
+    let p = rich(0);
+    p = bankRun(p, 10, 3, "r1", [piece, piece]);
+    expect(p.weapons).toHaveLength(1);
+    expect(p.weapons[0].stars).toBe(1);
+    expect(p.coins).toBe(10);
+    p = bankRun(p, 0, 3, "r1", [piece]); // same run id: nothing again
+    expect(p.weapons[0].stars).toBe(1);
+    for (let i = 0; i < 6; i++) p = bankRun(p, 0, 3, `x${i}`, [piece]);
+    expect(p.weapons[0].stars).toBe(5);
+    expect(p.coins).toBeGreaterThan(10); // refunds once maxed
+  });
+});
+
+describe("gear", () => {
+  const piece = (
+    type: "casco" | "peto" | "piernas" | "zapatos" | "collar",
+    rarity: "f" | "ssr" = "f",
+  ) => ({
+    ...generateWeapon(createRng(1), rarity),
+    type,
+    id: weaponKey(type, "fuego", rarity),
+    element: "fuego" as const,
+    atkBonus: 0,
+  });
+  it("each slot holds one piece and equipping a piece moves it", () => {
+    let p = pullCharacter(rich(), createRng(3), 2)!.profile;
+    const [a, b] = p.characters;
+    const helm = piece("casco");
+    const chest = piece("peto");
+    p = { ...p, weapons: [helm, chest] };
+    p = equipWeapon(p, a.id, helm.id);
+    p = equipWeapon(p, a.id, chest.id);
+    expect(p.equipped).toEqual({
+      [`${a.id}|casco`]: helm.id,
+      [`${a.id}|peto`]: chest.id,
+    });
+    p = equipWeapon(p, b.id, helm.id);
+    expect(p.equipped[`${a.id}|casco`]).toBeUndefined();
+    expect(p.equipped[`${b.id}|casco`]).toBe(helm.id);
+    expect(
+      unequipWeapon(p, b.id, "casco").equipped[`${b.id}|casco`],
+    ).toBeUndefined();
+  });
+  it("worn gear raises stats, caps hold, and it survives a round trip", () => {
+    let p = pullCharacter(rich(), createRng(3))!.profile;
+    const c = p.characters[0];
+    const plain = heroFromOwned(p, c.id)!;
+    const all = (
+      ["casco", "peto", "piernas", "zapatos", "collar"] as const
+    ).map((t) => ({ ...piece(t, "ssr"), stars: 5 }));
+    p = { ...p, weapons: all };
+    for (const w of all) p = equipWeapon(p, c.id, w.id);
+    const h = heroFromOwned(p, c.id)!;
+    expect(h.stats.hp).toBe(Math.round(plain.stats.hp * 1.5));
+    expect(h.stats.def).toBeCloseTo(plain.stats.def * 1.5, 0);
+    expect(h.stats.speed).toBeCloseTo(plain.stats.speed * 1.25, 0);
+    expect(h.stats.crit).toBeCloseTo(plain.stats.crit + 0.069, 2);
+    expect(h.gear).toBeDefined();
+    expect(migrate(JSON.parse(JSON.stringify(p))).equipped).toEqual(p.equipped);
+  });
+  it("nivelado ignores gear", () => {
+    let p = pullCharacter(rich(), createRng(3))!.profile;
+    const c = p.characters[0];
+    const base = normalizeHero(heroFromOwned(p, c.id)!, "nivelado");
+    const all = (
+      ["casco", "peto", "piernas", "zapatos", "collar"] as const
+    ).map((t) => ({ ...piece(t, "ssr"), stars: 5 }));
+    p = { ...p, weapons: all };
+    for (const w of all) p = equipWeapon(p, c.id, w.id);
+    const geared = normalizeHero(heroFromOwned(p, c.id)!, "nivelado").stats;
+    for (const k of Object.keys(base.stats) as (keyof typeof geared)[])
+      expect(geared[k], k).toBeCloseTo(base.stats[k], 2);
+  });
+});
+
 describe("weapons", () => {
+  it("every class has 2-3 weapon types and every type has a class", () => {
+    for (const k of CLASS_IDS)
+      expect(CLASS_WEAPONS[k].length).toBeGreaterThanOrEqual(2);
+    for (const k of CLASS_IDS)
+      expect(CLASS_WEAPONS[k].length).toBeLessThanOrEqual(3);
+    for (const t of WEAPON_TYPES)
+      expect(
+        CLASS_IDS.some((k) => canUseWeapon(k, t)),
+        t,
+      ).toBe(true);
+  });
+  it("a class cannot equip a weapon type it cannot use", () => {
+    const w = {
+      ...generateWeapon(createRng(1), "f"),
+      type: "arco" as const,
+    };
+    const base = pullCharacter(rich(), createRng(2))!.profile;
+    const c = { ...base.characters[0], classId: "clerigo" as const };
+    const p = { ...base, characters: [c], weapons: [w] };
+    expect(equipWeapon(p, c.id, w.id)).toBe(p);
+  });
   it("atkBonus = round(base x rarity x stars)", () => {
-    expect(weaponAtk("comun", 0)).toBe(WEAPON_BASE_ATK);
-    expect(weaponAtk("legendario", 5)).toBe(10.8);
-    const w = generateWeapon(createRng(1), "raro");
+    expect(weaponAtk("f", 0)).toBe(WEAPON_BASE_ATK);
+    expect(weaponAtk("s", 5)).toBe(10.8);
+    const w = generateWeapon(createRng(1), "c");
     expect(w.name).toMatch(
       new RegExp(`^${WEAPON_TYPE_DATA[w.type].label} de `),
     );
-    expect(w.atkBonus).toBe(weaponAtk("raro", 0, w.type));
-    expect(weaponAtk("raro", 0, "espada")).toBe(5.2);
-    expect(weaponAtk("comun", 0, "hacha")).toBe(4.8);
+    expect(w.atkBonus).toBe(weaponAtk("c", 0, w.type));
+    expect(weaponAtk("c", 0, "espada")).toBe(5.2);
+    expect(weaponAtk("f", 0, "hacha")).toBe(4.8);
   });
-  it("key space is 6 types x 5 elements x 5 rarities = 150", () => {
-    expect(WEAPON_KEY_SPACE).toBe(150);
+  it("key space is 14 types x 5 elements x 9 ranks = 630", () => {
+    expect(WEAPON_KEY_SPACE).toBe(630);
     const rng = createRng(77);
     const keys = new Set<string>();
     for (let i = 0; i < 20000; i++)
-      keys.add(generateWeapon(rng, RARITY_IDS[i % 5]).id);
-    expect(keys.size).toBe(150);
-    expect(weaponKey("daga", "rayo", "epico")).toBe("w-daga-rayo-epico");
-    expect(WEAPON_TYPES.length * ELEMENTS.length * RARITY_IDS.length).toBe(150);
+      keys.add(generateWeapon(rng, RARITY_IDS[i % 9]).id);
+    expect(keys.size).toBe(630);
+    expect(weaponKey("daga", "rayo", "a")).toBe("w-daga-rayo-a");
+    expect(WEAPON_TYPES.length * ELEMENTS.length * RARITY_IDS.length).toBe(630);
   });
   it("secondary effect is applied exactly once", () => {
     const base = rich();
@@ -239,15 +387,17 @@ describe("weapons", () => {
     let p = pullCharacter(base, rng)!.profile;
     const c = p.characters[0];
     const plain = heroFromOwned(p, c.id)!;
-    for (const type of WEAPON_TYPES) {
+    for (const type of HAND_TYPES) {
+      const classId = CLASS_IDS.find((k) => canUseWeapon(k, type))!;
+      const pc = { ...p, characters: [{ ...c, classId }] };
       const w = {
-        ...generateWeapon(createRng(1), "comun"),
+        ...generateWeapon(createRng(1), "f"),
         type,
-        id: weaponKey(type, "fuego", "comun"),
+        id: weaponKey(type, "fuego", "f"),
         element: "fuego" as const,
-        atkBonus: weaponAtk("comun", 0, type),
+        atkBonus: weaponAtk("f", 0, type),
       };
-      const q = equipWeapon({ ...p, weapons: [w] }, c.id, w.id);
+      const q = equipWeapon({ ...pc, weapons: [w] }, c.id, w.id);
       const h = heroFromOwned(q, c.id)!;
       const d = WEAPON_TYPE_DATA[type];
       expect(h.stats.accuracy).toBeCloseTo(
@@ -267,7 +417,7 @@ describe("weapons", () => {
     let p = rich();
     const rng = createRng(4);
     p = pullCharacter(p, rng, 10)!.profile;
-    p = pullWeapon(p, rng, 10)!.profile;
+    p = fitClass(pullWeapon(p, rng, 10)!.profile);
     const [a, b] = p.characters;
     const w = p.weapons[0].id;
     p = equipWeapon(p, a.id, w);
@@ -280,7 +430,7 @@ describe("weapons", () => {
     let p = rich();
     const rng = createRng(8);
     p = pullCharacter(p, rng, 10)!.profile;
-    p = pullWeapon(p, rng, 10)!.profile;
+    p = fitClass(pullWeapon(p, rng, 10)!.profile);
     const c = p.characters[0];
     const w = p.weapons[0];
     const plain = heroFromOwned(p, c.id)!;
@@ -331,25 +481,23 @@ describe("bankRun + migrate", () => {
       coins: 10,
       characters: [
         {
-          classId: "mago",
+          classId: "caballero",
           element: "agua",
-          rarity: "comun",
+          rarity: "f",
           stars: 0,
-          stats: CLASSES.mago.stats,
+          stats: CLASSES.caballero.stats,
         },
       ],
-      weapons: [
-        { id: "w-fuego-raro", element: "fuego", rarity: "raro", stars: 2 },
-      ],
-      equipped: { "c-mago-agua-comun": "w-fuego-raro" },
+      weapons: [{ id: "w-fuego-c", element: "fuego", rarity: "c", stars: 2 }],
+      equipped: { "c-caballero-agua-f": "w-fuego-c" },
     });
     expect(old.weapons[0]).toMatchObject({
-      id: "w-espada-fuego-raro",
+      id: "w-espada-fuego-c",
       type: "espada",
-      atkBonus: weaponAtk("raro", 2, "espada"),
+      atkBonus: weaponAtk("c", 2, "espada"),
     });
     expect(old.equipped).toEqual({
-      "c-mago-agua-comun": "w-espada-fuego-raro",
+      "c-caballero-agua-f": "w-espada-fuego-c",
     });
     expect(old.fragments).toEqual({});
   });
@@ -369,11 +517,11 @@ describe("bankRun + migrate", () => {
       pity: { character: 999, weapon: "a" },
       characters: [{ classId: "x" }, null, 7],
       weapons: [
-        { element: "fuego", rarity: "raro", stars: 99, atkBonus: 9999 },
-        { element: "fuego", rarity: "raro", stars: 1 },
+        { element: "fuego", rarity: "c", stars: 99, atkBonus: 9999 },
+        { element: "fuego", rarity: "c", stars: 1 },
       ],
-      fragments: { "mago:raro": 4, "x:y": 9, "mago:comun": -3 },
-      equipped: { ghost: "w-fuego-raro" },
+      fragments: { "mago:c": 4, "x:y": 9, "mago:f": -3 },
+      equipped: { ghost: "w-fuego-c" },
       bestFloor: Infinity,
     });
     expect(p.coins).toBe(0);
@@ -381,8 +529,8 @@ describe("bankRun + migrate", () => {
     expect(p.characters).toHaveLength(0);
     expect(p.weapons).toHaveLength(1);
     expect(p.weapons[0].stars).toBe(MAX_STARS);
-    expect(p.weapons[0].atkBonus).toBe(weaponAtk("raro", 5));
-    expect(p.fragments).toEqual({ "mago:raro": 4 });
+    expect(p.weapons[0].atkBonus).toBe(weaponAtk("c", 5));
+    expect(p.fragments).toEqual({ "mago:c": 4 });
     expect(p.equipped).toEqual({});
     expect(p.bestFloor).toBe(0);
   });

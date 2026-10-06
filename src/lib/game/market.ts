@@ -8,6 +8,23 @@ import { WEAPON_TYPES, WEAPON_TYPE_DATA } from "./weapons";
 export const MARKET_MAX_OPEN = 5;
 export const MARKET_TTL_DAYS = 7;
 
+// Trades must be EQUIVALENT in value (+-25%). A piece is worth the coins a gacha
+// pull of its rank costs (150 / odds). Keep in sync with trade_value() in
+// supabase/migrations/0013_forge_trade.sql.
+export const TRADE_VALUE: Record<RarityId, number> = {
+  f: 500,
+  e: 700,
+  d: 950,
+  c: 1250,
+  b: 1650,
+  a: 2500,
+  s: 5000,
+  ss: 10000,
+  ssr: 30000,
+};
+export const TRADE_TOLERANCE = 0.25;
+export const MAX_TRADE_COINS = 100000;
+
 export type PieceKind = "character" | "weapon";
 export interface PieceRef {
   kind: PieceKind;
@@ -21,7 +38,8 @@ export interface MarketOffer {
   seller: string;
   kind: PieceKind;
   give: string;
-  want: string | null; // null = gift
+  want: string | null; // null = sale for coins
+  coins: number; // > 0: the acceptor pays the seller; < 0: the seller pays the acceptor
   expiresAt: string;
 }
 
@@ -62,6 +80,26 @@ export function pieceLabel(key: string): string {
   return `${base} ${ELEMENT_LABEL[p.element]} ${RARITIES[p.rarity].label}`;
 }
 
+export const tradeValue = (key: string | null): number => {
+  const p = key ? parsePieceKey(key) : null;
+  return p ? TRADE_VALUE[p.rarity] : 0;
+};
+
+// Coins that make the trade exactly even, and the range that is still allowed.
+export function tradeBand(give: string, want: string | null) {
+  const v = tradeValue(give);
+  const base = v - tradeValue(want);
+  return {
+    fair: base,
+    min: Math.ceil(base - v * TRADE_TOLERANCE),
+    max: Math.floor(base + v * TRADE_TOLERANCE),
+  };
+}
+
+export const isFairTrade = (give: string, want: string | null, coins: number) =>
+  Math.abs(tradeValue(give) - (tradeValue(want) + coins)) <=
+  tradeValue(give) * TRADE_TOLERANCE;
+
 const starsOf = (p: Profile, kind: PieceKind, key: string): number | null =>
   (kind === "character" ? p.characters : p.weapons).find((x) => x.id === key)
     ?.stars ?? null;
@@ -84,5 +122,7 @@ export function acceptBlock(
     return "Ya tienes el máximo de estrellas de esa pieza.";
   if (offer.want && (starsOf(p, offer.kind, offer.want) ?? 0) < 1)
     return "No tienes repetida la pieza que piden.";
+  if (offer.coins > 0 && p.coins < offer.coins)
+    return `Te faltan ${offer.coins - p.coins} monedas.`;
   return null;
 }

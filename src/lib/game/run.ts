@@ -1,6 +1,21 @@
-import { generateCharacter, type Character } from "./characters";
+import { generateCharacter, type Character, type ClassId } from "./characters";
 import { startBattle, type Battle, type EnemyMod } from "./combat";
 import { ELEMENTS } from "./elements";
+import {
+  LOOT_BOSS_CHOICES,
+  LOOT_BOSS_RANK_BONUS,
+  LOOT_CHEST_CHANCE,
+  lootOffer,
+  pieceSlot,
+  rollPiece,
+  samePiece,
+  withLoot,
+  type RunLoot,
+  type RunPiece,
+} from "./loot";
+import { dungeonBudget, rollEvent } from "./budget";
+import { addParts, rollDrops, type DropSource, type Parts } from "./parts";
+import { RARITIES, RARITY_IDS, type RarityId } from "./rarity";
 import {
   EVENTS,
   type EventChoice,
@@ -27,11 +42,12 @@ import {
 import { createRng, hashSeed, type Rng } from "./rng";
 import { needsSkill, SKILLS_BY_CLASS, type SkillId } from "./skills";
 import { TRAITS, type Trait, type TraitId } from "./traits";
-import { WORLD_ELEMENT_BIAS, worldOf, type World } from "./worlds";
+import { DUNGEONS, FINAL_BOSS_MULT, victoryCoins } from "./dungeons";
+import { WORLD_ELEMENT_BIAS, WORLDS, worldOf, type World } from "./worlds";
 
 // Bump when a change makes old action logs replay differently. The server
 // rejects logs from another version with a clear error (replay.ts).
-export const ENGINE_VERSION = 3;
+export const ENGINE_VERSION = 4; // 4: run loot (weapons/gear found in the run)
 
 // ---- Tunable constants ----
 export const START_LIVES = 3;
@@ -40,8 +56,22 @@ export const BOSS_EVERY = 5;
 // Clearing this floor ends the run as a victory (bounds replay cost and payload size).
 export const MAX_FLOOR = 100;
 export const VICTORY_COINS = 500;
+// Dungeon runs end at the dungeon's last floor; rank null = the legacy endless run (rooms).
+export const topFloor = (run: Pick<Run, "rank">) =>
+  run.rank ? DUNGEONS[run.rank].floors : MAX_FLOOR;
 export const isVictory = (run: Run) =>
-  run.status === "over" && run.lives > 0 && run.maxFloor >= MAX_FLOOR;
+  run.status === "over" && run.lives > 0 && run.maxFloor >= topFloor(run);
+// Difficulty floor: enemy scaling, rewards and prices follow it, not the real floor.
+// `difficulty` is the room rank: it shifts difficulty only (rooms keep their own
+// layout and bosses); `rank` is the dungeon rank and wins when both are set.
+export const depthOf = (
+  floor: number,
+  rank?: RarityId | null,
+  difficulty?: RarityId | null,
+) => {
+  const r = rank ?? difficulty;
+  return floor + (r ? DUNGEONS[r].offset : 0);
+};
 export const RELIC_EVERY = 3;
 // First floor where each enemy modifier appears (all stay on afterwards).
 export const MODIFIER_FLOORS: Readonly<Record<EnemyMod, number>> = {
@@ -164,6 +194,17 @@ export interface Run {
   floorCleared: boolean; // current floor's node is resolved; nextFloor allowed
   attempts: number; // fights started so far; mixed into the fight seed
   pendingSkill: boolean; // class skill pick owed (reached SKILL_LEVEL)
+  rank: RarityId | null; // dungeon rank; null = legacy endless run (room rounds)
+  difficulty: RarityId | null; // room rank: enemy difficulty only (layout stays legacy)
+  lootEnabled: boolean; // solo runs find loot; room rounds do not
+  loot: RunLoot; // run-only pieces worn on top of the collection gear
+  pendingLoot: RunPiece[] | null; // loot offer owed (take one or skip)
+  bag: RunPiece[]; // pieces taken since the last boss (lost if the run ends now)
+  secured: RunPiece[]; // pieces locked in by a defeated boss: paid at the end
+  partBag: Parts; // forge parts/cores since the last boss (lost if the run ends now)
+  partSecured: Parts; // parts locked in by defeated bosses: paid at the end
+  lastDrops: Parts; // what the last node dropped (for the UI)
+  lootPool: number; // dungeon loot budget left (points); see budget.ts
   engineVersion: number;
 }
 
@@ -174,7 +215,8 @@ interface ShopBase {
 }
 export type ShopItem =
   | (ShopBase & { kind: "heal" | "life" | "reroll" })
-  | (ShopBase & { kind: "stat"; stat: UpgradeId });
+  | (ShopBase & { kind: "stat"; stat: UpgradeId })
+  | (ShopBase & { kind: "gear"; piece: RunPiece });
 
 export interface FightNode {
   type: "fight";
@@ -212,7 +254,8 @@ const scaled = (base: number, floor: number) =>
 
 // ---- Pure floor content: depends only on (seed, floor) ----
 
-export const isBossFloor = (floor: number) => floor % BOSS_EVERY === 0;
+export const isBossFloor = (floor: number, rank?: RarityId | null) =>
+  rank ? DUNGEONS[rank].bosses.includes(floor) : floor % BOSS_EVERY === 0;
 
 export function modsAtFloor(floor: number): EnemyMod[] {
   return (Object.keys(MODIFIER_FLOORS) as EnemyMod[]).filter(
@@ -220,14 +263,20 @@ export function modsAtFloor(floor: number): EnemyMod[] {
   );
 }
 
-export function doorsFor(seed: number, floor: number): Door[] {
-  if (isBossFloor(floor)) return [{ kind: "boss" }];
+export function doorsFor(
+  seed: number,
+  floor: number,
+  rank?: RarityId | null,
+  difficulty?: RarityId | null,
+): Door[] {
+  if (isBossFloor(floor, rank)) return [{ kind: "boss" }];
   const rng = createRng(hashSeed(seed, floor, 0));
   const kinds: DoorKind[] = [rng.pick(["easy", "hard"])];
   const pool = DOOR_POOL.filter((k) => k !== kinds[0]);
   // Deeper floors push more fights: the safe doors thin out.
   const pressure = clamp(
-    (floor - FIGHT_PRESSURE_FROM) * FIGHT_PRESSURE_PER_FLOOR,
+    (depthOf(floor, rank, difficulty) - FIGHT_PRESSURE_FROM) *
+      FIGHT_PRESSURE_PER_FLOOR,
     0,
     FIGHT_PRESSURE_MAX,
   );
@@ -245,7 +294,7 @@ export function doorsFor(seed: number, floor: number): Door[] {
     [kinds[i], kinds[j]] = [kinds[j], kinds[i]];
   }
   // The floor before a boss always has a campfire (no boss from a cold start).
-  if (isBossFloor(floor + 1) && !kinds.includes("rest")) {
+  if (isBossFloor(floor + 1, rank) && !kinds.includes("rest")) {
     const i = kinds.findIndex((k) => k !== "easy" && k !== "hard");
     if (i >= 0) kinds[i] = "rest";
     else if (kinds.length < 3) kinds.push("rest");
@@ -254,8 +303,16 @@ export function doorsFor(seed: number, floor: number): Door[] {
   return kinds.map((kind) => ({ kind }));
 }
 
-export function groupSize(seed: number, floor: number, kind: FightKind) {
-  const rows = GROUP_SCHEDULE[kind].filter((r) => floor >= r.fromFloor);
+export function groupSize(
+  seed: number,
+  floor: number,
+  kind: FightKind,
+  rank?: RarityId | null,
+  difficulty?: RarityId | null,
+) {
+  const rows = GROUP_SCHEDULE[kind].filter(
+    (r) => depthOf(floor, rank, difficulty) >= r.fromFloor,
+  );
   const w = rows[rows.length - 1].weights;
   const rng = createRng(hashSeed(seed, floor, 70 + FIGHT_SALT[kind]));
   let r = rng.next() * (w[0] + w[1] + w[2]);
@@ -271,12 +328,14 @@ function makeEnemy(
   kind: FightKind,
   i: number,
   size: number,
+  rank?: RarityId | null,
+  difficulty?: RarityId | null,
 ): Character {
   const salt = 10 + FIGHT_SALT[kind];
   const rng = createRng(
     i === 0 ? hashSeed(seed, floor, salt) : hashSeed(seed, floor, salt, i),
   );
-  const world = worldOf(floor);
+  const world = rank ? WORLDS[DUNGEONS[rank].world] : worldOf(floor);
   const base = generateCharacter(rng);
   const themed = rng.chance(WORLD_ELEMENT_BIAS);
   const other = rng.pick(ELEMENTS);
@@ -295,12 +354,15 @@ function makeEnemy(
     mult = FIGHT_POWER[kind] * GROUP_STAT_MULT[size - 1];
     hpMult = FIGHT_POWER[kind] * GROUP_HP_MULT[size - 1] * ENEMY_HP_MULT;
   }
-  const ease = earlyEase(floor);
+  const depth = depthOf(floor, rank, difficulty);
+  const ease = earlyEase(depth);
+  const final = isBoss && rank && floor === DUNGEONS[rank].floors;
+  const fin = final ? FINAL_BOSS_MULT : 1;
   return scaleForFloor(
     { ...base, name, element: themed ? world.element : other },
-    floor,
-    mult * ease,
-    hpMult * ease,
+    depth,
+    mult * ease * fin,
+    hpMult * ease * fin,
   );
 }
 
@@ -308,10 +370,12 @@ export function enemyFor(
   seed: number,
   floor: number,
   kind: FightKind,
+  rank?: RarityId | null,
+  difficulty?: RarityId | null,
 ): Omit<FightNode, "type" | "kind"> {
-  const size = groupSize(seed, floor, kind);
+  const size = groupSize(seed, floor, kind, rank, difficulty);
   const made = Array.from({ length: size }, (_, i) =>
-    makeEnemy(seed, floor, kind, i, size),
+    makeEnemy(seed, floor, kind, i, size, rank, difficulty),
   );
   // Twins get a numeral so logs and targets stay readable.
   const seen = new Map<string, number>();
@@ -323,7 +387,7 @@ export function enemyFor(
   return {
     enemy: enemies[0],
     enemies,
-    mods: modsAtFloor(floor),
+    mods: modsAtFloor(depthOf(floor, rank, difficulty)),
     battleSeed: hashSeed(seed, floor, 20 + FIGHT_SALT[kind]),
   };
 }
@@ -334,6 +398,8 @@ export function relicOffer(
   floor: number,
   rerolls = 0,
   owned: readonly RelicId[] = [],
+  rank?: RarityId | null,
+  difficulty?: RarityId | null,
 ): RelicId[] | null {
   if (floor % RELIC_EVERY !== 0) return null;
   const pool = RELIC_IDS.filter((id) => !owned.includes(id));
@@ -341,14 +407,21 @@ export function relicOffer(
     createRng(hashSeed(seed, floor, 30, rerolls)),
     RELIC_CHOICES,
     pool,
-    floor,
+    depthOf(floor, rank, difficulty),
   );
   return offer.length > 0 ? offer : null;
 }
 
-export function shopItems(seed: number, floor: number): ShopItem[] {
+export function shopItems(
+  seed: number,
+  floor: number,
+  classId?: ClassId,
+  rank?: RarityId | null,
+  difficulty?: RarityId | null,
+): ShopItem[] {
   const rng = createRng(hashSeed(seed, floor, 40));
-  const price = (k: keyof typeof SHOP_PRICES) => scaled(SHOP_PRICES[k], floor);
+  const price = (k: keyof typeof SHOP_PRICES) =>
+    scaled(SHOP_PRICES[k], depthOf(floor, rank, difficulty));
   const items: ShopItem[] = [
     {
       id: "heal",
@@ -371,6 +444,24 @@ export function shopItems(seed: number, floor: number): ShopItem[] {
       label: "Vida extra",
       price: price("life"),
     });
+  if (classId) {
+    const piece = rollPiece(
+      createRng(hashSeed(seed, floor, 72)),
+      classId,
+      floor,
+      0,
+      rank,
+    );
+    items.push({
+      id: "gear0",
+      kind: "gear",
+      label: `${piece.name} (${RARITIES[piece.rarity].label})`,
+      price: Math.round(
+        price("stat") * (1 + 0.6 * RARITY_IDS.indexOf(piece.rarity)),
+      ),
+      piece,
+    });
+  }
   if (floor % RELIC_EVERY === 0)
     items.push({
       id: "reroll",
@@ -392,15 +483,21 @@ export function getFloor(run: Run): {
 } {
   return {
     floor: run.floor,
-    isBoss: isBossFloor(run.floor),
-    world: worldOf(run.floor),
-    doors: doorsFor(run.seed, run.floor),
+    isBoss: isBossFloor(run.floor, run.rank),
+    world: run.rank ? WORLDS[DUNGEONS[run.rank].world] : worldOf(run.floor),
+    doors: doorsFor(run.seed, run.floor, run.rank, run.difficulty),
   };
 }
 
 // ---- Run state ----
 
-export function createRun(seed: number, hero: Character): Run {
+export function createRun(
+  seed: number,
+  hero: Character,
+  lootEnabled = false,
+  rank: RarityId | null = null,
+  difficulty: RarityId | null = null,
+): Run {
   return {
     seed,
     floor: 1,
@@ -420,14 +517,25 @@ export function createRun(seed: number, hero: Character): Run {
     floorCleared: false,
     attempts: 0,
     pendingSkill: false,
+    rank,
+    difficulty,
+    lootEnabled,
+    loot: {},
+    pendingLoot: null,
+    bag: [],
+    secured: [],
+    partBag: {},
+    partSecured: {},
+    lastDrops: {},
+    lootPool: rank && lootEnabled ? dungeonBudget(rank) : 0,
     engineVersion: ENGINE_VERSION,
   };
 }
 
-export const effectiveHero = (run: Run): Character => ({
-  ...run.hero,
-  stats: applyRelicStats(run.hero.stats, run.relics),
-});
+export const effectiveHero = (run: Run): Character => {
+  const h = withLoot(run.hero, run.loot);
+  return { ...h, stats: applyRelicStats(h.stats, run.relics) };
+};
 export const maxHp = (run: Run) => effectiveHero(run).stats.hp;
 
 // Changes hero/relics; any max-hp gain also heals that amount.
@@ -500,6 +608,89 @@ export function chooseRelic(run: Run, id: RelicId): Run {
   return rebuild(run, { relics: [...run.relics, id], pendingRelic: null });
 }
 
+const worldElementOf = (run: Run) =>
+  (run.rank ? WORLDS[DUNGEONS[run.rank].world] : worldOf(run.floor)).element;
+
+// Dungeon runs: a node takes a share of the loot budget (budget.ts). Parts and
+// cores go to the bag now; the returned pieces become the player's offer.
+function budgetDrop(
+  run: Run,
+  source: DropSource,
+  salt: number,
+  group = 1,
+): { run: Run; pieces: RunPiece[] } {
+  const ev = rollEvent(
+    source,
+    run.seed,
+    run.floor,
+    salt,
+    run.rank!,
+    run.hero.classId,
+    run.lootPool,
+    worldElementOf(run),
+    group,
+  );
+  return {
+    run: {
+      ...run,
+      lootPool: run.lootPool - ev.spent,
+      partBag: addParts(run.partBag, ev.parts),
+      lastDrops: ev.parts,
+    },
+    pieces: ev.pieces,
+  };
+}
+
+// Moves everything carried (pieces and parts) to the secured stock.
+const secureBag = (r: Run): Run => ({
+  ...r,
+  secured: [...r.secured, ...r.bag],
+  bag: [],
+  partSecured: addParts(r.partSecured, r.partBag),
+  partBag: {},
+});
+
+// Adds what a node dropped to the (unsecured) part bag (legacy runs, rank null).
+function drop(run: Run, source: DropSource, salt: number): Run {
+  if (!run.lootEnabled) return { ...run, lastDrops: {} };
+  const got = rollDrops(
+    source,
+    run.seed,
+    run.floor,
+    salt,
+    run.rank,
+    worldElementOf(run),
+  );
+  return { ...run, partBag: addParts(run.partBag, got), lastDrops: got };
+}
+
+// Wears a piece for the run and puts it in the bag (it only reaches the
+// collection once a boss secures it).
+function takePiece(run: Run, piece: RunPiece): Run {
+  return rebuild(run, {
+    loot: { ...run.loot, [pieceSlot(piece)]: piece },
+    bag: [...run.bag, piece],
+  });
+}
+
+// Takes piece `i` of the loot offer (-1 = skip). A new piece replaces whatever
+// the run wears in that slot. When it was the boss drop, the floor advances.
+export function chooseLoot(run: Run, i: number): Run {
+  const offer = run.pendingLoot;
+  if (run.status !== "active" || !offer || i < -1 || i >= offer.length)
+    return run;
+  const piece = offer[i];
+  let r = piece
+    ? takePiece({ ...run, pendingLoot: null }, piece)
+    : { ...run, pendingLoot: null };
+  if (r.floorCleared && r.node === null) {
+    // Boss drop: the boss locks in everything carried so far.
+    r = secureBag(r);
+    r = nextFloor(r);
+  }
+  return r;
+}
+
 // Moves to the next floor and sets the relic offer when the floor just left is
 // a multiple of RELIC_EVERY. Refused (same run) unless the floor is cleared,
 // no node is open and no pick/relic is owed.
@@ -510,11 +701,16 @@ export function nextFloor(run: Run): Run {
     !run.floorCleared ||
     run.pendingPicks > 0 ||
     run.pendingSkill ||
-    run.pendingRelic !== null
+    run.pendingRelic !== null ||
+    run.pendingLoot !== null
   )
     return run;
-  if (run.floor >= MAX_FLOOR)
-    return { ...run, status: "over", coins: run.coins + VICTORY_COINS };
+  if (run.floor >= topFloor(run))
+    return {
+      ...run,
+      status: "over",
+      coins: run.coins + (run.rank ? victoryCoins(run.rank) : VICTORY_COINS),
+    };
   const floor = run.floor + 1;
   return {
     ...run,
@@ -523,7 +719,14 @@ export function nextFloor(run: Run): Run {
     floorCleared: false,
     bought: [],
     rerolls: 0,
-    pendingRelic: relicOffer(run.seed, run.floor, run.rerolls, run.relics),
+    pendingRelic: relicOffer(
+      run.seed,
+      run.floor,
+      run.rerolls,
+      run.relics,
+      run.rank,
+      run.difficulty,
+    ),
   };
 }
 
@@ -545,10 +748,21 @@ export function chooseDoor(
   run: Run,
   doorIndex: number,
 ): { run: Run; node: RunNode } | null {
-  const door = doorsFor(run.seed, run.floor)[doorIndex];
-  if (run.status !== "active" || run.node || run.floorCleared || !door)
+  const door = doorsFor(run.seed, run.floor, run.rank, run.difficulty)[
+    doorIndex
+  ];
+  if (
+    run.status !== "active" ||
+    run.node ||
+    run.floorCleared ||
+    run.pendingLoot ||
+    !door
+  )
     return null;
-  const open = (r: Run, node: RunNode) => ({ run: { ...r, node }, node });
+  const open = (r: Run, node: RunNode) => ({
+    run: { ...r, node, lastDrops: {} },
+    node,
+  });
   switch (door.kind) {
     case "easy":
     case "hard":
@@ -556,17 +770,36 @@ export function chooseDoor(
       return open(run, {
         type: "fight",
         kind: door.kind,
-        ...enemyFor(run.seed, run.floor, door.kind),
+        ...enemyFor(run.seed, run.floor, door.kind, run.rank, run.difficulty),
       });
     case "chest": {
       const coins = Math.round(
-        scaled(CHEST_COINS, run.floor) *
+        scaled(CHEST_COINS, depthOf(run.floor, run.rank, run.difficulty)) *
           (1 + relicTotals(run.relics).coinBonus),
       );
-      return open(
-        { ...run, coins: run.coins + coins },
+      if (run.lootEnabled && run.rank) {
+        const b = budgetDrop(run, "chest", 0);
+        const o = open(
+          {
+            ...b.run,
+            coins: run.coins + coins,
+            pendingLoot: b.pieces.length ? b.pieces : null,
+          },
+          { type: "chest", coins },
+        );
+        return { run: { ...o.run, lastDrops: b.run.lastDrops }, node: o.node };
+      }
+      const found =
+        run.lootEnabled &&
+        createRng(hashSeed(run.seed, run.floor, 70)).chance(LOOT_CHEST_CHANCE)
+          ? lootOffer(run.seed, run.floor, run.hero.classId, 1, 0, 71, run.rank)
+          : null;
+      const opened = open(
+        { ...run, coins: run.coins + coins, pendingLoot: found },
         { type: "chest", coins },
       );
+      const withParts = drop(opened.run, "chest", 0);
+      return { run: withParts, node: opened.node };
     }
     case "rest": {
       const next = heal(run, maxHp(run) * REST_HEAL);
@@ -575,7 +808,13 @@ export function chooseDoor(
     case "merchant":
       return open(run, {
         type: "shop",
-        items: shopItems(run.seed, run.floor),
+        items: shopItems(
+          run.seed,
+          run.floor,
+          run.lootEnabled ? run.hero.classId : undefined,
+          run.rank,
+          run.difficulty,
+        ),
       });
     case "event":
       return open(run, {
@@ -588,7 +827,9 @@ export function chooseDoor(
 // Whether a shop item is worth buying right now (UI uses it to disable).
 export const itemUseless = (run: Run, item: ShopItem): boolean =>
   (item.kind === "heal" && run.hp >= maxHp(run)) ||
-  (item.kind === "life" && run.lives >= MAX_LIVES);
+  (item.kind === "life" && run.lives >= MAX_LIVES) ||
+  (item.kind === "gear" &&
+    samePiece(run.loot[pieceSlot(item.piece)], item.piece));
 
 // Null when there is no open shop, the item isn't on offer, was bought,
 // is useless right now, or is too expensive.
@@ -614,6 +855,8 @@ export function buyItem(run: Run, itemId: string): Run | null {
       return rebuild(paid, learn(run, item.stat));
     case "life":
       return { ...paid, lives: paid.lives + 1 };
+    case "gear":
+      return takePiece(paid, item.piece);
     case "reroll": // once per floor: "reroll" can only be bought once
       return { ...paid, rerolls: paid.rerolls + 1 };
   }
@@ -626,7 +869,9 @@ function applyEffect(run: Run, e: EventEffect): Run {
       ...r,
       coins: Math.max(
         0,
-        r.coins + Math.sign(e.coins) * scaled(Math.abs(e.coins), r.floor),
+        r.coins +
+          Math.sign(e.coins) *
+            scaled(Math.abs(e.coins), depthOf(r.floor, r.rank, r.difficulty)),
       ),
     };
   if (e.hp) r = heal(r, maxHp(r) * e.hp);
@@ -638,7 +883,9 @@ function applyEffect(run: Run, e: EventEffect): Run {
 
 // What a choice costs right now and whether the run can pay it.
 export function eventCost(run: Run, choice: EventChoice) {
-  const coins = choice.cost?.coins ? scaled(choice.cost.coins, run.floor) : 0;
+  const coins = choice.cost?.coins
+    ? scaled(choice.cost.coins, depthOf(run.floor, run.rank, run.difficulty))
+    : 0;
   const hp = choice.cost?.hp ? Math.round(maxHp(run) * choice.cost.hp) : 0;
   return { coins, hp, affordable: run.coins >= coins && run.hp - hp >= 1 };
 }
@@ -732,12 +979,14 @@ export function applyBattleResult(
   const traits = run.hero.traits;
   if (battle.status === "won") {
     const coins = Math.round(
-      scaled(FIGHT_COINS[kind], run.floor) * (1 + t.coinBonus) * group,
+      scaled(FIGHT_COINS[kind], depthOf(run.floor, run.rank, run.difficulty)) *
+        (1 + t.coinBonus) *
+        group,
     );
     const xp =
       XP_PER_WIN *
       FIGHT_XP_MULT[kind] *
-      (1 + XP_FLOOR_SCALE * run.floor) *
+      (1 + XP_FLOOR_SCALE * depthOf(run.floor, run.rank, run.difficulty)) *
       (1 + t.xpBonus) *
       group;
     const healFrac =
@@ -754,7 +1003,48 @@ export function applyBattleResult(
       },
       xp,
     );
-    return heal(r, maxHp(r) * healFrac);
+    const source: DropSource =
+      kind === "boss"
+        ? run.rank && run.floor === DUNGEONS[run.rank].floors
+          ? "finalBoss"
+          : "boss"
+        : kind;
+    if (run.rank && run.lootEnabled) {
+      const b = budgetDrop(
+        r,
+        source,
+        1 + run.attempts,
+        open.enemies?.length ?? 1,
+      );
+      let out = b.run;
+      if (kind === "boss")
+        out = b.pieces.length
+          ? { ...out, pendingLoot: b.pieces }
+          : secureBag(out); // nothing to pick: the boss still locks in the bag
+      return heal(out, maxHp(out) * healFrac);
+    }
+    const dropped: Run =
+      kind === "boss" && run.lootEnabled
+        ? {
+            ...r,
+            pendingLoot: lootOffer(
+              run.seed,
+              run.floor,
+              run.hero.classId,
+              LOOT_BOSS_CHOICES,
+              // Dungeons: only the final boss adds a rank step.
+              run.rank
+                ? run.floor === DUNGEONS[run.rank].floors
+                  ? LOOT_BOSS_RANK_BONUS
+                  : 0
+                : LOOT_BOSS_RANK_BONUS,
+              73,
+              run.rank,
+            ),
+          }
+        : r;
+    const withParts = drop(dropped, source, 1 + run.attempts);
+    return heal(withParts, maxHp(withParts) * healFrac);
   }
   if (battle.status === "fled")
     return {

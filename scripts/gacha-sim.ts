@@ -35,14 +35,14 @@ for (const banner of ["character", "weapon"] as const) {
       total++;
       refunds += res.refund;
       if (res.status === "refund") refundCount++;
-      if (!first && res.rarity === "legendario") first = n;
+      if (!first && res.rarity === "s") first = n;
       if (CHECK.includes(n)) {
         const items = banner === "weapon" ? p.weapons : p.characters;
         owned[n] = (owned[n] ?? 0) + items.length;
         frags[n] =
           (frags[n] ?? 0) +
           Object.values(p.fragments).reduce((a, b) => a + b, 0);
-        if (items.some((x) => x.rarity === "legendario" && x.stars === 5))
+        if (items.some((x) => x.rarity === "s" && x.stars === 5))
           five[n] = (five[n] ?? 0) + 1;
       }
     }

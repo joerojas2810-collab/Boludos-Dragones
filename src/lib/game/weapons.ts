@@ -1,16 +1,48 @@
+import type { ClassId } from "./characters";
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "./elements";
-import { itemMult, type RarityId } from "./rarity";
+import { itemMult, RARITY_IDS, type RarityId } from "./rarity";
 import type { Rng } from "./rng";
 
-export const WEAPON_TYPES = [
+// Hand weapons (the "arma" slot) and armor/jewel pieces (one slot each).
+export const HAND_TYPES = [
   "espada",
   "hacha",
   "lanza",
   "arco",
   "baston",
   "daga",
+  "maza",
+  "varita",
+  "libro",
 ] as const;
-export type WeaponType = (typeof WEAPON_TYPES)[number];
+export const GEAR_TYPES = [
+  "casco",
+  "peto",
+  "piernas",
+  "zapatos",
+  "collar",
+] as const;
+export type HandType = (typeof HAND_TYPES)[number];
+export type GearType = (typeof GEAR_TYPES)[number];
+// Every item the gacha / market / collection handles ("weapon" kind in the DB).
+export const WEAPON_TYPES = [...HAND_TYPES, ...GEAR_TYPES] as const;
+export type WeaponType = HandType | GearType;
+
+export type Slot = "arma" | GearType;
+export const SLOTS = ["arma", ...GEAR_TYPES] as const;
+export const isGearType = (t: WeaponType): t is GearType =>
+  (GEAR_TYPES as readonly string[]).includes(t);
+export const slotOf = (t: WeaponType): Slot => (isGearType(t) ? t : "arma");
+
+// Which hand weapon types each class can equip (2-3 per class). Gear has no class limit.
+export const CLASS_WEAPONS: Record<ClassId, readonly HandType[]> = {
+  caballero: ["espada", "hacha", "lanza"],
+  mago: ["baston", "varita", "libro"],
+  picaro: ["daga", "arco"],
+  clerigo: ["maza", "baston", "libro"],
+};
+export const canUseWeapon = (classId: ClassId, type: WeaponType) =>
+  isGearType(type) || CLASS_WEAPONS[classId].includes(type);
 
 export const WEAPON_BASE_ATK = 4;
 
@@ -80,6 +112,78 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     speedMult: 1.05,
     noun: "Daga",
   },
+  maza: {
+    label: "Maza",
+    description: "Golpe pesado y firme: más daño, algo más lenta.",
+    atkMult: 1.1,
+    accuracy: 0,
+    crit: 0,
+    speedMult: 0.95,
+    noun: "Maza",
+  },
+  varita: {
+    label: "Varita",
+    description: "Hechizos certeros: más precisión y velocidad.",
+    atkMult: 0.85,
+    accuracy: 0.05,
+    crit: 0,
+    speedMult: 1.05,
+    noun: "Varita",
+  },
+  libro: {
+    label: "Libro",
+    description: "Saber arcano: más crítico y precisión.",
+    atkMult: 0.8,
+    accuracy: 0.03,
+    crit: 0.04,
+    speedMult: 1,
+    noun: "Libro",
+  },
+  casco: {
+    label: "Casco",
+    description: "Más vida y algo de defensa.",
+    atkMult: 0,
+    accuracy: 0,
+    crit: 0,
+    speedMult: 1,
+    noun: "Casco",
+  },
+  peto: {
+    label: "Peto",
+    description: "Más defensa y algo de vida.",
+    atkMult: 0,
+    accuracy: 0,
+    crit: 0,
+    speedMult: 1,
+    noun: "Peto",
+  },
+  piernas: {
+    label: "Piernas",
+    description: "Más defensa y algo de esquive.",
+    atkMult: 0,
+    accuracy: 0,
+    crit: 0,
+    speedMult: 1,
+    noun: "Grebas",
+  },
+  zapatos: {
+    label: "Zapatos",
+    description: "Más velocidad y algo de esquive.",
+    atkMult: 0,
+    accuracy: 0,
+    crit: 0,
+    speedMult: 1,
+    noun: "Botas",
+  },
+  collar: {
+    label: "Collar",
+    description: "Más crítico y algo de precisión.",
+    atkMult: 0,
+    accuracy: 0,
+    crit: 0,
+    speedMult: 1,
+    noun: "Collar",
+  },
 };
 
 export interface Weapon {
@@ -108,7 +212,8 @@ const ADJECTIVES = [
 export const isWeaponType = (v: unknown): v is WeaponType =>
   typeof v === "string" && (WEAPON_TYPES as readonly string[]).includes(v);
 
-export const WEAPON_KEY_SPACE = WEAPON_TYPES.length * ELEMENTS.length * 5;
+export const WEAPON_KEY_SPACE =
+  WEAPON_TYPES.length * ELEMENTS.length * RARITY_IDS.length;
 
 export const weaponKey = (
   type: WeaponType,

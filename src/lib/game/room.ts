@@ -4,6 +4,9 @@
 // and what FakeRoomStore / the API use to decide the NEXT state.
 // `[K]` constants live here so one night of play can retune everything.
 
+import { isDungeonRank } from "./dungeons";
+import type { RarityId } from "./rarity";
+
 export const ROOM_K = {
   floorsPerRound: 10,
   maxRounds: 5,
@@ -125,6 +128,7 @@ export interface RoomState {
   floor: number;
   deadline: number; // ms epoch; 0 = no deadline
   mode: RoomMode;
+  rank: RarityId; // dungeon rank of the night: enemy difficulty only (see run.ts depthOf)
   turnSeconds: number;
   hostId: string;
   players: RoomPlayer[];
@@ -188,7 +192,8 @@ const done = (state: RoomState, effects: Effect[] = []): Result => ({
 });
 
 export const hasVote = (floor: number) =>
-  (ROOM_K.voteFloors as readonly number[]).includes(floor) && !isBossFloor(floor);
+  (ROOM_K.voteFloors as readonly number[]).includes(floor) &&
+  !isBossFloor(floor);
 /** Reveal length: longer on vote floors so everybody can tap. */
 export const revealMsFor = (floor: number) =>
   ROOM_K.revealMs + (hasVote(floor) ? ROOM_K.voteExtraMs : 0);
@@ -230,6 +235,7 @@ const FLOOR_PLAY: readonly Phase[] = ["round_setup", "lobby", "round_end"];
 // ----------------------------------------------------- permission matrix
 export type Action =
   | "set_mode"
+  | "set_rank"
   | "set_turn_seconds"
   | "start_round"
   | "kick"
@@ -246,6 +252,7 @@ export type Action =
 type Role = "host" | "member" | "active" | "fighter";
 const PERMS: Record<Action, { phases: readonly Phase[]; role: Role }> = {
   set_mode: { phases: ["lobby"], role: "host" },
+  set_rank: { phases: ["lobby"], role: "host" },
   set_turn_seconds: { phases: ["lobby", "round_end"], role: "host" },
   start_round: { phases: ["lobby", "round_end"], role: "host" },
   kick: { phases: PHASES.filter((p) => p !== "closed"), role: "host" },
@@ -313,7 +320,7 @@ function newPlayer(id: string, now: number, s?: RoomState): RoomPlayer {
 export function createRoomState(
   hostId: string,
   now: number,
-  opts: { mode?: RoomMode; turnSeconds?: number } = {},
+  opts: { mode?: RoomMode; rank?: RarityId; turnSeconds?: number } = {},
 ): RoomState {
   return {
     phase: "lobby",
@@ -322,6 +329,7 @@ export function createRoomState(
     floor: 0,
     deadline: 0,
     mode: opts.mode ?? "nivelado",
+    rank: opts.rank ?? "f",
     turnSeconds: opts.turnSeconds ?? 30,
     hostId,
     players: [newPlayer(hostId, now)],
@@ -397,7 +405,8 @@ export function interfereCostFor(
   const mine = chipsById[id];
   if (mine === undefined || all.length < ROOM_K.catchUpMinPlayers)
     return ROOM_K.interfereCost;
-  const isLast = all.every((c) => c >= mine) && all.filter((c) => c === mine).length === 1;
+  const isLast =
+    all.every((c) => c >= mine) && all.filter((c) => c === mine).length === 1;
   const gap = Math.max(...all) - mine;
   return isLast && gap >= ROOM_K.catchUpMinGap
     ? ROOM_K.interfereCost - ROOM_K.catchUpDiscount
@@ -451,11 +460,7 @@ function settleBattleIn(
     if (p) p.chips += po.payout;
   }
   n.totals.dust += dust;
-  const it = interferenceSettlement(
-    outcome,
-    reason,
-    b.interference?.cost,
-  );
+  const it = interferenceSettlement(outcome, reason, b.interference?.cost);
   if (b.interference) {
     const target = byId(n, b.fighter);
     if (target && it.compToTarget) {
@@ -634,6 +639,15 @@ export function setMode(s: RoomState, host: string, mode: RoomMode): Result {
   if (g) return g;
   const n = clone(s);
   n.mode = mode;
+  return done(n);
+}
+
+export function setRank(s: RoomState, host: string, rank: RarityId): Result {
+  const g = guard(s, host, "set_rank");
+  if (g) return g;
+  if (!isDungeonRank(rank)) return fail("invalid_args");
+  const n = clone(s);
+  n.rank = rank;
   return done(n);
 }
 
