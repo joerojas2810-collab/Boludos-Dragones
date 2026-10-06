@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useState, type ReactNode } from "react";
 import { Chip } from "@/components/Chip";
 import { ElementIcon } from "@/components/ElementIcon";
 import { HealthBar } from "@/components/HealthBar";
@@ -79,6 +81,9 @@ export function HudCard({
     cells.push({ stat: "accuracy", label: "PRE", value: pct(s.accuracy) });
   if (!compact && s.flee)
     cells.push({ stat: "flee", label: "HUI", value: pct(s.flee) });
+  // Phones: only name, health and announced action stay in view; the rest folds away.
+  const [open, setOpen] = useState(false);
+  const fold = open ? "" : "max-md:hidden";
   const ctx = { foe, you, inRun };
   const weapon = weaponTip(c);
   return (
@@ -118,7 +123,15 @@ export function HudCard({
         />
       </Tooltip>
       {footer}
-      <div className="mt-1.5 flex flex-wrap gap-1">
+      <button
+        type="button"
+        className="mt-1 w-full border-t border-[var(--edge)] pt-0.5 text-center text-[13px] text-[#d9d2ca] md:hidden"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        {open ? "Ocultar info ▴" : "Ver info ▾"}
+      </button>
+      <div className={`mt-1.5 flex flex-wrap gap-1 ${fold}`}>
         <Chip tip={passiveTip(c, foe, you)} tone="passive">
           {CLASSES[c.char.classId].passive.name}
         </Chip>
@@ -166,7 +179,7 @@ export function HudCard({
         {children}
       </div>
       <div
-        className={`hud-stats mt-1.5 grid gap-x-2 ${compact ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2 lg:grid-cols-3 lg:[@media(max-height:760px)]:grid-cols-4"}`}
+        className={`hud-stats mt-1.5 grid gap-x-2 ${fold} ${compact ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2 lg:grid-cols-3 lg:[@media(max-height:760px)]:grid-cols-4"}`}
       >
         {cells.map((cell) => (
           <Tooltip

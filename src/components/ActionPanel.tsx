@@ -126,7 +126,7 @@ export function ActionPanel({
   return (
     <Panel
       title="Acciones"
-      className="md:[@media(max-height:700px)]:!p-2 md:[@media(max-height:700px)]:!pt-5"
+      className="max-md:sticky max-md:bottom-0 max-md:z-30 md:[@media(max-height:700px)]:!p-2 md:[@media(max-height:700px)]:!pt-5"
     >
       {!over && (
         <div className="mb-2 space-y-0.5 text-center">
