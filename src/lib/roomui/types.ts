@@ -1,6 +1,7 @@
 // View model + transport contract of the room UI. The UI only talks to a
 // RoomClient: a real one (fetch + Supabase Realtime) or the scripted fake used
 // by /sala/demo. Game rules stay in lib/game/room.ts.
+import type { AwardResult } from "../game/awards";
 import type { ClassId } from "../game/characters";
 import type { Element } from "../game/elements";
 import type { RarityId } from "../game/rarity";
@@ -62,11 +63,7 @@ export interface BattleView {
   interferenceFrom: string | null; // only at reveal
 }
 
-export interface Award {
-  id: "gafe" | "apostador" | "saboteador";
-  player: string;
-  value: number;
-}
+export type Award = AwardResult;
 
 export interface RoomView {
   code: string;
@@ -83,6 +80,8 @@ export interface RoomView {
   players: PlayerView[];
   battles: Record<string, BattleView>;
   awards: Award[] | null; // night_summary
+  /** My interfere price; absent = flat ROOM_K.interfereCost (real server is still flat). */
+  interfereCost?: number;
   connection: "online" | "reconnecting";
 }
 

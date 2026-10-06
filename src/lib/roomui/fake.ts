@@ -2,6 +2,7 @@
 // (lib/game/room.ts) with 1-6 bots, a virtual clock (`speed` x faster) and a
 // server-like replay of the floor logs I submit. No network, no Supabase.
 import { generateCharacter, type Character } from "../game/characters";
+import { computeAwards } from "../game/awards";
 import { createRng, hashSeed, type Rng } from "../game/rng";
 import { RARITY_IDS } from "../game/rarity";
 import type { RunAction } from "../game/replay";
@@ -23,6 +24,7 @@ import {
   setReady,
   setTurnSeconds,
   settlePool,
+  interfereCostFor,
   startRound,
   transferHost,
   type BetPrediction,
@@ -91,7 +93,7 @@ export class FakeRoomClient implements RoomClient {
   private submitted = new Set<string>();
   private stats = new Map<
     string,
-    { defeats: number; betNet: number; interferes: number }
+    { defeats: number; wins: number; betNet: number; interferes: number }
   >();
   private awards: Award[] | null = null;
   private view: RoomView | null = null;
@@ -154,13 +156,14 @@ export class FakeRoomClient implements RoomClient {
   }
   private stat(id: string) {
     let s = this.stats.get(id);
-    if (!s) this.stats.set(id, (s = { defeats: 0, betNet: 0, interferes: 0 }));
+    if (!s) this.stats.set(id, (s = { defeats: 0, wins: 0, betNet: 0, interferes: 0 }));
     return s;
   }
   private onSettled(key: string) {
     const b = Object.values(this.st.battles).find((x) => x.key === key);
     if (!b || !b.outcome) return;
     if (b.outcome === "lose") this.stat(b.fighter).defeats += 1;
+    if (b.outcome === "win") this.stat(b.fighter).wins += 1;
     for (const po of settlePool(b.bets, b.outcome).payouts)
       this.stat(po.bettor).betNet += po.payout - po.stake;
   }
@@ -237,6 +240,12 @@ export class FakeRoomClient implements RoomClient {
       players,
       battles,
       awards: this.awards,
+      interfereCost: interfereCostFor(
+        Object.fromEntries(
+          this.st.players.filter((p) => !p.left).map((p) => [p.id, p.chips]),
+        ),
+        ME,
+      ),
       connection: "online",
     };
   }
@@ -393,17 +402,20 @@ export class FakeRoomClient implements RoomClient {
   }
 
   private computeAwards(): Award[] {
-    const out: Award[] = [];
-    const best = (key: "defeats" | "betNet" | "interferes", id: Award["id"]) => {
-      let who: string | null = null;
-      let val = 0;
-      for (const [pid, v] of this.stats) if (v[key] > val) [who, val] = [pid, v[key]];
-      if (who) out.push({ id, player: who, value: val });
-    };
-    best("defeats", "gafe");
-    best("betNet", "apostador");
-    best("interferes", "saboteador");
-    return out;
+    return computeAwards(
+      this.st.players.map((p) => {
+        const v = this.stats.get(p.id);
+        return {
+          id: p.id,
+          chips: p.chips,
+          maxFloor: p.nightMaxFloor,
+          wins: v?.wins ?? 0,
+          losses: v?.defeats ?? 0,
+          betNet: v?.betNet ?? 0,
+          interferences: v?.interferes ?? 0,
+        };
+      }),
+    );
   }
 
   private tick() {

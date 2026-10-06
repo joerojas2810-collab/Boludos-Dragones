@@ -17,6 +17,10 @@ export const ROOM_K = {
   minBet: 10,
   interfereCost: 30,
   interfereComp: 15, // paid to the target when it wins anyway
+  catchUpDiscount: 10, // [K] interfere is this much cheaper for the player last in chips
+  catchUpMinGap: 50, // [K] ...only if they trail the leader by at least this many chips
+  catchUpMinPlayers: 3, // [K] ...and at least this many players are in the room
+  maxAwardsPerPlayer: 2, // [K] night awards: cap per player (2-player rooms still get a few)
   roundCapMs: 25 * 60_000,
   nightCapMs: 135 * 60_000,
   setupMs: 30_000,
@@ -369,17 +373,38 @@ export function validateBet(
   return null;
 }
 
+/**
+ * Interfere price: cheaper for whoever is last in chips (modest catch-up help).
+ * The reducer/fake apply it; the SQL `interfere_cost` is still a flat 30
+ * (pending migration, see docs/SALAS.md).
+ */
+export function interfereCostFor(
+  chipsById: Readonly<Record<string, number>>,
+  id: string,
+): number {
+  const all = Object.values(chipsById);
+  const mine = chipsById[id];
+  if (mine === undefined || all.length < ROOM_K.catchUpMinPlayers)
+    return ROOM_K.interfereCost;
+  const isLast = all.every((c) => c >= mine) && all.filter((c) => c === mine).length === 1;
+  const gap = Math.max(...all) - mine;
+  return isLast && gap >= ROOM_K.catchUpMinGap
+    ? ROOM_K.interfereCost - ROOM_K.catchUpDiscount
+    : ROOM_K.interfereCost;
+}
+
 /** Interference side effects on settlement. */
 export function interferenceSettlement(
   outcome: BetOutcome,
   reason: VoidReason | null,
+  cost: number = ROOM_K.interfereCost,
 ): { compToTarget: number; refundToSource: number } {
   if (outcome === "win")
     return { compToTarget: ROOM_K.interfereComp, refundToSource: 0 };
   const refundable = outcome === "void" && reason !== "fled" && reason !== null;
   return {
     compToTarget: 0,
-    refundToSource: refundable ? ROOM_K.interfereCost : 0,
+    refundToSource: refundable ? cost : 0,
   };
 }
 
@@ -415,7 +440,11 @@ function settleBattleIn(
     if (p) p.chips += po.payout;
   }
   n.totals.dust += dust;
-  const it = interferenceSettlement(outcome, reason);
+  const it = interferenceSettlement(
+    outcome,
+    reason,
+    b.interference?.cost,
+  );
   if (b.interference) {
     const target = byId(n, b.fighter);
     if (target && it.compToTarget) {
@@ -695,12 +724,16 @@ export function placeInterference(
   if (from === fighter) return fail("self_interfere");
   const p = byId(s, from)!;
   if (!p.present) return fail("not_member");
-  if (p.chips < ROOM_K.interfereCost) return fail("insufficient_chips");
+  const cost = interfereCostFor(
+    Object.fromEntries(members(s).map((m) => [m.id, m.chips])),
+    from,
+  );
+  if (p.chips < cost) return fail("insufficient_chips");
   if (b.interference) return fail("already_interfered");
   const n = clone(s);
-  byId(n, from)!.chips -= ROOM_K.interfereCost;
-  n.totals.interfereSpent += ROOM_K.interfereCost;
-  n.battles[fighter].interference = { from, kind, cost: ROOM_K.interfereCost };
+  byId(n, from)!.chips -= cost;
+  n.totals.interfereSpent += cost;
+  n.battles[fighter].interference = { from, kind, cost };
   return done(n);
 }
 

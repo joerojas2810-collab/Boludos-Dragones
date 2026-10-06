@@ -17,6 +17,7 @@ import { useProfile } from "@/lib/useProfile";
 import { useNow, useRoom, type LiveFight } from "@/lib/useRoom";
 import { characterView } from "@/lib/viewModels";
 import { filterSortCharacters } from "@/lib/viewModels";
+import { AWARD_INFO } from "@/lib/game/awards";
 import { DEFAULT_HERO } from "@/lib/game/room";
 import type { EmoteId, RoomClient, RoomView } from "@/lib/roomui/types";
 import {
@@ -230,8 +231,11 @@ export function RoomScreen({
       main = (
         <Panel title="Resumen de la noche">
           {view.awards?.map((a) => (
-            <div key={a.id} className="text-center">
-              {AWARD[a.id]}: {view.players.find((p) => p.id === a.player)?.name ?? "?"} ({a.value})
+            <div key={a.id} className="mb-2 text-center">
+              <div className="font-bold">
+                {AWARD_INFO[a.id].title}: {view.players.find((p) => p.id === a.player)?.name ?? "?"}
+              </div>
+              <div className="text-sm opacity-80">{AWARD_INFO[a.id].blurb(a.value)}</div>
             </div>
           ))}
           <div className="mt-3 text-center">
@@ -344,7 +348,6 @@ export function RoomScreen({
   );
 }
 
-const AWARD = { gafe: "El Gafe", apostador: "El Apostador", saboteador: "El Saboteador" };
 
 const Centered = ({ children }: { children: ReactNode }) => (
   <main className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
@@ -462,6 +465,7 @@ function BetPanel({
   const [done, setDone] = useState<Set<string>>(new Set());
   const targets = fightersOf(view).filter((p) => p.id !== view.me);
   const me = view.players.find((p) => p.id === view.me);
+  const cost = view.interfereCost ?? ROOM_K.interfereCost;
   const mark = (k: string) => setDone((s) => new Set(s).add(k));
   const go = async (key: string, p: Promise<{ ok: boolean; error?: unknown }>) => {
     const r = await p;
@@ -507,10 +511,10 @@ function BetPanel({
                 <button
                   key={k}
                   className="btn btn-gray !px-3"
-                  disabled={!open || done.has(`i${p.id}`) || (me?.chips ?? 0) < ROOM_K.interfereCost}
+                  disabled={!open || done.has(`i${p.id}`) || (me?.chips ?? 0) < cost}
                   onClick={() => void go(`i${p.id}`, client.interfere(p.id, k))}
                 >
-                  {label} ({ROOM_K.interfereCost})
+                  {label} ({cost})
                 </button>
               ))}
             </li>

@@ -3,6 +3,7 @@
 // server-side login does not give us, so the snapshot poll is the transport
 // (the contract says the snapshot is the source of truth anyway).
 // Fight HP and emotes ride on the snapshot (server keeps them in memory).
+import { computeAwards } from "../game/awards";
 import { doorsFor } from "../game/run";
 import type { RunAction } from "../game/replay";
 import type {
@@ -356,15 +357,17 @@ export class RemoteRoomClient implements RoomClient {
 }
 
 function toAwards(s: SummaryRes): Award[] {
-  const by = (id: string | null, f: (p: SummaryRes["players"][number]) => number, a: Award["id"]) => {
-    const p = s.players.find((x) => x.player_id === id);
-    return p ? [{ id: a, player: p.player_id, value: f(p) }] : [];
-  };
-  return [
-    ...by(s.awards.gafe, (p) => p.losses, "gafe"),
-    ...by(s.awards.apostador, (p) => p.bet_net, "apostador"),
-    ...by(s.awards.saboteador, (p) => p.interferences, "saboteador"),
-  ];
+  return computeAwards(
+    s.players.map((p) => ({
+      id: p.player_id,
+      chips: p.chips,
+      maxFloor: p.max_floor,
+      wins: p.wins,
+      losses: p.losses,
+      betNet: p.bet_net,
+      interferences: p.interferences,
+    })),
+  );
 }
 
 /** Door index inside the floor's door list (what the floor log's `door` action needs). */

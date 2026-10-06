@@ -173,3 +173,10 @@ Orden: A y B en paralelo → C (depende de ambos) → D (usa tipos de A y la API
 3. **Tope de 90 s por piso.** Puede cortar peleas largas (Clérigo vs Clérigo). Recomendado 90 s con +30 s en jefes; `timeout` cuenta como `lose`.
 4. **¿Elegir héroe por ronda o fijo para la noche?** Recomendado: elegir por ronda (variedad y gacha de la semana importa).
 5. **Interferir secreto vs público.** Recomendado: secreto hasta el reveal (más risas, más drama).
+
+
+## 10. Premios de fin de noche y ayuda al último (hecho)
+
+Premios (`lib/game/awards.ts`, `computeAwards`): Oráculo (mejor neto apostando), Mecenas (peor neto), Saboteador (más interferencias lanzadas), Gafe (más derrotas), Intocable (victorias sin derrotas), Escalador (piso máximo), Rey de las Fichas. Reparto: se prioriza a quien menos premios lleva; tope `maxAwardsPerPlayer` = 2 `[K]`; con 2 a 7 jugadores. Pendiente (el servidor aún no guarda el dato, `night_summary` solo da wins/losses/bet_net/interferences): Blanco Favorito (interferencias recibidas), Mártir (muertes), Valiente (victorias con poca vida), Gafe de las Apuestas (apuestas perdidas). Ya están en la lógica como campos opcionales (`interfered`, `deaths`, `braveWins`, `betsLost`): se activan solos cuando el resumen los incluya.
+
+Ayuda al último en fichas: interferir cuesta `interfereCost − catchUpDiscount` = 30 − 10 = 20 si eres el último en fichas, vas al menos `catchUpMinGap` = 50 fichas detrás del líder y hay `catchUpMinPlayers` = 3+ jugadores (`interfereCostFor`). El reembolso al anular usa el costo realmente pagado. Aplicado en el modelo de referencia y en la sala demo; la RPC SQL `interfere` sigue cobrando 30 fijo (pendiente: migración nueva que lea el descuento; hasta entonces el cliente real muestra 30).
