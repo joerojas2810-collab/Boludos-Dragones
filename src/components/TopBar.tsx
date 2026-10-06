@@ -6,17 +6,21 @@ import { logout, repo, useProfile } from "@/lib/useProfile";
 const LINKS = [
   { href: "/gacha", label: "Gacha" },
   { href: "/coleccion", label: "Colección" },
+  { href: "/mercado", label: "Mercado" },
 ] as const;
 
 // Shared header of the meta screens: back to menu, sibling links, coins.
-export function TopBar({ current }: { current: "/gacha" | "/coleccion" }) {
+export function TopBar({ current }: { current: "/gacha" | "/coleccion" | "/mercado" }) {
   const { profile, session } = useProfile();
   return (
     <header className="pixel-frame mx-auto flex w-full max-w-4xl flex-wrap items-center gap-2 px-3 py-2">
       <Link href="/" className="btn btn-gray !min-h-9 !px-2 !py-1 text-center">
         ← Menú
       </Link>
-      {LINKS.filter((l) => l.href !== current).map((l) => (
+      {LINKS.filter(
+        (l) =>
+          l.href !== current && (l.href !== "/mercado" || repo.mode === "remote"),
+      ).map((l) => (
         <Link
           key={l.href}
           href={l.href}

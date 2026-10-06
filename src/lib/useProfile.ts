@@ -50,6 +50,9 @@ export const repo: ProfileRepo = selectRepo(
   },
 );
 
+export const replaceProfile = (p: Profile) =>
+  set({ ...ensure(), profile: p });
+
 function ensure(): State {
   if (!state) {
     if (isRemote()) state = SERVER_STATE;

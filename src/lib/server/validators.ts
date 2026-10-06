@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isPieceKey } from "../game/market";
 import { UPGRADES, type UpgradeId } from "../game/progression";
 import { SKILL_IDS, type SkillId } from "../game/skills";
 import { RELIC_IDS } from "../game/relics";
@@ -103,3 +104,18 @@ export const runSubmitBody = z.strictObject({
 export const dailyBody = z.strictObject({
   banner: z.enum(["character", "weapon"]),
 });
+
+// ---- market ----
+const pieceKey = z.string().max(60);
+export const marketOfferBody = z
+  .strictObject({
+    kind: z.enum(["character", "weapon"]),
+    give: pieceKey,
+    want: pieceKey.nullable(),
+  })
+  .refine(
+    (b) =>
+      isPieceKey(b.kind, b.give) &&
+      (b.want === null || (isPieceKey(b.kind, b.want) && b.want !== b.give)),
+  );
+export const marketIdBody = z.strictObject({ offerId: uuidSchema });

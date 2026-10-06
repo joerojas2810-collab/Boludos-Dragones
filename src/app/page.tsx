@@ -37,6 +37,11 @@ export default function Home() {
             Colección
           </Link>
           {repo.mode === "remote" && session.status === "user" && (
+            <Link href="/mercado" className="btn text-center">
+              Mercado
+            </Link>
+          )}
+          {repo.mode === "remote" && session.status === "user" && (
             <Link href="/sala" className="btn text-center">
               Sala
             </Link>

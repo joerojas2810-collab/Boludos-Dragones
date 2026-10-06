@@ -48,6 +48,12 @@ const KNOWN: Record<string, [number, string]> = {
   forbidden: [403, "No permitido."],
   player_not_found: [404, "Jugador no encontrado."],
   name_taken: [409, "Ese nombre ya existe."],
+  invalid_args: [400, "Datos inválidos."],
+  offer_not_found: [404, "Esa oferta ya no existe."],
+  offer_closed: [409, "Esa oferta ya no está disponible."],
+  own_offer: [409, "No puedes aceptar tu propia oferta."],
+  already_offered: [409, "Ya tienes una oferta abierta de esa pieza."],
+  too_many_offers: [409, "Tienes demasiadas ofertas abiertas."],
   invalid_name: [400, "Nombre inválido."],
 };
 
