@@ -6,7 +6,12 @@ import { Sprite } from "@/components/Sprite";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import { CLASSES } from "@/lib/game/characters";
 import { activeSets, setLine } from "@/lib/game/gear";
-import { slotKey, type OwnedCharacter, type Profile } from "@/lib/game/profile";
+import {
+  autoEquipPlan,
+  slotKey,
+  type OwnedCharacter,
+  type Profile,
+} from "@/lib/game/profile";
 import { RARITIES } from "@/lib/game/rarity";
 import {
   CLASS_WEAPONS,
@@ -42,8 +47,24 @@ export function EquipmentEditor({
     return w ? [w.element] : [];
   });
   const sets = activeSets(wornElements, c.element);
+  const plan = autoEquipPlan(profile, c.id);
   return (
     <>
+      <button
+        className="btn w-full text-center"
+        disabled={plan.length === 0}
+        title="Equipa la mejor pieza libre en cada casilla (cuenta los sets de elemento)"
+        onClick={() =>
+          act(async () => {
+            for (const { slot, weaponId } of plan)
+              await repo.equip(c.id, weaponId, slot);
+          })
+        }
+      >
+        {plan.length === 0
+          ? "Equipo ya óptimo"
+          : `Autoequipar (${plan.length} ${plan.length === 1 ? "cambio" : "cambios"})`}
+      </button>
       <div className="doll" aria-label="Equipo del héroe">
         {[DOLL_LEFT, DOLL_RIGHT].map((col, i) => (
           <div key={i} className="doll-col">

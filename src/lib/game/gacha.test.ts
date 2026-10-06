@@ -21,6 +21,7 @@ import {
   equipWeapon,
   heroPower,
   heroFor,
+  autoEquipPlan,
   heroFromOwned,
   migrate,
   pullCharacter,
@@ -357,6 +358,31 @@ describe("gear", () => {
     expect(h.stats.crit).toBeCloseTo(plain.stats.crit + 0.069, 2);
     expect(h.gear).toBeDefined();
     expect(migrate(JSON.parse(JSON.stringify(p))).equipped).toEqual(p.equipped);
+  });
+  it("auto-equip picks the best free piece per slot and skips other heroes' pieces", () => {
+    let p = pullCharacter(rich(), createRng(3), 2)!.profile;
+    const [a, b] = p.characters;
+    const low = piece("casco", "f");
+    const high = {
+      ...piece("casco", "ssr"),
+      id: "w-casco-agua-ssr",
+      element: "agua" as const,
+    };
+    const chest = piece("peto", "f");
+    p = { ...p, weapons: [low, high, chest] };
+    p = equipWeapon(p, a.id, low.id);
+    const plan = autoEquipPlan(p, a.id);
+    expect(plan).toContainEqual({ slot: "casco", weaponId: high.id });
+    expect(plan).toContainEqual({ slot: "peto", weaponId: chest.id });
+    // the SSR helm is worn by b: a must not take it
+    const q = equipWeapon(p, b.id, high.id);
+    expect(autoEquipPlan(q, a.id).some((x) => x.weaponId === high.id)).toBe(
+      false,
+    );
+    expect(autoEquipPlan(q, a.id)).toContainEqual({
+      slot: "peto",
+      weaponId: chest.id,
+    });
   });
   it("nivelado ignores gear", () => {
     let p = pullCharacter(rich(), createRng(3))!.profile;

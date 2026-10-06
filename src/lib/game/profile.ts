@@ -299,6 +299,46 @@ export function equipWeapon(
   };
 }
 
+// Best free piece for each slot of a hero, chosen greedily by the hero's resulting power
+// (so element sets count). Pieces worn by OTHER heroes are never taken. Returns only the
+// changes, in the order to apply them (two passes: a later piece can complete a set).
+// ponytail: greedy, not an exhaustive search of set combinations.
+export function autoEquipPlan(
+  p: Profile,
+  heroId: string,
+): { slot: Slot; weaponId: string }[] {
+  const hero = p.characters.find((c) => c.id === heroId);
+  if (!hero) return [];
+  const takenByOthers = new Set(
+    Object.entries(p.equipped)
+      .filter(([k]) => parseSlotKey(k)[0] !== heroId)
+      .map(([, id]) => id),
+  );
+  let cur = p;
+  for (let pass = 0; pass < 2; pass++)
+    for (const slot of SLOTS) {
+      let best = heroPower(cur, heroId);
+      let pick: string | null = null;
+      for (const w of p.weapons) {
+        if (slotOf(w.type) !== slot || takenByOthers.has(w.id)) continue;
+        if (cur.equipped[slotKey(heroId, slot)] === w.id) continue;
+        if (!canUseWeapon(hero.classId, w.type)) continue;
+        const power = heroPower(equipWeapon(cur, heroId, w.id), heroId);
+        if (power > best) {
+          best = power;
+          pick = w.id;
+        }
+      }
+      if (pick) cur = equipWeapon(cur, heroId, pick);
+    }
+  return SLOTS.flatMap((slot) => {
+    const id = cur.equipped[slotKey(heroId, slot)];
+    return id && id !== p.equipped[slotKey(heroId, slot)]
+      ? [{ slot, weaponId: id }]
+      : [];
+  });
+}
+
 export function unequipWeapon(
   p: Profile,
   characterId: string,
