@@ -1,6 +1,6 @@
 # Siguiente nivel estético de personajes
 
-**Estado:** propuesta compatible con la Fase 2 de “juice”; piloto del Mago aplicado en código.  
+**Estado:** mejoras de personajes, armas y accesorios aplicadas en código; compatibles con la Fase 2 de “juice”.
 **Actualizado:** 2026-10-06  
 **Premisa:** aumentar identidad, detalle y expresividad sin abandonar el pixel art, sin imágenes externas y sin alterar juego, datos o economía.
 
@@ -13,6 +13,9 @@ La Fase 2 de [`MEJORA_VISUAL.md`](./MEJORA_VISUAL.md) añade movimiento y efecto
 | Partículas, hit-stop, entrada de jefe, parallax y confeti | Complementario: decoran acciones y escenas alrededor del personaje. | Mantenerlos en los componentes de efectos; las mejoras de arte permanecen en las cuadrículas de sprites. |
 | Respiración de sprites | Complementario con contacto visual: el mismo sprite gana vida sin cambiar sus píxeles. | Poner la animación en el contenedor del sprite y conservar `prefers-reduced-motion`. |
 | Entrada de jugadores/avatar con accesorio (`RoomScreen`) | Hay un punto de integración: la animación mostrará los sprites y accesorios. | No editar `RoomScreen` mientras la Fase 2 esté en curso; reutilizar `Sprite` y `applyAccessories` cuando se integre. |
+| Armas generadas por elemento | El catálogo ya define 6 tipos × 5 elementos en cuadrículas 32×32. | Detallar empuñaduras y gemas dentro de los generadores existentes; conservar tipo, rareza y elemento. |
+| Accesorios por rasgo | Se dibujan como capas sobre el héroe. | Refinar silueta/contraste sin cambiar `TraitId`, cantidad de rasgos ni anclas públicas. |
+| Arena de Cavernas | Ya usa escenarios SVG deterministas. | Profundizar pared, portón, antorchas, calaveras y piso de piedra en el generador; mantener fondos de otros mundos intactos. |
 | UI global, gacha y sala | Compatible: marcos y tarjetas siguen con la estética cálida actual. | No tocar estilos globales ni contratos de sala para redibujar personajes. |
 
 **Conclusión:** pueden avanzar en el mismo ciclo de trabajo. El piloto usa `src/sprites/classes.ts`, que no figura entre los archivos locales modificados para la Fase 2. Conviene integrar los cambios de sala después de que se revise ese grupo.
@@ -20,6 +23,7 @@ La Fase 2 de [`MEJORA_VISUAL.md`](./MEJORA_VISUAL.md) añade movimiento y efecto
 ## Dirección artística
 
 - Conservar la cuadrícula lógica **32×32**, el pixel duro, la luz arriba-izquierda, las paletas elementales y el borde oscuro.
+- Tomar la referencia visual compartida como norte: contornos más marcados, brillos de metal/blade legibles, emblemas nítidos y la misma combinación cálida de piedra, ámbar y verde. La referencia orienta el acabado; no se integra como archivo de imagen.
 - Mantener las siluetas, equipo y paleta general actuales; añadir identidad en zonas pequeñas y legibles: broches, runas, costuras, hombreras, adornos del arma y rasgos faciales.
 - Dar a cada clase una marca propia: insignia defensiva para el Caballero, sigilo elemental para el Mago, marcas de oficio para el Pícaro y símbolo de sanación para el Clérigo.
 - Usar piezas por capas en las cuadrículas existentes. Los rasgos aleatorios siguen siendo accesorios; no se confunden con el equipo fijo de cada clase.
@@ -28,12 +32,12 @@ La Fase 2 de [`MEJORA_VISUAL.md`](./MEJORA_VISUAL.md) añade movimiento y efecto
 
 ## Plan de trabajo
 
-1. **Piloto visual de una clase.** Añadir un detalle distintivo de pocos píxeles al Mago, usando colores existentes. Ya aplicado: un sigilo de gema en el pecho con oro y el tono claro del elemento.
-2. **Revisión a tamaño de juego.** Comparar sprite normal y piloto en los cinco elementos, en batalla y colección. Revisar contraste con túnica, rasgos y arma.
-3. **Ajustar el lenguaje por clase.** Definir el motivo visual del Caballero, Pícaro y Clérigo; usar formas diferentes y ubicaciones que no choquen con accesorios.
-4. **Aplicar uno por vez.** Cambiar una clase, comprobar la cuadrícula 32×32 y su combinación con accesorios antes de avanzar a la siguiente.
-5. **Integrar con movimiento.** Confirmar que respiración, ataque, golpe y revelación de sala no desplacen, tapen ni desdibujen los detalles; mantener todos los efectos bajo `prefers-reduced-motion`.
-6. **Revisión final.** Generar una lámina de sprites desde las cuadrículas de código (artefacto temporal, no imagen fuente del juego) y validar dimensiones, paletas y pruebas existentes.
+1. **Identidad de clase.** Aplicado: Caballero con blasón, Mago con gema y runas, Pícaro con insignia de gremio y Clérigo con sol elemental.
+2. **Armas.** Aplicado sobre los 6 tipos × 5 elementos: brillos blancos de filo, empuñaduras con virolas de oro y gemas de pomo facetadas; conserva el color de gema por rareza.
+3. **Accesorios.** Aplicado: retoques de contraste/lectura para Glotón, Frágil y Escurridizo; mismos rasgos, anclas y composición.
+4. **Arena de Cavernas.** Aplicado en `src/sprites/backgrounds.ts`: mampostería en filas escalonadas, portón de arco, antorchas, relieves y uniones de losas; los demás mundos mantienen sus generadores.
+5. **Validación técnica.** Pruebas de cuadrícula, armas, accesorios y fondos (4 archivos: 9 pruebas), lint y typecheck completados. La revisión en navegador todavía está pendiente.
+6. **Integración con movimiento.** Mantener la respiración y los efectos actuales en su contenedor; revisar que no recorten ni desenfoquen los detalles y respeten `prefers-reduced-motion`.
 
 ## Límites y recursos
 
@@ -45,6 +49,6 @@ La Fase 2 de [`MEJORA_VISUAL.md`](./MEJORA_VISUAL.md) añade movimiento y efecto
 
 ## Piloto ejecutado
 
-Se añadió un pequeño sigilo arcano centrado en el pecho del Mago dentro de `OVERLAYS.mago` en `src/sprites/classes.ts`. Usa el oro existente y `c`, que se convierte en el tono claro del elemento durante el sombreado normal. No modifica la forma base, el arma, las paletas, los rasgos ni los datos del personaje. Es una prueba del lenguaje visual, no un rediseño final de las cuatro clases.
+Se extendieron los emblemas a las cuatro clases mediante `OVERLAYS` en `src/sprites/classes.ts`. También se detallaron todas las empuñaduras, filos y gemas de pomo en `src/sprites/weapons.ts`; `p` continúa tomando el color de rareza y el reflejo `w` es fijo. En `src/sprites/accessories.ts` se mejoraron la lectura de la pierna de pollo de Glotón, el centro de la venda de Frágil y el brillo de las estelas de Escurridizo. En `src/sprites/backgrounds.ts` se añadió una cámara pétrea de Cavernas con muro, portón, antorchas y losas generadas por código. No se modificaron tipos de arma, rasgos, anclas, rarezas, datos, reglas de juego ni fondos de otros mundos.
 
-La integración es compatible con la Fase 2; falta verificar la lectura visual del sigilo en el navegador antes de replicar el tratamiento en otras clases.
+La integración de código es compatible con la Fase 2 y no requiere imágenes ni dependencias. La inspección visual en navegador sigue pendiente porque el entorno no ha podido conectarse al servidor local; validar esa lectura antes de hacer más denso el arte.

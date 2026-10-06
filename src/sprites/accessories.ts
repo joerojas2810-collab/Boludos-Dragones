@@ -289,9 +289,10 @@ export const ACCESSORIES: Record<
       px: [
         [0, 2, "..wwww"],
         [1, 1, ".wdddo"],
-        [2, 0, "odddho"],
+        [2, 0, "oddddo"],
         [3, 0, ".odddo"],
         [4, 0, "..ooo."],
+        [2, 1, "..y"],
       ],
     },
   ],
@@ -302,9 +303,10 @@ export const ACCESSORIES: Record<
       px: [
         [0, 0, ".ooo."],
         [1, 0, "okkk."],
-        [2, 0, "okrko"],
+        [2, 0, "okrro"],
         [3, 0, ".kkko"],
         [4, 0, ".ooo."],
+        [2, 2, "w"],
       ],
     },
   ],
@@ -324,7 +326,7 @@ export const ACCESSORIES: Record<
     {
       at: "pL",
       px: [
-        [0, 0, "..ccc"],
+        [0, 0, "..wcc"],
         [1, 0, ".ccccc"],
         [2, 0, "cc.."],
       ],
@@ -332,7 +334,7 @@ export const ACCESSORIES: Record<
     {
       at: "pR",
       px: [
-        [0, 0, "ccc.."],
+        [0, 0, "ccw.."],
         [1, 0, "ccccc"],
         [2, 0, "..cc"],
       ],

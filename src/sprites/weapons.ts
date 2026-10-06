@@ -71,9 +71,19 @@ const shaft = (g: Grid, y0: number, y1: number, ch = "h") => {
   }
 };
 const gem = (g: Grid, y: number) => {
-  for (const dy of [0, 1]) {
-    put(g, 15, y + dy, "p");
-    put(g, 16, y + dy, "p");
+  // A cut, rarity-coloured pommel stone with a tiny fixed white glint.
+  put(g, 15, y, "p");
+  put(g, 14, y + 1, "p");
+  put(g, 15, y + 1, "w");
+  put(g, 16, y + 1, "p");
+  put(g, 15, y + 2, "p");
+};
+
+// Gold ferrules and leather highlights make the grip read as a crafted handle.
+const gripDetails = (g: Grid, rows: readonly number[]) => {
+  for (const y of rows) {
+    put(g, 14, y, "y");
+    put(g, 17, y, "y");
   }
 };
 
@@ -103,7 +113,14 @@ function buildSword(element: Element): string[] {
     const w = p.width(i);
     const l = 15 - Math.floor((w - 1) / 2) + p.shift(i);
     for (let x = l; x < l + w; x++)
-      g[y][x] = x === l ? "c" : x === l + w - 1 ? "b" : "a";
+      g[y][x] =
+        x === l
+          ? "c"
+          : x === l + w - 1
+            ? "b"
+            : x === l + 1 && w >= 4 && i % 4 === 0
+              ? "w"
+              : "a";
   }
   // guard: 16 px centred
   p.guard.forEach((row, k) =>
@@ -112,6 +129,7 @@ function buildSword(element: Element): string[] {
     }),
   );
   shaft(g, GUARD_Y + 2, 29);
+  gripDetails(g, [26, 28]);
   gem(g, 29);
   return outline(g);
 }
@@ -129,12 +147,24 @@ function buildAxe(element: Element): string[] {
   const g = blank();
   const { ext, double } = AXE[element];
   shaft(g, 2, 29);
+  gripDetails(g, [23, 26]);
   ext.forEach((e, k) => {
     const y = 3 + k;
     for (const side of double ? [-1, 1] : [-1]) {
       for (let d = 1; d <= e; d++) {
         const x = side < 0 ? 15 - d : 16 + d;
-        put(g, x, y, d === e ? "c" : d <= 2 ? "b" : "a");
+        put(
+          g,
+          x,
+          y,
+          d === e
+            ? "c"
+            : d === e - 2 && k % 3 === 0
+              ? "w"
+              : d <= 2
+                ? "b"
+                : "a",
+        );
       }
     }
     put(g, 15, y, "m");
@@ -163,13 +193,25 @@ function buildSpear(element: Element): string[] {
   head.forEach((w, k) => {
     const l = 16 - w / 2;
     for (let x = l; x < l + w; x++)
-      put(g, x, 1 + k, x === l ? "c" : x === l + w - 1 ? "b" : "a");
+      put(
+        g,
+        x,
+        1 + k,
+        x === l
+          ? "c"
+          : x === l + w - 1
+            ? "b"
+            : x === l + 1 && k % 4 === 1
+              ? "w"
+              : "a",
+      );
   });
   const cy = 1 + head.length;
   if (element === "viento")
     stamp(g, 9, cy, ["n..............n", "nnmmmmmmmmmmnnn"]);
   else stamp(g, 12, cy, ["nmmmmmmm", ".nnnnnn"]);
   shaft(g, cy + 2, 29);
+  gripDetails(g, [cy + 8, cy + 12]);
   for (const y of [cy + 7, cy + 13]) {
     put(g, 15, y, "b");
     put(g, 16, y, "b");
@@ -194,6 +236,7 @@ function buildBow(element: Element): string[] {
   if (element === "viento") for (const y of [1, 30]) stamp(g, 22, y, ["cc"]);
   for (let y = 3; y <= 28; y++) put(g, 24, y, "w");
   for (let y = 13; y <= 18; y++) stamp(g, 11, y, ["hhh"]);
+  stamp(g, 11, 13, ["yhy", "hhh", "hhh", "yhy"]);
   // arrow: shaft, head, fletching
   for (let x = 12; x <= 28; x++) {
     put(g, x, 15, "m");
@@ -250,6 +293,7 @@ function buildStaff(element: Element): string[] {
   stamp(g, 20, 14, ["n", "nn"]);
   stamp(g, 12, 16, ["nmmmmmmm", ".nnnnnn"]);
   shaft(g, 18, 29);
+  gripDetails(g, [23, 27]);
   for (const y of [22, 26]) {
     put(g, 15, y, "b");
     put(g, 16, y, "b");
@@ -288,12 +332,24 @@ function buildDagger(element: Element): string[] {
     const w = b.w(i);
     const l = 15 - Math.floor((w - 1) / 2) + b.s(i);
     for (let x = l; x < l + w; x++)
-      put(g, x, y, x === l ? "c" : x === l + w - 1 ? "b" : "a");
+      put(
+        g,
+        x,
+        y,
+        x === l
+          ? "c"
+          : x === l + w - 1
+            ? "b"
+            : x === l + 1 && w >= 4 && i % 4 === 1
+              ? "w"
+              : "a",
+      );
   }
   stamp(g, 11, 23, ["nmmmmmmmmm", ".nnnnnnnn"]);
   shaft(g, 25, 28);
   put(g, 14, 28, "h");
   put(g, 17, 28, "h");
+  gripDetails(g, [26]);
   gem(g, 28);
   return outline(g);
 }

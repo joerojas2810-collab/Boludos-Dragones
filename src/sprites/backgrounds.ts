@@ -134,6 +134,61 @@ function ridge(
   }
 }
 
+// A deterministic stone chamber for Cavernas, drawn entirely with SVG rects.
+function dungeonWall(cv: Canvas) {
+  for (let row = 0; row < 9; row++) {
+    const y = row * 7;
+    let x = row % 2 ? 5 : 0;
+    let col = 0;
+    while (x < SCENE_W) {
+      const width = 8 + Math.floor(cv.n(row * 20 + col, 32) * 7);
+      const stone = ["#342b30", "#3a2f33", "#403438", "#30272c"][
+        Math.floor(cv.n(row * 20 + col, 33) * 4)
+      ];
+      const visibleWidth = Math.min(width, SCENE_W - x);
+      cv.r(x, y, visibleWidth, 6, stone);
+      cv.r(x + 1, y, Math.max(1, visibleWidth - 3), 1, "#4d3d3d");
+      x += width + 1;
+      col++;
+    }
+  }
+
+  // Deep arched gate centered behind the fighters, with chunky stone blocks.
+  cv.r(76, 31, 8, 2, "#57464a");
+  cv.r(73, 33, 14, 2, "#514147");
+  cv.r(71, 35, 18, 2, "#514147");
+  cv.r(70, 37, 20, 3, "#57464a");
+  cv.r(72, 40, 16, 23, "#151116");
+  cv.r(73, 40, 1, 23, "#6a5848");
+  cv.r(86, 40, 1, 23, "#30262b");
+  cv.r(76, 41, 1, 21, "#514147");
+  cv.r(80, 41, 1, 21, "#514147");
+  cv.r(84, 41, 1, 21, "#514147");
+  cv.r(72, 47, 16, 1, "#30262b");
+  cv.r(72, 55, 16, 1, "#30262b");
+  cv.r(79, 49, 2, 3, "#b77926"); // small gate latch
+
+  // Wall torches with warm cores, like the reference arena.
+  for (const x of [8, 147]) {
+    cv.r(x, 35, 4, 13, "#171216");
+    cv.r(x + 1, 36, 2, 10, "#6b4423");
+    cv.r(x - 2, 47, 8, 2, "#514147");
+    cv.r(x - 1, 31, 6, 2, "#514147");
+    cv.r(x, 27, 4, 5, "#ff6a1a", "flame");
+    cv.r(x + 1, 25, 2, 4, "#ffd24d", "flame");
+    cv.r(x + 1, 28, 1, 1, "#fff1b0", "flame");
+  }
+
+  // Small skull reliefs on the wall, kept dim so sprites stay readable.
+  for (const x of [48, 107]) {
+    cv.r(x + 1, 46, 5, 4, "#8b796c");
+    cv.r(x, 47, 7, 2, "#8b796c");
+    cv.r(x + 2, 47, 1, 1, "#21191e");
+    cv.r(x + 5, 47, 1, 1, "#21191e");
+    cv.r(x + 2, 50, 3, 1, "#6a5848");
+  }
+}
+
 function sky(w: number, boss: boolean): Rect[] {
   const th = THEMES[w];
   const tint = (c: string) =>
@@ -201,8 +256,8 @@ function sky(w: number, boss: boolean): Rect[] {
     ridge(cv, th.far, 54, 24, 14, 5, "mesa");
     ridge(cv, th.near, 63, 20, 11, 6, "mesa");
   } else if (w === 3) {
-    ridge(cv, th.far, 58, 30, 8, 7, "jag");
-    // stalactites from the ceiling
+    dungeonWall(cv);
+    // Stalactites break the wall silhouette without crowding the arena center.
     for (let i = 0; i < 16; i++) {
       const x = i * 10 + Math.floor(cv.n(i, 3) * 6);
       const l =
@@ -216,7 +271,6 @@ function sky(w: number, boss: boolean): Rect[] {
           th.near,
         );
     }
-    ridge(cv, th.near, 63, 18, 6, 8, "jag");
     for (const [x, h, c] of [
       [12, 14, "#7ad1ff"],
       [26, 9, "#b48cff"],
@@ -302,6 +356,20 @@ function ground(w: number, boss: boolean): Rect[] {
     const y = 2 + Math.floor(cv.n(i, 2) * 24);
     const c = y < 9 ? mid : y < 18 ? top : mid;
     cv.r(x, y, 2 + Math.floor(cv.n(i, 3) * 3), 1, c);
+  }
+  if (w === 3) {
+    // Staggered stone floor joints and top-edge glints.
+    for (let row = 0; row < 3; row++) {
+      const y = 8 + row * 9;
+      const offset = row % 2 ? 10 : 0;
+      cv.r(0, y, SCENE_W, 1, "#1a1418");
+      if (y + 1 < GROUND_H)
+        for (let x = offset; x < SCENE_W; x += 20) {
+          const remaining = GROUND_H - (y + 1);
+          cv.r(x, y + 1, 1, Math.min(7, remaining), "#1a1418");
+          cv.r(x + 1, y + 1, Math.min(6, remaining), 1, "#514147");
+        }
+    }
   }
   if (w === 0)
     for (const x of [14, 60, 104, 138]) {

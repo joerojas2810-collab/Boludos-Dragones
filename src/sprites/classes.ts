@@ -173,6 +173,10 @@ export const OVERLAYS: Record<ClassId, readonly Patch[]> = {
     [21, 25, "oyyyyyo"],
     ...vertical(22, 24, 27, "oho"),
     [25, 27, "oyo"],
+    // enamel crest on the breastplate
+    [18, 15, ".y."],
+    [19, 14, "oycyo"],
+    [20, 15, ".y."],
     [18, 0, "..ooooooo.."],
     [19, 0, ".oyyyyyyyo."],
     [20, 0, "oyaccaaaayo"],
@@ -198,6 +202,9 @@ export const OVERLAYS: Record<ClassId, readonly Patch[]> = {
     [17, 15, ".y."],
     [18, 14, "oycyo"],
     [19, 15, ".y."],
+    // arcane stitches framing the crystal
+    [16, 14, "y...y"],
+    [20, 14, "y...y"],
   ],
   // dagger up (right), dagger down (left)
   picaro: [
@@ -215,6 +222,10 @@ export const OVERLAYS: Record<ClassId, readonly Patch[]> = {
     [15, 0, "oyyyo"],
     ...vertical(16, 22, 1, "omo"),
     [23, 2, "o"],
+    // jade-and-gold guild pin on the leather vest
+    [15, 15, ".y."],
+    [16, 14, "oygyo"],
+    [17, 15, ".y."],
   ],
   // mace (right) and holy book (left)
   clerigo: [
@@ -233,6 +244,10 @@ export const OVERLAYS: Record<ClassId, readonly Patch[]> = {
     [21, 0, "oaaayaao"],
     [22, 0, "owwwwwwo"],
     [23, 0, ".oooooo."],
+    // small gold-and-element sunburst on the robe
+    [16, 15, "..y.."],
+    [17, 14, ".ycy."],
+    [18, 15, "..y.."],
   ],
 };
 
