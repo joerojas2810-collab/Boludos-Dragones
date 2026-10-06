@@ -14,6 +14,7 @@
 - 352 tests Vitest, pglite: rooms 271, run 450, market 47.
 
 ## Pendiente
+0. **Pity 100 listo pero sin publicar** (commit local `2df22f6`, migración `0010_pity_100.sql`): el usuario debe ejecutar `setup.sql` en Supabase ANTES del push, o las tiradas con pity ≥30 fallarán. Fase 2 visual ("juice") en ejecución según `docs/MEJORA_VISUAL.md`; un solo push al terminar.
 1. Probar en vivo con dos cuentas: tirada diaria con racha, sala completa (temporizador, apuestas, votación), `/mercado`. Nada de lo nuevo se ha visto en navegador.
 2. Balance: mediana 13-14 (objetivo 16-18) y p90 ~33 (objetivo ~30); la DEF casi no sirve en pisos profundos.
 3. Limitaciones de salas: `missedTurns` no se guarda (turno perdido = timeout, no "2 seguidos = huida"); sin Realtime real; sin pruebas de integración contra Supabase real (`scripts/rooms-smoke.ts` sin ejecutar).

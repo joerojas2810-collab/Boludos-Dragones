@@ -120,3 +120,28 @@ El límite exacto disponible puede variar por producto y periodo; por eso el pla
 **Etapa 6 — Consistencia entre pantallas:** `src/app/globals.css` ahora comparte roles de superficie, fondo cálido, sombra pixel, transiciones y foco entre pantallas. `Panel` conserva su marco, pero usa títulos y límites móviles coherentes; la tipografía y los colores existentes se reutilizan. No se modificaron las reglas de gacha, run, mercado o sala.
 
 **Etapa 7 — Revisión final:** revisión estática del layout responsive y de `prefers-reduced-motion`; el título de `Panel` puede envolver en móvil y las opciones de tres puertas ya no se comprimen en una fila. `git diff --check` pasó; `npm run lint` terminó sin errores (con una advertencia en `supabase/tests/pglite/run.mjs`); `npm test` pasó (352 pruebas). `npx tsc --noEmit` pasó después de retirar archivos duplicados generados en `.next/types` (`cache-life.d 2.ts`, `routes.d 2.ts`, `validator 2.ts` y `root-params.d 2.ts`). El servidor Next informó que estaba listo en localhost, pero el navegador de Codex rechazó la conexión local (`ERR_CONNECTION_REFUSED`); no se pudo verificar visualmente la página ni tomar capturas.
+
+## Fase 2 — "Juice" por código (aprobada 2026-10-06)
+
+Todo se genera por código (CSS, SVG, canvas pequeño); sin archivos de imagen. Todo movimiento se apaga con `prefers-reduced-motion` y se mide que no ralentice el celular. Aprobadas las ideas 1, 2, 3, 5, 6, 8, 9, 10, 11, 12 y 13; **descartadas la 4 (icono de intención del enemigo) y la 7 (brillo holográfico de cartas)**.
+
+### Grupo A — Combate (`BattleArena`, `arena.css`, `ArenaBackground`, sprites)
+1. **Números de daño flotantes:** más grandes en crítico, otro color en curación, distinguen ventaja/desventaja de elemento.
+2. **Pausa de impacto (hit-stop):** ~60-100 ms en golpes fuertes, críticos y muerte de jefe.
+3. **Partículas por elemento:** chispas/humo/fuego/rayos con los colores del elemento, vidas cortas.
+5. **Entrada de jefe:** oscurecer pantalla, nombre grande, temblor corto.
+9. **Ambiente por mundo:** hojas, polvo, lluvia o relámpagos según el mundo.
+10. **Sprites con respiración:** vaivén de 1 px en reposo.
+
+### Grupo B — Gacha, menú, run y sala (`PullReveal`, `TitleScene`, pantalla de fin de run, `RoomScreen`)
+6. **Apertura de gacha con suspenso:** cofre que se agita, brilla según la rareza; Legendario con rayos de luz y destello.
+8. **Parallax en el menú:** nubes lentas y montañas en capas (`TitleScene`).
+11. **Fin de run:** confeti de píxeles en victoria (piso 100), pantalla más sobria en derrota.
+12. **Entrada de jugadores a la sala** con animación y avatar con el accesorio de su rasgo.
+13. **Podio animado** al final de la noche con los premios.
+
+### Orden y reglas de ejecución
+- Dos agentes en paralelo (A y B) sobre archivos distintos; verificación con `tsc`, `eslint`, `vitest`, `next build` y una captura final a escala 0.5 por grupo.
+- No cambiar lógica de juego ni contratos de salas; solo presentación. Cada efecto detrás de una utilidad compartida que respete `prefers-reduced-motion`.
+- El push se hace una sola vez al terminar todo. Antes hay que ejecutar `supabase/setup.sql` (migración 0010: pity 100) en Supabase.
+- Pendiente de revisión visual en navegador por el usuario tras el despliegue.
