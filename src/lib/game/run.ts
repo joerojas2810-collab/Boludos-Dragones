@@ -30,6 +30,7 @@ import {
   scaleForFloor,
   UPGRADE_CHOICES,
   XP_PER_WIN,
+  UPGRADES,
   type UpgradeId,
 } from "./progression";
 import {
@@ -940,11 +941,50 @@ export function eventCost(run: Run, choice: EventChoice) {
   return { coins, hp, affordable: run.coins >= coins && run.hp - hp >= 1 };
 }
 
+// One line of an encounter's result for the dialog: good / bad / neutral.
+export interface EventChange {
+  text: string;
+  good: boolean | null;
+}
+
+// What an effect did to the run (coins, hp, lives, xp, upgrades), in words.
+export function describeChanges(before: Run, after: Run): EventChange[] {
+  const out: EventChange[] = [];
+  const num = (d: number, unit: string, extra = "") =>
+    out.push({
+      text: `${d > 0 ? "+" : "−"}${Math.abs(d)} ${unit}${extra}`,
+      good: d > 0,
+    });
+  if (after.coins !== before.coins) num(after.coins - before.coins, "monedas");
+  if (after.hp !== before.hp) num(after.hp - before.hp, "de vida");
+  if (after.lives !== before.lives)
+    num(
+      after.lives - before.lives,
+      after.lives - before.lives === 1 ? "vida extra" : "vidas",
+    );
+  if (after.hero.level > before.hero.level)
+    out.push({ text: `¡Subes al nivel ${after.hero.level}!`, good: true });
+  else if (after.hero.xp > before.hero.xp)
+    out.push({
+      text: `+${after.hero.xp - before.hero.xp} de experiencia`,
+      good: true,
+    });
+  for (const k of Object.keys(UPGRADES) as UpgradeId[])
+    if ((after.ups[k] ?? 0) > (before.ups[k] ?? 0))
+      out.push({ text: `Mejora permanente: ${UPGRADES[k].name}`, good: true });
+  return out;
+}
+
 // Null if no event is open, the choice doesn't exist or can't be afforded.
 export function resolveEvent(
   run: Run,
   choiceIndex: number,
-): { run: Run; text: string } | null {
+): {
+  run: Run;
+  text: string;
+  paid: EventChange[];
+  changes: EventChange[];
+} | null {
   if (run.status !== "active" || run.node?.type !== "event") return null;
   const choice = run.node.event.choices[choiceIndex];
   if (!choice) return null;
@@ -960,13 +1000,18 @@ export function resolveEvent(
     coins: run.coins - cost.coins,
     hp: run.hp - cost.hp,
   };
+  const after = applyEffect(paid, outcome.effect);
+  const price: EventChange[] = [];
+  if (cost.coins > 0)
+    price.push({ text: `Pagas ${cost.coins} monedas`, good: false });
+  if (cost.hp > 0)
+    price.push({ text: `Pagas ${cost.hp} de vida`, good: false });
+  const changes = describeChanges(paid, after);
   return {
-    run: {
-      ...applyEffect(paid, outcome.effect),
-      node: null,
-      floorCleared: true,
-    },
+    run: { ...after, node: null, floorCleared: true },
     text: outcome.text,
+    paid: price,
+    changes: changes.length ? changes : [{ text: "Sin cambios", good: null }],
   };
 }
 

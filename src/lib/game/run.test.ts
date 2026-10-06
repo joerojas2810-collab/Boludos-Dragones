@@ -59,6 +59,7 @@ import {
   VICTORY_COINS,
   pickUpgrade,
   relicOffer,
+  describeChanges,
   resolveEvent,
   runScore,
   shopItems,
@@ -299,6 +300,23 @@ describe("run state", () => {
     expect(resolveEvent(r, 0)).toEqual(resolveEvent(r, 0));
     expect(resolveEvent(r, 99)).toBeNull();
   });
+  it("event results list what changed and what was paid", () => {
+    const r: Run = { ...openKind("event").run, coins: 500, hp: 5 };
+    const before = r.node?.type === "event" ? r.node.event.choices.length : 0;
+    for (let i = 0; i < before; i++) {
+      const out = resolveEvent(r, i);
+      if (!out) continue;
+      expect(out.changes.length).toBeGreaterThan(0);
+      const net = out.changes.find((c) => c.text.includes("monedas"));
+      if (net) expect(net.good).toBe(net.text.startsWith("+"));
+    }
+    expect(
+      describeChanges(r, { ...r, coins: r.coins - 7, lives: r.lives + 1 }),
+    ).toEqual([
+      { text: "−7 monedas", good: false },
+      { text: "+1 vida extra", good: true },
+    ]);
+  });
 });
 
 describe("node flow (no repeatable rewards, no skipping)", () => {
@@ -467,7 +485,10 @@ describe("events with costs", () => {
 });
 
 describe("shop guards", () => {
-  const item = (kind: Exclude<ShopItem["kind"], "gear">, price = 10): ShopItem =>
+  const item = (
+    kind: Exclude<ShopItem["kind"], "gear">,
+    price = 10,
+  ): ShopItem =>
     kind === "stat"
       ? { id: "s", kind, label: "x", price, stat: "ataque" }
       : { id: kind, kind, label: "x", price };

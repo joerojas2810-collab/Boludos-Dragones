@@ -97,6 +97,7 @@ import {
   pickUpgrade,
   relicOffer,
   resolveEvent,
+  type EventChange,
   runScore,
   skillOffer,
   startFight,
@@ -119,7 +120,13 @@ type Screen =
       result: Run | null; // run after applying the finished battle
     }
   | { t: "shop" }
-  | { t: "event"; event: GameEvent; text: string | null }
+  | {
+      t: "event";
+      event: GameEvent;
+      text: string | null;
+      paid?: EventChange[];
+      changes?: EventChange[];
+    }
   | { t: "toast"; kind: DoorKind; title: string; text: string }
   | { t: "picks"; advance: boolean }
   | { t: "relic" };
@@ -938,7 +945,13 @@ function RunScreen() {
                         rec({ t: "event", i });
                         setRun(r.run);
                         log(`${ev.title}: ${r.text}`);
-                        setScreen({ t: "event", event: ev, text: r.text });
+                        setScreen({
+                          t: "event",
+                          event: ev,
+                          text: r.text,
+                          paid: r.paid,
+                          changes: r.changes,
+                        });
                       }}
                     >
                       {c.label}
@@ -955,9 +968,11 @@ function RunScreen() {
             </div>
           ) : (
             <>
-              <div className="mb-3 text-center text-yellow-300">
-                {screen.text}
-              </div>
+              <EventResult
+                text={screen.text}
+                paid={screen.paid ?? []}
+                changes={screen.changes ?? []}
+              />
               <button
                 className="btn btn-gray w-full text-center"
                 onClick={() => {
@@ -1079,6 +1094,48 @@ const CLASS_BLURB: Record<ClassId, string> = {
   clerigo: "Cura. Resiste con paciencia.",
 };
 
+// Dialog box with what an encounter did: the story line, what it cost and the result.
+function EventResult({
+  text,
+  paid,
+  changes,
+}: {
+  text: string;
+  paid: EventChange[];
+  changes: EventChange[];
+}) {
+  const all = [...paid, ...changes];
+  const bad = all.some((c) => c.good === false);
+  const good = all.some((c) => c.good === true);
+  const tone = good && !bad ? "#4ade80" : bad && !good ? "#f87171" : "#facc15";
+  return (
+    <div
+      role="status"
+      className="pixel-frame mb-3 space-y-2 p-3 text-center"
+      style={{ borderColor: tone }}
+    >
+      <div className="text-yellow-300">{text}</div>
+      <ul className="space-y-0.5 text-sm">
+        {all.map((c, i) => (
+          <li
+            key={i}
+            className={
+              c.good === true
+                ? "text-green-300"
+                : c.good === false
+                  ? "text-red-300"
+                  : "text-[#d9d2ca]"
+            }
+          >
+            {c.good === true ? "▲ " : c.good === false ? "▼ " : "· "}
+            {c.text}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function DungeonSelect({
   clears,
   ascensions,
@@ -1088,7 +1145,7 @@ function DungeonSelect({
   ascensions: Ascensions;
   onPick: (r: RarityId, asc: number) => void;
 }) {
-  const [want, setWant] = useState(0);
+  const [open, setOpen] = useState<RarityId | null>(null);
   return (
     <main className="flex flex-col justify-center gap-4 p-3 pt-8">
       <Panel title="Elige un dungeon" className="mx-auto w-full max-w-5xl">
@@ -1096,36 +1153,17 @@ function DungeonSelect({
           Cada jefe que venzas asegura el botín que llevas. Vence el último para
           limpiar el dungeon y abrir el siguiente rango.
         </p>
-        <div className="mb-3 text-center text-sm text-[#d9d2ca]">
-          <span className="mr-2 text-base text-yellow-300">Ascensión</span>
-          {Array.from({ length: MAX_ASCENSION + 1 }, (_, n) => (
-            <button
-              key={n}
-              onClick={() => setWant(n)}
-              className={`mx-0.5 h-7 w-7 border-2 ${n === want ? "border-yellow-300 text-yellow-300" : "border-[var(--edge)]"}`}
-            >
-              {n}
-            </button>
-          ))}
-          <div className="mt-1 text-xs">
-            {want === 0
-              ? "Normal. Limpia un dungeon para abrir la ascensión 1 en él."
-              : `${ASC_RULES.slice(0, want).join(" · ")}. Monedas de victoria +${want * 20}% y botín +${want * 10}%.`}
-          </div>
-        </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {RARITY_IDS.map((rank) => {
             const d = DUNGEONS[rank];
             const lock = lockReason(clears, rank);
             const color = RARITIES[rank].color;
             const best = clears[rank];
-            const top = maxAscension(clears, ascensions, rank);
-            const lvl = Math.min(want, top);
             return (
               <button
                 key={rank}
                 disabled={!!lock}
-                onClick={() => onPick(rank, lvl)}
+                onClick={() => setOpen(rank)}
                 className="pixel-frame flex items-center gap-3 p-2 text-left enabled:hover:brightness-125 disabled:opacity-60"
                 style={{ borderColor: color }}
               >
@@ -1155,8 +1193,8 @@ function DungeonSelect({
                   ) : best ? (
                     <span className="block text-green-300">
                       ✔ Limpiado · mejor: {best} ♥
-                      {top > 0 &&
-                        ` · Asc. ${lvl}/${top}${(ascensions[rank] ?? 0) >= MAX_ASCENSION ? " ★" : ""}`}
+                      {(ascensions[rank] ?? 0) > 0 &&
+                        ` · Ascensión +${ascensions[rank]}${(ascensions[rank] ?? 0) >= MAX_ASCENSION ? " ★" : ""}`}
                     </span>
                   ) : (
                     <span className="block text-[#d9d2ca]">Sin limpiar</span>
@@ -1179,7 +1217,107 @@ function DungeonSelect({
           .
         </p>
       </Panel>
+      {open && (
+        <AscensionModal
+          rank={open}
+          clears={clears}
+          ascensions={ascensions}
+          onPick={(a) => onPick(open, a)}
+          onClose={() => setOpen(null)}
+        />
+      )}
     </main>
+  );
+}
+
+// Over the (dimmed) dungeon list: the same dungeon with its ascension levels.
+// +N opens only after clearing +N-1 (level 0 = the normal dungeon).
+function AscensionModal({
+  rank,
+  clears,
+  ascensions,
+  onPick,
+  onClose,
+}: {
+  rank: RarityId;
+  clears: Clears;
+  ascensions: Ascensions;
+  onPick: (asc: number) => void;
+  onClose: () => void;
+}) {
+  const d = DUNGEONS[rank];
+  const color = RARITIES[rank].color;
+  const top = maxAscension(clears, ascensions, rank);
+  const cleared = (clears[rank] ?? 0) > 0 ? (ascensions[rank] ?? 0) : -1;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${d.name}: ascensiones`}
+      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/75 p-3"
+      onClick={onClose}
+    >
+      <div className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+        <Panel title={`${RARITIES[rank].label} · ${d.name}`}>
+          <p className="mb-3 text-center text-sm text-[#d9d2ca]">
+            {d.floors} pisos · {d.bosses.length} jefes. Para abrir la +N tienes
+            que haber pasado la anterior en este dungeon.
+          </p>
+          <div className="space-y-2">
+            {Array.from({ length: MAX_ASCENSION + 1 }, (_, n) => {
+              const locked = n > top;
+              const done = n <= cleared;
+              return (
+                <button
+                  key={n}
+                  disabled={locked}
+                  onClick={() => onPick(n)}
+                  className="pixel-frame flex w-full items-center gap-3 p-2 text-left enabled:hover:brightness-125 disabled:opacity-60"
+                  style={{ borderColor: color }}
+                >
+                  <span
+                    className="grid h-12 w-12 shrink-0 place-items-center border-4 border-[var(--edge)] text-xl font-bold"
+                    style={{ background: color, color: "#1d1714" }}
+                  >
+                    {n === 0 ? "0" : `+${n}`}
+                  </span>
+                  <span className="min-w-0 text-sm">
+                    <span className="block text-base font-semibold text-yellow-300">
+                      {n === 0 ? "Normal" : `Ascensión +${n}`}
+                    </span>
+                    <span className="block text-[#d9d2ca]">
+                      {n === 0
+                        ? "Sin reglas extra."
+                        : `${ASC_RULES[n - 1]} · monedas de victoria +${n * 20}% · botín +${n * 10}%`}
+                    </span>
+                    {locked ? (
+                      <span className="block text-red-300">
+                        🔒 Pasa la {n - 1 === 0 ? "normal (0)" : `+${n - 1}`}{" "}
+                        para abrirla
+                      </span>
+                    ) : done ? (
+                      <span className="block text-green-300">✔ Superada</span>
+                    ) : (
+                      <span className="block text-yellow-200">Disponible</span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-3 text-center">
+            <button className="btn btn-gray" onClick={onClose}>
+              ← Volver
+            </button>
+          </div>
+        </Panel>
+      </div>
+    </div>
   );
 }
 
