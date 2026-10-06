@@ -35,9 +35,11 @@ export default function Home() {
               Sala
             </Link>
           )}
-          <Link href="/prueba" className="btn btn-gray text-center">
-            Banco de pruebas
-          </Link>
+          {(repo.mode === "local" || session.isAdmin) && (
+            <Link href="/prueba" className="btn btn-gray text-center">
+              Banco de pruebas
+            </Link>
+          )}
           {repo.mode === "remote" && session.status === "user" && (
             <p className="text-sm opacity-80">
               Sesión: {session.name}{" "}

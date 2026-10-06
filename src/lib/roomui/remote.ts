@@ -32,8 +32,9 @@ import type {
   TurnInfo,
 } from "./types";
 
-const POLL_MS = 1_500;
-const IDLE_POLL_MS = 3_000;
+const POLL_MS = 2_000;
+const IDLE_POLL_MS = 5_000;
+const HIDDEN_POLL_MS = 15_000; // background tab: poll rarely to spare server quota
 const ID_RE = /^[0-9a-f-]{36}$/i;
 
 interface ApiErr {
@@ -117,7 +118,12 @@ export class RemoteRoomClient implements RoomClient {
 
   // ------------------------------------------------------------ polling
   private schedule(ms: number) {
-    if (!this.disposed) this.timer = setTimeout(() => void this.poll(), ms);
+    const hidden = typeof document !== "undefined" && document.hidden;
+    if (!this.disposed)
+      this.timer = setTimeout(
+        () => void this.poll(),
+        hidden ? Math.max(ms, HIDDEN_POLL_MS) : ms,
+      );
   }
   private async poll() {
     const r = await call<RoomSnapshot>("GET", `/api/rooms/${this.o.roomId}`);

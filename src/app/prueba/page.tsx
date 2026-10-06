@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ActionPanel } from "@/components/ActionPanel";
 import { BattleArena } from "@/components/BattleArena";
@@ -148,6 +149,9 @@ export default function Prueba() {
     <main className="p-4 pt-8 text-base md:h-screen md:overflow-hidden">
       <div className="mx-auto flex max-w-4xl flex-col gap-4 md:h-full md:flex-row-reverse">
         <LogPanel lines={b.log}>
+          <Link href="/" className="btn btn-gray mt-3 block w-full text-center">
+            ← Menú
+          </Link>
           <button
             className="btn btn-gray mt-3 w-full text-center"
             onClick={restart}
