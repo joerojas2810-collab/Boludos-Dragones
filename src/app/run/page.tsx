@@ -1319,7 +1319,7 @@ function CharacterSelect({
           Tus personajes, del más fuerte al más débil (el poder cuenta rango,
           estrellas, arma y equipo). El más fuerte viene preseleccionado.
         </p>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] justify-items-center gap-x-2 gap-y-4">
+        <div className="grid max-h-[calc(100vh-22rem)] min-h-40 grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] justify-items-center gap-x-2 gap-y-4 overflow-y-auto pr-1">
           {owned.map(({ c, power }, i) => {
             const hero = heroFromOwned(profile, c.id);
             return (
@@ -1327,7 +1327,10 @@ function CharacterSelect({
                 key={c.id}
                 aria-label={c.name}
                 aria-pressed={sel === c.id}
-                onClick={() => setSel(c.id)}
+                onClick={() => {
+                  setSel(c.id);
+                  setAskWeapon(true);
+                }}
               >
                 <ItemCard
                   item={characterView(c, {

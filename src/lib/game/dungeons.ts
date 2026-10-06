@@ -102,15 +102,15 @@ export const FINAL_BOSS_MULT = 1.25; // the last boss hits harder than the other
 // runs pay less because most die early). Keep MAX in sync with the allowance in
 // bank_run (0017: +20000 when a clear is submitted).
 export const VICTORY_COINS: Record<RarityId, number> = {
-  f: 400,
-  e: 640,
-  d: 1020,
-  c: 1640,
-  b: 2620,
-  a: 4190,
-  s: 6710,
-  ss: 10740,
-  ssr: 17180,
+  f: 120,
+  e: 190,
+  d: 310,
+  c: 490,
+  b: 790,
+  a: 1260,
+  s: 2020,
+  ss: 3230,
+  ssr: 5160,
 };
 export const victoryCoins = (rank: RarityId) => VICTORY_COINS[rank];
 
