@@ -30,6 +30,13 @@ import {
   type WeaponType,
 } from "@/lib/game/weapons";
 import { repo, useProfile } from "@/lib/useProfile";
+import {
+  ElementPicker,
+  RankPicker,
+  ResultCard,
+  Step,
+  TypePicker,
+} from "./ForgeChips";
 import { GuidePanel } from "./GuidePanel";
 
 function Need({
@@ -161,6 +168,62 @@ export default function ForgePage() {
     return i?.kind === "part" && i.rank === rank;
   });
 
+  const ok = (op: ForgeOp) => !check(op);
+  const craftOp = (t = type, el = element, r = rank): ForgeOp => ({
+    op: "craft",
+    type: t,
+    element: el,
+    rank: r,
+  });
+  const mergeOp = (t = type, el = element, r = rank): ForgeOp => ({
+    op: "combineParts",
+    type: t,
+    rank: r,
+    core: el,
+  });
+  const nextRank = RARITY_IDS[RARITY_IDS.indexOf(rank) + 1] as
+    RarityId | undefined;
+  const ownedPieces = (t: WeaponType, r: RarityId) =>
+    profile.weapons.filter((w) => w.type === t && w.rarity === r).length;
+  const partsAt = (r: RarityId) =>
+    Object.entries(profile.parts).reduce((n, [k, v]) => {
+      const i = parsePartKey(k);
+      return i?.kind === "part" && i.rank === r ? n + v : n;
+    }, 0);
+  const refineReady = (r: RarityId) =>
+    partsAt(r) >= REFINE_RATIO && profile.coins >= refineCoins(r);
+  const pickRank = (r: RarityId) => {
+    setRank(r);
+    setPicked([]);
+    setSpend({});
+  };
+  // Jump to the best recipe that can be forged right now (highest rank first).
+  const jump = () => {
+    const ranks = [...RARITY_IDS].reverse();
+    for (const r of ranks)
+      for (const t of WEAPON_TYPES) {
+        if (tab === "refine") {
+          if (refineReady(r)) return pickRank(r);
+          break;
+        }
+        for (const el of ELEMENTS) {
+          if (ok(tab === "craft" ? craftOp(t, el, r) : mergeOp(t, el, r))) {
+            setType(t);
+            setElement(el);
+            return pickRank(r);
+          }
+        }
+      }
+  };
+  const jumpBtn = (
+    <button
+      className="btn btn-gray w-full !min-h-8 text-sm"
+      disabled={!counts[tab as "craft" | "merge" | "refine"]}
+      onClick={jump}
+    >
+      ✨ Ir a lo que puedo forjar
+    </button>
+  );
   const typeSelect = (
     <select
       className={selectCls}
@@ -185,30 +248,6 @@ export default function ForgePage() {
       {ELEMENTS.map((el) => (
         <option key={el} value={el}>
           {ELEMENT_LABEL[el]}
-        </option>
-      ))}
-    </select>
-  );
-  const rankReady = (r: RarityId) =>
-    tab === "craft"
-      ? !check({ op: "craft", type, element, rank: r })
-      : tab === "merge"
-        ? !check({ op: "combineParts", type, rank: r, core: element })
-        : false;
-  const rankSelect = (max: RarityId, mark = true) => (
-    <select
-      className={selectCls}
-      value={rank}
-      onChange={(e) => {
-        setRank(e.target.value as RarityId);
-        setPicked([]);
-        setSpend({});
-      }}
-      aria-label="Rango"
-    >
-      {RARITY_IDS.slice(0, RARITY_IDS.indexOf(max) + 1).map((r) => (
-        <option key={r} value={r}>
-          {mark && rankReady(r) ? "● " : ""}Rango {RARITIES[r].label}
         </option>
       ))}
     </select>
@@ -395,11 +434,34 @@ export default function ForgePage() {
               {CRAFT_PARTS} partes del tipo y rango + 1 núcleo del elemento +
               monedas. Si ya tienes la pieza, sube una estrella.
             </p>
-            <div className="flex flex-wrap gap-2">
-              {typeSelect}
-              {elementSelect("Elemento")}
-              {rankSelect("ssr")}
-            </div>
+            {jumpBtn}
+            <Step n={1} title="Tipo de pieza">
+              <TypePicker
+                value={type}
+                onChange={setType}
+                element={element}
+                rank={rank}
+                ready={(t) => ok(craftOp(t))}
+                sub={(t) => `${have(partKey(t, rank))}/${CRAFT_PARTS} partes`}
+              />
+            </Step>
+            <Step n={2} title="Elemento">
+              <ElementPicker
+                value={element}
+                onChange={setElement}
+                ready={(el) => ok(craftOp(type, el))}
+                sub={(el) => `${have(coreKey(el))} núcleo`}
+              />
+            </Step>
+            <Step n={3} title="Rango">
+              <RankPicker
+                value={rank}
+                onChange={pickRank}
+                max="ssr"
+                ready={(r) => ok(craftOp(type, element, r))}
+                sub={(r) => `${have(partKey(type, r))}/${CRAFT_PARTS}`}
+              />
+            </Step>
             <ul className="space-y-1.5 text-sm">
               <Need
                 label={partLabel(partKey(type, rank))}
@@ -417,11 +479,23 @@ export default function ForgePage() {
                 need={craftCoins(rank)}
               />
             </ul>
-            {status(check({ op: "craft", type, element, rank }))}
+            <ResultCard>
+              <WeaponSprite
+                type={type}
+                element={element}
+                rarity={rank}
+                className="w-12"
+              />
+              <span>
+                {WEAPON_TYPE_DATA[type].label} {RARITIES[rank].label} de{" "}
+                {ELEMENT_LABEL[element]}
+              </span>
+            </ResultCard>
+            {status(check(craftOp()))}
             <button
-              className="btn"
-              disabled={busy || !!check({ op: "craft", type, element, rank })}
-              onClick={() => void run({ op: "craft", type, element, rank })}
+              className="btn w-full"
+              disabled={busy || !ok(craftOp())}
+              onClick={() => void run(craftOp())}
             >
               Forjar
             </button>
@@ -435,11 +509,36 @@ export default function ForgePage() {
                 Varias partes del mismo tipo y rango + 1 núcleo + monedas dan 1
                 parte del rango siguiente.
               </p>
-              <div className="flex flex-wrap gap-2">
-                {typeSelect}
-                {rankSelect("ss")}
-                {elementSelect("Núcleo")}
-              </div>
+              {jumpBtn}
+              <Step n={1} title="Tipo de parte">
+                <TypePicker
+                  value={type}
+                  onChange={setType}
+                  element={element}
+                  rank={rank}
+                  ready={(t) => ok(mergeOp(t))}
+                  sub={(t) => `${have(partKey(t, rank))}/${rule?.ratio ?? "-"}`}
+                />
+              </Step>
+              <Step n={2} title="Rango">
+                <RankPicker
+                  value={rank}
+                  onChange={pickRank}
+                  max="ss"
+                  ready={(r) => ok(mergeOp(type, element, r))}
+                  sub={(r) =>
+                    `${have(partKey(type, r))}/${COMBINE[r]?.ratio ?? "-"}`
+                  }
+                />
+              </Step>
+              <Step n={3} title="Núcleo a gastar">
+                <ElementPicker
+                  value={element}
+                  onChange={setElement}
+                  ready={(el) => ok(mergeOp(type, el))}
+                  sub={(el) => `${have(coreKey(el))} núcleo`}
+                />
+              </Step>
               {rule && (
                 <ul className="space-y-1.5 text-sm">
                   <Need
@@ -459,16 +558,22 @@ export default function ForgePage() {
                   />
                 </ul>
               )}
-              {status(check({ op: "combineParts", type, rank, core: element }))}
+              {nextRank && (
+                <ResultCard>
+                  <WeaponSprite
+                    type={type}
+                    element={element}
+                    rarity={nextRank}
+                    className="w-10"
+                  />
+                  <span>1 {partLabel(partKey(type, nextRank))}</span>
+                </ResultCard>
+              )}
+              {status(check(mergeOp()))}
               <button
-                className="btn"
-                disabled={
-                  busy ||
-                  !!check({ op: "combineParts", type, rank, core: element })
-                }
-                onClick={() =>
-                  void run({ op: "combineParts", type, rank, core: element })
-                }
+                className="btn w-full"
+                disabled={busy || !ok(mergeOp())}
+                onClick={() => void run(mergeOp())}
               >
                 Fusionar partes
               </button>
@@ -480,50 +585,95 @@ export default function ForgePage() {
                 sus elementos (+ 1 núcleo de ese elemento y monedas). Pierdes
                 sus estrellas.
               </p>
-              <div className="flex flex-wrap gap-2">
-                {typeSelect}
-                {rankSelect("ss", false)}
-                {elementSelect("Elemento resultante")}
-              </div>
-              <ul className="space-y-1">
+              <Step n={1} title="Tipo y rango de las piezas">
+                <TypePicker
+                  value={type}
+                  onChange={setType}
+                  element={element}
+                  rank={rank}
+                  ready={(t) =>
+                    rule ? ownedPieces(t, rank) >= rule.ratio : false
+                  }
+                  sub={(t) => `${ownedPieces(t, rank)} piezas`}
+                />
+                <RankPicker
+                  value={rank}
+                  onChange={pickRank}
+                  max="ss"
+                  ready={(r) =>
+                    ownedPieces(type, r) >= (COMBINE[r]?.ratio ?? Infinity)
+                  }
+                  sub={(r) =>
+                    `${ownedPieces(type, r)}/${COMBINE[r]?.ratio ?? "-"}`
+                  }
+                />
+              </Step>
+              <Step n={2} title="Elemento resultante">
+                <ElementPicker value={element} onChange={setElement} />
+              </Step>
+              <Step
+                n={3}
+                title={`Elige piezas (${picked.length} de ${rule?.ratio ?? "?"})`}
+              >
                 {pieces.length === 0 && (
-                  <li className="text-sm">
+                  <p className="text-sm">
                     No tienes piezas de ese tipo y rango. Arma o consigue más en
                     dungeons.
-                  </li>
+                  </p>
                 )}
-                {pieces.map((w) => {
-                  const eq = equipped.has(w.id);
-                  return (
-                    <li key={w.id}>
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          disabled={eq}
-                          checked={picked.includes(w.id)}
-                          onChange={(e) =>
-                            setPicked(
-                              e.target.checked
-                                ? [...picked, w.id]
-                                : picked.filter((x) => x !== w.id),
-                            )
-                          }
-                        />
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                  {pieces.map((w) => {
+                    const eq = equipped.has(w.id);
+                    const on = picked.includes(w.id);
+                    return (
+                      <button
+                        key={w.id}
+                        type="button"
+                        disabled={eq}
+                        aria-pressed={on}
+                        onClick={() =>
+                          setPicked(
+                            on
+                              ? picked.filter((x) => x !== w.id)
+                              : [...picked, w.id],
+                          )
+                        }
+                        className={`flex items-center gap-2 border-2 p-1.5 text-left text-xs ${on ? "border-yellow-300 bg-yellow-300/15" : "border-[var(--edge)]"} ${eq ? "opacity-50" : ""}`}
+                      >
                         <WeaponSprite
                           type={w.type}
                           element={w.element}
                           rarity={w.rarity}
-                          className="w-8"
+                          className="w-9"
                         />
-                        {w.name} ({w.stars}★){eq && " · equipada"}
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
+                        <span className="min-w-0">
+                          <span className="block truncate">{w.name}</span>
+                          <span className="opacity-80">
+                            {eq ? "🔒 equipada" : `${w.stars}★`}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Step>
+              {nextRank && (
+                <ResultCard>
+                  <WeaponSprite
+                    type={type}
+                    element={element}
+                    rarity={nextRank}
+                    className="w-12"
+                  />
+                  <span>
+                    {WEAPON_TYPE_DATA[type].label} {RARITIES[nextRank].label} de{" "}
+                    {ELEMENT_LABEL[element]}
+                  </span>
+                </ResultCard>
+              )}
               {status(check({ op: "combinePieces", ids: picked, element }))}
               <button
-                className="btn"
+                className="btn w-full"
                 disabled={
                   busy || !!check({ op: "combinePieces", ids: picked, element })
                 }
@@ -544,56 +694,85 @@ export default function ForgePage() {
               convierten en 1 parte del tipo que elijas. Cuesta{" "}
               {refineCoins(rank)} monedas.
             </p>
-            <div className="flex flex-wrap gap-2">
-              {rankSelect("ssr")}
-              <select
-                className={selectCls}
-                value={type}
-                onChange={(e) => setType(e.target.value as WeaponType)}
-                aria-label="Tipo que quiero"
-              >
-                {WEAPON_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    Quiero: {WEAPON_TYPE_DATA[t].label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <ul className="space-y-1">
+            {jumpBtn}
+            <Step n={1} title="Rango">
+              <RankPicker
+                value={rank}
+                onChange={pickRank}
+                max="ssr"
+                ready={refineReady}
+                sub={(r) => `${partsAt(r)} partes`}
+              />
+            </Step>
+            <Step
+              n={2}
+              title={`Partes a gastar (${refineTotal} de ${REFINE_RATIO})`}
+            >
+              <div className="h-1.5 bg-black/40">
+                <div
+                  className="h-full bg-green-400"
+                  style={{
+                    width: `${Math.min(100, (refineTotal / REFINE_RATIO) * 100)}%`,
+                  }}
+                />
+              </div>
               {refineParts.length === 0 && (
-                <li className="text-sm">
+                <p className="text-sm">
                   No tienes partes de este rango. Consíguelas en dungeons.
-                </li>
+                </p>
               )}
-              {refineParts.map(([k, n]) => (
-                <li key={k} className="flex items-center gap-2 text-sm">
-                  <span className="min-w-0 flex-1">
-                    {partLabel(k)} (tienes {n})
-                  </span>
-                  <button
-                    className="btn btn-gray !min-h-8 !px-2"
-                    disabled={(spend[k] ?? 0) === 0}
-                    onClick={() =>
-                      setSpend({ ...spend, [k]: (spend[k] ?? 0) - 1 })
-                    }
+              <ul className="space-y-1">
+                {refineParts.map(([k, n]) => (
+                  <li
+                    key={k}
+                    className="flex items-center gap-2 border-2 border-[var(--edge)] p-1 text-sm"
                   >
-                    −
-                  </button>
-                  <span className="w-6 text-center">{spend[k] ?? 0}</span>
-                  <button
-                    className="btn btn-gray !min-h-8 !px-2"
-                    disabled={
-                      (spend[k] ?? 0) >= n || refineTotal >= REFINE_RATIO
-                    }
-                    onClick={() =>
-                      setSpend({ ...spend, [k]: (spend[k] ?? 0) + 1 })
-                    }
-                  >
-                    +
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    <span className="min-w-0 flex-1">
+                      {partLabel(k)}{" "}
+                      <span className="opacity-70">(tienes {n})</span>
+                    </span>
+                    <button
+                      className="btn btn-gray !min-h-8 !px-2"
+                      disabled={(spend[k] ?? 0) === 0}
+                      onClick={() =>
+                        setSpend({ ...spend, [k]: (spend[k] ?? 0) - 1 })
+                      }
+                    >
+                      −
+                    </button>
+                    <span className="w-6 text-center">{spend[k] ?? 0}</span>
+                    <button
+                      className="btn btn-gray !min-h-8 !px-2"
+                      disabled={
+                        (spend[k] ?? 0) >= n || refineTotal >= REFINE_RATIO
+                      }
+                      onClick={() =>
+                        setSpend({ ...spend, [k]: (spend[k] ?? 0) + 1 })
+                      }
+                    >
+                      +
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </Step>
+            <Step n={3} title="Tipo que quiero">
+              <TypePicker
+                value={type}
+                onChange={setType}
+                element={element}
+                rank={rank}
+              />
+            </Step>
+            <ResultCard>
+              <WeaponSprite
+                type={type}
+                element={element}
+                rarity={rank}
+                className="w-10"
+              />
+              <span>1 {partLabel(partKey(type, rank))}</span>
+            </ResultCard>
             {(() => {
               const clean = Object.fromEntries(
                 Object.entries(spend).filter(([, n]) => n > 0),
@@ -608,7 +787,7 @@ export default function ForgePage() {
                 <>
                   {status(check(op))}
                   <button
-                    className="btn"
+                    className="btn w-full"
                     disabled={busy || !!check(op)}
                     onClick={() => void run(op)}
                   >
