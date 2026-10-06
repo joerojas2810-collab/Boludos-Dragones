@@ -275,7 +275,14 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         capped: boolean;
       }>(
         "/api/run/submit",
-        { runId, actions, claimed, engineVersion: ENGINE_VERSION },
+        {
+          runId,
+          actions,
+          // Only coins/floor: the server replays the run and decides loot, parts and
+          // clears itself (the body schema is strict and rejects anything else).
+          claimed: { coins: claimed.coins, maxFloor: claimed.maxFloor },
+          engineVersion: ENGINE_VERSION,
+        },
         keepalive,
       );
       await api<Me>("/api/me")

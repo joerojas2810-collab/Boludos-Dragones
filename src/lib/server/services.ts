@@ -13,7 +13,7 @@ import {
   type PullResult,
   type Profile,
 } from "../game/profile";
-import { isDungeonRank, isUnlocked } from "../game/dungeons";
+import { isDungeonRank, isUnlocked, victoryCoins } from "../game/dungeons";
 import { applyForge, type ForgeOp } from "../game/forge";
 import type { RarityId } from "../game/rarity";
 import { ENGINE_VERSION, replayRun, type RunAction } from "../game/replay";
@@ -299,8 +299,8 @@ export async function startRunService(
 }
 
 // Same bound as SQL (game_constants): coins <= floors*120 + 15*floors*(floors+1)/2.
-export const runCoinCap = (floors: number) =>
-  floors * 120 + (15 * floors * (floors + 1)) / 2;
+export const runCoinCap = (floors: number, victoryBonus = 0) =>
+  floors * 120 + (15 * floors * (floors + 1)) / 2 + victoryBonus;
 
 export interface RunSubmitBody {
   runId: string;
@@ -351,7 +351,12 @@ export async function submitRunService(
       "Esta run es de una versión anterior del juego y ya no se puede verificar.",
     );
   const floors = rep.run.maxFloor;
-  const coins = Math.min(rep.run.coins, runCoinCap(floors));
+  // A verified dungeon clear may exceed the per-floor cap by its victory bonus.
+  const clearBonus =
+    rank && isVictory(rep.run) && rep.rejectedAt === null
+      ? victoryCoins(rank)
+      : 0;
+  const coins = Math.min(rep.run.coins, runCoinCap(floors, clearBonus));
   let verdict: Verdict = "accepted";
   let reason: string | null = null;
   if (rep.rejectedAt !== null) {

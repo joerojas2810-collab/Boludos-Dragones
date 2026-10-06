@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createProfile, type Profile } from "./game/profile";
 import { RepoError, selectRepo, type StoreApi } from "./repo";
+import { runSubmitBody } from "./server/validators";
 
 const memStore = (init: Profile = createProfile()) => {
   let p = init;
@@ -23,7 +24,7 @@ describe("selectRepo", () => {
     const { store, cur } = memStore();
     const repo = selectRepo(undefined, store);
     await expect(repo.pull("character", 1)).rejects.toBeInstanceOf(RepoError);
-    store.replace({ ...createProfile(), coins: 150 });
+    store.replace({ ...createProfile(), coins: 250 });
     const r = await repo.pull("character", 1);
     expect(r.results).toHaveLength(1);
     expect(cur().coins).toBe(0);
@@ -55,6 +56,35 @@ describe("selectRepo", () => {
       "idempotencyKey",
     ]);
     expect(cur().coins).toBe(777);
+  });
+  it("remote submitRun sends a body the strict server schema accepts (no loot/parts/clear)", async () => {
+    const { store } = memStore();
+    let body: unknown = null;
+    const f = (async (url: string, init: RequestInit) => {
+      if (url === "/api/run/submit") body = JSON.parse(String(init.body));
+      return Response.json(
+        url === "/api/me"
+          ? { name: "x", isAdmin: false, profile: createProfile() }
+          : { coinsAdded: 0, verdict: "accepted", capped: false },
+      );
+    }) as unknown as typeof fetch;
+    const repo = selectRepo("https://abc.supabase.co", store, f);
+    await repo.submitRun(
+      "11111111-1111-4111-8111-111111111111",
+      [{ t: "leave" }],
+      {
+        coins: 5,
+        maxFloor: 2,
+        loot: [{ type: "casco", element: "agua", rarity: "f", name: "x" }],
+        parts: { "p-espada-f": 1 },
+        clear: { rank: "f", lives: 3 },
+      },
+    );
+    expect(runSubmitBody.safeParse(body).success).toBe(true);
+    expect((body as { claimed: object }).claimed).toEqual({
+      coins: 5,
+      maxFloor: 2,
+    });
   });
   it("remote errors surface the server message; 401 on load means signed out", async () => {
     const { store } = memStore();

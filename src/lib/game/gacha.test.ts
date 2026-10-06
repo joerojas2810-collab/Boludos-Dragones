@@ -164,7 +164,7 @@ describe("pulls", () => {
   });
   it("duplicate adds a star, caps at 5, then refunds 50%", () => {
     const rng = createRng(11);
-    let p = rich(100_000);
+    let p = rich(2_000_000);
     let sawStar = false;
     let sawRefund = false;
     for (let i = 0; i < 4000 && !sawRefund; i++) {
@@ -183,7 +183,9 @@ describe("pulls", () => {
           sawRefund = true;
           expect(res.stars).toBe(MAX_STARS);
           expect(res.refund).toBe(PULL_COST_CHARACTER / 2);
-          expect(p.coins).toBe(before.coins - PULL_COST_CHARACTER + 75);
+          expect(p.coins).toBe(
+            before.coins - PULL_COST_CHARACTER + PULL_COST_CHARACTER / 2,
+          );
         }
       }
     }

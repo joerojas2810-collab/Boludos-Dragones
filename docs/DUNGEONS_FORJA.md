@@ -1,6 +1,6 @@
 # Dungeons, rangos F–SSR, equipo y forja (diseño, sin código)
 
-Estado (2026-10-06): **Etapas 1 a 8 implementadas** (armas por clase, rangos F–SSR y equipo); el resto es diseño pendiente. Valores iniciales, todos ajustables por simulación y centralizados en archivos de constantes. Este documento se envía junto con `PEDIDO_ARTE.md`: ahí está todo lo que hay que dibujar.
+Estado (2026-10-06): **Etapas 1 a 8 implementadas; economía reajustada (tirada 250, recompensas de limpieza por rango)** (armas por clase, rangos F–SSR y equipo); el resto es diseño pendiente. Valores iniciales, todos ajustables por simulación y centralizados en archivos de constantes. Este documento se envía junto con `PEDIDO_ARTE.md`: ahí está todo lo que hay que dibujar.
 
 ## 1. Rangos F–SSR (héroes, armas, equipo, partes)
 Nueve rangos: F, E, D, C, B, A, S, SS, SSR. Reemplazan las 5 rarezas anteriores en personajes, armas, fragmentos y (más adelante) equipo y partes. **Hecho.** Las reliquias mantienen sus 3 rarezas propias (común, rara, legendaria).

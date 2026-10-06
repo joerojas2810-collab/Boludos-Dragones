@@ -97,13 +97,25 @@ export const UNLOCK_MIN_LIVES: Partial<Record<RarityId, number>> = {
 };
 
 export const FINAL_BOSS_MULT = 1.25; // the last boss hits harder than the others
-export const VICTORY_COINS_BASE = 150; // x (1 + 0.5 * rank index)
+// Clearing a dungeon pays this many coins (on top of what the run earned). It grows
+// ~1.6x per rank so that attempting S, SS and SSR is not a coin sink (their normal
+// runs pay less because most die early). Keep MAX in sync with the allowance in
+// bank_run (0017: +20000 when a clear is submitted).
+export const VICTORY_COINS: Record<RarityId, number> = {
+  f: 400,
+  e: 640,
+  d: 1020,
+  c: 1640,
+  b: 2620,
+  a: 4190,
+  s: 6710,
+  ss: 10740,
+  ssr: 17180,
+};
+export const victoryCoins = (rank: RarityId) => VICTORY_COINS[rank];
 
 export const isDungeonRank = (v: unknown): v is RarityId =>
   typeof v === "string" && Object.hasOwn(DUNGEONS, v);
-
-export const victoryCoins = (rank: RarityId) =>
-  Math.round(VICTORY_COINS_BASE * (1 + 0.5 * RARITY_IDS.indexOf(rank)));
 
 // Best lives left per cleared dungeon (profile.dungeons).
 export type Clears = Partial<Record<RarityId, number>>;

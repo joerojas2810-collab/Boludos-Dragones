@@ -10,7 +10,7 @@ import {
   tradeBand,
   type MarketOffer,
 } from "./market";
-import type { Profile } from "./profile";
+import { PULL_COST_CHARACTER, type Profile } from "./profile";
 
 const prof = (c: [string, number][], w: [string, number][] = []) =>
   ({
@@ -62,8 +62,10 @@ describe("market keys", () => {
 
 describe("equivalent trades (+-25% in value)", () => {
   it("values follow the gacha price of each rank", () => {
-    expect(TRADE_VALUE.f).toBe(500);
-    expect(TRADE_VALUE.ssr).toBe(30000);
+    expect(TRADE_VALUE.f).toBe(830);
+    expect(TRADE_VALUE.ssr).toBe(50000);
+    // value = coins a pull of that rank costs: price / odds (250 / 0.30 ~ 830)
+    expect(TRADE_VALUE.f).toBeCloseTo(PULL_COST_CHARACTER / 0.3, -1);
     const v = Object.values(TRADE_VALUE);
     expect([...v].sort((a, b) => a - b)).toEqual(v);
   });
@@ -73,24 +75,24 @@ describe("equivalent trades (+-25% in value)", () => {
     expect(isFairTrade("w-espada-fuego-e", "w-hacha-agua-f", 0)).toBe(false); // 200 off > 25% of 700 (175)
   });
   it("a higher rank can be paid with a lower one plus coins, within 25%", () => {
-    // E (700) for F (500) + coins: fair at +200, allowed band is +-175 around it
+    // E (1140) for F (830) + coins: fair at +310, allowed band is +-285 around it
     const band = tradeBand("w-espada-fuego-e", "w-hacha-agua-f");
-    expect(band.fair).toBe(200);
+    expect(band.fair).toBe(310);
     expect(band.min).toBe(25);
-    expect(band.max).toBe(375);
-    expect(isFairTrade("w-espada-fuego-e", "w-hacha-agua-f", 200)).toBe(true);
+    expect(band.max).toBe(595);
+    expect(isFairTrade("w-espada-fuego-e", "w-hacha-agua-f", 310)).toBe(true);
     expect(isFairTrade("w-espada-fuego-e", "w-hacha-agua-f", 24)).toBe(false);
-    expect(isFairTrade("w-espada-fuego-e", "w-hacha-agua-f", 376)).toBe(false);
+    expect(isFairTrade("w-espada-fuego-e", "w-hacha-agua-f", 596)).toBe(false);
   });
   it("selling for coins only: the price must be within 25% of the value", () => {
-    expect(isFairTrade("w-espada-fuego-c", null, 1250)).toBe(true);
-    expect(isFairTrade("w-espada-fuego-c", null, 937)).toBe(false);
-    expect(isFairTrade("w-espada-fuego-c", null, 1562)).toBe(true);
-    expect(isFairTrade("w-espada-fuego-c", null, 1563)).toBe(false);
+    expect(isFairTrade("w-espada-fuego-c", null, 2080)).toBe(true);
+    expect(isFairTrade("w-espada-fuego-c", null, 1559)).toBe(false);
+    expect(isFairTrade("w-espada-fuego-c", null, 2600)).toBe(true);
+    expect(isFairTrade("w-espada-fuego-c", null, 2601)).toBe(false);
   });
   it("negative coins: the seller tops up a weaker piece", () => {
-    // give F (500), want E (700) and pay 200 on top
-    expect(isFairTrade("w-espada-fuego-f", "w-hacha-agua-e", -200)).toBe(true);
+    // give F (830), want E (1140) and pay 310 on top
+    expect(isFairTrade("w-espada-fuego-f", "w-hacha-agua-e", -310)).toBe(true);
     expect(isFairTrade("w-espada-fuego-f", "w-hacha-agua-e", 0)).toBe(false);
   });
   it("an acceptor without the coins cannot accept", () => {

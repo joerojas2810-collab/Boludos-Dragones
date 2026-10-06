@@ -44,8 +44,10 @@ import {
 } from "./weapons";
 
 export const PROFILE_VERSION = 3; // 3: added optional `daily` (claim streak)
-export const PULL_COST_CHARACTER = 150;
-export const PULL_COST_WEAPON = 150;
+// Raised from 150: at ~11-22 pulls/day of income the old price made SSR pity reachable in
+// ~2 weeks (cheaper than the forge). Keep in sync with game_constants (0017).
+export const PULL_COST_CHARACTER = 250;
+export const PULL_COST_WEAPON = 250;
 export const MULTI_PULL = 10;
 export const MULTI_PULL_DISCOUNT = 0.1;
 export const DUPLICATE_REFUND = 0.5; // of the single-pull cost, at max stars

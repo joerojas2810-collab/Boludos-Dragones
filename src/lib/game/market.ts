@@ -9,18 +9,18 @@ export const MARKET_MAX_OPEN = 5;
 export const MARKET_TTL_DAYS = 7;
 
 // Trades must be EQUIVALENT in value (+-25%). A piece is worth the coins a gacha
-// pull of its rank costs (150 / odds). Keep in sync with trade_value() in
-// supabase/migrations/0013_forge_trade.sql.
+// pull of its rank costs (250 / odds). Keep in sync with trade_value() in
+// supabase/migrations/0017_economy.sql.
 export const TRADE_VALUE: Record<RarityId, number> = {
-  f: 500,
-  e: 700,
-  d: 950,
-  c: 1250,
-  b: 1650,
-  a: 2500,
-  s: 5000,
-  ss: 10000,
-  ssr: 30000,
+  f: 830,
+  e: 1140,
+  d: 1560,
+  c: 2080,
+  b: 2780,
+  a: 4170,
+  s: 8330,
+  ss: 16670,
+  ssr: 50000,
 };
 export const TRADE_TOLERANCE = 0.25;
 export const MAX_TRADE_COINS = 100000;

@@ -318,32 +318,32 @@ describe("pull service (fake DB)", () => {
   it("charges the server price and persists the engine's result", async () => {
     const db = new FakeDb();
     const r = await doPull(db.deps, "u1", body());
-    expect(db.coins).toBe(1350);
+    expect(db.coins).toBe(2750);
     expect(r.results).toHaveLength(1);
-    expect(r.profile.coins).toBe(1350);
+    expect(r.profile.coins).toBe(2750);
     expect(r.profile.characters).toHaveLength(1);
     const call = db.calls.find((c) => c.name === "apply_pull")!;
     expect(call.args).toMatchObject({
       p_player: "u1",
-      p_cost: 150,
+      p_cost: 250,
       p_banner: "character",
       p_daily: false,
       p_seed: 12345,
     });
   });
-  it("x10 costs 1350 and never trusts anything from the client", async () => {
+  it("x10 costs 2250 and never trusts anything from the client", async () => {
     const db = new FakeDb();
-    db.coins = 1350;
+    db.coins = 2250;
     const r = await doPull(db.deps, "u1", body({ count: 10 }));
     expect(db.coins).toBe(0);
     expect(r.results).toHaveLength(10);
   });
   it("insufficient coins -> 409 and nothing changes", async () => {
     const db = new FakeDb();
-    db.coins = 149;
+    db.coins = 249;
     const e = await catchErr(doPull(db.deps, "u1", body()));
     expect(e).toMatchObject({ status: 409, code: "insufficient_coins" });
-    expect(db.coins).toBe(149);
+    expect(db.coins).toBe(249);
     expect(db.rows).toHaveLength(0);
   });
   it("repeating the same idempotency key charges once", async () => {
@@ -353,14 +353,14 @@ describe("pull service (fake DB)", () => {
     expect(first.replayed).toBe(false);
     expect(again.replayed).toBe(true);
     expect(again.results).toBeNull();
-    expect(db.coins).toBe(1350);
+    expect(db.coins).toBe(2750);
   });
   it("retries once on a version conflict", async () => {
     const db = new FakeDb();
     db.conflictOnce = true;
     await doPull(db.deps, "u1", body());
     expect(db.calls.filter((c) => c.name === "apply_pull")).toHaveLength(2);
-    expect(db.coins).toBe(1350);
+    expect(db.coins).toBe(2750);
     expect(db.audits).toContain("pull_conflict");
   });
   it("rate limit applies", async () => {

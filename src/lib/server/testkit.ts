@@ -17,7 +17,7 @@ interface Row {
 }
 
 export class FakeDb {
-  coins = 1500;
+  coins = 3000;
   version = 0;
   pity = { character: 0, weapon: 0 };
   pitySsr = { character: 0, weapon: 0 };
