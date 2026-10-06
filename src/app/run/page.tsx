@@ -52,11 +52,15 @@ import { RARITIES, RARITY_IDS } from "@/lib/game/rarity";
 import { Notice } from "@/components/Notice";
 import { proceedRun, type RunAction } from "@/lib/game/replay";
 import {
+  ASC_RULES,
   DUNGEONS,
+  MAX_ASCENSION,
   UNLOCK_MIN_LIVES,
+  maxAscension,
   powerVerdict,
   recommendedPower,
   lockReason,
+  type Ascensions,
   type Clears,
 } from "@/lib/game/dungeons";
 import type { RarityId } from "@/lib/game/rarity";
@@ -280,6 +284,7 @@ function RunScreen() {
   const [seed, setSeed] = useState<number | null>(null);
   const [randomHero, setRandomHero] = useState(false); // classic run: no collection hero
   const [dungeon, setDungeon] = useState<RarityId | null>(null);
+  const [asc, setAsc] = useState(0);
   const { profile, ready } = useProfile();
 
   // Banking: exactly once per run. The runId guard lives in the ref (this
@@ -306,7 +311,7 @@ function RunScreen() {
           parts: r.partSecured,
           clear:
             r.rank && isVictory(r)
-              ? { rank: r.rank, lives: r.lives }
+              ? { rank: r.rank, lives: r.lives, asc: r.ascension }
               : undefined,
         },
         true,
@@ -353,11 +358,14 @@ function RunScreen() {
         characterId,
         seed,
         dungeon ?? "f",
+        asc,
       );
       runIdRef.current = info.runId;
       actionsRef.current = [];
       setRandomHero(false);
-      setRun(createRun(info.seed, info.hero, true, info.rank));
+      setRun(
+        createRun(info.seed, info.hero, true, info.rank, null, info.ascension),
+      );
       setScreen({ t: "doors" });
       setMsgs([
         `Semilla ${info.seed}. ${info.hero.name} (${CLASSES[info.hero.classId].name}) entra a la mazmorra.`,
@@ -387,7 +395,14 @@ function RunScreen() {
   if (seed === null || !ready || !profile) return null;
   if (!run && !dungeon)
     return (
-      <DungeonSelect clears={profile.dungeons} onPick={(r) => setDungeon(r)} />
+      <DungeonSelect
+        clears={profile.dungeons}
+        ascensions={profile.ascensions}
+        onPick={(r, a) => {
+          setAsc(a);
+          setDungeon(r);
+        }}
+      />
     );
   if (!run && !randomHero && profile.characters.length > 0)
     return (
@@ -1066,11 +1081,14 @@ const CLASS_BLURB: Record<ClassId, string> = {
 
 function DungeonSelect({
   clears,
+  ascensions,
   onPick,
 }: {
   clears: Clears;
-  onPick: (r: RarityId) => void;
+  ascensions: Ascensions;
+  onPick: (r: RarityId, asc: number) => void;
 }) {
+  const [want, setWant] = useState(0);
   return (
     <main className="flex flex-col justify-center gap-4 p-3 pt-8">
       <Panel title="Elige un dungeon" className="mx-auto w-full max-w-5xl">
@@ -1078,17 +1096,36 @@ function DungeonSelect({
           Cada jefe que venzas asegura el botín que llevas. Vence el último para
           limpiar el dungeon y abrir el siguiente rango.
         </p>
+        <div className="mb-3 text-center text-sm text-[#d9d2ca]">
+          <span className="mr-2 text-base text-yellow-300">Ascensión</span>
+          {Array.from({ length: MAX_ASCENSION + 1 }, (_, n) => (
+            <button
+              key={n}
+              onClick={() => setWant(n)}
+              className={`mx-0.5 h-7 w-7 border-2 ${n === want ? "border-yellow-300 text-yellow-300" : "border-[var(--edge)]"}`}
+            >
+              {n}
+            </button>
+          ))}
+          <div className="mt-1 text-xs">
+            {want === 0
+              ? "Normal. Limpia un dungeon para abrir la ascensión 1 en él."
+              : `${ASC_RULES.slice(0, want).join(" · ")}. Monedas de victoria +${want * 20}% y botín +${want * 10}%.`}
+          </div>
+        </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {RARITY_IDS.map((rank) => {
             const d = DUNGEONS[rank];
             const lock = lockReason(clears, rank);
             const color = RARITIES[rank].color;
             const best = clears[rank];
+            const top = maxAscension(clears, ascensions, rank);
+            const lvl = Math.min(want, top);
             return (
               <button
                 key={rank}
                 disabled={!!lock}
-                onClick={() => onPick(rank)}
+                onClick={() => onPick(rank, lvl)}
                 className="pixel-frame flex items-center gap-3 p-2 text-left enabled:hover:brightness-125 disabled:opacity-60"
                 style={{ borderColor: color }}
               >
@@ -1118,6 +1155,8 @@ function DungeonSelect({
                   ) : best ? (
                     <span className="block text-green-300">
                       ✔ Limpiado · mejor: {best} ♥
+                      {top > 0 &&
+                        ` · Asc. ${lvl}/${top}${(ascensions[rank] ?? 0) >= MAX_ASCENSION ? " ★" : ""}`}
                     </span>
                   ) : (
                     <span className="block text-[#d9d2ca]">Sin limpiar</span>

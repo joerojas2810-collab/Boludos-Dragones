@@ -10,7 +10,7 @@ import {
   type Stats,
 } from "./characters";
 import { ELEMENTS, type Element } from "./elements";
-import type { Clears } from "./dungeons";
+import type { Ascensions, Clears } from "./dungeons";
 import type { RunPiece } from "./loot";
 import { addParts, isPartKey, MAX_STACK, type Parts } from "./parts";
 import {
@@ -84,6 +84,7 @@ export interface Profile {
   bestFloor: number;
   runsPlayed: number;
   dungeons: Clears; // dungeon rank -> most lives left in a clear (see dungeons.ts)
+  ascensions: Ascensions; // dungeon rank -> highest ascension level cleared
   parts: Parts; // forge parts and cores (see parts.ts)
 }
 
@@ -104,6 +105,7 @@ export const createProfile = (): Profile => ({
   bestFloor: 0,
   runsPlayed: 0,
   dungeons: {},
+  ascensions: {},
   parts: {},
 });
 
@@ -392,7 +394,7 @@ export function bankRun(
   maxFloor: number,
   runId?: string,
   loot: readonly RunPiece[] = [],
-  clear?: { rank: RarityId; lives: number },
+  clear?: { rank: RarityId; lives: number; asc?: number },
   parts: Parts = {},
 ): Profile {
   if (runId !== undefined && p.lastBankedRunId === runId) return p;
@@ -410,6 +412,12 @@ export function bankRun(
           [clear.rank]: Math.max(p.dungeons[clear.rank] ?? 0, clear.lives),
         }
       : p.dungeons,
+    ascensions: clear
+      ? {
+          ...p.ascensions,
+          [clear.rank]: Math.max(p.ascensions[clear.rank] ?? 0, clear.asc ?? 0),
+        }
+      : p.ascensions,
   };
 }
 
@@ -690,6 +698,7 @@ export function migrate(json: unknown): Profile {
     bestFloor: nat(json.bestFloor),
     runsPlayed: nat(json.runsPlayed),
     dungeons: parseClears(json.dungeons),
+    ascensions: parseClears(json.ascensions),
     parts: parseParts(json.parts),
   };
 }

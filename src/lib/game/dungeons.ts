@@ -97,6 +97,25 @@ export const UNLOCK_MIN_LIVES: Partial<Record<RarityId, number>> = {
   ssr: 3,
 };
 
+// Ascension: optional harder levels 1-5 of a cleared dungeon. Rules stack (level N has
+// every rule up to N); each level also pays more coins and loot budget.
+export const MAX_ASCENSION = 5;
+// Every level: enemy hp and atk/def grow by these steps (L1 = +12% hp, +5% atk).
+export const ASC_HP_STEP = 0.12;
+export const ASC_ATK_STEP = 0.05;
+export const ASC_REST_HEAL = 0.5; // L2: campfire heals this fraction of normal
+// L3: hard fights get one more enemy (max 3). L4: bosses gain double attack.
+export const ASC_LIVES = 2; // L5: starting lives
+export const ASC_COIN_STEP = 0.2; // victory coins per level
+export const ASC_LOOT_STEP = 0.1; // loot budget per level
+export const ASC_RULES: readonly string[] = [
+  "Enemigos +12% vida y +5% ataque por nivel",
+  "Las fogatas curan la mitad",
+  "Peleas difíciles con un enemigo más",
+  "Los jefes atacan dos veces",
+  "Empiezas con 2 vidas",
+];
+
 export const FINAL_BOSS_MULT = 1.25; // the last boss hits harder than the others
 // Clearing a dungeon pays this many coins (on top of what the run earned). It grows
 // ~1.6x per rank so that attempting S, SS and SSR is not a coin sink (their normal
@@ -113,13 +132,24 @@ export const VICTORY_COINS: Record<RarityId, number> = {
   ss: 220,
   ssr: 290,
 };
-export const victoryCoins = (rank: RarityId) => VICTORY_COINS[rank];
+export const victoryCoins = (rank: RarityId, ascension = 0) =>
+  Math.round(VICTORY_COINS[rank] * (1 + ASC_COIN_STEP * ascension));
 
 export const isDungeonRank = (v: unknown): v is RarityId =>
   typeof v === "string" && Object.hasOwn(DUNGEONS, v);
 
 // Best lives left per cleared dungeon (profile.dungeons).
 export type Clears = Partial<Record<RarityId, number>>;
+// Highest ascension level cleared per dungeon (profile.ascensions); clearing N opens N+1.
+export type Ascensions = Partial<Record<RarityId, number>>;
+
+// Highest ascension the player may start in `rank`: 0 until it is cleared once.
+export const maxAscension = (
+  clears: Clears,
+  asc: Ascensions,
+  rank: RarityId,
+): number =>
+  (clears[rank] ?? 0) > 0 ? Math.min(MAX_ASCENSION, (asc[rank] ?? 0) + 1) : 0;
 
 export type LockReason =
   | { kind: "needs"; rank: RarityId; lives: number } // clear `rank` with >= `lives`

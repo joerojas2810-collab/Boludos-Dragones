@@ -13,7 +13,12 @@ import {
   type PullResult,
   type Profile,
 } from "../game/profile";
-import { isDungeonRank, isUnlocked, victoryCoins } from "../game/dungeons";
+import {
+  isDungeonRank,
+  isUnlocked,
+  maxAscension,
+  victoryCoins,
+} from "../game/dungeons";
 import { applyForge, type ForgeOp } from "../game/forge";
 import type { RarityId } from "../game/rarity";
 import { ENGINE_VERSION, replayRun, type RunAction } from "../game/replay";
@@ -41,6 +46,7 @@ interface RawProfile {
   pity: { character: number; weapon: number };
   pitySsr?: { character: number; weapon: number };
   dungeons?: Record<string, number>;
+  ascensions?: Record<string, number>;
   parts?: Record<string, number>;
   characters: {
     id: string;
@@ -76,6 +82,7 @@ export function toMe(raw: RawProfile): Me {
     coins: raw.coins,
     pity: raw.pity,
     dungeons: raw.dungeons,
+    ascensions: raw.ascensions,
     parts: raw.parts,
     pitySsr: raw.pitySsr,
     bestFloor: raw.bestFloor,
@@ -234,6 +241,7 @@ export interface RunStartBody {
   classId: ClassId;
   characterId: string | null;
   rank?: RarityId;
+  ascension?: number;
 }
 
 export async function startRunService(
@@ -249,6 +257,15 @@ export async function startRunService(
       403,
       "dungeon_locked",
       "Ese dungeon todavía está bloqueado.",
+    );
+  const ascension = body.ascension ?? 0;
+  if (
+    ascension > maxAscension(me.profile.dungeons, me.profile.ascensions, rank)
+  )
+    throw new ApiError(
+      403,
+      "ascension_locked",
+      "Esa ascensión todavía está bloqueada.",
     );
   const seed = d.randomSeed();
   let hero: Character;
@@ -269,7 +286,12 @@ export async function startRunService(
     p_seed: seed,
     // The engine version rides inside the hero json (no schema change): a log
     // is only replayable by the engine that recorded it.
-    p_hero: { ...hero, engineVersion: ENGINE_VERSION, dungeon: rank },
+    p_hero: {
+      ...hero,
+      engineVersion: ENGINE_VERSION,
+      dungeon: rank,
+      ascension,
+    },
   };
   try {
     let r: { run_id: string };
@@ -292,11 +314,22 @@ export async function startRunService(
       await audit(d.rpc, playerId, "run_replaced", { stale });
       r = await call(d.rpc, "start_run", args);
     }
-    return { runId: r.run_id, seed, hero, rank, engineVersion: ENGINE_VERSION };
+    return {
+      runId: r.run_id,
+      seed,
+      hero,
+      rank,
+      ascension,
+      engineVersion: ENGINE_VERSION,
+    };
   } catch (e) {
     return mapRpcError(e);
   }
 }
+
+// Stored ascension from the hero json: anything unexpected counts as level 0.
+const rank0 = (v: unknown) =>
+  typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 5 ? v : 0;
 
 // Same bound as SQL (game_constants): coins <= floors*120 + 15*floors*(floors+1)/2.
 export const runCoinCap = (floors: number, victoryBonus = 0) =>
@@ -331,11 +364,14 @@ export async function submitRunService(
   const {
     engineVersion: stored = 1,
     dungeon,
+    ascension: storedAsc,
     ...hero
   } = row.hero as Character & {
     engineVersion?: number;
     dungeon?: RarityId;
+    ascension?: number;
   };
+  const ascension = rank0(storedAsc);
   const rank = isDungeonRank(dungeon) ? dungeon : null;
   if (body.engineVersion !== undefined && body.engineVersion !== stored)
     throw new ApiError(
@@ -343,7 +379,7 @@ export async function submitRunService(
       "engine_outdated",
       "La run se jugó con otra versión del juego. Recarga la página y empieza una nueva.",
     );
-  const rep = replayRun(row.seed, hero, body.actions, stored, rank);
+  const rep = replayRun(row.seed, hero, body.actions, stored, rank, ascension);
   if (rep.error)
     throw new ApiError(
       409,
@@ -354,7 +390,7 @@ export async function submitRunService(
   // A verified dungeon clear may exceed the per-floor cap by its victory bonus.
   const clearBonus =
     rank && isVictory(rep.run) && rep.rejectedAt === null
-      ? victoryCoins(rank)
+      ? victoryCoins(rank, ascension)
       : 0;
   const coins = Math.min(rep.run.coins, runCoinCap(floors, clearBonus));
   let verdict: Verdict = "accepted";
@@ -388,7 +424,7 @@ export async function submitRunService(
       p_parts: rep.run.partSecured,
       p_clear:
         rank && isVictory(rep.run) && rep.rejectedAt === null
-          ? { rank, lives: rep.run.lives }
+          ? { rank, lives: rep.run.lives, asc: ascension }
           : null,
       // Pieces locked in by defeated bosses, as the REPLAY says (never the client).
       p_loot: rep.run.secured.slice(0, 80).map((p) => ({

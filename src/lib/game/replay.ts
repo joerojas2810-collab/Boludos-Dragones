@@ -80,8 +80,9 @@ export const initialReplay = (
   seed: number,
   hero: Character,
   rank: RarityId | null = null,
+  ascension = 0,
 ): ReplayState => ({
-  run: createRun(seed, hero, true, rank),
+  run: createRun(seed, hero, true, rank, null, ascension),
   fight: null,
   picks: null,
 });
@@ -210,8 +211,9 @@ export function replayRun(
   actions: readonly RunAction[],
   engineVersion: number = ENGINE_VERSION,
   rank: RarityId | null = null,
+  ascension = 0,
 ): ReplayResult {
-  let s = initialReplay(seed, hero, rank);
+  let s = initialReplay(seed, hero, rank, ascension);
   if (engineVersion !== ENGINE_VERSION)
     return {
       run: s.run,

@@ -231,6 +231,8 @@ function play(seed: number, strat: Strategy): Result {
     hero,
     process.env.LOOT !== "0", // LOOT=0: compare against runs without loot
     DUNGEON,
+    null,
+    Number(process.env.ASC ?? 0), // ASC=<0-5>: dungeon ascension level
   );
   const res: Result = {
     floor: 1,

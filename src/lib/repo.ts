@@ -20,7 +20,7 @@ import {
   type Profile,
   type PullResult,
 } from "./game/profile";
-import { isUnlocked } from "./game/dungeons";
+import { isUnlocked, maxAscension } from "./game/dungeons";
 import { applyForge, type ForgeOp } from "./game/forge";
 import type { RunPiece } from "./game/loot";
 import type { Parts } from "./game/parts";
@@ -48,6 +48,7 @@ export interface RunStartInfo {
   seed: number;
   hero: Character;
   rank: RarityId;
+  ascension?: number;
 }
 export interface RunBankInfo {
   coinsAdded: number;
@@ -77,6 +78,7 @@ export interface ProfileRepo {
     characterId: string | null,
     seedHint?: number,
     rank?: RarityId,
+    ascension?: number,
   ): Promise<RunStartInfo>;
   submitRun(
     runId: string,
@@ -85,7 +87,7 @@ export interface ProfileRepo {
       coins: number;
       maxFloor: number;
       loot?: RunPiece[];
-      clear?: { rank: RarityId; lives: number }; // local mode only; the server replays
+      clear?: { rank: RarityId; lives: number; asc?: number }; // local mode only; the server replays
       parts?: Parts;
     },
     keepalive?: boolean,
@@ -161,14 +163,23 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       store.replace(r.profile);
       return { text: r.text };
     },
-    startRun: async (classId, characterId, seedHint, rank = "f") => {
-      if (!isUnlocked(store.get().dungeons, rank))
+    startRun: async (
+      classId,
+      characterId,
+      seedHint,
+      rank = "f",
+      ascension = 0,
+    ) => {
+      const p = store.get();
+      if (!isUnlocked(p.dungeons, rank))
         throw new RepoError("dungeon_locked", "Dungeon bloqueado.");
+      if (ascension > maxAscension(p.dungeons, p.ascensions, rank))
+        throw new RepoError("ascension_locked", "Ascensión bloqueada.");
       const seed = seedHint ?? Date.now();
       const hero =
         (characterId && heroFromOwned(store.get(), characterId)) ||
         generateCharacter(createRng(seed), classId);
-      return { runId: `${seed}-${Date.now()}`, seed, hero, rank };
+      return { runId: `${seed}-${Date.now()}`, seed, hero, rank, ascension };
     },
     submitRun: async (runId, _actions, claimed) => {
       store.update((p) =>
@@ -266,8 +277,13 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       store.replace(r.profile);
       return { text: r.text };
     },
-    startRun: (classId, characterId, _seed, rank = "f") =>
-      api<RunStartInfo>("/api/run/start", { classId, characterId, rank }),
+    startRun: (classId, characterId, _seed, rank = "f", ascension = 0) =>
+      api<RunStartInfo>("/api/run/start", {
+        classId,
+        characterId,
+        rank,
+        ascension,
+      }),
     submitRun: async (runId, actions, claimed, keepalive) => {
       const r = await api<{
         coinsAdded: number;

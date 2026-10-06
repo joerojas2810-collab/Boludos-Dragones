@@ -5,6 +5,7 @@ import {
   isDungeonRank,
   isUnlocked,
   lockReason,
+  maxAscension,
   victoryCoins,
   powerVerdict,
   recommendedPower,
@@ -182,5 +183,37 @@ describe("recommended power", () => {
       "low",
     );
     expect(powerVerdict(40, "d")).toBe("danger");
+  });
+});
+
+describe("ascension", () => {
+  it("a level opens only after clearing the one below it", () => {
+    expect(maxAscension({}, {}, "f")).toBe(0);
+    expect(maxAscension({ f: 2 }, {}, "f")).toBe(1);
+    expect(maxAscension({ f: 2 }, { f: 3 }, "f")).toBe(4);
+    expect(maxAscension({ f: 2 }, { f: 5 }, "f")).toBe(5);
+    expect(maxAscension({ f: 2 }, { f: 5 }, "e")).toBe(0);
+  });
+
+  it("each level stacks its rule and pays more", () => {
+    const base = enemyFor(7, 3, "hard", "f", null, 0);
+    const a1 = enemyFor(7, 3, "hard", "f", null, 1);
+    expect(a1.enemies[0].stats.hp).toBeGreaterThan(base.enemies[0].stats.hp);
+    expect(enemyFor(7, 3, "hard", "f", null, 3).enemies.length).toBe(
+      Math.min(3, base.enemies.length + 1),
+    );
+    const boss = DUNGEONS.f.bosses[0];
+    expect(enemyFor(7, boss, "boss", "f", null, 3).mods).not.toContain(
+      "dobleAtaque",
+    );
+    expect(enemyFor(7, boss, "boss", "f", null, 4).mods).toContain(
+      "dobleAtaque",
+    );
+    expect(createRun(1, hero, true, "f", null, 4).lives).toBe(3);
+    expect(createRun(1, hero, true, "f", null, 5).lives).toBe(2);
+    expect(createRun(1, hero, true, "f", null, 5).lootPool).toBeGreaterThan(
+      createRun(1, hero, true, "f").lootPool,
+    );
+    expect(victoryCoins("f", 5)).toBe(victoryCoins("f") * 2);
   });
 });

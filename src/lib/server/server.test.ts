@@ -586,7 +586,11 @@ describe("run replay + submit", () => {
     expect(truth.status).toBe("over");
     expect(isVictory(truth)).toBe(true);
     await sub(db, log, { coins: truth.coins, maxFloor: truth.maxFloor });
-    expect(db.banked[0].p_clear).toEqual({ rank: "f", lives: truth.lives });
+    expect(db.banked[0].p_clear).toEqual({
+      rank: "f",
+      lives: truth.lives,
+      asc: 0,
+    });
   });
 });
 

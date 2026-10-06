@@ -43,12 +43,21 @@ import {
 import { createRng, hashSeed, type Rng } from "./rng";
 import { needsSkill, SKILLS_BY_CLASS, type SkillId } from "./skills";
 import { TRAITS, type Trait, type TraitId } from "./traits";
-import { DUNGEONS, FINAL_BOSS_MULT, victoryCoins } from "./dungeons";
+import {
+  ASC_ATK_STEP,
+  ASC_HP_STEP,
+  ASC_LIVES,
+  ASC_LOOT_STEP,
+  ASC_REST_HEAL,
+  DUNGEONS,
+  FINAL_BOSS_MULT,
+  victoryCoins,
+} from "./dungeons";
 import { WORLD_ELEMENT_BIAS, WORLDS, worldOf, type World } from "./worlds";
 
 // Bump when a change makes old action logs replay differently. The server
 // rejects logs from another version with a clear error (replay.ts).
-export const ENGINE_VERSION = 5; // 5: additive capped upgrades; 4: run loot (weapons/gear found in the run)
+export const ENGINE_VERSION = 6; // 6: dungeon ascension; 5: additive capped upgrades; 4: run loot (weapons/gear found in the run)
 
 // ---- Tunable constants ----
 export const START_LIVES = 3;
@@ -197,6 +206,7 @@ export interface Run {
   attempts: number; // fights started so far; mixed into the fight seed
   pendingSkill: boolean; // class skill pick owed (reached SKILL_LEVEL)
   rank: RarityId | null; // dungeon rank; null = legacy endless run (room rounds)
+  ascension: number; // dungeon ascension level 0-5 (dungeons.ts)
   difficulty: RarityId | null; // room rank: enemy difficulty only (layout stays legacy)
   lootEnabled: boolean; // solo runs find loot; room rounds do not
   loot: RunLoot; // run-only pieces worn on top of the collection gear
@@ -311,6 +321,7 @@ export function groupSize(
   kind: FightKind,
   rank?: RarityId | null,
   difficulty?: RarityId | null,
+  ascension = 0,
 ) {
   const rows = GROUP_SCHEDULE[kind].filter(
     (r) => depthOf(floor, rank, difficulty) >= r.fromFloor,
@@ -318,7 +329,8 @@ export function groupSize(
   const w = rows[rows.length - 1].weights;
   const rng = createRng(hashSeed(seed, floor, 70 + FIGHT_SALT[kind]));
   let r = rng.next() * (w[0] + w[1] + w[2]);
-  return w.findIndex((x) => (r -= x) < 0) + 1 || 1;
+  const size = w.findIndex((x) => (r -= x) < 0) + 1 || 1;
+  return kind === "hard" && ascension >= 3 ? Math.min(3, size + 1) : size;
 }
 
 const ROMAN = ["", " II", " III"];
@@ -332,6 +344,7 @@ function makeEnemy(
   size: number,
   rank?: RarityId | null,
   difficulty?: RarityId | null,
+  ascension = 0,
 ): Character {
   const salt = 10 + FIGHT_SALT[kind];
   const rng = createRng(
@@ -363,8 +376,8 @@ function makeEnemy(
   return scaleForFloor(
     { ...base, name, element: themed ? world.element : other },
     depth,
-    mult * ease * fin,
-    hpMult * ease * fin,
+    mult * ease * fin * (1 + ASC_ATK_STEP * ascension),
+    hpMult * ease * fin * (1 + ASC_HP_STEP * ascension),
   );
 }
 
@@ -374,11 +387,15 @@ export function enemyFor(
   kind: FightKind,
   rank?: RarityId | null,
   difficulty?: RarityId | null,
+  ascension = 0,
 ): Omit<FightNode, "type" | "kind"> {
-  const size = groupSize(seed, floor, kind, rank, difficulty);
+  const size = groupSize(seed, floor, kind, rank, difficulty, ascension);
   const made = Array.from({ length: size }, (_, i) =>
-    makeEnemy(seed, floor, kind, i, size, rank, difficulty),
+    makeEnemy(seed, floor, kind, i, size, rank, difficulty, ascension),
   );
+  const mods = modsAtFloor(depthOf(floor, rank, difficulty));
+  if (kind === "boss" && ascension >= 4 && !mods.includes("dobleAtaque"))
+    mods.push("dobleAtaque");
   // Twins get a numeral so logs and targets stay readable.
   const seen = new Map<string, number>();
   const enemies = made.map((e) => {
@@ -389,7 +406,7 @@ export function enemyFor(
   return {
     enemy: enemies[0],
     enemies,
-    mods: modsAtFloor(depthOf(floor, rank, difficulty)),
+    mods,
     battleSeed: hashSeed(seed, floor, 20 + FIGHT_SALT[kind]),
   };
 }
@@ -499,12 +516,13 @@ export function createRun(
   lootEnabled = false,
   rank: RarityId | null = null,
   difficulty: RarityId | null = null,
+  ascension = 0,
 ): Run {
   return {
     seed,
     floor: 1,
     maxFloor: 1,
-    lives: START_LIVES,
+    lives: ascension >= 5 ? ASC_LIVES : START_LIVES,
     hero,
     hp: hero.stats.hp,
     coins: 0,
@@ -527,6 +545,7 @@ export function createRun(
     pendingSkill: false,
     rank,
     difficulty,
+    ascension,
     lootEnabled,
     loot: {},
     pendingLoot: null,
@@ -535,7 +554,10 @@ export function createRun(
     partBag: {},
     partSecured: {},
     lastDrops: {},
-    lootPool: rank && lootEnabled ? dungeonBudget(rank) : 0,
+    lootPool:
+      rank && lootEnabled
+        ? Math.round(dungeonBudget(rank) * (1 + ASC_LOOT_STEP * ascension))
+        : 0,
     engineVersion: ENGINE_VERSION,
   };
 }
@@ -725,7 +747,9 @@ export function nextFloor(run: Run): Run {
     return {
       ...run,
       status: "over",
-      coins: run.coins + (run.rank ? victoryCoins(run.rank) : VICTORY_COINS),
+      coins:
+        run.coins +
+        (run.rank ? victoryCoins(run.rank, run.ascension) : VICTORY_COINS),
     };
   const floor = run.floor + 1;
   return {
@@ -786,7 +810,14 @@ export function chooseDoor(
       return open(run, {
         type: "fight",
         kind: door.kind,
-        ...enemyFor(run.seed, run.floor, door.kind, run.rank, run.difficulty),
+        ...enemyFor(
+          run.seed,
+          run.floor,
+          door.kind,
+          run.rank,
+          run.difficulty,
+          run.ascension,
+        ),
       });
     case "chest": {
       const coins = Math.round(
@@ -818,7 +849,10 @@ export function chooseDoor(
       return { run: withParts, node: opened.node };
     }
     case "rest": {
-      const next = heal(run, maxHp(run) * REST_HEAL);
+      const next = heal(
+        run,
+        maxHp(run) * REST_HEAL * (run.ascension >= 2 ? ASC_REST_HEAL : 1),
+      );
       return open(next, { type: "rest", healed: next.hp - run.hp });
     }
     case "merchant":
