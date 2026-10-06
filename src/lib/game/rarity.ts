@@ -51,7 +51,7 @@ export const STAR_BONUS = 0.1; // per star, multiplicative over the rarity mult
 // Pulls without a Legendario before the next one is guaranteed.
 // Counter semantics: pity = pulls since the last Legendario; when pity >= 30
 // the pull (the 31st) is a guaranteed Legendario.
-export const PITY_THRESHOLD = 30;
+export const PITY_THRESHOLD = 100;
 
 export const isRarity = (v: unknown): v is RarityId =>
   typeof v === "string" && (RARITY_IDS as readonly string[]).includes(v);

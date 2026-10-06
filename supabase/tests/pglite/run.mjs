@@ -49,7 +49,7 @@ await err(as("authenticated",U(1),()=>db.query(`select public.get_profile('${U(1
 
 // --- CHECK constraints
 await err(db.exec(`update public.player_state set coins=-1 where player_id='${U(1)}'`),"violates check","coins<0");
-await err(db.exec(`update public.gacha_state set pity=31 where player_id='${U(1)}'`),"violates check","pity>30");
+await err(db.exec(`update public.gacha_state set pity=101 where player_id='${U(1)}'`),"violates check","pity>100");
 await err(db.exec(`insert into public.characters(player_id,class,element,rarity,stars) values ('${U(1)}','mago','fuego','raro',6)`),"violates check","stars>5");
 await err(db.exec(`insert into public.characters(player_id,class,element,rarity) values ('${U(1)}','wizard','fuego','raro')`),"violates check","class enum");
 await err(db.exec(`insert into public.weapons(player_id,type,element,rarity) values ('${U(1)}','espada','fuego','mythic')`),"violates check","rarity enum");
@@ -87,9 +87,9 @@ ok(r.results.length===10 && r.results[0].status==="new" && r.results[5].stars===
 console.log("10-pull statuses",r.results.map(x=>x.status+":"+x.stars).join(","),"refundTotal",r.refundTotal);
 ok(r.results[5].stars===5 && r.results[6].status==="refund" && r.results[6].refund===75 && r.refundTotal===300,"max star refund");
 await err(pull(ten,{cost:1500}),"invalid_cost","10 at full price");
-// pity: legendary resets, guarantee at 30
-await db.exec(`update public.gacha_state set pity=30 where player_id='${U(2)}' and banner='character'`);
-await err(pull([ch("clerigo","viento","comun")],{pity:31}),"invalid_pity","pity30 non-legend");
+// pity: legendary resets, guarantee at 100
+await db.exec(`update public.gacha_state set pity=100 where player_id='${U(2)}' and banner='character'`);
+await err(pull([ch("clerigo","viento","comun")],{pity:101}),"invalid_pity","pity100 non-legend");
 r=await pull([ch("clerigo","viento","legendario")],{pity:0}); st=r.version; ok(r.pity===0,"legend resets pity");
 // insufficient coins
 await db.exec(`update public.player_state set coins=100 where player_id='${U(2)}'`);

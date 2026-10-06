@@ -71,7 +71,7 @@ describe("rarity", () => {
 });
 
 describe("pity", () => {
-  it("guarantees Legendario exactly on the 31st pull and resets", () => {
+  it("guarantees Legendario exactly on the 101st pull and resets", () => {
     const rng = createRng(5);
     // rng value that never rolls legendario naturally is not controllable, so
     // drive the counter directly.

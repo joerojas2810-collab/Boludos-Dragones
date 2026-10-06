@@ -68,7 +68,7 @@ Reglas de oro: RLS activado en **todas** las tablas; quitar permisos a `anon` y 
 |---|---|---|
 | `players` (id, name, best_floor, is_admin) | Todos los autenticados (ranking) | Solo servidor |
 | `player_state` (coins, version) | Solo la propia fila | Solo servidor; `check (coins >= 0)` |
-| `gacha_state` (player, banner, pity) | Propia | Solo servidor; pity 0..30 |
+| `gacha_state` (player, banner, pity) | Propia | Solo servidor; pity 0..100 |
 | `characters`, `weapons` (class/type, element, rarity, stars 0..5, data jsonb) | Propias (y de compañeros de sala para ver el combate) | Solo servidor; único `(player, class, element, rarity)` |
 | `fragments` | Propia | Solo servidor; `count >= 0` |
 | `runs` (seed, hero, state jsonb, status, log_len) | Propia | Solo servidor; una sola `open` por jugador |
@@ -99,7 +99,7 @@ create table public.player_state (
 create table public.gacha_state (
   player_id uuid references public.players(id) on delete cascade,
   banner text check (banner in ('character','weapon')),
-  pity int not null default 0 check (pity between 0 and 30),
+  pity int not null default 0 check (pity between 0 and 100),
   primary key (player_id, banner)
 );
 create table public.characters (

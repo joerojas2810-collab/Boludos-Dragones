@@ -90,7 +90,7 @@ Ciclo: cada elemento vence a los dos siguientes de esta lista circular: **Agua �
 | Legendario | dorado | 2% | x1.80 |
 - Probabilidades y multiplicadores son valores iniciales, ajustables desde `rarity.ts`.
 - La rareza es fija. Los duplicados suben **estrellas** (0 a 5): cada estrella suma +10% de stats base (hasta +50%), multiplicando sobre la rareza. Un Legendario de 5 estrellas llega a ×2.7. Ajustable en `rarity.ts`.
-- Pity: tras 30 tiradas sin Legendario, la siguiente lo garantiza.
+- Pity: tras 100 tiradas sin Legendario, la siguiente lo garantiza.
 
 ### Personajes únicos
 Dos personajes de la misma clase nunca son iguales:
@@ -171,9 +171,9 @@ Dos personajes de la misma clase nunca son iguales:
 - Enemigos: una familia por mundo (bestias, no-muertos, golems…), con silueta propia y jefes con nombre. Los mundos son bloques de 10 pisos con nombre y elemento dominante (propuesta del agente de la Etapa 2, a revisar).
 - Pantalla de la run: una fila de 2 o 3 tarjetas por piso con ícono y texto, sin mapa.
 - Armas: suman ATQ según rareza y estrellas, y su elemento es el del ataque (hoy solo cuenta el del personaje).
-- Gacha: una tirada cuesta lo equivalente a ~3 pisos de monedas de run; pity en 30 como está.
+- Gacha: una tirada cuesta lo equivalente a ~3 pisos de monedas de run; pity en 100 (decidido 2026-10-06).
 - Colección y run: al empezar una run eliges la clase y luego uno de tus personajes de esa clase (su elemento, rasgos y stats vienen ya definidos y suben con rareza y estrellas). Si no tienes ninguno de esa clase, parte uno Común al azar.
-- Duplicados del gacha: un personaje se guarda siempre, salvo que sea un duplicado exacto (clase + elemento + rareza): entonces suma +1 estrella al que posees (en 5 estrellas devuelve el 50% del costo). Además, cada tirada cuya clase + rareza ya tengas (con otro elemento) da 1 **fragmento** de esa clase y rareza; 3 fragmentos = +1 estrella a un personaje de esa clase y rareza que elijas. Cada estrella suma +10% de stats, multiplicado sobre la rareza. Pity por banner (personajes y armas por separado): a las 30 tiradas sin Legendario, la siguiente lo es.
+- Duplicados del gacha: un personaje se guarda siempre, salvo que sea un duplicado exacto (clase + elemento + rareza): entonces suma +1 estrella al que posees (en 5 estrellas devuelve el 50% del costo). Además, cada tirada cuya clase + rareza ya tengas (con otro elemento) da 1 **fragmento** de esa clase y rareza; 3 fragmentos = +1 estrella a un personaje de esa clase y rareza que elijas. Cada estrella suma +10% de stats, multiplicado sobre la rareza. Pity por banner (personajes y armas por separado): a las 100 tiradas sin Legendario, la siguiente lo es.
 - Armas con 6 tipos (espada, hacha, lanza, arco, bastón, daga) × 5 elementos × 5 rarezas = 150 combinaciones; cada tipo tiene un sabor (multiplicador de ATQ y un efecto secundario pequeño). Las monedas de una run se guardan al terminar, perder o abandonar (una sola vez por run).
 - Cada clase tiene un pasivo visible (implementado y balanceado; constantes `CLASS_PASSIVE_*` en `characters.ts`): Caballero "Muralla" (−10% daño recibido), Mago "Foco arcano" (ventaja elemental +40%), Pícaro "Filo mortal" (críticos ×2.0), Clérigo "Bendición" (regenera 1.5% de la vida máxima al final de cada turno; bajado del 4% inicial porque con más el Clérigo ganaba 58% y los Clérigos enemigos alargaban demasiado las peleas). Los enemigos de cada clase también tienen su pasivo. Clases dentro de ±3% (49.4 / 49.7 / 51.3 / 49.6).
 - Velocidad = acciones extra (decidido): el más lento actúa 1 vez por ronda; el más rápido actúa `velocidad ÷ velocidad del otro` veces, guardando el sobrante (12 vs 6 = 2 por ronda; 12 vs 8 = 1, 2, 1, 2…; tope por ronda ajustable). Cooldowns y regeneraciones cuentan por ronda. En implementación.

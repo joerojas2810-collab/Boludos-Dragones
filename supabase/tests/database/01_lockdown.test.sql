@@ -68,7 +68,7 @@ reset role;
 
 -- CHECK constraints
 select throws_ok($$update public.player_state set coins = -1$$, '23514', null, 'coins >= 0');
-select throws_ok($$update public.gacha_state set pity = 31$$, '23514', null, 'pity <= 30');
+select throws_ok($$update public.gacha_state set pity = 101$$, '23514', null, 'pity <= 100');
 select throws_ok($$update public.characters set stars = 6$$, '23514', null, 'stars <= 5');
 select throws_ok($$insert into public.characters (player_id, class, element, rarity)
   values ('00000000-0000-0000-0000-000000000001', 'bard', 'fuego', 'raro')$$, '23514', null, 'class enum');
