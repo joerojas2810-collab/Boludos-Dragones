@@ -57,6 +57,7 @@ export function Tooltip({
   const holdTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const suppressClick = useRef(false);
   const lastPointer = useRef("mouse");
+  const dismissed = useRef(false); // mouse click closed it; stay shut until the pointer leaves
 
   const place = useCallback(() => {
     const anchor = wrapRef.current;
@@ -118,7 +119,13 @@ export function Tooltip({
   const isTouch = (e: PointerEvent) => e.pointerType !== "mouse";
   const onPointerDown = (e: PointerEvent) => {
     lastPointer.current = e.pointerType;
-    if (!isTouch(e) || focusable) return;
+    if (!isTouch(e)) {
+      // a click means "do it": hide the tip so it never covers the animation
+      dismissed.current = true;
+      setOpen(false);
+      return;
+    }
+    if (focusable) return;
     suppressClick.current = false;
     holdTimer.current = setTimeout(() => {
       suppressClick.current = true;
@@ -145,16 +152,22 @@ export function Tooltip({
       {...(focusable
         ? { tabIndex: 0, "aria-describedby": linked, role: "group" }
         : {})}
-      onPointerEnter={(e) => !isTouch(e) && setOpen(true)}
+      onPointerEnter={(e) => {
+        if (isTouch(e)) return;
+        dismissed.current = false;
+        setOpen(true);
+      }}
       onPointerLeave={(e) => {
         if (!isTouch(e)) setOpen(false);
+        dismissed.current = false;
         endHold();
       }}
       onPointerDown={onPointerDown}
       onPointerUp={endHold}
       onPointerCancel={endHold}
       onFocus={(e) => {
-        if (e.target.matches(":focus-visible")) setOpen(true);
+        if (!dismissed.current && e.target.matches(":focus-visible"))
+          setOpen(true);
       }}
       onBlur={() => setOpen(false)}
       onContextMenu={(e) => !focusable && e.preventDefault()}

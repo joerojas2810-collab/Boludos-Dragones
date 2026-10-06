@@ -642,7 +642,10 @@ function RunScreen() {
                     ? "Ya tienes la vida llena"
                     : null;
               return (
-                <div key={it.id} className="choice-card flex items-center gap-3 p-2">
+                <div
+                  key={it.id}
+                  className="choice-card flex items-center gap-3 p-2"
+                >
                   <Tooltip
                     tip={shopItemTip(it, run)}
                     className="min-w-0 flex-1"
@@ -657,7 +660,7 @@ function RunScreen() {
                     </span>
                   </Tooltip>
                   <button
-                      className="btn choice-button w-32 shrink-0 text-center text-base"
+                    className="btn choice-button w-32 shrink-0 text-center text-base"
                     disabled={bought || poor || useless}
                     onClick={() => {
                       const r = buyItem(run, it.id);
@@ -790,7 +793,7 @@ function RunScreen() {
             Piso {run.floor} · {world.name}
           </div>
           <div
-              className={`grid gap-3 ${isBoss ? "" : doors.length === 3 ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}
+            className={`grid gap-3 ${isBoss ? "" : doors.length === 3 ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}
           >
             {doors.map((d, i) => (
               <Tooltip
@@ -845,7 +848,7 @@ function RunScreen() {
   );
 
   return (
-    <main className="flex flex-col gap-3 p-3 pt-6 text-base md:h-screen md:overflow-hidden">
+    <main className="flex flex-col gap-3 p-3 pt-6 text-base md:min-h-screen">
       <div className="mx-auto w-full max-w-4xl">
         <Hud run={run} />
       </div>
@@ -868,7 +871,7 @@ const CLASS_BLURB: Record<ClassId, string> = {
 
 function ClassSelect({ onPick }: { onPick: (c: ClassId) => void }) {
   return (
-    <main className="flex flex-col justify-center gap-4 p-3 pt-8 md:h-screen md:overflow-hidden">
+    <main className="flex flex-col justify-center gap-4 p-3 pt-8 md:min-h-screen">
       <Panel title="Elige tu clase" className="mx-auto w-full max-w-4xl">
         <p className="mb-3 text-center text-base text-[#d9d2ca]">
           Elemento, rasgos y stats se sortean al empezar.

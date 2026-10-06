@@ -194,6 +194,10 @@ export const OVERLAYS: Record<ClassId, readonly Patch[]> = {
     ...vertical(6, 30, 27, "oho"),
     [20, 26, "s"],
     [21, 26, "s"],
+    // elemental crystal brooch on the chest
+    [17, 15, ".y."],
+    [18, 14, "oycyo"],
+    [19, 15, ".y."],
   ],
   // dagger up (right), dagger down (left)
   picaro: [
