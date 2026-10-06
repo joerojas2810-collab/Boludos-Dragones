@@ -3,6 +3,9 @@
 import { useState, type ReactNode } from "react";
 import { DoorIcon } from "@/components/DoorIcon";
 import { FloorPlayer } from "@/components/room/FloorPlayer";
+import { Podium } from "@/components/room/Podium";
+import { Sprite } from "@/components/Sprite";
+import "@/components/fx.css";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
 import { CLASSES } from "@/lib/game/characters";
@@ -277,6 +280,10 @@ export function RoomScreen({
     case "closed":
       main = (
         <Panel title="Resumen de la noche">
+          <Podium
+            ranked={rows.map((r) => view.players.find((x) => x.id === r.id)!)}
+            titles={titles}
+          />
           {view.awards?.map((a) => (
             <div key={a.id} className="mb-2 text-center">
               <div className="font-bold">
@@ -343,8 +350,18 @@ export function RoomScreen({
               const p = view.players.find((x) => x.id === r.id)!;
               const st = playerStatus(view, p, null);
               return (
-                <li key={r.id} className="flex items-center gap-2 text-sm">
+                <li key={r.id} className="b-enter flex items-center gap-2 text-sm">
                   <span className="w-5 text-right opacity-70">{r.pos}</span>
+                  {p.hero ? (
+                    <Sprite
+                      classId={p.hero.classId}
+                      element={p.hero.element}
+                      traits={p.hero.traits}
+                      className="w-8 shrink-0"
+                    />
+                  ) : (
+                    <span className="w-8 shrink-0" />
+                  )}
                   <span
                     className={`min-w-0 flex-1 truncate ${r.isMe ? "text-yellow-300" : ""}`}
                   >

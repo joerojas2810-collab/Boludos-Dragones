@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ArenaBackground } from "@/components/ArenaBackground";
 import { Chip } from "@/components/Chip";
+import { BossIntro, FxLayer, useBattleFx } from "@/components/fx/BattleFx";
 import { HudCard } from "@/components/HudCard";
 import { Sprite } from "@/components/Sprite";
 import { Tooltip } from "@/components/Tooltip";
@@ -78,11 +79,14 @@ export function BattleArena({
   const spriteSize =
     "relative h-full max-h-[9.5rem] aspect-square max-w-full [&>svg]:h-full [&>svg]:w-full";
   const big = bigMomentFx(b);
+  const { fx, paused } = useBattleFx(b, boss);
   return (
     <div
       className={`relative flex min-h-[32rem] flex-col overflow-hidden border-4 border-[var(--edge)] p-2 md:min-h-0 md:flex-1 ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
       style={big?.style}
+      data-hitstop={paused}
     >
+      {boss && b.actions === 0 && <BossIntro name={b.enemies[0].char.name} />}
       {boss && b.status === "won" && (
         <div
           className="fx-flash pointer-events-none absolute inset-0 z-20 bg-yellow-300/60"
@@ -98,7 +102,8 @@ export function BattleArena({
         <ArenaBackground world={world} boss={boss} />
       )}
       <div className="relative grid min-h-0 flex-1 gap-2 md:grid-cols-[minmax(0,34%)_minmax(0,1fr)]">
-        <div className="flex min-h-0 flex-col">
+        <div className="relative flex min-h-0 flex-col">
+          <FxLayer t={fx?.player} k={fx?.key ?? 0} />
           <HudCard
             c={b.player}
             foe={first}
@@ -115,7 +120,7 @@ export function BattleArena({
             className={sprite}
             style={fxStyle(b, "player")}
           >
-            <div className={spriteSize}>
+            <div className={`${spriteSize} fx-breathe`}>
               <Sprite
                 classId={b.player.char.classId}
                 element={b.player.char.element}
@@ -159,8 +164,9 @@ export function BattleArena({
                     }
                   }
                 }}
-                className={`flex min-h-0 min-w-0 flex-col rounded-sm outline-offset-2 ${multi && !dead ? "cursor-pointer" : ""} ${selected && multi ? "outline outline-[3px] outline-yellow-300" : ""} ${dead ? "opacity-50 grayscale" : ""}`}
+                className={`relative flex min-h-0 min-w-0 flex-col rounded-sm outline-offset-2 ${multi && !dead ? "cursor-pointer" : ""} ${selected && multi ? "outline outline-[3px] outline-yellow-300" : ""} ${dead ? "opacity-50 grayscale" : ""}`}
               >
+                <FxLayer t={fx?.enemies[i]} k={fx?.key ?? 0} />
                 <HudCard
                   c={c}
                   foe={b.player}
@@ -202,7 +208,9 @@ export function BattleArena({
                   className={sprite}
                   style={fxStyle(b, "enemy", i)}
                 >
-                  <div className={spriteSize}>{enemyArt(i, c)}</div>
+                  <div className={`${spriteSize} fx-breathe fx-breathe-b`}>
+                    {enemyArt(i, c)}
+                  </div>
                 </div>
               </div>
             );

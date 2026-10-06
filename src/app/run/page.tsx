@@ -1,5 +1,6 @@
 "use client";
 
+import { Confetti } from "@/components/Confetti";
 import Link from "next/link";
 import {
   useCallback,
@@ -424,11 +425,14 @@ function RunScreen() {
       <Center>
         <Panel title="Fin de la run" className="text-center">
           {isVictory(run) ? (
-            <div className="text-2xl text-yellow-300">
-              ¡Victoria! Completaste los {MAX_FLOOR} pisos
-            </div>
+            <>
+              <Confetti />
+              <div className="text-2xl text-yellow-300">
+                ¡Victoria! Completaste los {MAX_FLOOR} pisos
+              </div>
+            </>
           ) : (
-            <div className="text-2xl text-red-400">Caíste en la mazmorra</div>
+            <div className="text-xl text-[#d9d2ca]">Caíste en la mazmorra</div>
           )}
           <div className="mt-2 text-yellow-300">
             Puntaje (piso máximo): {runScore(run)}

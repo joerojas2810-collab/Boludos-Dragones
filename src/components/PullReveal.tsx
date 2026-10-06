@@ -4,6 +4,41 @@ import { useEffect, useState } from "react";
 import { RARITIES, RARITY_IDS } from "@/lib/game/rarity";
 import { playPullSound } from "@/lib/sfx";
 import { ItemCard, type ItemView } from "./ItemCard";
+import "./fx.css";
+
+// Light rays behind a Legendario reveal (CSS-rotated SVG, no image files).
+function Rays({ color }: { color: string }) {
+  return (
+    <div className="b-rays pointer-events-none absolute inset-0 m-auto h-72 w-72 max-w-[90vw]">
+      <svg viewBox="-50 -50 100 100" className="h-full w-full">
+        {Array.from({ length: 12 }, (_, i) => (
+          <path key={i} d="M0 0 L-6 -50 L6 -50Z" fill={color} opacity="0.55" transform={`rotate(${i * 30})`} />
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+// Pixel chest that shakes while the pull is summoned; glow tint = best rarity.
+function Chest({ color }: { color: string }) {
+  return (
+    <div className="b-chest relative h-24 w-28">
+      <div className="b-chest-glow absolute -inset-4 rounded-full blur-xl" style={{ background: color }} />
+      <svg viewBox="0 0 14 12" shapeRendering="crispEdges" className="relative h-full w-full">
+        <rect x="1" y="1" width="12" height="5" fill="#8a5a2b" />
+        <rect x="1" y="6" width="12" height="5" fill="#6b4220" />
+        <rect x="0" y="0" width="14" height="1" fill="#3a2410" />
+        <rect x="0" y="11" width="14" height="1" fill="#3a2410" />
+        <rect x="0" y="0" width="1" height="12" fill="#3a2410" />
+        <rect x="13" y="0" width="1" height="12" fill="#3a2410" />
+        <rect x="1" y="5" width="12" height="1" fill="#3a2410" />
+        <rect x="3" y="1" width="1" height="10" fill="#c9b037" />
+        <rect x="10" y="1" width="1" height="10" fill="#c9b037" />
+        <rect x="6" y="4" width="2" height="3" fill={color} />
+      </svg>
+    </div>
+  );
+}
 
 type Props = { items: ItemView[]; onDone: () => void };
 
@@ -17,7 +52,8 @@ const best = (items: ItemView[]) =>
 
 export function PullReveal({ items, onDone }: Props) {
   const [shown, setShown] = useState(-1); // -1 = summoning
-  const color = RARITIES[best(items)].color;
+  const bestId = best(items);
+  const color = RARITIES[bestId].color;
   const finished = shown >= items.length - 1;
 
   useEffect(() => {
@@ -45,14 +81,8 @@ export function PullReveal({ items, onDone }: Props) {
       )}
       {shown < 0 ? (
         <div className="relative flex h-40 w-40 items-center justify-center">
-          <div
-            className="fx-shake h-16 w-16 border-4 border-[var(--edge)]"
-            style={{ background: color, boxShadow: `0 0 40px 10px ${color}` }}
-          />
-          <div
-            className="fx-flash absolute inset-0"
-            style={{ background: color, animationDelay: "0.6s" }}
-          />
+          {bestId === "legendario" && <Rays color={color} />}
+          <Chest color={color} />
           <p className="absolute -bottom-6 text-sm">Invocando...</p>
         </div>
       ) : (
@@ -61,6 +91,7 @@ export function PullReveal({ items, onDone }: Props) {
         >
           {items.slice(0, shown + 1).map((it, i) => (
             <div key={i} className="relative fx-flip">
+              {it.rarity === "legendario" && i === shown && <Rays color={color} />}
               {it.rarity === "legendario" && (
                 <div
                   className="fx-burst pointer-events-none absolute inset-0 m-auto h-24 w-24 rounded-full"

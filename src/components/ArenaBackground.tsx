@@ -7,6 +7,7 @@ import {
   buildScene,
   type Rect,
 } from "@/sprites/backgrounds";
+import { AmbientFx } from "@/components/fx/AmbientFx";
 import "./arena.css";
 
 export { GROUND_TOP_PCT };
@@ -62,6 +63,7 @@ export function ArenaBackground({
           <Layer rects={scene.ground} />
         </svg>
       </div>
+      <AmbientFx world={world} />
       {boss && (
         <>
           <div
