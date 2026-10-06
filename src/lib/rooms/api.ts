@@ -105,7 +105,15 @@ export const battleView = z.object({
   fighter: uuid,
   status: z.enum(["open", "locked", "settled"]),
   outcome: z.enum(["win", "lose", "void"]).nullable(),
-  interfered: z.boolean(), // WHO interfered stays secret until settled
+  interfered: z.boolean(), // WHO interfered stays secret until reveal
+  interferedBy: uuid.nullable(), // only during reveal
+  bets: z.array(
+    z.object({
+      bettor: uuid,
+      prediction: z.enum(["win", "lose"]),
+      stake: int,
+    }),
+  ), // filtered per viewer by visibleBets()
 });
 export type BattleView = z.infer<typeof battleView>;
 
@@ -118,6 +126,19 @@ export const roomSnapshot = z.object({
   battles: z.array(battleView),
   rankChips: z.array(uuid), // player ids, best first
   rankFloor: z.array(uuid),
+  /** Last reported fight turn per fighter (best effort, in-memory). */
+  live: z.array(
+    z.object({
+      fighter: uuid,
+      n: int,
+      actor: z.enum(["p", "e"]),
+      kind: z.enum(["hit", "crit", "miss"]),
+      dmg: int,
+      pHp: int,
+      eHp: int,
+    }),
+  ),
+  emotes: z.array(z.object({ from: uuid, id: z.string(), at: int })),
 });
 export type RoomSnapshot = z.infer<typeof roomSnapshot>;
 

@@ -98,6 +98,17 @@ export const clientMsg = z.discriminatedUnion("type", [
   z.strictObject({ ...m("end_night") }),
   z.strictObject({ ...m("start_coop") }),
   z.strictObject({ ...m("heartbeat"), present: z.boolean() }),
+  // ephemeral extras served through the snapshot (no Realtime session needed)
+  z.strictObject({
+    ...m("live"),
+    n: z.number().int().min(0).max(500),
+    actor: z.enum(["p", "e"]),
+    kind: z.enum(["hit", "crit", "miss"]),
+    dmg: z.number().int().min(0).max(1e6),
+    pHp: z.number().int().min(0).max(1e6),
+    eHp: z.number().int().min(0).max(1e6),
+  }),
+  z.strictObject({ ...m("emote"), id: z.enum(EMOTE_IDS) }),
 ]);
 export type ClientMsg = z.infer<typeof clientMsg>;
 

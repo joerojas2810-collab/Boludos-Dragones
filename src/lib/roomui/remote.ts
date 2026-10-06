@@ -2,7 +2,7 @@
 // GET /api/rooms/{id}. Realtime needs a Supabase browser session that the
 // server-side login does not give us, so the snapshot poll is the transport
 // (the contract says the snapshot is the source of truth anyway).
-// ponytail: polling every 1.5-3 s; no live fight bars/emotes (they were Realtime-only).
+// Fight HP and emotes ride on the snapshot (server keeps them in memory).
 import { doorsFor } from "../game/run";
 import type { RunAction } from "../game/replay";
 import type {
@@ -110,6 +110,9 @@ export class RemoteRoomClient implements RoomClient {
   private seed: { round: number; value: number } | null = null;
   private awards: { phase: string; list: Award[] } | null = null;
   private summarizing = false;
+  private seenTurn = new Map<string, number>(); // fighter -> last n emitted
+  private seenEmote = 0;
+  private lastLive = 0;
 
   constructor(private o: RemoteOpts) {
     if (!ID_RE.test(o.roomId)) throw new Error("bad room id");
@@ -142,6 +145,7 @@ export class RemoteRoomClient implements RoomClient {
     if (s.state.phase === "closed") this.emit({ type: "closed" });
     await this.sideLoads(s);
     this.publish(this.build(s));
+    this.emitExtras(s);
     this.schedule(
       s.state.phase === "lobby" || s.state.phase === "night_summary"
         ? IDLE_POLL_MS
@@ -171,6 +175,20 @@ export class RemoteRoomClient implements RoomClient {
     }
   }
 
+  /** Turns snapshot live/emotes into the same events Realtime used to carry. */
+  private emitExtras(s: RoomSnapshot) {
+    for (const t of s.live) {
+      if (this.seenTurn.get(t.fighter) === t.n) continue;
+      this.seenTurn.set(t.fighter, t.n);
+      if (t.fighter !== s.you) this.emit({ type: "turn", msg: t });
+    }
+    for (const e of s.emotes) {
+      if (e.at <= this.seenEmote) continue;
+      this.seenEmote = e.at;
+      this.emit({ type: "emote", from: e.from, id: e.id as EmoteId });
+    }
+  }
+
   private build(s: RoomSnapshot): RoomView {
     const st = s.state;
     const fighters = new Set(s.battles.map((b) => b.fighter));
@@ -197,13 +215,13 @@ export class RemoteRoomClient implements RoomClient {
     for (const b of s.battles)
       battles[b.fighter] = {
         fighter: b.fighter,
-        bets: [], // the snapshot does not list bets
+        bets: b.bets,
         status: b.status,
         outcome: b.outcome,
         voidReason: null,
         interferedByMe: null,
         interfered: b.interfered,
-        interferenceFrom: null,
+        interferenceFrom: b.interferedBy,
       };
     return {
       code: s.code,
@@ -309,12 +327,25 @@ export class RemoteRoomClient implements RoomClient {
     return { ok: true, outcome: r.data.outcome, eliminated: r.data.eliminated };
   }
 
-  // Realtime-only extras: no-ops over polling.
+  // Fire-and-forget extras (throttled; failures are harmless).
   turn(msg: Omit<TurnInfo, "fighter">) {
-    void msg;
+    const t = Date.now();
+    if (t - this.lastLive < 1_000 && msg.pHp > 0 && msg.eHp > 0) return;
+    this.lastLive = t;
+    void call("POST", `/api/rooms/${this.o.roomId}/live`, {
+      v: MSG_VERSION,
+      type: "live",
+      room: this.o.roomId,
+      ...msg,
+    });
   }
   emote(id: EmoteId) {
-    void id;
+    void call("POST", `/api/rooms/${this.o.roomId}/emote`, {
+      v: MSG_VERSION,
+      type: "emote",
+      room: this.o.roomId,
+      id,
+    });
   }
   dispose() {
     this.disposed = true;

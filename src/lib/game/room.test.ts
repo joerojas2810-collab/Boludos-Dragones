@@ -32,6 +32,7 @@ import {
   validateBet,
   type Result,
   type RoomState,
+  visibleBets,
 } from "./room";
 
 const [A, B, C, D] = ["a", "b", "c", "d"];
@@ -677,4 +678,24 @@ describe("chip conservation (random sequences)", () => {
 it("random runs really exercised settlement and interference", () => {
   expect(settledSeen).toBeGreaterThan(5);
   expect(compSeen).toBeGreaterThanOrEqual(0); // comp only when an interfered target wins; informational
+});
+
+describe("visibleBets", () => {
+  const b = {
+    fighter: "f",
+    status: "open" as const,
+    bets: [
+      { bettor: "a", prediction: "win" as const, stake: 10 },
+      { bettor: "b", prediction: "lose" as const, stake: 20 },
+    ],
+  };
+  it("open battle: bettor sees own, fighter sees all, others none", () => {
+    expect(visibleBets("betting", b, "a")).toHaveLength(1);
+    expect(visibleBets("betting", b, "f")).toHaveLength(2);
+    expect(visibleBets("betting", b, "z")).toHaveLength(0);
+  });
+  it("locked or reveal: everyone sees all", () => {
+    expect(visibleBets("fighting", { ...b, status: "locked" }, "z")).toHaveLength(2);
+    expect(visibleBets("reveal", b, "z")).toHaveLength(2);
+  });
 });

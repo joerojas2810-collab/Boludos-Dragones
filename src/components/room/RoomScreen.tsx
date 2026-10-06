@@ -14,7 +14,7 @@ import {
 } from "@/lib/game/room";
 import { doorsFor } from "@/lib/game/run";
 import { useProfile } from "@/lib/useProfile";
-import { useNow, useRoom } from "@/lib/useRoom";
+import { useNow, useRoom, type LiveFight } from "@/lib/useRoom";
 import { characterView } from "@/lib/viewModels";
 import { filterSortCharacters } from "@/lib/viewModels";
 import { DEFAULT_HERO } from "@/lib/game/room";
@@ -59,7 +59,7 @@ export function RoomScreen({
   client: RoomClient;
   onExit: () => void;
 }) {
-  const { view, emotes, toast, gone, emote } = useRoom(client);
+  const { view, live, emotes, toast, gone, emote } = useRoom(client);
   const now = useNow();
   const [err, setErr] = useState<string | null>(null);
   const run = async (p: Promise<{ ok: boolean; error?: unknown }>) => {
@@ -218,12 +218,12 @@ export function RoomScreen({
           {canPlay && !iFight && myDoor && !isFightDoor(myDoor) && (
             <FloorPlayer key={floorKey} client={client} floor={view.floor} door={myDoor} />
           )}
-          <FightStrip view={view} />
+          <FightStrip view={view} live={live} />
         </>
       );
       break;
     case "reveal":
-      main = <FightStrip view={view} reveal />;
+      main = <FightStrip view={view} live={live} reveal />;
       break;
     case "night_summary":
     case "closed":
@@ -291,11 +291,24 @@ export function RoomScreen({
                   </span>
                   <span className="tabular-nums text-yellow-300">{r.chips}</span>
                   <span className="w-8 text-right text-xs opacity-70">P{r.floor}</span>
+                  {isHost && r.id !== view.me && view.phase !== "closed" && (
+                    <button
+                      className="btn btn-gray !px-2 !py-0 text-xs"
+                      aria-label={`Expulsar a ${r.name}`}
+                      title="Expulsar"
+                      onClick={() => {
+                        if (window.confirm(`¿Expulsar a ${r.name}?`))
+                          void run(client.kick(r.id));
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </li>
               );
             })}
           </ol>
-          {client.kind === "fake" && (
+          {view.phase !== "closed" && (
             <div className="mt-2 flex flex-wrap gap-1">
               {(Object.keys(EMOTES) as EmoteId[]).map((id) => (
                 <button key={id} className="btn btn-gray !px-2" onClick={() => emote(id)}>
@@ -370,8 +383,17 @@ function HeroPicker({ view, onPick }: { view: RoomView; onPick: (id: string) => 
   );
 }
 
-function FightStrip({ view, reveal = false }: { view: RoomView; reveal?: boolean }) {
+function FightStrip({
+  view,
+  live,
+  reveal = false,
+}: {
+  view: RoomView;
+  live: Record<string, LiveFight>;
+  reveal?: boolean;
+}) {
   const list = fightersOf(view);
+  const nameOf = (id: string) => view.players.find((x) => x.id === id)?.name ?? "?";
   return (
     <Panel title={reveal ? "Resultados" : "Peleas"}>
       {list.length === 0 && <p className="text-center text-sm">Nadie pelea este piso.</p>}
@@ -379,14 +401,40 @@ function FightStrip({ view, reveal = false }: { view: RoomView; reveal?: boolean
         {list.map((p) => {
           const st = playerStatus(view, p, null);
           const b = view.battles[p.id];
+          const lf = live[p.id];
+          const pct = lf && lf.pMax > 0 ? Math.round((lf.pHp / lf.pMax) * 100) : null;
+          const epct = lf && lf.eMax > 0 ? Math.round((lf.eHp / lf.eMax) * 100) : null;
           return (
-            <li key={p.id} className="flex items-center gap-2 text-sm">
-              <span className="min-w-0 flex-1 truncate">
-                {p.name}
-                {p.door && <span className="opacity-70"> · {DOOR_NAME[p.door]}</span>}
-                {b.interfered && <span className="text-red-400"> · interferido</span>}
-              </span>
-              <span className={STATUS_COLOR[st.kind]}>{st.text}</span>
+            <li key={p.id} className="text-sm">
+              <div className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate">
+                  {p.name}
+                  {p.door && <span className="opacity-70"> · {DOOR_NAME[p.door]}</span>}
+                  {b.interfered && (
+                    <span className="text-red-400">
+                      {" "}
+                      · interferido{b.interferenceFrom ? ` por ${nameOf(b.interferenceFrom)}` : ""}
+                    </span>
+                  )}
+                </span>
+                <span className={STATUS_COLOR[st.kind]}>{st.text}</span>
+              </div>
+              {pct !== null && b.status !== "settled" && (
+                <div className="mt-1 flex items-center gap-2 text-xs">
+                  <Bar pct={pct} color="bg-green-500" label={`Vida de ${p.name}`} />
+                  {epct !== null && <Bar pct={epct} color="bg-red-500" label="Vida del rival" />}
+                </div>
+              )}
+              {b.bets.length > 0 && (
+                <div className="text-xs opacity-80">
+                  {b.bets
+                    .map(
+                      (x) =>
+                        `${nameOf(x.bettor)} ${x.stake} a ${x.prediction === "win" ? "ganar" : "perder"}`,
+                    )
+                    .join(" · ")}
+                </div>
+              )}
             </li>
           );
         })}
@@ -470,5 +518,19 @@ function BetPanel({
         })}
       </ul>
     </Panel>
+  );
+}
+
+function Bar({ pct, color, label }: { pct: number; color: string; label: string }) {
+  const w = Math.min(100, Math.max(0, pct));
+  return (
+    <span
+      role="progressbar"
+      aria-label={label}
+      aria-valuenow={w}
+      className="relative h-2 min-w-0 flex-1 overflow-hidden rounded bg-black/50"
+    >
+      <span className={`absolute inset-y-0 left-0 ${color}`} style={{ width: `${w}%` }} />
+    </span>
   );
 }

@@ -16,12 +16,14 @@ import {
   rankByFloor,
   startCoop,
   validateBet,
+  visibleBets,
   type RoomState,
 } from "../game/room";
 import {
   createRoomMsg,
   joinRoomMsg,
   MSG_VERSION,
+  EMOTE_MIN_GAP_MS,
   type ClientMsg,
 } from "../rooms/messages";
 import {
@@ -44,6 +46,7 @@ import {
   timeoutRun,
 } from "./roomRun";
 import type { FloorRow, RoomDeps } from "./roomsStore";
+import { addEmote, readLive, setLive } from "./roomsLive";
 
 void roomTopic;
 void ROOM_ROUTES;
@@ -258,9 +261,12 @@ export async function snapshotService(
         status: b.status,
         outcome: b.outcome,
         interfered: b.interference !== null,
+        interferedBy: s.phase === "reveal" ? (b.interference?.from ?? null) : null,
+        bets: visibleBets(s.phase, b, player),
       })),
       rankChips: rankByChips(s).map((x) => x.id),
       rankFloor: rankByFloor(s).map((x) => x.id),
+      ...readLive(room, `${s.round}:${s.floor}`, d.now()),
     };
   });
 }
@@ -540,6 +546,8 @@ export async function advanceService(
 // ------------------------------------------------------------------ actions
 const LIMITS: Partial<Record<ClientMsg["type"], [number, number]>> = {
   heartbeat: [40, 60],
+  live: [200, 60],
+  emote: [40, 60],
   advance: [60, 60],
   submit: [30, 60],
   bet: [30, 60],
@@ -565,6 +573,20 @@ export async function roomAction(
     }
     await touch(d, player, room);
     const now = d.now();
+    if (msg.type === "emote") {
+      addEmote(room, { from: player, id: msg.id, at: now }, EMOTE_MIN_GAP_MS);
+      return { ok: true, state: phaseViewOf(await load(d, room), now) };
+    }
+    if (msg.type === "live") {
+      const s = await load(d, room);
+      // only an active fighter may report, and only while fighting
+      if (s.phase === "fighting" && s.battles[player]?.status === "locked") {
+        const { n, actor, kind, dmg, pHp, eHp } = msg;
+        const t = { fighter: player, n, actor, kind, dmg, pHp, eHp };
+        setLive(room, `${s.round}:${s.floor}`, t, now);
+      }
+      return { ok: true, state: phaseViewOf(s, now) };
+    }
     let publishAfter = false;
     let extra: Record<string, unknown> = {};
     switch (msg.type) {

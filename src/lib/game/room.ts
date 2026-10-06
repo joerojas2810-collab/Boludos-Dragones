@@ -1018,3 +1018,17 @@ export function chipSupply(s: RoomState): { held: number; expected: number } {
     expected: issued - interfereSpent + comp - dust,
   };
 }
+
+/**
+ * Bets a viewer may see (snapshot rule): once the battle is locked/settled or at
+ * reveal everybody sees them; while still open (betting) only the viewer's own
+ * bets and, for the fighter, every bet placed against them.
+ */
+export function visibleBets(
+  phase: Phase,
+  b: Pick<Battle, "bets" | "fighter" | "status">,
+  viewer: string,
+): Bet[] {
+  if (phase === "reveal" || b.status !== "open") return b.bets;
+  return b.bets.filter((x) => x.bettor === viewer || b.fighter === viewer);
+}

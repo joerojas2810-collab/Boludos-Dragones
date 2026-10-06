@@ -26,6 +26,7 @@ import { applyLogged, startReplay } from "@/lib/roomui/play";
 import { doorIndex } from "@/lib/roomui/remote";
 import type { RoomClient } from "@/lib/roomui/types";
 import { errorText } from "@/lib/roomui/viewModels";
+import { useNow } from "@/lib/useRoom";
 import { playEvents } from "@/lib/sfx";
 
 interface Props {
@@ -53,6 +54,11 @@ export function FloorPlayer({ client, floor, door }: Props) {
 
   const rs0 = loc?.rs;
   const fight = rs0?.fight ?? null;
+  const now = useNow(500);
+  const [turnEnd, setTurnEnd] = useState(0);
+  const turnSecs = client.getView()?.turnSeconds ?? 30;
+  const live = !!fight && !fight.result;
+  const actions = fight?.battle.actions ?? 0;
   const targeting = useTargeting(fight ? fight.battle : null);
 
   const begin = useCallback(
@@ -114,13 +120,41 @@ export function FloorPlayer({ client, floor, door }: Props) {
     const n = applyLogged(loc.rs, a, loc.boost);
     if (!n) return;
     log.current.push(a);
-    if ((a.t === "act" || a.t === "auto") && n.fight)
-      playEvents(n.fight.battle.events, n.fight.battle.status);
+    if ((a.t === "act" || a.t === "auto") && n.fight) {
+      const nb = n.fight.battle;
+      playEvents(nb.events, nb.status);
+      const last = nb.events[nb.events.length - 1];
+      client.turn({
+        n: nb.actions,
+        actor: last?.actor === "enemy" ? "e" : "p",
+        kind: last && last.kind !== "buff" ? last.kind : "hit",
+        dmg: 0,
+        pHp: Math.round(nb.player.hp),
+        eHp: Math.round(nb.enemies.reduce((t, e) => t + e.hp, 0)),
+      });
+    }
     const ends = a.t === "fin" || a.t === "leave" || a.t === "pick" || a.t === "skill";
     const next = a.t === "relic" ? begin({ ...loc, rs: n }) : { ...loc, rs: n };
     setLoc(next);
     if (ends && !n.picks && !n.fight) void submit();
   };
+
+  const applyRef = useRef(apply);
+  useEffect(() => {
+    applyRef.current = apply;
+  });
+  // Turn clock: restarts after every action; at 0 the server-side rule is "Defender".
+  useEffect(() => {
+    if (!live) return;
+    const end = Date.now() + turnSecs * 1000;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTurnEnd(end);
+    const id = setTimeout(
+      () => applyRef.current({ t: "act", a: "defend" }),
+      turnSecs * 1000,
+    );
+    return () => clearTimeout(id);
+  }, [live, actions, turnSecs]);
 
   if (sent)
     return (
@@ -160,8 +194,19 @@ export function FloorPlayer({ client, floor, door }: Props) {
     const act = (a: Action, t: number) => {
       apply({ t: "act", a, ...(t > 0 ? { target: t } : {}) });
     };
+    const secsLeft = Math.max(0, Math.ceil((turnEnd - now) / 1000));
     return (
       <>
+        {live && turnEnd > 0 && now > 0 && (
+          <div
+            role="timer"
+            className={`text-center text-lg tabular-nums ${
+              secsLeft <= 5 ? "text-red-400" : "text-yellow-300"
+            }`}
+          >
+            Tu turno: {secsLeft} s · si se acaba, te defiendes
+          </div>
+        )}
         <BattleArena
           b={fight.battle}
           enemyExtra={(i, c) =>
