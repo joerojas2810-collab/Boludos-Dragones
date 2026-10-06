@@ -167,13 +167,13 @@ export default function ForgePage() {
           {msg.text}
         </p>
       )}
-      <div className="flex gap-2" role="tablist">
+      <div className="flex flex-wrap gap-2" role="tablist">
         {TABS.map(([k, label]) => (
           <button
             key={k}
             role="tab"
             aria-selected={tab === k}
-            className={`btn flex-1 text-center ${tab === k ? "" : "btn-gray"}`}
+            className={`btn min-w-[30%] flex-1 text-center ${tab === k ? "" : "btn-gray"}`}
             onClick={() => {
               setTab(k);
               setMsg(null);
