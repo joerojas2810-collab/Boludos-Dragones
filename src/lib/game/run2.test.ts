@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { playBot } from "../server/testkit";
+import { SKILL_IDS } from "./skills";
 import { autoBlockReason, autoPolicy } from "./auto";
 import { generateCharacter, type Character } from "./characters";
 import { startBattle } from "./combat";
@@ -333,5 +335,32 @@ describe("engine version", () => {
       return;
     }
     throw new Error("no hard floor-1 door found");
+  });
+});
+
+describe("legacy picks after the final boss", () => {
+  it("are ignored, not rejected", () => {
+    const h0 = generateCharacter(createRng(7), "caballero");
+    const hero = {
+      ...h0,
+      stats: {
+        ...h0.stats,
+        hp: h0.stats.hp * 400,
+        atk: h0.stats.atk * 40,
+        def: h0.stats.def * 40,
+      },
+    };
+    const log = playBot(4242, hero, 6000, "f");
+    const base = replayRun(4242, hero, log, ENGINE_VERSION, "f");
+    expect(base.run.status).toBe("over");
+    const extra = replayRun(
+      4242,
+      hero,
+      [...log, { t: "pick", id: "vida" }, { t: "skill", id: SKILL_IDS[0] }],
+      ENGINE_VERSION,
+      "f",
+    );
+    expect(extra.rejectedAt).toBeNull();
+    expect(extra.run.coins).toBe(base.run.coins);
   });
 });

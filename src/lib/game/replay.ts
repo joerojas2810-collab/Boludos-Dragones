@@ -220,7 +220,12 @@ export function replayRun(
       error: "engine_version",
     };
   for (let i = 0; i < actions.length; i++) {
-    const n = applyRunAction(s, actions[i]);
+    // Clients from before the final-boss change still send their (now moot) level-up picks
+    // after the run is already won: ignore them instead of voiding the clear.
+    const a = actions[i];
+    if (s.run.status === "over" && (a.t === "pick" || a.t === "skill"))
+      continue;
+    const n = applyRunAction(s, a);
     if (!n) return { run: s.run, applied: i, rejectedAt: i };
     s = n;
   }
