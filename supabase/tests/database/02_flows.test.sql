@@ -13,35 +13,35 @@ select public.create_player(('00000000-0000-0000-0000-00000000000' || i)::uuid, 
 update public.player_state set coins = 300 where player_id = '00000000-0000-0000-0000-000000000002';
 
 -- #8 pulls: charge once, replay does not charge, stale version / low coins / bad cost rejected
-select is((public.apply_pull('00000000-0000-0000-0000-000000000002', 0, 'idem-aaaaaaaa', 'character', 150, 1, 7,
-  false, '[{"class":"mago","element":"fuego","rarity":"comun","data":{}}]'::jsonb) ->> 'coins')::int, 150,
+select is((public.apply_pull('00000000-0000-0000-0000-000000000002', 0, 'idem-aaaaaaaa', 'character', 150, 1, 1, 7,
+  false, '[{"class":"mago","element":"fuego","rarity":"f","data":{}}]'::jsonb) ->> 'coins')::int, 150,
   'pull charges 150');
-select is((public.apply_pull('00000000-0000-0000-0000-000000000002', 0, 'idem-aaaaaaaa', 'character', 150, 1, 7,
-  false, '[{"class":"mago","element":"fuego","rarity":"comun","data":{}}]'::jsonb) ->> 'replayed')::boolean, true,
+select is((public.apply_pull('00000000-0000-0000-0000-000000000002', 0, 'idem-aaaaaaaa', 'character', 150, 1, 1, 7,
+  false, '[{"class":"mago","element":"fuego","rarity":"f","data":{}}]'::jsonb) ->> 'replayed')::boolean, true,
   'same idempotency key is a replay');
 select is((select coins from public.player_state where player_id = '00000000-0000-0000-0000-000000000002'), 150,
   'replay did not charge again');
 select throws_ok($$select public.apply_pull('00000000-0000-0000-0000-000000000002', 0, 'idem-bbbbbbbb', 'character',
-  150, 2, 7, false, '[{"class":"mago","element":"agua","rarity":"comun","data":{}}]'::jsonb)$$,
+  150, 2, 2, 7, false, '[{"class":"mago","element":"agua","rarity":"f","data":{}}]'::jsonb)$$,
   '40001', null, 'stale version -> conflict');
 select throws_ok($$select public.apply_pull('00000000-0000-0000-0000-000000000002', 1, 'idem-cccccccc', 'character',
-  100, 2, 7, false, '[{"class":"mago","element":"agua","rarity":"comun","data":{}}]'::jsonb)$$,
+  100, 2, 2, 7, false, '[{"class":"mago","element":"agua","rarity":"f","data":{}}]'::jsonb)$$,
   'P0001', 'invalid_cost', 'wrong price rejected');
 select throws_ok($$select public.apply_pull('00000000-0000-0000-0000-000000000002', 1, 'idem-dddddddd', 'character',
-  1350, 12, 7, false, (select jsonb_agg('{"class":"mago","element":"agua","rarity":"comun","data":{}}'::jsonb)
+  1350, 12, 12, 7, false, (select jsonb_agg('{"class":"mago","element":"agua","rarity":"f","data":{}}'::jsonb)
   from generate_series(1, 10)))$$, 'P0001', 'insufficient_coins', 'cannot overspend');
 select throws_ok($$select public.apply_pull('00000000-0000-0000-0000-000000000002', 1, 'idem-eeeeeeee', 'character',
-  150, 99, 7, false, '[{"class":"mago","element":"agua","rarity":"comun","data":{}}]'::jsonb)$$,
+  150, 99, 99, 7, false, '[{"class":"mago","element":"agua","rarity":"f","data":{}}]'::jsonb)$$,
   'P0001', 'invalid_pity', 'incoherent pity rejected');
 -- #14 daily only once
 select lives_ok($$select public.apply_pull('00000000-0000-0000-0000-000000000003', 0, 'daily-11111111', 'character', 0,
-  1, 7, true, '[{"class":"mago","element":"agua","rarity":"comun","data":{}}]'::jsonb)$$, 'first daily ok');
+  1, 1, 7, true, '[{"class":"mago","element":"agua","rarity":"f","data":{}}]'::jsonb)$$, 'first daily ok');
 select throws_ok($$select public.apply_pull('00000000-0000-0000-0000-000000000003', 1, 'daily-22222222', 'character', 0,
-  2, 7, true, '[{"class":"mago","element":"fuego","rarity":"comun","data":{}}]'::jsonb)$$,
+  2, 2, 7, true, '[{"class":"mago","element":"fuego","rarity":"f","data":{}}]'::jsonb)$$,
   'P0001', 'already_claimed', 'second daily rejected');
 
 -- #7 run banked once, capped
-select public.start_run('00000000-0000-0000-0000-000000000002', 'c-mago-fuego-comun', 42, '{}'::jsonb);
+select public.start_run('00000000-0000-0000-0000-000000000002', 'c-mago-fuego-f', 42, '{}'::jsonb);
 select is((public.bank_run('00000000-0000-0000-0000-000000000002',
   (select id from public.runs where player_id = '00000000-0000-0000-0000-000000000002'), 99999, 5) ->> 'capped')::boolean,
   true, 'absurd coins are capped');

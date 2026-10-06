@@ -50,38 +50,38 @@ await err(as("authenticated",U(1),()=>db.query(`select public.get_profile('${U(1
 // --- CHECK constraints
 await err(db.exec(`update public.player_state set coins=-1 where player_id='${U(1)}'`),"violates check","coins<0");
 await err(db.exec(`update public.gacha_state set pity=101 where player_id='${U(1)}'`),"violates check","pity>100");
-await err(db.exec(`insert into public.characters(player_id,class,element,rarity,stars) values ('${U(1)}','mago','fuego','raro',6)`),"violates check","stars>5");
-await err(db.exec(`insert into public.characters(player_id,class,element,rarity) values ('${U(1)}','wizard','fuego','raro')`),"violates check","class enum");
+await err(db.exec(`insert into public.characters(player_id,class,element,rarity,stars) values ('${U(1)}','mago','fuego','c',6)`),"violates check","stars>5");
+await err(db.exec(`insert into public.characters(player_id,class,element,rarity) values ('${U(1)}','wizard','fuego','c')`),"violates check","class enum");
 await err(db.exec(`insert into public.weapons(player_id,type,element,rarity) values ('${U(1)}','espada','fuego','mythic')`),"violates check","rarity enum");
-await err(db.exec(`insert into public.fragments values ('${U(1)}','mago','raro',-1)`),"violates check","qty<0");
+await err(db.exec(`insert into public.fragments values ('${U(1)}','mago','c',-1)`),"violates check","qty<0");
 await err(db.exec(`insert into public.room_players(room_id,player_id,chips) values (gen_random_uuid(),'${U(1)}',-5)`),"violates","chips<0 (fk or check)");
 
 // --- gacha
 await db.exec(`update public.player_state set coins=5000 where player_id='${U(2)}'`);
 const ch=(cls,el,rar)=>({class:cls,element:el,rarity:rar,data:{name:"X"}});
 let st=0;
-const pull=async(items,over={})=>{ const banner=over.banner??"character"; const old=(await db.query(`select pity from public.gacha_state where player_id='${U(2)}' and banner='${banner}'`)).rows[0].pity; return rpc("apply_pull",{p_player:U(2),p_version:over.v??st,p_idem:over.idem??("idem-"+Math.random().toString(36).slice(2,12)),p_banner:over.banner??"character",p_cost:over.cost??150*items.length,p_pity:over.pity===undefined?old+items.length:(over.pity==="x"?0:over.pity),p_seed:123,p_daily:over.daily??false,p_items:items});};
-let r=await pull([ch("mago","fuego","comun")]); st=r.version;
-ok(r.coins===4850 && r.results[0].status==="new" && r.results[0].id==="c-mago-fuego-comun" && r.pity===1,"first pull "+JSON.stringify(r));
-r=await pull([ch("mago","fuego","comun")],{}); st=r.version;
+const pull=async(items,over={})=>{ const banner=over.banner??"character"; const st0=(await db.query(`select pity, pity_ssr from public.gacha_state where player_id='${U(2)}' and banner='${banner}'`)).rows[0]; const old=st0.pity, oldSsr=st0.pity_ssr; return rpc("apply_pull",{p_player:U(2),p_version:over.v??st,p_idem:over.idem??("idem-"+Math.random().toString(36).slice(2,12)),p_banner:over.banner??"character",p_cost:over.cost??150*items.length,p_pity:over.pity===undefined?old+items.length:(over.pity==="x"?0:over.pity),p_pity_ssr:over.pitySsr===undefined?oldSsr+items.length:over.pitySsr,p_seed:123,p_daily:over.daily??false,p_items:items});};
+let r=await pull([ch("mago","fuego","f")]); st=r.version;
+ok(r.coins===4850 && r.results[0].status==="new" && r.results[0].id==="c-mago-fuego-f" && r.pity===1,"first pull "+JSON.stringify(r));
+r=await pull([ch("mago","fuego","f")],{}); st=r.version;
 ok(r.results[0].status==="star" && r.results[0].stars===1,"dup star");
-r=await pull([ch("mago","agua","comun")],{}); st=r.version;
-ok(r.results[0].status==="new" && r.results[0].fragmentGain===1 && r.results[0].fragmentKey==="mago:comun","fragment "+JSON.stringify(r));
+r=await pull([ch("mago","agua","f")],{}); st=r.version;
+ok(r.results[0].status==="new" && r.results[0].fragmentGain===1 && r.results[0].fragmentKey==="mago:f","fragment "+JSON.stringify(r));
 // idempotent replay
 const idem="same-key-1234";
-r=await pull([ch("mago","rayo","raro")],{idem}); const coinsAfter=r.coins; st=r.version;
-const rr=await pull([ch("mago","rayo","raro")],{idem,v:0});
+r=await pull([ch("mago","rayo","c")],{idem}); const coinsAfter=r.coins; st=r.version;
+const rr=await pull([ch("mago","rayo","c")],{idem,v:0});
 ok(rr.replayed===true && rr.coins===coinsAfter,"replay");
 ok((await db.query(`select coins from public.player_state where player_id='${U(2)}'`)).rows[0].coins===coinsAfter,"single charge");
-await err(pull([ch("mago","rayo","raro")],{v:0}),"conflict","stale version");
-await err(pull([ch("mago","rayo","raro")],{cost:100}),"invalid_cost");
-await err(pull([ch("mago","rayo","raro")],{pity:99}),"invalid_pity");
-await err(pull([ch("hacker","rayo","raro")],{}),"invalid_items");
+await err(pull([ch("mago","rayo","c")],{v:0}),"conflict","stale version");
+await err(pull([ch("mago","rayo","c")],{cost:100}),"invalid_cost");
+await err(pull([ch("mago","rayo","c")],{pity:99}),"invalid_pity");
+await err(pull([ch("hacker","rayo","c")],{}),"invalid_items");
 await err(pull([ch("mago","rayo","epic")],{}),"invalid_items","bad rarity");
 await err(pull([],{cost:0}),"invalid_items","empty");
-await err(pull(Array(11).fill(ch("mago","rayo","raro")),{cost:1}),"invalid_items","11 items");
+await err(pull(Array(11).fill(ch("mago","rayo","c")),{cost:1}),"invalid_items","11 items");
 // 10-pull cost 1350
-const ten=Array.from({length:10},()=>ch("caballero","tierra","comun"));
+const ten=Array.from({length:10},()=>ch("caballero","tierra","f"));
 r=await pull(ten,{cost:1350}); st=r.version;
 ok(r.results.length===10 && r.results[0].status==="new" && r.results[5].stars===5 || true,"10 pull");
 console.log("10-pull statuses",r.results.map(x=>x.status+":"+x.stars).join(","),"refundTotal",r.refundTotal);
@@ -89,41 +89,45 @@ ok(r.results[5].stars===5 && r.results[6].status==="refund" && r.results[6].refu
 await err(pull(ten,{cost:1500}),"invalid_cost","10 at full price");
 // pity: legendary resets, guarantee at 100
 await db.exec(`update public.gacha_state set pity=100 where player_id='${U(2)}' and banner='character'`);
-await err(pull([ch("clerigo","viento","comun")],{pity:101}),"invalid_pity","pity100 non-legend");
-r=await pull([ch("clerigo","viento","legendario")],{pity:0}); st=r.version; ok(r.pity===0,"legend resets pity");
+await err(pull([ch("clerigo","viento","f")],{pity:101}),"invalid_pity","pity100 non-legend");
+await err(pull([ch("clerigo","viento","s")],{pity:0}),"invalid_pity","pity100 needs ss or better");
+r=await pull([ch("clerigo","viento","ss")],{pity:0}); st=r.version; ok(r.pity===0,"ss resets pity");
+await db.exec(`update public.gacha_state set pity_ssr=200 where player_id='${U(2)}' and banner='character'`);
+await err(pull([ch("clerigo","viento","ss")],{pity:0,pitySsr:0}),"invalid_pity","pity_ssr200 needs ssr");
+r=await pull([ch("clerigo","viento","ssr")],{pity:0,pitySsr:0}); st=r.version; ok(r.pitySsr===0,"ssr resets pity_ssr");
 // insufficient coins
 await db.exec(`update public.player_state set coins=100 where player_id='${U(2)}'`);
-await err(pull([ch("mago","viento","raro")],{}),"insufficient_coins");
+await err(pull([ch("mago","viento","c")],{}),"insufficient_coins");
 // weapons
 await db.exec(`update public.player_state set coins=5000 where player_id='${U(2)}'`);
-r=await pull([{type:"espada",element:"fuego",rarity:"raro",data:{}}],{banner:"weapon"}); st=r.version;
-ok(r.results[0].id==="w-espada-fuego-raro","weapon id");
+r=await pull([{type:"espada",element:"fuego",rarity:"c",data:{}}],{banner:"weapon"}); st=r.version;
+ok(r.results[0].id==="w-espada-fuego-c","weapon id");
 // daily
-r=await pull([ch("picaro","agua","comun")],{daily:true,cost:0}); st=r.version;
+r=await pull([ch("picaro","agua","f")],{daily:true,cost:0}); st=r.version;
 ok(r.results[0].status==="new","daily ok");
-await err(pull([ch("picaro","agua","comun")],{daily:true,cost:0}),"already_claimed");
-await err(pull([ch("picaro","agua","comun")],{daily:true,cost:150}),"invalid_cost","daily must be free");
+await err(pull([ch("picaro","agua","f")],{daily:true,cost:0}),"already_claimed");
+await err(pull([ch("picaro","agua","f")],{daily:true,cost:150}),"invalid_cost","daily must be free");
 // profile, spend fragments, equip
 let prof=await rpc("get_profile",{p_player:U(2)});
-ok(prof.characters.length>=5 && prof.equipped && prof.fragments["mago:comun"]>=1,"profile "+JSON.stringify(prof.fragments));
-await err(rpc("spend_fragments",{p_player:U(2),p_character_id:"c-mago-fuego-comun"}),"insufficient_fragments");
+ok(prof.characters.length>=5 && prof.equipped && prof.fragments["mago:f"]>=1,"profile "+JSON.stringify(prof.fragments));
+await err(rpc("spend_fragments",{p_player:U(2),p_character_id:"c-mago-fuego-f"}),"insufficient_fragments");
 await db.exec(`update public.fragments set qty=6 where player_id='${U(2)}' and class='mago'`);
-let sf=await rpc("spend_fragments",{p_player:U(2),p_character_id:"c-mago-fuego-comun"});
+let sf=await rpc("spend_fragments",{p_player:U(2),p_character_id:"c-mago-fuego-f"});
 ok(sf.stars===2 && sf.fragments===3,"spend fragments "+JSON.stringify(sf));
 await err(rpc("spend_fragments",{p_player:U(2),p_character_id:"nope"}),"character_not_found");
-await rpc("equip_weapon",{p_player:U(2),p_character_id:"c-mago-fuego-comun",p_weapon_id:"w-espada-fuego-raro"});
-await rpc("equip_weapon",{p_player:U(2),p_character_id:"c-mago-agua-comun",p_weapon_id:"w-espada-fuego-raro"});
+await rpc("equip_weapon",{p_player:U(2),p_character_id:"c-mago-fuego-f",p_weapon_id:"w-espada-fuego-c"});
+await rpc("equip_weapon",{p_player:U(2),p_character_id:"c-mago-agua-f",p_weapon_id:"w-espada-fuego-c"});
 prof=await rpc("get_profile",{p_player:U(2)});
-ok(Object.keys(prof.equipped).length===1 && prof.equipped["c-mago-agua-comun"],"weapon moves");
-await err(rpc("equip_weapon",{p_player:U(2),p_character_id:"c-mago-agua-comun",p_weapon_id:"w-x"}),"not_owned");
-await rpc("unequip_weapon",{p_player:U(2),p_character_id:"c-mago-agua-comun"});
+ok(Object.keys(prof.equipped).length===1 && prof.equipped["c-mago-agua-f"],"weapon moves");
+await err(rpc("equip_weapon",{p_player:U(2),p_character_id:"c-mago-agua-f",p_weapon_id:"w-x"}),"not_owned");
+await rpc("unequip_weapon",{p_player:U(2),p_character_id:"c-mago-agua-f"});
 // other users cannot see these
 ok((await as("authenticated",U(3),()=>db.query(`select * from public.characters`))).rows.length===0,"others' characters hidden");
 ok((await as("authenticated",U(2),()=>db.query(`select * from public.characters`))).rows.length>=5,"own characters visible");
 
 // --- runs
-const run=await rpc("start_run",{p_player:U(2),p_character_id:"c-mago-fuego-comun",p_seed:42,p_hero:{x:1}});
-await err(rpc("start_run",{p_player:U(2),p_character_id:"c-mago-fuego-comun",p_seed:43,p_hero:{}}),"run_open");
+const run=await rpc("start_run",{p_player:U(2),p_character_id:"c-mago-fuego-f",p_seed:42,p_hero:{x:1}});
+await err(rpc("start_run",{p_player:U(2),p_character_id:"c-mago-fuego-f",p_seed:43,p_hero:{}}),"run_open");
 await err(rpc("start_run",{p_player:U(2),p_character_id:"nope",p_seed:43,p_hero:{}}),"character_not_found");
 await rpc("save_run_state",{p_player:U(2),p_run_id:run.run_id,p_state:{a:1},p_log_len:3,p_max_floor:4,p_coins:50});
 const before=(await db.query(`select coins from public.player_state where player_id='${U(2)}'`)).rows[0].coins;
@@ -135,7 +139,7 @@ await err(rpc("bank_run",{p_player:U(3),p_run_id:run.run_id,p_coins:10,p_max_flo
 ok((await db.query(`select coins from public.player_state where player_id='${U(2)}'`)).rows[0].coins===before+cap,"no double credit");
 ok((await db.query(`select count(*)::int c from public.audit_log where event='run_capped'`)).rows[0].c===1,"audit capped");
 ok((await db.query(`select max_floor from public.weekly_scores where player_id='${U(2)}'`)).rows[0].max_floor===5,"weekly");
-const run2=await rpc("start_run",{p_player:U(2),p_character_id:"c-mago-fuego-comun",p_seed:44,p_hero:{}});
+const run2=await rpc("start_run",{p_player:U(2),p_character_id:"c-mago-fuego-f",p_seed:44,p_hero:{}});
 b=await rpc("bank_run",{p_player:U(2),p_run_id:run2.run_id,p_coins:30,p_max_floor:2});
 ok(b.capped===false && b.coinsAdded===30 && b.bestFloor===5,"bank normal");
 const sd=await rpc("get_weekly_seed",{p_seed:777}); const sd2=await rpc("get_weekly_seed",{p_seed:888});

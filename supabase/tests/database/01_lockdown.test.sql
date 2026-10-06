@@ -13,7 +13,7 @@ select public.create_player('00000000-0000-0000-0000-000000000001', 'ana', 'ana'
 select public.create_player('00000000-0000-0000-0000-000000000002', 'beto', 'beto', false);
 update public.player_state set coins = 500 where player_id = '00000000-0000-0000-0000-000000000002';
 insert into public.characters (player_id, class, element, rarity)
-values ('00000000-0000-0000-0000-000000000002', 'mago', 'fuego', 'raro');
+values ('00000000-0000-0000-0000-000000000002', 'mago', 'fuego', 'c');
 
 -- #1 advisor-style catalog checks
 select is((select count(*)::int from pg_tables where schemaname = 'public' and not rowsecurity), 0,
@@ -57,7 +57,7 @@ select throws_ok($$select is_admin from public.players$$, '42501', null, 'is_adm
 select throws_ok($$update public.player_state set coins = 999999$$, '42501', null, 'cannot edit own coins');
 select throws_ok($$update public.gacha_state set pity = 0$$, '42501', null, 'cannot edit pity');
 select throws_ok($$delete from public.characters$$, '42501', null, 'cannot delete collection');
-select throws_ok($$insert into public.fragments values (gen_random_uuid(), 'mago', 'raro', 9)$$, '42501', null,
+select throws_ok($$insert into public.fragments values (gen_random_uuid(), 'mago', 'c', 9)$$, '42501', null,
   'cannot insert fragments');
 select throws_ok($$select public.apply_pull('00000000-0000-0000-0000-000000000001', 0, 'idem-12345678',
   'character', 0, 0, 1, false, '[]'::jsonb)$$, '42501', null, '#4 authenticated cannot call apply_pull');
@@ -71,11 +71,11 @@ select throws_ok($$update public.player_state set coins = -1$$, '23514', null, '
 select throws_ok($$update public.gacha_state set pity = 101$$, '23514', null, 'pity <= 100');
 select throws_ok($$update public.characters set stars = 6$$, '23514', null, 'stars <= 5');
 select throws_ok($$insert into public.characters (player_id, class, element, rarity)
-  values ('00000000-0000-0000-0000-000000000001', 'bard', 'fuego', 'raro')$$, '23514', null, 'class enum');
+  values ('00000000-0000-0000-0000-000000000001', 'bard', 'fuego', 'c')$$, '23514', null, 'class enum');
 select throws_ok($$insert into public.weapons (player_id, type, element, rarity)
   values ('00000000-0000-0000-0000-000000000001', 'espada', 'fuego', 'mitico')$$, '23514', null, 'rarity enum');
 select throws_ok($$insert into public.characters (player_id, class, element, rarity)
-  values ('00000000-0000-0000-0000-000000000002', 'mago', 'fuego', 'raro')$$, '23505', null,
+  values ('00000000-0000-0000-0000-000000000002', 'mago', 'fuego', 'c')$$, '23505', null,
   'character key class+element+rarity is unique per player');
 
 select * from finish();

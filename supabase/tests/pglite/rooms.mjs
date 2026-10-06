@@ -33,7 +33,7 @@ await err(rpc("set_room_mode", { p_player: U(2), p_room: R, p_mode: "completo" }
 await err(rpc("set_room_mode", { p_player: U(1), p_room: R, p_mode: "hax" }), "invalid_args");
 await rpc("set_room_mode", { p_player: U(1), p_room: R, p_mode: "completo" });
 await rpc("set_room_mode", { p_player: U(1), p_room: R, p_mode: "nivelado" });
-await rpc("choose_hero", { p_player: U(2), p_room: R, p_hero_key: "c-mago-fuego-comun" });
+await rpc("choose_hero", { p_player: U(2), p_room: R, p_hero_key: "c-mago-fuego-f" });
 await err(rpc("choose_hero", { p_player: U(8), p_room: R, p_hero_key: "x" }), "not_member");
 await err(rpc("start_round", { p_player: U(2), p_room: R, p_seed: 5 }), "forbidden");
 await err(rpc("start_round", { p_player: U(1), p_room: R, p_seed: -1 }), "invalid_args");
