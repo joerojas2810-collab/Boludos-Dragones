@@ -6,6 +6,8 @@ import {
   isUnlocked,
   lockReason,
   victoryCoins,
+  powerVerdict,
+  recommendedPower,
 } from "./dungeons";
 import { dropRank, FINAL_UP_CHANCE, UP_CHANCE } from "./loot";
 import { RARITY_IDS } from "./rarity";
@@ -164,5 +166,21 @@ describe("dungeon runs", () => {
     expect(topFloor(run)).toBe(100); // rooms keep the endless-style layout
     expect(depthOf(4, null, "ssr")).toBe(4 + DUNGEONS.ssr.offset);
     expect(depthOf(4, "f", "ssr")).toBe(4); // a dungeon rank wins over the room rank
+  });
+});
+
+describe("recommended power", () => {
+  it("grows with rank and flags weak heroes", () => {
+    let prev = 0;
+    for (const r of RARITY_IDS) {
+      const p = recommendedPower(r);
+      expect(p).toBeGreaterThan(prev);
+      prev = p;
+    }
+    expect(powerVerdict(recommendedPower("d"), "d")).toBe("ok");
+    expect(powerVerdict(Math.round(recommendedPower("d") * 0.6), "d")).toBe(
+      "low",
+    );
+    expect(powerVerdict(40, "d")).toBe("danger");
   });
 });

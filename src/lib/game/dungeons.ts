@@ -1,7 +1,8 @@
 // Dungeons: fixed-length runs with a rank F..SSR (docs/DUNGEONS_FORJA.md).
 // Rank sets the length, where the bosses are, how hard the enemies hit
 // (`offset` shifts the difficulty floor) and how good the loot is.
-import { RARITY_IDS, type RarityId } from "./rarity";
+import { CLASSES } from "./characters";
+import { RARITY_IDS, scaleStats, type RarityId } from "./rarity";
 
 export interface DungeonSpec {
   rank: RarityId;
@@ -138,3 +139,20 @@ export const isUnlocked = (clears: Clears, rank: RarityId) =>
   lockReason(clears, rank) === null;
 
 export const bossCount = (rank: RarityId) => DUNGEONS[rank].bosses.length;
+
+// Power (same formula as heroPower) of an average hero of the dungeon's rank with 3 stars and
+// no gear: the hero the dungeon was calibrated with (scripts/run-sim.ts, HERO_STARS=3).
+export const recommendedPower = (rank: RarityId): number => {
+  const cs = Object.values(CLASSES).map((c) => {
+    const s = scaleStats(c.stats, rank, 3);
+    return (s.hp * (s.atk + s.def * 0.5)) / 50;
+  });
+  return Math.round(cs.reduce((a, b) => a + b, 0) / cs.length);
+};
+
+export type PowerVerdict = "ok" | "low" | "danger";
+// danger: under half of the recommended power (fights become unwinnable walls).
+export const powerVerdict = (power: number, rank: RarityId): PowerVerdict => {
+  const r = power / recommendedPower(rank);
+  return r < 0.5 ? "danger" : r < 0.8 ? "low" : "ok";
+};

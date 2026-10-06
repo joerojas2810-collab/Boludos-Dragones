@@ -54,6 +54,8 @@ import { proceedRun, type RunAction } from "@/lib/game/replay";
 import {
   DUNGEONS,
   UNLOCK_MIN_LIVES,
+  powerVerdict,
+  recommendedPower,
   lockReason,
   type Clears,
 } from "@/lib/game/dungeons";
@@ -1237,6 +1239,27 @@ function fightSummary(
     : `Derrota: pierdes una vida (te quedan ${after.lives}).`;
 }
 
+function PowerWarning({
+  power,
+  dungeon,
+}: {
+  power: number;
+  dungeon: RarityId;
+}) {
+  const v = powerVerdict(power, dungeon);
+  const rec = recommendedPower(dungeon);
+  return (
+    <p
+      className={`text-center text-sm ${v === "danger" ? "text-red-300" : v === "low" ? "text-yellow-300" : "text-green-300"}`}
+    >
+      Poder {power} · recomendado {rec}.
+      {v === "danger" &&
+        " Muy débil para este dungeon: los rivales casi no recibirán daño. Mejora el héroe o entra a un rango menor."}
+      {v === "low" && " Algo justo: será una run difícil."}
+    </p>
+  );
+}
+
 // Step 1 of a dungeon: pick who goes in. Your heroes come first, strongest to
 // weakest; the last tile starts a classic run with a random hero (then you pick a class).
 function CharacterSelect({
@@ -1286,6 +1309,10 @@ function CharacterSelect({
               ` · PV ${Math.round(hero.stats.hp)} · ATQ ${hero.stats.atk} · DEF ${hero.stats.def}`}
             .{!profile.equipped[chosen.id] && " Todavía no tiene arma."}
           </p>
+          <PowerWarning
+            power={heroPower(profile, chosen.id)}
+            dungeon={dungeon}
+          />
           <EquipmentEditor
             c={chosen}
             profile={profile}
@@ -1345,6 +1372,14 @@ function CharacterSelect({
             );
           })}
         </div>
+        {chosen && (
+          <div className="mt-3">
+            <PowerWarning
+              power={heroPower(profile, chosen.id)}
+              dungeon={dungeon}
+            />
+          </div>
+        )}
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
           <button className="btn text-center" disabled={!chosen} onClick={go}>
             {chosen ? `Empezar con ${chosen.name}` : "Elige un personaje"}
