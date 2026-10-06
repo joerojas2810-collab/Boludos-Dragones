@@ -14,6 +14,7 @@ import {
   ENGINE_VERSION,
   skillOffer,
   leaveNode,
+  topFloor,
   nextFloor,
   pickUpgrade,
   resolveEvent,
@@ -54,8 +55,11 @@ export function proceedRun(
   r0: Run,
   advance: boolean,
 ): { run: Run; next: NextScreen } {
-  const r = advance ? leaveNode(r0) : r0;
+  let r = advance ? leaveNode(r0) : r0;
   if (r.status === "over") return { run: r, next: "over" };
+  // Last floor of the dungeon: level-ups no longer matter, finish straight away.
+  if (advance && r.floor >= topFloor(r))
+    r = { ...r, pendingPicks: 0, pendingSkill: false };
   if (owes(r)) return { run: r, next: "picks" };
   const n = advance ? nextFloor(r) : r;
   return { run: n, next: n.pendingRelic ? "relic" : "doors" };
