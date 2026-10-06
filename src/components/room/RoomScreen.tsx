@@ -1,0 +1,474 @@
+"use client";
+
+import { useState, type ReactNode } from "react";
+import { ItemCard } from "@/components/ItemCard";
+import { Panel } from "@/components/Panel";
+import { FloorPlayer } from "@/components/room/FloorPlayer";
+import { CLASSES } from "@/lib/game/characters";
+import {
+  isFightDoor,
+  ROOM_K,
+  type DoorKind,
+  type InterfereKind,
+  type RoomMode,
+} from "@/lib/game/room";
+import { doorsFor } from "@/lib/game/run";
+import { useProfile } from "@/lib/useProfile";
+import { useNow, useRoom } from "@/lib/useRoom";
+import { characterView } from "@/lib/viewModels";
+import { filterSortCharacters } from "@/lib/viewModels";
+import { DEFAULT_HERO } from "@/lib/game/room";
+import type { EmoteId, RoomClient, RoomView } from "@/lib/roomui/types";
+import {
+  DOOR_NAME,
+  errorText,
+  fightersOf,
+  formatCountdown,
+  msLeft,
+  phaseBanner,
+  playerStatus,
+  rankRows,
+} from "@/lib/roomui/viewModels";
+
+const EMOTES: Record<EmoteId, string> = {
+  laugh: "😂",
+  fire: "🔥",
+  skull: "💀",
+  clap: "👏",
+  clown: "🤡",
+  luck: "🍀",
+};
+const TONE = {
+  info: "text-[#d9d2ca]",
+  boss: "text-red-400",
+  danger: "text-orange-300",
+  gold: "text-yellow-300",
+} as const;
+const STATUS_COLOR = {
+  idle: "text-[#d9d2ca]",
+  ok: "text-green-300",
+  bad: "text-red-400",
+  warn: "text-yellow-300",
+  fight: "text-orange-300",
+} as const;
+
+export function RoomScreen({
+  client,
+  onExit,
+}: {
+  client: RoomClient;
+  onExit: () => void;
+}) {
+  const { view, emotes, toast, gone, emote } = useRoom(client);
+  const now = useNow();
+  const [err, setErr] = useState<string | null>(null);
+  const run = async (p: Promise<{ ok: boolean; error?: unknown }>) => {
+    const r = await p;
+    setErr(r.ok ? null : errorText(String(r.error)));
+  };
+
+  if (gone)
+    return (
+      <Centered>
+        <p className="mb-3">
+          {gone === "closed" ? "La sala se cerró." : "Ya no estás en esta sala."}
+        </p>
+        <button className="btn" onClick={onExit}>
+          Salir
+        </button>
+      </Centered>
+    );
+  if (!view) return <Centered>Conectando…</Centered>;
+
+  const me = view.players.find((p) => p.id === view.me);
+  const isHost = view.hostId === view.me;
+  const banner = phaseBanner(view.phase, view.floor, view.round);
+  const left = msLeft(view.deadline, now);
+  const myDoor = me?.door ?? null;
+  const iFight = !!view.battles[view.me];
+  const rows = rankRows(view.players, "chips", view.me);
+  const canPlay =
+    !!me && !me.eliminated && view.floor >= me.activeFromFloor && me.outcome === null;
+  const floorKey = `${view.round}:${view.floor}`;
+
+  let main: ReactNode = null;
+  switch (view.phase) {
+    case "lobby":
+    case "round_setup":
+    case "round_end":
+      main = (
+        <>
+          {view.phase === "lobby" && (
+            <Panel title="Sala">
+              <div className="text-center text-sm opacity-80">Código para unirse</div>
+              <div className="mb-3 text-center text-4xl tracking-[0.3em] text-yellow-300">
+                {view.code}
+              </div>
+              {isHost ? (
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {(["nivelado", "completo"] as RoomMode[]).map((m) => (
+                    <button
+                      key={m}
+                      className={`btn ${view.mode === m ? "" : "btn-gray"}`}
+                      onClick={() => void run(client.setMode(m))}
+                    >
+                      {m === "nivelado" ? "Modo nivelado" : "Poder completo"}
+                    </button>
+                  ))}
+                  <select
+                    aria-label="Segundos por turno"
+                    className="btn btn-gray"
+                    value={view.turnSeconds}
+                    onChange={(e) => void run(client.setTurnSeconds(Number(e.target.value)))}
+                  >
+                    {[20, 30, 45, 60].map((s) => (
+                      <option key={s} value={s}>
+                        {s} s por turno
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="text-center text-sm">
+                  Modo: {view.mode === "nivelado" ? "nivelado" : "poder completo"} ·{" "}
+                  {view.turnSeconds} s por turno
+                </div>
+              )}
+            </Panel>
+          )}
+          <HeroPicker view={view} onPick={(id) => void run(client.hero(id))} />
+          <div className="flex flex-wrap justify-center gap-2">
+            {view.phase === "round_end" && me && (
+              <button
+                className="btn btn-gray"
+                onClick={() => void run(client.ready(!me.ready))}
+              >
+                {me.ready ? "Quitar listo" : "Listo"}
+              </button>
+            )}
+            {isHost && (view.phase === "lobby" || view.phase === "round_end") && (
+              <button className="btn" onClick={() => void run(client.startRound())}>
+                {view.phase === "lobby" ? "Iniciar ronda" : "Siguiente ronda"}
+              </button>
+            )}
+            {isHost && view.phase === "round_end" && (
+              <button className="btn btn-gray" onClick={() => void run(client.endNight())}>
+                Terminar la noche
+              </button>
+            )}
+          </div>
+        </>
+      );
+      break;
+    case "doors": {
+      const doors = view.seed === null ? [] : doorsFor(view.seed, view.floor);
+      main = (
+        <Panel title="Elige una puerta">
+          {!canPlay ? (
+            <p className="text-center">
+              {me?.eliminated
+                ? "Estás eliminado de esta ronda: mira, apuesta e interfiere."
+                : "Mirando este piso."}
+            </p>
+          ) : doors.length === 0 ? (
+            <p className="text-center">Cargando puertas…</p>
+          ) : (
+            <div className="flex flex-wrap justify-center gap-3">
+              {doors.map((d, i) => (
+                <button
+                  key={i}
+                  className={`pixel-frame min-w-32 p-3 hover:brightness-125 ${
+                    myDoor === d.kind ? "!border-green-400" : ""
+                  } ${d.kind === "boss" ? "!border-red-700" : ""}`}
+                  onClick={() => void run(client.door(view.floor, d.kind))}
+                >
+                  {DOOR_NAME[d.kind]}
+                </button>
+              ))}
+            </div>
+          )}
+        </Panel>
+      );
+      break;
+    }
+    case "betting":
+      main = (
+        <>
+          {canPlay && myDoor && !isFightDoor(myDoor) && (
+            <FloorPlayer key={floorKey} client={client} floor={view.floor} door={myDoor} />
+          )}
+          <BetPanel view={view} client={client} onError={setErr} />
+          {me && (
+            <button
+              className="btn btn-gray self-center"
+              onClick={() => void run(client.ready(!me.ready))}
+            >
+              {me.ready ? "Esperando a los demás…" : "Listo"}
+            </button>
+          )}
+        </>
+      );
+      break;
+    case "fighting":
+      main = (
+        <>
+          {canPlay && iFight && myDoor && (
+            <FloorPlayer key={floorKey} client={client} floor={view.floor} door={myDoor} />
+          )}
+          {canPlay && !iFight && myDoor && !isFightDoor(myDoor) && (
+            <FloorPlayer key={floorKey} client={client} floor={view.floor} door={myDoor} />
+          )}
+          <FightStrip view={view} />
+        </>
+      );
+      break;
+    case "reveal":
+      main = <FightStrip view={view} reveal />;
+      break;
+    case "night_summary":
+    case "closed":
+      main = (
+        <Panel title="Resumen de la noche">
+          {view.awards?.map((a) => (
+            <div key={a.id} className="text-center">
+              {AWARD[a.id]}: {view.players.find((p) => p.id === a.player)?.name ?? "?"} ({a.value})
+            </div>
+          ))}
+          <div className="mt-3 text-center">
+            <button className="btn" onClick={onExit}>
+              Salir
+            </button>
+          </div>
+        </Panel>
+      );
+      break;
+    default:
+      main = (
+        <Panel className="text-center">
+          {view.floor > 0 ? `Piso ${view.floor}` : ""} …
+        </Panel>
+      );
+  }
+
+  return (
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-3 p-3 pt-6 text-base">
+      <Panel>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className={`text-lg font-semibold ${TONE[banner.tone]}`}>{banner.title}</div>
+            <div className="text-sm opacity-80">{banner.hint}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl tabular-nums text-yellow-300">
+              {formatCountdown(left)}
+            </div>
+            <div className="text-xs opacity-70">
+              Sala {view.code}
+              {view.connection === "reconnecting" && " · reconectando…"}
+            </div>
+          </div>
+        </div>
+        {err && <div className="mt-2 text-sm text-red-400">{err}</div>}
+        {toast && <div className="mt-2 text-sm text-green-300">{toast}</div>}
+      </Panel>
+      <div className="flex flex-col gap-3 md:flex-row-reverse">
+        <Panel title={`Ranking · fichas`} className="md:w-72 md:shrink-0">
+          <ol className="space-y-1">
+            {rows.map((r) => {
+              const p = view.players.find((x) => x.id === r.id)!;
+              const st = playerStatus(view, p, null);
+              return (
+                <li key={r.id} className="flex items-center gap-2 text-sm">
+                  <span className="w-5 text-right opacity-70">{r.pos}</span>
+                  <span className={`min-w-0 flex-1 truncate ${r.isMe ? "text-yellow-300" : ""}`}>
+                    {p.isHost && "★ "}
+                    {r.name}
+                    {emotes[r.id] && <span> {EMOTES[emotes[r.id].id]}</span>}
+                    <span className={`block text-xs ${STATUS_COLOR[st.kind]}`}>
+                      {p.hero ? `${p.hero.name} · ` : ""}
+                      {st.text}
+                    </span>
+                  </span>
+                  <span className="tabular-nums text-yellow-300">{r.chips}</span>
+                  <span className="w-8 text-right text-xs opacity-70">P{r.floor}</span>
+                </li>
+              );
+            })}
+          </ol>
+          {client.kind === "fake" && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {(Object.keys(EMOTES) as EmoteId[]).map((id) => (
+                <button key={id} className="btn btn-gray !px-2" onClick={() => emote(id)}>
+                  {EMOTES[id]}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            className="btn btn-gray mt-3 w-full text-center"
+            onClick={() => {
+              if (window.confirm("¿Salir de la sala?"))
+                void client.leave().then(onExit);
+            }}
+          >
+            Salir
+          </button>
+          {isHost && view.phase !== "closed" && (
+            <button
+              className="btn btn-gray mt-2 w-full text-center"
+              onClick={() => {
+                if (window.confirm("¿Cerrar la sala para todos?"))
+                  void client.close();
+              }}
+            >
+              Cerrar sala
+            </button>
+          )}
+        </Panel>
+        <div className="flex min-w-0 flex-1 flex-col gap-3">{main}</div>
+      </div>
+    </main>
+  );
+}
+
+const AWARD = { gafe: "El Gafe", apostador: "El Apostador", saboteador: "El Saboteador" };
+
+const Centered = ({ children }: { children: ReactNode }) => (
+  <main className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+    {children}
+  </main>
+);
+
+function HeroPicker({ view, onPick }: { view: RoomView; onPick: (id: string) => void }) {
+  const { profile } = useProfile();
+  const mine = view.players.find((p) => p.id === view.me)?.heroId ?? null;
+  const owned = profile
+    ? filterSortCharacters(profile.characters, { classId: "all", rarity: "all", sort: "rarity" })
+    : [];
+  return (
+    <Panel title="Tu héroe">
+      <p className="mb-2 text-center text-sm opacity-80">
+        {view.mode === "nivelado"
+          ? "Modo nivelado: todos con poder base parecido; rareza y estrellas dan un bono chico."
+          : "Poder completo: cuenta toda tu colección."}
+      </p>
+      <div className="flex flex-wrap justify-center gap-2">
+        <button
+          className={`pixel-frame p-2 text-sm ${mine === DEFAULT_HERO ? "!border-green-400" : ""}`}
+          onClick={() => onPick(DEFAULT_HERO)}
+        >
+          Común al azar
+        </button>
+        {owned.map((c) => (
+          <button key={c.id} aria-label={c.name} onClick={() => onPick(c.id)}>
+            <ItemCard item={characterView(c)} size={64} selected={mine === c.id} />
+          </button>
+        ))}
+      </div>
+      {mine === null && <p className="mt-2 text-center text-sm text-yellow-300">Aún no elegiste.</p>}
+    </Panel>
+  );
+}
+
+function FightStrip({ view, reveal = false }: { view: RoomView; reveal?: boolean }) {
+  const list = fightersOf(view);
+  return (
+    <Panel title={reveal ? "Resultados" : "Peleas"}>
+      {list.length === 0 && <p className="text-center text-sm">Nadie pelea este piso.</p>}
+      <ul className="space-y-1">
+        {list.map((p) => {
+          const st = playerStatus(view, p, null);
+          const b = view.battles[p.id];
+          return (
+            <li key={p.id} className="flex items-center gap-2 text-sm">
+              <span className="min-w-0 flex-1 truncate">
+                {p.name}
+                {p.door && <span className="opacity-70"> · {DOOR_NAME[p.door]}</span>}
+                {b.interfered && <span className="text-red-400"> · interferido</span>}
+              </span>
+              <span className={STATUS_COLOR[st.kind]}>{st.text}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </Panel>
+  );
+}
+
+const STAKES = [10, 25, 50];
+const INTERFERE: [InterfereKind, string][] = [
+  ["stronger_enemy", "Enemigo +20%"],
+  ["adverse_element", "Elemento adverso"],
+];
+
+function BetPanel({
+  view,
+  client,
+  onError,
+}: {
+  view: RoomView;
+  client: RoomClient;
+  onError: (e: string | null) => void;
+}) {
+  const [stake, setStake] = useState(STAKES[0]);
+  const [done, setDone] = useState<Set<string>>(new Set());
+  const targets = fightersOf(view).filter((p) => p.id !== view.me);
+  const me = view.players.find((p) => p.id === view.me);
+  const mark = (k: string) => setDone((s) => new Set(s).add(k));
+  const go = async (key: string, p: Promise<{ ok: boolean; error?: unknown }>) => {
+    const r = await p;
+    onError(r.ok ? null : errorText(String(r.error)));
+    if (r.ok) mark(key);
+  };
+  return (
+    <Panel title={`Apuestas · tienes ${me?.chips ?? 0} fichas`}>
+      {targets.length === 0 && <p className="text-center text-sm">No hay peleas apostables.</p>}
+      <div className="mb-2 flex items-center justify-center gap-2 text-sm">
+        Apuesta:
+        {STAKES.map((s) => (
+          <button
+            key={s}
+            className={`btn !px-3 ${stake === s ? "" : "btn-gray"}`}
+            onClick={() => setStake(s)}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+      <ul className="space-y-2">
+        {targets.map((p) => {
+          const open = view.battles[p.id]?.status === "open";
+          return (
+            <li key={p.id} className="pixel-frame flex flex-wrap items-center gap-2 p-2 text-sm">
+              <span className="min-w-0 flex-1">
+                <b>{p.name}</b>
+                {p.hero && ` · ${p.hero.name} (${CLASSES[p.hero.classId].name})`}
+                {p.door && <span className="opacity-70"> · {DOOR_NAME[p.door as DoorKind]}</span>}
+              </span>
+              {(["win", "lose"] as const).map((pred) => (
+                <button
+                  key={pred}
+                  className="btn !px-3"
+                  disabled={!open || done.has(`b${p.id}`) || (me?.chips ?? 0) < Math.max(stake, ROOM_K.minBet)}
+                  onClick={() => void go(`b${p.id}`, client.bet(p.id, pred, stake))}
+                >
+                  {pred === "win" ? "Ganará" : "Perderá"}
+                </button>
+              ))}
+              {INTERFERE.map(([k, label]) => (
+                <button
+                  key={k}
+                  className="btn btn-gray !px-3"
+                  disabled={!open || done.has(`i${p.id}`) || (me?.chips ?? 0) < ROOM_K.interfereCost}
+                  onClick={() => void go(`i${p.id}`, client.interfere(p.id, k))}
+                >
+                  {label} ({ROOM_K.interfereCost})
+                </button>
+              ))}
+            </li>
+          );
+        })}
+      </ul>
+    </Panel>
+  );
+}

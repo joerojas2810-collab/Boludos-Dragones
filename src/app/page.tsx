@@ -30,6 +30,11 @@ export default function Home() {
           <Link href="/coleccion" className="btn text-center">
             Colección
           </Link>
+          {repo.mode === "remote" && session.status === "user" && (
+            <Link href="/sala" className="btn text-center">
+              Sala
+            </Link>
+          )}
           <Link href="/prueba" className="btn btn-gray text-center">
             Banco de pruebas
           </Link>

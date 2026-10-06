@@ -110,6 +110,7 @@ export function useRoom(client: RoomClient | null) {
     if (view.phase === "reveal" && was !== "reveal") {
       const t = settlementToast(view);
       if (t) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setToast(t);
         const id = setTimeout(() => setToast(null), TOAST_MS);
         return () => clearTimeout(id);
