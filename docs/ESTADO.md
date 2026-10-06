@@ -1,21 +1,25 @@
 # Estado de traspaso (leer junto con CLAUDE.md)
 
-Última actualización: tras mover las funciones de RLS a `private` y mientras se afina el ritmo de niveles.
+Última actualización: 2026-10-06, tras publicar en Vercel y añadir salas reales, racha diaria, votación de sala y mercado.
 
 ## Hecho y verificado
-- Etapas 1-3 jugables (`/prueba`, `/run`, `/gacha`, `/coleccion`), combate v2 (`ENGINE_VERSION = 2`), pasivos de clase, velocidad con acciones extra, guardia perfecta, habilidad 3, modo rápido, 1-3 enemigos con objetivo, tooltips (`explain.ts`), fondos por mundo.
-- Supabase real creado, `.env.local` válido, `setup.sql` ejecutado una vez (versión de 5 migraciones). Cuenta admin "Pol" creada y con login funcionando.
-- Lógica y SQL de salas listos (room.ts, nivelado.ts, 0005). pglite: run.mjs 420/420, rooms.mjs 257/257 tras el cambio a `private`.
+- Etapas 1-3 jugables (`/prueba` solo admin, `/run`, `/gacha`, `/coleccion`), combate v2 (`ENGINE_VERSION = 2`), pasivos de clase, velocidad, guardia perfecta, habilidad 3, modo rápido, 1-3 enemigos, tooltips, fondos por mundo.
+- Producción: https://boludos-dragones.vercel.app (repo GitHub `joerojas2810-collab/Boludos-Dragones`, rama `main`; cada push despliega). 6 variables de entorno cargadas en Vercel. Login con pantalla de título y fondo de montañas (`GameTitle`, `TitleScene`).
+- Supabase real con 9 migraciones ejecutadas (`supabase/setup.sql`; 0007 votación + descuento al último, 0008 racha diaria, 0009 mercado). Interruptores de Supabase (registro, confirmar email, canales públicos) apagados. Cuenta admin "Pol".
+- Salas reales: servidor `/api/rooms/**`, pantallas `/sala`, `/sala/[code]`, demo `/sala/demo`. Polling cada 2 s (5 s en lobby/resumen, 15 s con pestaña oculta); vida de rivales, apuestas ajenas y emotes viajan en el snapshot (vida/emotes en memoria del servidor: pueden fallar con varias instancias). Temporizador por turno, expulsar, premios (`awards.ts`), títulos por noche, votación de piso 3 y 7 (cofre maldito, `vote.ts`), interferir a 20 si eres el último (≥3 jugadores, ≥50 de diferencia).
+- Racha diaria (+50 día 3, +100 día 7; `streak.ts`), sonido y sacudida en crítico/guardia perfecta/legendario/jefe, mercado de trueque `/mercado` (una estrella por trueque, solo repetidas, 5 ofertas, 7 días).
+- Balance de nivel: `XP_BASE 165`, `XP_GROWTH 1.2`, `UPGRADE_POWER 4.8`, `STORM_POWER 0.8` (Tormenta del Mago bajada de 1.1). Simulación 300 runs: mediana 13-14, p90 ~33; jefe del piso 10 aún mata ~22% al bot "smart".
+- 342 tests Vitest, pglite: rooms 271, run 450, market 47.
 
-## Pendiente inmediato
-1. **Usuario: volver a ejecutar `supabase/setup.sql`** en el SQL Editor (ahora con 6 migraciones: 0006 mueve `is_room_member`/`is_room_topic_member` al esquema `private` y añade políticas deny_all). Es reejecutable. Luego refrescar el Security Advisor: deben desaparecer los 2 avisos de SECURITY DEFINER y los 5 de "RLS sin política". El aviso "Leaked password protection" se ignora a propósito (las contraseñas son HMAC del servidor).
-2. **Usuario: apagar 3 interruptores** si no lo hizo: Allow new users to sign up, Confirm email (Authentication > Sign In / Providers) y Allow public access to channels (Realtime > Settings).
-3. **Ritmo de niveles (en curso)**: el usuario pidió que subir de nivel cueste al menos 3 peleas fáciles y que cada nivel cueste exponencialmente más. Valores actuales de prueba (NO definitivos): `XP_BASE 165`, `XP_GROWTH 1.28`, `UPGRADE_POWER 2.8` (progression.ts), `LEVEL_UP_HEAL 0.4`, `EARLY_EASE_START 0.6 / EARLY_EASE_FLOORS 9` (run.ts). Última simulación (`npx tsx scripts/run-sim.ts 500`): demasiado lento (mediana piso 9-10, nivel ~4, muertes concentradas en pisos 8-10, jefe 10 mata 31-48%). Objetivo de CLAUDE.md: mediana 16-18, p90 ~30, ningún jefe > ~14% de las muertes, pocos pisos 1-4. Probar subir `UPGRADE_POWER` y/o `EARLY_EASE`, o suavizar el crecimiento, y reejecutar una simulación corta cada vez. Al terminar actualizar CLAUDE.md y los tests (`xpToNext`).
-4. **Agentes de salas cortados por límite de uso** (se reinicia 1:50 am Buenos Aires): reanudar con SendMessage, de a uno: primero el del servidor (`/api/rooms/**`, contrato en `docs/API_SALAS.md` y `src/lib/rooms/api.ts`; agente `ab2deb9a2c690f0ad`), después el de las pantallas (`/sala/**`, demo simulada en `/sala/demo`; agente `aba66292ba626687d`). Sin servidor de salas no se pueden probar en real; el script `scripts/rooms-smoke.ts` está pedido en la tarea del servidor.
-5. Pendientes menores: revisión visual de accesorios en Mago/Pícaro/Clérigo, jefes de Tormenta y Cavernas, pantallas de mercader/evento/habilidad en celular; unir `Battle.enemy` viejo en cualquier código de salas a `enemies`; confirmar el límite CSP `unsafe-inline`.
+## Pendiente
+1. Probar en vivo con dos cuentas: tirada diaria con racha, sala completa (temporizador, apuestas, votación), `/mercado`. Nada de lo nuevo se ha visto en navegador.
+2. Balance: jefe del piso 10 muy letal; p90 aún sobre el objetivo (~30); Tormenta aún no medida contra Escudo arcano por separado; la DEF casi no sirve en pisos profundos.
+3. Limitaciones de salas: `missedTurns` no se guarda (turno perdido = timeout, no "2 seguidos = huida"); sin Realtime real; sin pruebas de integración contra Supabase real (`scripts/rooms-smoke.ts` sin ejecutar).
+4. Ideas aprobadas por hacer: títulos/apodos persistentes semanales, racha ya hecha. Ideas candidatas: fantasmas de amigos como enemigos, jefe cooperativo con roles y traición, misiones diarias, temporadas con reglas rotativas.
+5. Pendientes menores: revisión visual de accesorios y jefes de Tormenta/Cavernas, pantallas de mercader/evento/habilidad en celular; confirmar CSP `unsafe-inline`; vigilar uso de Vercel (Usage).
 
 ## Después
-Semilla de la semana y tirada diaria (pantallas), modo nivelado en la sala, jefe cooperativo, "Crear legendario" (al final), publicar en Vercel, git.
+Semilla de la semana (pantalla), modo nivelado en la sala (probar), jefe cooperativo, "Crear legendario" (al final), repasar celular.
 
 ## Reglas de trabajo vigentes
-Ahorro de tokens (CLAUDE.md): comprobaciones baratas (`tsc`, `eslint`, `vitest`), simulaciones cortas solo si cambia el balance, pocas capturas, máximo 2 agentes (mejor 1) y modelo por tarea. Nunca leer ni imprimir valores de `.env.local`.
+Ahorro de tokens (CLAUDE.md): `tsc`, `eslint`, `vitest` siempre; simulaciones cortas solo si cambia el balance; pocas capturas; máximo 2 agentes en paralelo con archivos distintos; modelo por tarea. Nunca leer ni imprimir valores de `.env.local`. Push a `main` despliega: antes ejecutar `setup.sql` en Supabase si hay migraciones nuevas.

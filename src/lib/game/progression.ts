@@ -89,7 +89,7 @@ export const TIER2_LEVEL = 5;
 export const TIER2_CHANCE = 0.3; // per offer slot, once level >= TIER2_LEVEL
 
 // Fewer level-ups, each one stronger: every upgrade effect is scaled by UPGRADE_POWER.
-export const UPGRADE_POWER = 5.2;
+export const UPGRADE_POWER = 4.8;
 const fxValue = (v: number, stacks: number) =>
   UPGRADE_POWER * (v > 0 ? v * stackMult(stacks) : v);
 

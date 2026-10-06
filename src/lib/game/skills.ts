@@ -6,7 +6,7 @@ export const SKILL_LEVEL = 5;
 
 // ---- tuning (scripts/run-sim.ts) ----
 export const SWEEP_POWER = 0.65; // Barrido: damage vs EACH enemy
-export const STORM_POWER = 1.1; // Tormenta: damage vs EACH enemy
+export const STORM_POWER = 0.8; // Tormenta: damage vs EACH enemy
 export const COUNTER_ROUNDS = 2; // Contraataque lasts this many round ends
 export const COUNTER_TAKEN = 0.5; // damage taken by the hero while it is up
 export const COUNTER_REFLECT = 1; // x the unreduced hit, sent back
