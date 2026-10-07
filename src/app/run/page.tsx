@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { ActionPanel } from "@/components/ActionPanel";
+import { ArenaBackground } from "@/components/ArenaBackground";
 import { BattleArena } from "@/components/BattleArena";
 import { DoorIcon } from "@/components/DoorIcon";
 import { ElementIcon } from "@/components/ElementIcon";
@@ -145,11 +146,13 @@ const RARITY_BORDER = {
   legendaria: "!border-yellow-400",
 } as const;
 
-function Hud({ run }: { run: Run }) {
+function Hud({ run, float = false }: { run: Run; float?: boolean }) {
   const world = getFloor(run).world;
   const hero = run.hero;
   return (
-    <div className="pixel-frame flex flex-wrap items-center gap-x-5 gap-y-1.5 px-3 py-2 text-base">
+    <div
+      className={`flex flex-wrap items-center gap-x-5 gap-y-1.5 px-3 py-2 text-base ${float ? "hud-float" : "pixel-frame"}`}
+    >
       <Tooltip tip={floorTip(run)}>
         <span className="flex cursor-help items-center gap-1.5">
           <b className="text-yellow-300">
@@ -190,11 +193,21 @@ function Hud({ run }: { run: Run }) {
               className="w-[85%]"
             />
           </RarityFrame>
-          <span>
+          <span className="min-w-0">
             <span style={{ color: RARITIES[hero.rarity ?? "f"].color }}>
               {hero.name}
             </span>{" "}
             · Nv {hero.level} · XP {hero.xp}/{xpToNext(hero.level)}
+            {float && (
+              <span className="hud-meter mt-0.5 block">
+                <i
+                  className="bg-[#4aa8e8]"
+                  style={{
+                    width: `${Math.min(100, (hero.xp / xpToNext(hero.level)) * 100)}%`,
+                  }}
+                />
+              </span>
+            )}
           </span>
           {(hero.stars ?? 0) > 0 && (
             <StarRow stars={hero.stars ?? 0} className="h-2" />
@@ -204,6 +217,14 @@ function Hud({ run }: { run: Run }) {
       <Tooltip tip={runHpTip(run)}>
         <span className="cursor-help text-[#d9d2ca]">
           PV {Math.round(run.hp)}/{maxHp(run)}
+          {float && (
+            <span className="hud-meter ml-2 inline-block w-28 align-middle">
+              <i
+                className="bg-[#46b04f]"
+                style={{ width: `${Math.max(0, (run.hp / maxHp(run)) * 100)}%` }}
+              />
+            </span>
+          )}
         </span>
       </Tooltip>
       {run.lootEnabled &&
@@ -557,6 +578,7 @@ function RunScreen() {
 
   // ---- Screens ----
   let main: ReactNode;
+  let fightScene: ReactNode = null;
   let logLines = msgs;
   let logExtra: ReactNode = null;
 
@@ -738,10 +760,24 @@ function RunScreen() {
     const finalRank =
       run.rank && run.floor === DUNGEONS[run.rank].floors ? run.rank : null;
     const mods = b.mods ?? [];
+    fightScene = (
+      <div className="fixed inset-0 -z-10">
+        <ArenaBackground
+          world={
+            run.rank
+              ? DUNGEONS[run.rank].world
+              : Math.floor((run.floor - 1) / FLOORS_PER_WORLD) % WORLDS.length
+          }
+          boss={node.kind === "boss"}
+          rank={run.rank}
+        />
+      </div>
+    );
     main = (
       <div className="flex min-w-0 flex-1 flex-col gap-3 md:min-h-0 md:flex-row">
         <div className="flex min-w-0 flex-1 flex-col md:min-h-0">
         <BattleArena
+          bleed
           b={b}
           enemyExtra={(i, c) =>
             `${node.kind === "boss" && i === 0 ? "JEFE · " : ""}Nv ${c.char.level}`
@@ -786,6 +822,7 @@ function RunScreen() {
         </div>
         <ActionPanel
           side
+          float
           b={b}
           target={targeting.target}
           onAct={(a, t) => act(screen, a, t)}
@@ -1173,9 +1210,10 @@ function RunScreen() {
       ? "max-w-[min(100rem,calc((100vh-15rem)*1.78+23rem))] md:min-w-[48rem]"
       : "max-w-4xl";
   return (
-    <main className="flex flex-col gap-3 p-3 pt-6 text-base md:h-screen md:overflow-hidden">
+    <main className="relative isolate flex flex-col gap-3 p-3 pt-6 text-base md:h-screen md:overflow-hidden">
+      {fightScene}
       <div className={`mx-auto w-full ${wide}`}>
-        <Hud run={run} />
+        <Hud run={run} float={screen.t === "fight"} />
       </div>
       <div
         className={`mx-auto flex w-full flex-col gap-3 md:min-h-0 md:flex-1 ${wide}`}

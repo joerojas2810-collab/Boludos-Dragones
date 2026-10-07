@@ -36,6 +36,7 @@ type Props = {
   // Quick resolve (easy fights in runs): why it is blocked, or null if allowed.
   auto?: { reason: string | null; onAuto: () => void };
   side?: boolean; // vertical list in a side column (desktop)
+  float?: boolean; // translucent panel over a full-screen scene (run fights)
   children?: ReactNode; // shown below the result once the fight is over
 };
 
@@ -49,6 +50,7 @@ function ActionButton({
   sub,
   hot,
   icon,
+  left,
 }: {
   tip: Tip;
   disabled?: boolean;
@@ -57,6 +59,7 @@ function ActionButton({
   sub: string;
   hot?: boolean; // highlighted (perfect guard available)
   icon?: string; // painted skill icon name (iconFor)
+  left?: boolean; // left-aligned content (side column)
 }) {
   return (
     <Tooltip tip={tip} className="block" focusable={false}>
@@ -65,7 +68,7 @@ function ActionButton({
         disabled={disabled}
         onClick={onClick}
       >
-        <div className="flex items-center justify-center gap-2">
+        <div className={`flex items-center gap-2 ${left ? "justify-start text-left" : "justify-center"}`}>
           {icon && <Icon name={icon} className="h-8 shrink-0 max-md:h-6" />}
           <div>
             <div className="text-base font-semibold leading-tight max-md:text-sm">{title}</div>
@@ -84,6 +87,7 @@ export function ActionPanel({
   fleeCost,
   auto,
   side,
+  float,
   children,
 }: Props) {
   const over = b.status !== "ongoing";
@@ -104,6 +108,7 @@ export function ActionPanel({
     if (k === "attack3" && !skill)
       return (
         <ActionButton
+          left={float}
           tip={skillTip(b.player, foe)}
           disabled
           onClick={() => undefined}
@@ -125,6 +130,7 @@ export function ActionPanel({
         : hits;
     return (
       <ActionButton
+          left={float}
         tip={attackTip(b.player, k, foe)}
         disabled={!!reason}
         onClick={() => onAct(k, target)}
@@ -139,14 +145,20 @@ export function ActionPanel({
   };
 
   return (
-    <Panel className={`shrink-0 !p-2 max-md:sticky max-md:bottom-0 max-md:z-30 ${side ? "md:w-[22rem] md:self-stretch md:overflow-y-auto" : ""}`}>
+    <Panel className={`${float ? "panel-float" : ""} shrink-0 !p-2 max-md:sticky max-md:bottom-0 max-md:z-30 ${side ? `md:w-[22rem] md:overflow-y-auto ${float ? "md:max-h-full md:self-start" : "md:self-stretch"}` : ""}`}>
       {!over && (
-        <div className="mb-1.5 flex flex-wrap items-center justify-center gap-x-4 text-center">
-          <div className="flex flex-wrap items-center justify-center gap-x-3 text-base">
-            <span className="font-semibold text-green-300">Tu turno</span>
-            <span className="text-yellow-300">Ronda {b.turn}</span>
+        <div className={float ? "mb-2" : "mb-1.5 flex flex-wrap items-center justify-center gap-x-4 text-center"}>
+          <div
+            className={`flex flex-wrap items-center gap-x-3 text-base ${float ? "justify-between" : "justify-center"}`}
+          >
+            <span className="flex items-center gap-3">
+              <span className="font-semibold text-green-300">Tu turno</span>
+              <span className="font-[family-name:var(--font-title)] text-lg font-bold text-yellow-300">
+                Ronda {b.turn}
+              </span>
+            </span>
             <Tooltip tip={announceTip(b)}>
-              <span className="cursor-help">
+              <span className={`cursor-help ${float ? "action-pill" : ""}`}>
                 Acciones:{" "}
                 <span className="tracking-wider text-yellow-300">
                   {Array.from({ length: mine }, (_, i) =>
@@ -157,11 +169,14 @@ export function ActionPanel({
               </span>
             </Tooltip>
           </div>
-          <div className="text-[13px] leading-5 text-[#d9d2ca]">
+          <div
+            className={`text-[13px] leading-5 text-[#d9d2ca] ${float ? "action-inset mt-1.5" : ""}`}
+          >
             Orden: {order}
             {alive.length > 1 && (
-              <span className="ml-2 text-yellow-300">
-                Elige un rival (clic o 1-3) · objetivo: {foe.char.name}
+              <span className={float ? "block text-yellow-300" : "ml-2 text-yellow-300"}>
+                Elige un rival (clic o 1-3)
+                {float ? <span className="block">Objetivo: {foe.char.name}</span> : <> · objetivo: {foe.char.name}</>}
               </span>
             )}
           </div>
@@ -178,6 +193,7 @@ export function ActionPanel({
           {attack("attack2")}
           {attack("attack3")}
           <ActionButton
+          left={float}
             tip={defendTip(b)}
             onClick={() => onAct("defend", target)}
             icon={iconFor("skill", "defend")}
@@ -186,6 +202,7 @@ export function ActionPanel({
             hot={perfect}
           />
           <ActionButton
+          left={float}
             tip={fleeTip(b, fleeCost)}
             onClick={() => onAct("flee", target)}
             icon={iconFor("skill", "flee")}
@@ -200,6 +217,7 @@ export function ActionPanel({
           />
           {auto && (
             <ActionButton
+          left={float}
               tip={autoTip(auto.reason)}
               disabled={!!auto.reason}
               onClick={auto.onAuto}

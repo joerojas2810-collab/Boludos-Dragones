@@ -745,3 +745,43 @@ hr,
   text-shadow: 0 1px 0 rgb(0 0 0 / 0.85), 0 0 3px rgb(0 0 0 / 0.8);
   pointer-events: none;
 }
+
+/* Run fights: UI floats over the full-screen painted scene */
+.hud-float {
+  background: rgb(12 20 31 / 0.82);
+  border: 2px solid rgb(185 133 90 / 0.75);
+  border-radius: 0.9rem;
+  box-shadow:
+    0 4px 16px rgb(0 0 0 / 0.5),
+    inset 0 0 0 1px rgb(255 255 255 / 0.07);
+}
+.hud-meter {
+  height: 0.4rem;
+  min-width: 5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.55);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+}
+.hud-meter > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+.panel-float.panel-art {
+  border-image: url("/art/ui/panel_default.webp") 44 / 16px stretch;
+  background: rgb(12 20 31 / 0.84);
+  border-radius: 0.9rem;
+}
+.action-pill {
+  padding: 0.1rem 0.7rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.4);
+  box-shadow: inset 0 0 0 1px rgb(185 133 90 / 0.5);
+  font-size: 0.875rem;
+}
+.action-inset {
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.5rem;
+  background: rgb(0 0 0 / 0.32);
+}

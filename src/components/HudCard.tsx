@@ -99,11 +99,11 @@ export function HudCard({
     >
       <div className="flex items-center gap-1.5">
         {tone === "enemy" && label !== "RIVAL" && (
-          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#b9855a]/30 text-xs font-bold text-[#f6ead6]">
+          <span className="grid h-5 w-5 md:h-7 md:w-7 shrink-0 place-items-center rounded-full border border-[#b9855a] bg-[#b9855a]/30 text-xs md:text-sm font-bold text-[#f6ead6]">
             {label.slice(1)}
           </span>
         )}
-        <span className="truncate font-[family-name:var(--font-title)] text-lg font-bold leading-tight text-[#f6ead6]">{c.char.name}</span>
+        <span className={`truncate font-[family-name:var(--font-title)] ${compact ? "text-lg" : "text-xl"} font-bold leading-tight text-[#f6ead6]`}>{c.char.name}</span>
         <span className="ml-auto flex shrink-0 items-center gap-1.5">
           <button
             type="button"
