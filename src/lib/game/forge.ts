@@ -143,7 +143,7 @@ export function combineParts(
   return finish(
     p,
     diff,
-    `Fusionas ${rule.ratio} × ${partLabel(partKey(a.type, a.rank))} en 1 ${partLabel(partKey(a.type, next))}.`,
+    `Fusionas ${rule.ratio} × ${partLabel(partKey(a.type, a.rank))} en 1 ${partLabel(partKey(a.type, next))} (es una parte: míralo en Héroes → Partes; para la pieza usa Armar).`,
   );
 }
 
