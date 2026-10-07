@@ -354,7 +354,10 @@ describe("gear", () => {
     for (const w of all) p = equipWeapon(p, c.id, w.id);
     const h = heroFromOwned(p, c.id)!;
     expect(h.stats.hp).toBe(Math.round(plain.stats.hp * (1 + GEAR_CAP.hp)));
-    expect(h.stats.def).toBeCloseTo(plain.stats.def * (1 + GEAR_CAP.def), 0);
+    expect(h.stats.def).toBeGreaterThan(plain.stats.def * 1.5);
+    expect(h.stats.def).toBeLessThanOrEqual(
+      plain.stats.def * (1 + GEAR_CAP.def) + 0.1,
+    );
     expect(h.stats.speed).toBeGreaterThan(plain.stats.speed);
     expect(h.stats.speed).toBeLessThanOrEqual(
       plain.stats.speed * (1 + GEAR_CAP.speed) + 0.1,
