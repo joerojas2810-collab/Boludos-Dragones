@@ -21,6 +21,17 @@ const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const key = ([r, g, b]) => (r << 16) | (g << 8) | b;
 const src = RAMPS.fire.map(rgb);
 
+// Enemies glow too much: pull the light tones toward the dark one and desaturate a bit (heroes untouched).
+const DIM = [0, 0.12, 0.3, 0.45];
+const SAT = 0.8;
+const dim = (ramp) => ramp.map((h, i) => {
+  const c = rgb(h), d = rgb(ramp[0]);
+  const mixed = c.map((v, k) => v * (1 - DIM[i]) + d[k] * DIM[i]);
+  const gray = mixed.reduce((a, b) => a + b, 0) / 3;
+  return "#" + mixed.map((v) => Math.round(gray + (v - gray) * SAT).toString(16).padStart(2, "0")).join("");
+});
+if (lot === "enemies") for (const k of Object.keys(RAMPS)) RAMPS[k] = dim(RAMPS[k]);
+
 const out = `public/art/${lot}-px`;
 mkdirSync(out, { recursive: true });
 let n = 0;
