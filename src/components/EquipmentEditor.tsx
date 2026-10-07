@@ -1,10 +1,10 @@
 "use client";
 
+import { RankIcon } from "@/components/RankIcon";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { ElementIcon } from "@/components/ElementIcon";
 import { HeroSprite } from "@/components/HeroSprite";
-import { Icon } from "@/components/Icon";
 import { StarRow } from "@/components/StarRow";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import { CLASSES } from "@/lib/game/characters";
@@ -66,7 +66,7 @@ function GearCard({
       </div>
       <div className="min-w-0 flex-1 space-y-1 text-sm">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <Icon name={`rank_${w.rarity}`} className="h-7" />
+          <RankIcon rank={w.rarity} className="h-7 w-7" />
           <span className="truncate font-semibold">{w.name}</span>
           <ElementIcon element={w.element} className="h-4" />
           {worn && (

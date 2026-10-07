@@ -50,13 +50,13 @@ export default function TowerPage() {
 
   if (!ready) return null;
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-3 pt-6">
+    <main className="mx-auto w-full max-w-5xl space-y-7 px-3 pb-2 pt-7">
       <Panel title="Torre semanal">
-        <p className="text-center text-lg text-[#e8e0d8]">
+        <p className="text-center text-base text-[#e8e0d8]">
           Sube lo más alto que puedas: misma torre para todos esta semana.
         </p>
         <div
-          className="mx-auto mt-3 flex max-w-xl flex-wrap items-center justify-center gap-x-4 gap-y-1 pixel-frame px-3 py-2 text-sm"
+          className="mx-auto mt-2 flex max-w-xl flex-wrap items-center justify-center gap-x-4 gap-y-0 pixel-frame px-2 py-0 text-sm"
           title={`Los 3 primeros de cada modo (mínimo ${TOWER_MIN_FLOOR} pisos) cobran el lunes. La torre no da monedas ni botín por sí sola.`}
         >
           <span className="opacity-80">Premios del lunes</span>
@@ -75,32 +75,34 @@ export default function TowerPage() {
         )}
         {err && <p className="mt-2 text-center text-sm text-red-300">{err}</p>}
       </Panel>
-      <div className="grid gap-8 md:grid-cols-2">
+      <div className="grid gap-7 md:grid-cols-2">
         {TOWER_MODES.map((m) => (
           <Panel key={m} title={TOWER_LABEL[m]}>
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-3">
               <Icon
                 name={m === "nivelado" ? "passive_wall" : "relic_titan_crown"}
-                className="h-32 w-32"
+                className="h-24 w-24 shrink-0"
               />
-              <p className="text-center text-sm text-[#d9d2ca]">
-                {TOWER_BLURB[m]}
-              </p>
-              <Link
-                href={`/run?torre=${m}`}
-                className="btn mt-1 inline-block px-8 text-center"
-              >
-                Subir la torre
-              </Link>
+              <div className="flex min-w-0 flex-col items-center gap-1">
+                <p className="text-center text-sm text-[#d9d2ca]">
+                  {TOWER_BLURB[m]}
+                </p>
+                <Link
+                  href={`/run?torre=${m}`}
+                  className="btn inline-block px-8 text-center"
+                >
+                  Subir la torre
+                </Link>
+              </div>
             </div>
             {st && (
               <>
-                <div className="mt-3 text-center text-base text-yellow-300">
+                <div className="mt-2 text-center text-sm text-yellow-300">
                   {st.modes[m].mine
                     ? `Tu mejor piso: ${st.modes[m].mine.floor} · puesto ${st.modes[m].mine.place}`
                     : "Aún no has subido esta semana"}
                 </div>
-                <ol className="mt-2 space-y-1 text-base">
+                <ol className="mt-1 space-y-0.5 text-sm">
                   {st.modes[m].top.length === 0 && (
                     <li className="text-center opacity-70">
                       Nadie ha subido todavía.
@@ -109,7 +111,7 @@ export default function TowerPage() {
                   {st.modes[m].top.map((r) => (
                     <li
                       key={r.place}
-                      className="tile-art flex justify-between px-2 py-0.5"
+                      className="tile-art flex justify-between px-2"
                     >
                       <span>
                         {MEDAL[r.place - 1] ?? `${r.place}.`} {r.name}

@@ -29,6 +29,7 @@ import { partCount } from "@/lib/game/parts";
 import { HeroSprite } from "@/components/HeroSprite";
 import { StarRow } from "@/components/StarRow";
 import { Icon } from "@/components/Icon";
+import { RankIcon } from "@/components/RankIcon";
 import { Tooltip } from "@/components/Tooltip";
 import {
   classStatTip,
@@ -1198,9 +1199,11 @@ function DungeonSelect({
                 className="pixel-frame flex items-center gap-4 p-3 text-left enabled:hover:brightness-125 disabled:opacity-60"
                 style={{ borderColor: color }}
               >
-                <Icon
-                  name={`dungeon_rank_${rank}`}
-                  className="h-[92px] w-[92px] shrink-0"
+                <RankIcon
+                  rank={rank}
+                  door
+                  letter
+                  className="h-[101px] w-[101px]"
                 />
                 <span className="min-w-0 text-base">
                   <span className="name-title block text-yellow-300">

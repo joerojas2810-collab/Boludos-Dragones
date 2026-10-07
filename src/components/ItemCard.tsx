@@ -59,12 +59,15 @@ export function ItemCard({
               crop
             />
           ) : (
-            <WeaponSprite
-              type={item.type}
-              element={item.element}
-              rarity={item.rarity}
-              className="mx-auto mt-[6%] w-[84%]"
-            />
+            // Pieces: keep the icon above the info strip so the text never covers it.
+            <div className="absolute inset-x-0 bottom-[34%] top-[8%] flex items-center justify-center">
+              <WeaponSprite
+                type={item.type}
+                element={item.element}
+                rarity={item.rarity}
+                className="h-full w-auto max-w-[86%]"
+              />
+            </div>
           )}
         </div>
         <span className="absolute right-0.5 top-0.5 z-10 drop-shadow-[0_1px_0_#000]">

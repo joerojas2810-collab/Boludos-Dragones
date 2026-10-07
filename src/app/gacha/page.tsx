@@ -1,6 +1,7 @@
 "use client";
 
-import { Icon } from "@/components/Icon";
+import { ELEMENTS } from "@/lib/game/elements";
+import { RankIcon } from "@/components/RankIcon";
 import { useState } from "react";
 import { Panel } from "@/components/Panel";
 import { DailyStreak } from "@/components/DailyStreak";
@@ -30,7 +31,11 @@ import { resultView, summarizePull } from "@/lib/viewModels";
 
 // Views of a pull, marking the pity-guaranteed ones by replaying the counters
 // (SS pity at PITY_THRESHOLD, SSR pity at PITY_SSR_THRESHOLD; both reset on a hit).
-function pullViews(rs: PullResult[], pity: number, pitySsr: number): ItemView[] {
+function pullViews(
+  rs: PullResult[],
+  pity: number,
+  pitySsr: number,
+): ItemView[] {
   let ss = pity;
   let ssr = pitySsr;
   return rs.flatMap((r) => {
@@ -125,20 +130,20 @@ export default function GachaPage() {
       <Panel title={b.title} className="mx-auto w-full max-w-4xl">
         <div className="mb-3 flex flex-wrap justify-center gap-1">
           {banner === "character"
-            ? CLASS_IDS.map((id) => (
+            ? CLASS_IDS.map((id, i) => (
                 <HeroSprite
                   key={id}
                   classId={id}
-                  element="rayo"
+                  element={ELEMENTS[(i + 1) % ELEMENTS.length]}
                   className="w-20 sm:w-32"
                   crop
                 />
               ))
-            : WEAPON_TYPES.map((t) => (
+            : WEAPON_TYPES.map((t, i) => (
                 <WeaponSprite
                   key={t}
                   type={t}
-                  element="fuego"
+                  element={ELEMENTS[i % ELEMENTS.length]}
                   rarity="a"
                   className="w-14 sm:w-24"
                 />
@@ -153,7 +158,7 @@ export default function GachaPage() {
               className="border-2 border-[var(--edge)] px-0.5 py-1"
               style={{ color: RARITIES[id].color }}
             >
-              <Icon name={`rank_${id}`} className="h-6" />
+              <RankIcon rank={id} className="mx-auto h-12 w-12 sm:h-14 sm:w-14" />
               <div className="rank-label break-words text-[10px] leading-tight sm:text-sm">
                 {RARITIES[id].label}
               </div>

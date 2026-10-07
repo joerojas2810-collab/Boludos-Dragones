@@ -153,7 +153,15 @@ export default function MissionsPage() {
                           : ""
                     }`}
                   >
-                    <Icon name="system_chest" className="h-10" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/art/ui/chest_tier${Math.min(i + 1, 3)}.webp`}
+                      alt=""
+                      draggable={false}
+                      className={
+                        i === 0 ? "h-[72px]" : i === 1 ? "h-20" : "h-[88px]"
+                      }
+                    />
                     <span className="flex items-center gap-1">
                       {i < s.claimed ? "✔ " : ""}
                       {t.coins} <Icon name="system_coin" className="h-4" />

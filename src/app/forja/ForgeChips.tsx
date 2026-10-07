@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Icon } from "@/components/Icon";
+import { RankIcon } from "@/components/RankIcon";
 import { ElementIcon } from "@/components/ElementIcon";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "@/lib/game/elements";
@@ -27,7 +27,7 @@ function Tile({
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={`tile-art flex flex-col items-center gap-0.5 px-1 py-1.5 text-center text-xs ${ready ? "tile-ready" : ""} ${ready === false && !selected ? "opacity-50" : ""}`}
+      className={`tile-art flex flex-col items-center gap-0.5 px-1 py-1.5 text-center text-xs ${ready ? "tile-ready" : ""} ${ready === false && !selected ? "opacity-70" : ""}`}
     >
       {children}
     </button>
@@ -70,12 +70,14 @@ export function TypePicker({
             ready={r}
             onClick={() => onChange(t)}
           >
-            <WeaponSprite
-              type={t}
-              element={element}
-              rarity={rank}
-              className="w-14"
-            />
+            <span className="flex h-24 w-24 items-center justify-center">
+              <WeaponSprite
+                type={t}
+                element={element}
+                rarity={rank}
+                className="w-24"
+              />
+            </span>
             <span>{WEAPON_TYPE_DATA[t].label}</span>
             {sub && <Sub ok={r}>{sub(t)}</Sub>}
           </Tile>
@@ -141,8 +143,11 @@ export function RankPicker({
             ready={rd}
             onClick={() => onChange(r)}
           >
-            <Icon name={`rank_${r}`} className="h-9" />
-            <b className="rank-label text-sm" style={{ color: RARITIES[r].color }}>
+            <RankIcon rank={r} className="h-10 w-10" />
+            <b
+              className="rank-label text-sm"
+              style={{ color: RARITIES[r].color }}
+            >
               {RARITIES[r].label}
             </b>
             {sub && <Sub ok={rd}>{sub(r)}</Sub>}

@@ -35,6 +35,8 @@ function dirsFor(lot, sub) {
   return [...new Set(out)];
 }
 
+// [x, y, w, h] of the baked rank letter in the 256 px source art.
+const RANK_LETTER_BOX = { door: [87, 168, 82, 40], badge: [76, 170, 104, 54] };
 let total = 0;
 for (const [lot, sub, outName, size] of JOBS) {
   const out = join("public", "art", outName);
@@ -48,6 +50,15 @@ for (const [lot, sub, outName, size] of JOBS) {
       const { width, height } = await img.metadata();
       if (typeof size === "number" && size < 1) img = img.resize(Math.round(width * size), Math.round(height * size));
       else if (size) img = img.resize(size, size, { fit: "inside" });
+      // Rank icons have a thin letter baked in; erase it (the UI overlays the letter in the title font).
+      const erase = RANK_LETTER_BOX[f.match(/^icon_(dungeon_)?rank_[a-z]+\.png$/) ? (f.includes("dungeon") ? "door" : "badge") : ""];
+      if (erase) {
+        const k = 192 / 256;
+        const [x, y, w, h] = erase.map((v) => Math.round(v * k));
+        img = sharp(await img.resize(192, 192).png().toBuffer()).composite([
+          { input: { create: { width: w, height: h, channels: 4, background: "#fff" } }, left: x, top: y, blend: "dest-out" },
+        ]);
+      }
       await img.webp({ quality: 90, alphaQuality: 100, effort: 5 }).toFile(join(out, f.replace(".png", ".webp")));
       total++;
     }
