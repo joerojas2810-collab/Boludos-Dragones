@@ -54,7 +54,7 @@ import {
   FINAL_BOSS_MULT,
   victoryCoins,
 } from "./dungeons";
-import { WORLD_ELEMENT_BIAS, WORLDS, worldOf, type World } from "./worlds";
+import { WORLD_ELEMENT_BIAS, WORLDS, worldOf, type EnemyFamily, type World } from "./worlds";
 
 // Bump when a change makes old action logs replay differently. The server
 // rejects logs from another version with a clear error (replay.ts).
@@ -179,6 +179,33 @@ export const BOSS_NAMES = [
   "Vigía Eterno",
   "El Sin Rostro",
 ];
+
+// Names match the painted art: unique final boss per dungeon rank, one boss per family.
+const FINAL_BOSS_NAME: Record<string, string> = {
+  f: "Gran Devorador",
+  e: "Rey Ceniza",
+  d: "La Reina Marchita",
+  c: "Coloso Hueco",
+  b: "Vigía Eterno",
+  a: "Madre Hidra",
+  s: "Señor de las Moscas",
+  ss: "El Sin Rostro",
+  ssr: "Rey del Trueno",
+};
+const FAMILY_LABEL: Record<EnemyFamily, string> = {
+  limo: "Limo",
+  diablillo: "Diablillo",
+  arpia: "Arpía",
+  golem: "Gólem",
+  espectro: "Espectro",
+};
+const FAMILY_BOSS_LABEL: Record<EnemyFamily, string> = {
+  limo: "Limo Supremo",
+  diablillo: "Diablillo Mayor",
+  arpia: "Arpía Matriarca",
+  golem: "Gólem Colosal",
+  espectro: "Espectro Ancestral",
+};
 
 export type FightKind = "easy" | "hard" | "boss";
 export type DoorKind = FightKind | "chest" | "merchant" | "rest" | "event";
@@ -358,9 +385,14 @@ function makeEnemy(
   const themed = rng.chance(WORLD_ELEMENT_BIAS);
   const other = rng.pick(ELEMENTS);
   const suffix = rng.pick(world.enemySuffixes);
-  const bossName = rng.pick(BOSS_NAMES);
+  rng.pick(BOSS_NAMES); // keep the rng stream unchanged
   const isBoss = kind === "boss" && i === 0;
-  const name = isBoss ? bossName : `${base.name} ${suffix}`;
+  const isFinal = !!(isBoss && rank && floor === DUNGEONS[rank].floors);
+  const name = isFinal
+    ? FINAL_BOSS_NAME[rank as string]
+    : isBoss
+      ? FAMILY_BOSS_LABEL[world.family]
+      : `${FAMILY_LABEL[world.family]} ${suffix}`;
   let mult: number;
   let hpMult: number;
   if (kind === "boss") {
