@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { ElementIcon } from "@/components/ElementIcon";
 import { Sprite } from "@/components/Sprite";
+import { StarRow } from "@/components/StarRow";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import { CLASSES } from "@/lib/game/characters";
 import { activeSets, setLine } from "@/lib/game/gear";
@@ -12,7 +14,7 @@ import {
   type OwnedCharacter,
   type Profile,
 } from "@/lib/game/profile";
-import { RARITIES } from "@/lib/game/rarity";
+import { RARITIES, RARITY_IDS } from "@/lib/game/rarity";
 import {
   CLASS_WEAPONS,
   WEAPON_TYPE_DATA,
@@ -22,6 +24,76 @@ import {
 } from "@/lib/game/weapons";
 import { repo } from "@/lib/useProfile";
 import { pieceLine, weaponEffect } from "@/lib/viewModels";
+
+type Piece = Profile["weapons"][number];
+
+// One piece as a card framed in its rank colour: rank badge, stars, bonus chips and
+// what the slot is for. `worn` marks the equipped one; the action sits on the right.
+function GearCard({
+  w,
+  worn,
+  action,
+}: {
+  w: Piece;
+  worn?: boolean;
+  action: ReactNode;
+}) {
+  const color = RARITIES[w.rarity].color;
+  return (
+    <div
+      className="flex items-center gap-3 border-2 p-2"
+      style={{
+        borderColor: color,
+        background: `${color}${worn ? "26" : "14"}`,
+        boxShadow: worn ? `0 0 0 2px ${color}66` : undefined,
+      }}
+    >
+      <div className="grid w-14 shrink-0 place-items-center">
+        <WeaponSprite
+          type={w.type}
+          element={w.element}
+          rarity={w.rarity}
+          className={worn ? "w-12" : "w-10"}
+        />
+      </div>
+      <div className="min-w-0 flex-1 space-y-1 text-sm">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span
+            className="grid h-6 min-w-8 place-items-center border-2 border-[var(--edge)] px-1 text-sm font-bold"
+            style={{ background: color, color: "#1d1714" }}
+            title={`Rango ${RARITIES[w.rarity].label}`}
+          >
+            {RARITIES[w.rarity].label}
+          </span>
+          <span className="truncate font-semibold">{w.name}</span>
+          <ElementIcon element={w.element} className="h-4" />
+          {worn && (
+            <span className="rounded bg-green-700 px-1.5 text-xs text-white">
+              Equipado
+            </span>
+          )}
+        </div>
+        <StarRow stars={w.stars} className="h-2.5" />
+        <div className="flex flex-wrap gap-1">
+          {pieceLine(w)
+            .split(" · ")
+            .map((t) => (
+              <span
+                key={t}
+                className="rounded border border-white/20 bg-black/30 px-1.5 text-xs tabular-nums text-green-300"
+              >
+                {t}
+              </span>
+            ))}
+        </div>
+        <div className="text-xs text-[#d9d2ca]">{weaponEffect(w)}</div>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+const rankOrder = (w: Piece) => RARITY_IDS.indexOf(w.rarity);
 
 const DOLL_LEFT: Slot[] = ["casco", "peto", "piernas"];
 const DOLL_RIGHT: Slot[] = ["arma", "zapatos", "collar"];
@@ -132,52 +204,42 @@ export function EquipmentEditor({
           <div key={slot} className="border-t-2 border-[var(--edge)] pt-2">
             <div className="mb-1 font-semibold text-yellow-300">{title}</div>
             {worn ? (
-              <div className="flex items-center gap-2">
-                <WeaponSprite
-                  type={worn.type}
-                  element={worn.element}
-                  rarity={worn.rarity}
-                  className="w-12"
-                />
-                <div className="min-w-0 flex-1 text-sm">
-                  <div className="truncate font-semibold">{worn.name}</div>
-                  <div>{pieceLine(worn)}</div>
-                  <div className="text-[#d9d2ca]">{weaponEffect(worn)}</div>
-                </div>
-                <button
-                  className="btn btn-gray text-center"
-                  onClick={() => act(() => repo.equip(c.id, null, slot))}
-                >
-                  Quitar
-                </button>
-              </div>
+              <GearCard
+                w={worn}
+                worn
+                action={
+                  <button
+                    className="btn btn-gray text-center"
+                    onClick={() => act(() => repo.equip(c.id, null, slot))}
+                  >
+                    Quitar
+                  </button>
+                }
+              />
             ) : (
               <p className="text-sm text-[#d9d2ca]">Vacío.</p>
             )}
             {free.length > 0 ? (
-              <ul className="mt-2 space-y-1">
-                {free.map((w) => (
-                  <li key={w.id} className="flex items-center gap-2 text-sm">
-                    <WeaponSprite
-                      type={w.type}
-                      element={w.element}
-                      rarity={w.rarity}
-                      className="w-8"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate">{w.name}</span>
-                      <span className="block text-xs text-[#d9d2ca]">
-                        {pieceLine(w)} · {weaponEffect(w)}
-                      </span>
-                    </span>
-                    <button
-                      className="btn text-center"
-                      onClick={() => act(() => repo.equip(c.id, w.id))}
-                    >
-                      Equipar
-                    </button>
-                  </li>
-                ))}
+              <ul className="mt-2 space-y-2">
+                {[...free]
+                  .sort(
+                    (x, y) => rankOrder(y) - rankOrder(x) || y.stars - x.stars,
+                  )
+                  .map((w) => (
+                    <li key={w.id}>
+                      <GearCard
+                        w={w}
+                        action={
+                          <button
+                            className="btn text-center"
+                            onClick={() => act(() => repo.equip(c.id, w.id))}
+                          >
+                            Equipar
+                          </button>
+                        }
+                      />
+                    </li>
+                  ))}
               </ul>
             ) : (
               !worn && (
