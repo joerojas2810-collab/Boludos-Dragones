@@ -7,8 +7,8 @@ import { Vfx, VfxNumber } from "./Vfx";
 import { reducedMotion } from "./motion";
 import "./fx.css";
 
-// Impact timing matches BattleArena's STAGGER_S (0.5 s per event).
-const STAGGER_S = 0.5;
+// Impact timing matches BattleArena's STAGGER_S (0.3 s per event).
+const STAGGER_S = 0.3;
 const IMPACT_S = 0.2;
 const HITSTOP_MS = 80;
 const MAX_PARTICLE_EVENTS = 3;

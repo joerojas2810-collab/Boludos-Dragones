@@ -195,8 +195,8 @@ export function playEvents(
     ctx ??= new AudioContext();
     if (ctx.state === "suspended") void ctx.resume();
     if (moments.guard) playGuard(ctx.currentTime);
-    events.forEach((e, i) => play(e, i * 0.5));
-    playJingle(status, events.length * 0.5 + 0.1);
+    events.forEach((e, i) => play(e, i * 0.3));
+    playJingle(status, events.length * 0.3 + 0.1);
     if (moments.boss && status === "won")
       playBossDown(ctx.currentTime + events.length * 0.5 + 0.6);
   } catch {

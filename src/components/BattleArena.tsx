@@ -17,7 +17,7 @@ import { enemyIntents, type Battle, type Combatant } from "@/lib/game/combat";
 import { intentTip, type Tip } from "@/lib/game/explain";
 
 // Animation for who attacked / who got hit in the last step, staggered like the sfx.
-const STAGGER_S = 0.5;
+const STAGGER_S = 0.3;
 
 // One inline animation per event, in order: lunge for the actor's own hits,
 // hurt when the other side connects. Each event starts STAGGER_S after the last.
