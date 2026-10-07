@@ -30,7 +30,9 @@ export const GEAR_ART: Record<GearType, string> = {
   collar: "necklace",
 };
 
-export const icon = (name: string) => `/art/icons/icon_${name}.webp`;
+// ?v= busts the 7-day static cache when art files are replaced under the same name.
+export const ART_V = 2;
+export const icon = (name: string) => `/art/icons/icon_${name}.webp?v=${ART_V}`;
 export const elementIconSrc = (e: Element) => icon(`element_${ELEMENT_ART[e]}`);
 export const gearIconSrc = (t: GearType, e: Element) =>
   `/art/equipment/icon_equipment_${GEAR_ART[t]}_${ELEMENT_ART[e]}.webp`;

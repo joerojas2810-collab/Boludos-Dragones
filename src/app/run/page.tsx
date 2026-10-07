@@ -1229,7 +1229,6 @@ function DungeonSelect({
               >
                 <RankIcon
                   rank={rank}
-                  door
                   letter
                   className="h-[min(101px,9vh)] w-[min(101px,9vh)]"
                 />
@@ -1255,8 +1254,16 @@ function DungeonSelect({
                     <span className="block text-green-300">
                       ✔ Limpiado · mejor: {best}{" "}
                       <Icon name="system_heart_full" className="h-4" />
-                      {(ascensions[rank] ?? 0) > 0 &&
-                        ` · Ascensión +${ascensions[rank]}`}
+                      {(ascensions[rank] ?? 0) > 0 && (
+                        <>
+                          {" · "}
+                          <Icon
+                            name={`asc_${ascensions[rank]}`}
+                            className="h-5"
+                          />{" "}
+                          Ascensión +{ascensions[rank]}
+                        </>
+                      )}
                       {(ascensions[rank] ?? 0) >= MAX_ASCENSION && (
                         <Icon name="asc_max_star" className="ml-1 h-4" />
                       )}

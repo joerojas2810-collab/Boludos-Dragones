@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Vfx } from "@/components/fx/Vfx";
-import { Icon } from "@/components/Icon";
+import { RankIcon } from "@/components/RankIcon";
 import { RARITIES, type RarityId } from "@/lib/game/rarity";
 
 type Props = {
@@ -47,7 +47,7 @@ export function RarityFrame({
       {painted && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={`/art/frames/card_${rarity}.webp`}
+          src={`/art/frames/card_${rarity}.webp?v=2`}
           alt=""
           draggable={false}
           className="pointer-events-none absolute inset-0 z-[15] h-full w-full"
@@ -61,11 +61,12 @@ export function RarityFrame({
           />
         )}
       {size >= 64 && (
-        <span className="absolute left-0.5 top-0.5 z-10">
-          <Icon
-            name={`rank_${rarity}`}
-            className="h-auto max-w-none"
-            style={{ width: Math.round(size * 0.3) }}
+        <span className="absolute left-[3%] top-[2.5%] z-20 drop-shadow-[0_1px_2px_#000]">
+          <RankIcon
+            rank={rarity}
+            letter
+            className=""
+            style={{ width: Math.round(size * 0.3), height: Math.round(size * 0.3) }}
           />
         </span>
       )}

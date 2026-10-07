@@ -8,14 +8,19 @@ export function RankIcon({
   door = false,
   letter = false,
   className = "h-8 w-8",
+  style,
 }: {
   rank: RarityId;
   door?: boolean; // dungeon door icon instead of the plain badge
   letter?: boolean;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
-    <span className={`rank-icon relative inline-block shrink-0 ${className}`}>
+    <span
+      className={`rank-icon relative inline-block shrink-0 ${className}`}
+      style={style}
+    >
       <Icon
         name={door ? `dungeon_rank_${rank}` : `rank_${rank}`}
         className="h-full w-full"
