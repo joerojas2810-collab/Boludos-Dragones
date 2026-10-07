@@ -124,6 +124,7 @@ const rankOrder = (w: Piece) => RARITY_IDS.indexOf(w.rarity);
 
 const DOLL_LEFT: Slot[] = ["casco", "peto", "piernas"];
 const DOLL_RIGHT: Slot[] = ["arma", "zapatos", "collar"];
+const DOLL_SLOTS = [...DOLL_LEFT, ...DOLL_RIGHT];
 
 // A hero's six equipment slots as a paper doll, with the free pieces of the
 // selected slot underneath. Used in the collection and before entering a dungeon.
@@ -147,6 +148,12 @@ export function EquipmentEditor({
   });
   const sets = activeSets(wornElements, c.element);
   const plan = autoEquipPlan(profile, c.id);
+  const wornSlots = DOLL_SLOTS.filter(
+    (sl) => profile.equipped[slotKey(c.id, sl)],
+  );
+  const usable = CLASS_WEAPONS[c.classId]
+    .map((t) => WEAPON_TYPE_DATA[t].label)
+    .join(" · ");
   return (
     <>
       <button
@@ -164,6 +171,23 @@ export function EquipmentEditor({
           ? "Equipo ya óptimo"
           : `Autoequipar (${plan.length} ${plan.length === 1 ? "cambio" : "cambios"})`}
       </button>
+      <button
+        className="btn btn-gray w-full text-center"
+        disabled={wornSlots.length === 0}
+        title="Deja libres todas las piezas del héroe (útil para desmontar)"
+        onClick={() =>
+          act(async () => {
+            for (const sl of wornSlots) await repo.equip(c.id, null, sl);
+          })
+        }
+      >
+        Quitar todo el equipo
+      </button>
+      <div className="text-sm text-[#d9d2ca]">
+        Armas de {CLASSES[c.classId].name}:{" "}
+        <span className="text-yellow-300">{usable}</span>. La armadura la usa
+        cualquier clase.
+      </div>
       <div className="doll" aria-label="Equipo del héroe">
         {[DOLL_LEFT, DOLL_RIGHT].map((col, i) => (
           <div key={i} className="doll-col">
@@ -226,6 +250,15 @@ export function EquipmentEditor({
             canUseWeapon(c.classId, w.type) &&
             !Object.values(profile.equipped).includes(w.id),
         );
+        const blocked =
+          slot === "arma"
+            ? profile.weapons.filter(
+                (w) =>
+                  slotOf(w.type) === "arma" &&
+                  !canUseWeapon(c.classId, w.type) &&
+                  !Object.values(profile.equipped).includes(w.id),
+              )
+            : [];
         const title = slot === "arma" ? "Arma" : WEAPON_TYPE_DATA[slot].label;
         return (
           <div key={slot} className="border-t-2 border-[var(--edge)] pt-2">
@@ -284,6 +317,25 @@ export function EquipmentEditor({
                   </Link>
                 </p>
               )
+            )}
+            {blocked.length > 0 && (
+              <ul className="mt-2 space-y-2 opacity-40">
+                {blocked.map((w) => (
+                  <li
+                    key={w.id}
+                    title={`${CLASSES[c.classId].name} no usa ${WEAPON_TYPE_DATA[w.type].label.toLowerCase()}`}
+                  >
+                    <GearCard
+                      w={w}
+                      action={
+                        <span className="text-xs">
+                          No la usa {CLASSES[c.classId].name}
+                        </span>
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         );
