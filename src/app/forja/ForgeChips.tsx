@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Icon } from "@/components/Icon";
 import { ElementIcon } from "@/components/ElementIcon";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "@/lib/game/elements";
@@ -21,17 +22,12 @@ function Tile({
   onClick: () => void;
   children: ReactNode;
 }) {
-  const look = selected
-    ? "border-yellow-300 bg-yellow-300/15"
-    : ready
-      ? "border-green-400 shadow-[0_0_8px_rgba(74,222,128,.6)]"
-      : "border-[var(--edge)]";
   return (
     <button
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={`flex flex-col items-center gap-0.5 border-2 px-1 py-1.5 text-center text-xs ${look} ${ready === false && !selected ? "opacity-50" : ""}`}
+      className={`tile-art flex flex-col items-center gap-0.5 px-1 py-1.5 text-center text-xs ${ready ? "tile-ready" : ""} ${ready === false && !selected ? "opacity-50" : ""}`}
     >
       {children}
     </button>
@@ -78,7 +74,7 @@ export function TypePicker({
               type={t}
               element={element}
               rarity={rank}
-              className="w-10"
+              className="w-14"
             />
             <span>{WEAPON_TYPE_DATA[t].label}</span>
             {sub && <Sub ok={r}>{sub(t)}</Sub>}
@@ -111,7 +107,7 @@ export function ElementPicker({
             ready={r}
             onClick={() => onChange(el)}
           >
-            <ElementIcon element={el} bare className="h-6" />
+            <ElementIcon element={el} bare className="h-9" />
             <span>{ELEMENT_LABEL[el]}</span>
             {sub && <Sub ok={r}>{sub(el)}</Sub>}
           </Tile>
@@ -145,7 +141,8 @@ export function RankPicker({
             ready={rd}
             onClick={() => onChange(r)}
           >
-            <b className="text-base" style={{ color: RARITIES[r].color }}>
+            <Icon name={`rank_${r}`} className="h-9" />
+            <b className="text-sm" style={{ color: RARITIES[r].color }}>
               {RARITIES[r].label}
             </b>
             {sub && <Sub ok={rd}>{sub(r)}</Sub>}

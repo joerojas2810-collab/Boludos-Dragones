@@ -616,3 +616,19 @@ hr,
   height: auto;
   filter: drop-shadow(0 3px 0 rgb(0 0 0 / 0.6)) drop-shadow(0 0 8px rgb(0 0 0 / 0.55));
 }
+
+/* Painted selectable tiles (forge pickers) */
+.tile-art {
+  border: 10px solid transparent;
+  border-image: url("/art/ui/slot_normal.webp") 16 fill / 10px stretch;
+  color: var(--text);
+}
+.tile-art:hover {
+  border-image-source: url("/art/ui/slot_hover.webp");
+}
+.tile-art[aria-pressed="true"] {
+  border-image-source: url("/art/ui/slot_selected.webp");
+}
+.tile-art.tile-ready:not([aria-pressed="true"]) {
+  filter: drop-shadow(0 0 5px rgb(74 222 128 / 0.75));
+}
