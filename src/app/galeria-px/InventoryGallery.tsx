@@ -1,6 +1,7 @@
 import { ItemCard } from "@/components/ItemCard";
 import { PIXEL_ICON_NAMES } from "@/lib/art/pixel";
 import { RARITY_IDS } from "@/lib/game/rarity";
+import { DUNGEONS } from "@/lib/game/dungeons";
 
 const ELEMENTS = [
   ["fire", "Fuego"], ["water", "Agua"], ["earth", "Tierra"],
@@ -13,7 +14,7 @@ const ITEMS = [
 ] as const;
 const FAMILY_LABELS: Record<string, string> = {
   element: "Elementos", class: "Clases", rank: "Rangos", door: "Puertas",
-  passive: "Pasivos", skill: "Habilidades", trait: "Rasgos", upgrade: "Mejoras", event: "Eventos", part: "Partes de forja", core: "Núcleos",
+  passive: "Pasivos", skill: "Habilidades", trait: "Rasgos", upgrade: "Mejoras", event: "Eventos", dungeon: "Dungeons", part: "Partes de forja", core: "Núcleos",
 };
 const LABELS: Record<string, string> = {
   fire: "Fuego", water: "Agua", earth: "Tierra", lightning: "Rayo", wind: "Viento",
@@ -154,7 +155,8 @@ export function InventoryGallery({ lot, zoom, bg }: { lot: "items" | "icons" | "
           <div className="flex flex-wrap gap-3">
             {names.map((name) => {
               const id = name.slice(family.length + 1);
-              const title = family === "rank" ? id.toUpperCase() : (family === "door" ? DOOR_LABELS[id] : LABELS[id]) ?? id;
+              const dungeon = family === "dungeon" ? RARITY_IDS.find((rank) => id === "rank_" + rank) : undefined;
+              const title = dungeon ? DUNGEONS[dungeon].name : family === "rank" ? id.toUpperCase() : (family === "door" ? DOOR_LABELS[id] : LABELS[id]) ?? id;
               return <figure key={name}>
                 <PixelImage path={"icons-px/icon_" + name} label={title} width={32 * zoom} bg={bg} />
                 <figcaption className="mt-1 text-center text-xs">{title}</figcaption>
