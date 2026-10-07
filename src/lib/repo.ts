@@ -20,7 +20,7 @@ import {
   type Profile,
   type PullResult,
 } from "./game/profile";
-import { isUnlocked, maxAscension } from "./game/dungeons";
+import { firstClearCoins, isUnlocked, maxAscension } from "./game/dungeons";
 import { dayPayMult } from "./game/economy";
 import { localWeekSeed, towerHero, type TowerMode } from "./game/tower";
 import { applyForge, type ForgeOp } from "./game/forge";
@@ -53,8 +53,22 @@ export interface RunStartInfo {
   ascension?: number;
   tower?: TowerMode;
 }
+// One-off chest of a first clear / new ascension, same rule as bankRun and bank_run.
+function firstBonus(
+  p: Profile,
+  clear?: { rank: RarityId; asc?: number },
+): number {
+  return clear
+    ? firstClearCoins(
+        clear.rank,
+        (clear.asc ?? 0) > (p.ascensions[clear.rank] ?? 0) ? (clear.asc ?? 0) : 0,
+        p.dungeons[clear.rank] === undefined,
+      )
+    : 0;
+}
 export interface RunBankInfo {
-  coinsAdded: number;
+  coinsAdded: number; // total credited, bonus included
+  bonus?: number; // first-clear chest part of coinsAdded
   verdict: "accepted" | "truncated" | "mismatch" | "local";
   capped: boolean;
 }
@@ -225,8 +239,10 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
           claimed.parts,
         ),
       );
+      const bonus = firstBonus(before, claimed.clear);
       return {
-        coinsAdded: paid,
+        coinsAdded: paid + bonus,
+        bonus,
         verdict: "local",
         capped: paid < claimed.coins,
       };
@@ -321,6 +337,7 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
           : { classId, characterId, rank, ascension },
       ),
     submitRun: async (runId, actions, claimed, keepalive) => {
+      const bonus = firstBonus(store.get(), claimed.clear);
       const r = await api<{
         coinsAdded: number;
         verdict: RunBankInfo["verdict"];
@@ -340,7 +357,7 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       await api<Me>("/api/me")
         .then((me) => store.replace(me.profile))
         .catch(() => undefined);
-      return r;
+      return { ...r, bonus: Math.min(bonus, r.coinsAdded) };
     },
   };
 }
