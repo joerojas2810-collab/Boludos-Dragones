@@ -160,37 +160,7 @@ function fightAction(
   run: Run,
   strat: Strategy,
   boss: boolean,
-  fledHere: boolean,
 ): AutoPick {
-  const { player } = b;
-  if (strat === "smart") {
-    const alive = livingEnemies(b).map((i) => b.enemies[i]);
-    const mine = Math.max(
-      ...alive.map(
-        (e) =>
-          hitChance(player, e, "attack1") *
-          estimateDamage(player, e, "attack1"),
-      ),
-    );
-    const theirs = alive.reduce(
-      (s, e) =>
-        s +
-        hitChance(e, player, "attack1") * estimateDamage(e, player, "attack1"),
-      0,
-    );
-    const ttk = alive.reduce((s, e) => s + e.hp, 0) / Math.max(1, mine);
-    const ttd = player.hp / Math.max(1, theirs);
-    // Flee when clearly losing and hp is low (never the boss: it blocks the floor).
-    if (
-      !boss &&
-      !fledHere &&
-      b.turn >= 2 &&
-      player.hp < player.char.stats.hp * 0.35 &&
-      ttd < ttk * 0.7 &&
-      run.lives >= 1
-    )
-      return { action: "flee" };
-  }
   return autoPolicy(b, { guard: strat === "smart" });
 }
 
@@ -212,7 +182,6 @@ export interface Result {
 
 function play(seed: number, strat: Strategy): Result {
   const lost = new Set<string>();
-  const fled = new Set<number>(); // floors where the smart bot already fled
   const rng = createRng(seed);
   const base = generateCharacter(
     rng,
@@ -311,7 +280,6 @@ function play(seed: number, strat: Strategy): Result {
           run,
           strat,
           node.kind === "boss",
-          fled.has(run.floor),
         );
         b = step(b, pick.action, started.rng, pick.target);
         res.turns++;
@@ -320,7 +288,6 @@ function play(seed: number, strat: Strategy): Result {
       if (b.status === "ongoing") b = { ...b, status: "lost" };
       const before = run;
       run = applyBattleResult(run, b, node);
-      if (b.status === "fled") fled.add(before.floor);
       if (b.status !== "won") lost.add(`${before.floor}${node.kind}`);
       if (TRACE)
         console.log(

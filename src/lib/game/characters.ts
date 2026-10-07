@@ -3,6 +3,7 @@ import type { RarityId } from "./rarity";
 import { createRng, hashSeed, type Rng } from "./rng";
 import type { GearBonus } from "./gear";
 import type { SkillId } from "./skills";
+import type { EnemyFamily } from "./worlds";
 import {
   CATCHPHRASES,
   rollRuleTrait,
@@ -214,8 +215,11 @@ export interface Character {
   weapon?: { element: Element; atkBonus: number };
   // Worn gear bonus, already folded into stats (kept so nivelado can undo it).
   gear?: GearBonus;
-  // Third skill, picked at SKILL_LEVEL (run/sandbox state, never saved in the collection).
+  // Third skill: the hero's pick (saved in the collection; see skills.heroSkill).
   skill?: SkillId;
+  // Enemies only: art family and named-boss art id (public/art/enemies/boss_<id>_*).
+  family?: EnemyFamily;
+  bossId?: string;
 }
 
 const SYLLABLES = [

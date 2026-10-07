@@ -14,17 +14,15 @@ import {
 import {
   actionsLeft,
   attackElementMultiplier,
-  BASE_FLEE_CHANCE,
-  CRIT_MULTIPLIER,
   critMultiplier,
-  DEF_WEIGHT,
+  DEF_K,
+  DEF_CAP,
   DEFEND_FACTOR,
   DOUBLE_ATTACK_FACTOR,
   ELEMENT_SHIFT_EVERY,
   ENRAGE_AFTER_TURN,
   ENRAGE_STEP,
   estimateDamage,
-  fleeChance,
   hitChance,
   MAX_ACTIONS_PER_ROUND,
   REGEN_FRACTION,
@@ -81,8 +79,6 @@ import {
   FIGHT_COINS,
   FIGHT_HEAL,
   FIGHT_XP_MULT,
-  fleeCost,
-  FLEE_COIN_FRACTION,
   GAFE_LOSS_XP,
   LEVEL_UP_HEAL,
   LIFE_LOSS_HEAL,
@@ -136,7 +132,9 @@ export const STAT_NAME: Record<keyof Stats, string> = {
   crit: "CRIT",
   dodge: "ESQ",
   accuracy: "Precisión",
-  flee: "Huida",
+  critDmg: "Daño crítico",
+  regen: "Regeneración",
+  lifesteal: "Vampirismo",
 };
 const FRACTION_STATS: readonly (keyof Stats)[] = ["hp", "atk", "def", "speed"];
 
@@ -276,7 +274,7 @@ export function passiveTip(c: Combatant, foe?: Combatant, you = true): Tip {
       const mult = critMultiplier(c);
       const crit = c.char.stats.crit;
       lines.push(
-        `${s("Tus", "Sus")} críticos hacen x${CLASS_PASSIVE_CRIT_MULT.toFixed(1)} de daño (las otras clases x${CRIT_MULTIPLIER.toFixed(1)}).`,
+        `${s("Tus", "Sus")} críticos hacen x${CLASS_PASSIVE_CRIT_MULT.toFixed(1)} de daño (las otras clases x1.5).`,
       );
       if (c.perks?.critDamage)
         lines.push(
@@ -316,7 +314,6 @@ const MOD_ORDER: (keyof TraitMods)[] = [
   "crit",
   "dodge",
   "accuracy",
-  "flee",
 ];
 const MOD_LABEL_LOWER: Record<keyof TraitMods, string> = {
   hp: "vida",
@@ -326,7 +323,6 @@ const MOD_LABEL_LOWER: Record<keyof TraitMods, string> = {
   crit: "crítico",
   dodge: "esquive",
   accuracy: "precisión",
-  flee: "huida",
 };
 
 export function traitTip(id: TraitId, owner?: Character): Tip {
@@ -432,14 +428,13 @@ export function statTip(
         (you
           ? "Fuerza de tus golpes"
           : `Fuerza de los golpes de ${c.char.name}`) +
-          `. Daño = ATQ × poder del ataque × elemento − DEF rival × ${DEF_WEIGHT}.`,
+          `. Daño se reduce por la DEF rival (como un porcentaje).`,
       );
       if (foe) {
         const a = cls.attack1;
         const em = attackElementMultiplier(c, foe);
-        const net = st.atk * a.power * em - foe.char.stats.def * DEF_WEIGHT;
         lines.push(
-          `Ahora, ${a.name}: ${n1(st.atk)} × ${n1(a.power)} × ${em.toFixed(2)} (elemento) − ${n1(foe.char.stats.def)} × ${DEF_WEIGHT} (DEF de ${foe.char.name}) = ${n1(net)}.`,
+          `Ahora, ${a.name}: ${n1(st.atk)} × ${n1(a.power)} × ${em.toFixed(2)} (elemento) reducido por DEF de ${foe.char.name}.`,
           `Con defensa, reliquias y pasivas: ~${estimateDamage(c, foe, "attack1")} por golpe (sin crítico).`,
         );
       } else
@@ -450,7 +445,7 @@ export function statTip(
     }
     case "def": {
       lines.push(
-        `Cada golpe recibido baja DEF × ${DEF_WEIGHT} = ${n1(st.def * DEF_WEIGHT)} de daño (mínimo 1 por golpe).`,
+        `La DEF reduce el daño recibido como un porcentaje: ${pct(st.def / (st.def + DEF_K * 10))} (contra ATQ 10; aumenta contra ATQ mayor) hasta ${pct(DEF_CAP)} como máximo.`,
       );
       if (foe)
         lines.push(
@@ -519,19 +514,12 @@ export function statTip(
           `Ahora, ${a.attack1.name} de ${foeName}: ${pct(hitChance(foe, c, "attack1"))} de acierto; ${a.attack2.name}: ${pct(hitChance(foe, c, "attack2"))}.`,
         );
       }
-      lines.push("Además suma a la probabilidad de huir.");
       break;
     }
     case "accuracy": {
       lines.push(
         `Se suma a la precisión de todos los ataques (${st.accuracy >= 0 ? "+" : "−"}${pct(Math.abs(st.accuracy))} ahora).`,
         `${cls.attack1.name}: ${pct(cls.attack1.accuracy)} base → ${pct(cls.attack1.accuracy + st.accuracy)} antes de restar el esquive rival.`,
-      );
-      break;
-    }
-    case "flee": {
-      lines.push(
-        `Suma a la probabilidad de huir: ${pct(BASE_FLEE_CHANCE)} base + ESQ ${pct(st.dodge)} + Huida ${pct(st.flee)} = ${pct(fleeChance(c))}.`,
       );
       break;
     }
@@ -693,22 +681,6 @@ export function defendTip(b: Battle): Tip {
     lines,
     source: "Acción de combate",
   };
-}
-
-export function fleeTip(b: Battle, coinCost?: number): Tip {
-  const st = b.player.char.stats;
-  const lines = [
-    `Probabilidad: ${pct(BASE_FLEE_CHANCE)} base + ${pct(st.dodge)} de ESQ + ${pct(st.flee)} de huida = ${pct(fleeChance(b.player))}.`,
-    "Si lo logras, la pelea termina y conservas tu vida actual.",
-    "Si fallas, gastas la acción y los rivales siguen atacando.",
-  ];
-  if (coinCost !== undefined)
-    lines.push(
-      coinCost > 0
-        ? `En la run, huir con éxito cuesta ${plural(coinCost, "moneda", "monedas")} (${pct(FLEE_COIN_FRACTION)} de las que tienes, mínimo 1). Luego puedes elegir otra puerta.`
-        : "Ahora no tienes monedas: huir no cuesta nada.",
-    );
-  return { title: "Huir", kind: "info", lines, source: "Acción de combate" };
 }
 
 // Tip for an announced action of enemy `idx` (an index into Battle.enemies).
@@ -1030,7 +1002,7 @@ export function relicTip(
 
 function applyRelicStatsSolo(stats: Stats, r: Relic): Stats {
   const m = r.mods ?? {};
-  const f = (k: keyof Stats) => 1 + (m[k] ?? 0);
+  const f = (k: keyof typeof m) => 1 + (m[k] ?? 0);
   return {
     ...stats,
     hp: Math.round(stats.hp * f("hp")),
@@ -1040,7 +1012,9 @@ function applyRelicStatsSolo(stats: Stats, r: Relic): Stats {
     crit: Math.min(0.6, stats.crit + (m.crit ?? 0)),
     dodge: Math.min(0.6, stats.dodge + (m.dodge ?? 0)),
     accuracy: stats.accuracy + (m.accuracy ?? 0),
-    flee: stats.flee + (m.flee ?? 0),
+    critDmg: stats.critDmg,
+    regen: stats.regen,
+    lifesteal: stats.lifesteal,
   };
 }
 
@@ -1140,7 +1114,6 @@ export function coinsTip(run: Run): Tip {
     lines: [
       "Se ganan al vencer peleas y abrir cofres.",
       "Se gastan en el mercader y en algunos eventos.",
-      `Huir de una pelea cuesta ${pct(FLEE_COIN_FRACTION)} de las que tengas (mínimo 1): ahora ${fleeCost(run)}.`,
     ],
     source: "Se pierden si la run termina",
   };
@@ -1239,7 +1212,7 @@ export function doorTip(kind: DoorKind, run: Run): Tip {
           ? "Rival más fuerte que en la pelea fácil."
           : "Rival más suave que en la pelea difícil.",
       `Premio al ganar: ${r.coins} monedas y ${r.xp} XP, y te cura ${pct(r.healFrac)} de tu vida máxima.`,
-      `Si caes pierdes 1 vida (te quedan ${run.lives}). ${fleeCost(run) > 0 ? `Si huyes pagas ${plural(fleeCost(run), "moneda", "monedas")}` : "Si huyes no pagas nada (no tienes monedas)"} y puedes elegir otra puerta.`,
+      `Si caes pierdes 1 vida (te quedan ${run.lives}).`,
     );
     if (run.rank && run.lootEnabled)
       lines.push(

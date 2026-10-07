@@ -44,7 +44,6 @@ import {
   eventCost,
   enemyFor,
   FIGHT_COINS,
-  fleeCost,
   getFloor,
   isBossFloor,
   leaveNode,
@@ -76,7 +75,7 @@ import { worldOf } from "./worlds";
 const hero = () => generateCharacter(createRng(1), "caballero");
 const fresh = (seed = 42): Run => createRun(seed, hero());
 // Opens door 0 (a fight, see fightRun), starts it and fakes the final status.
-const withStatus = (run: Run, status: "won" | "lost" | "fled", hp = 10) => {
+const withStatus = (run: Run, status: "won" | "lost", hp = 10) => {
   const opened = chooseDoor(run, 0);
   if (opened?.node.type !== "fight") throw new Error("expected fight door");
   const started = startFight(opened.run);
@@ -252,16 +251,6 @@ describe("run state", () => {
     const f = { ...fightRun(), hp: 5 };
     expect(startFight(chooseDoor(f, 0)!.run)!.battle.player.hp).toBe(5);
   });
-  it("fleeing costs coins but keeps hp and floor", () => {
-    const base = { ...fightRun(), coins: 100 };
-    expect(fleeCost(base)).toBe(30);
-    const { f, battle, node } = withStatus(base, "fled", 33);
-    const r = applyBattleResult(f, battle, node);
-    expect(r.coins).toBe(70);
-    expect(r.hp).toBe(33);
-    expect(r.lives).toBe(START_LIVES);
-    expect(r.floor).toBe(base.floor);
-  });
   it("offers a relic every 3 floors; relics last only for the run", () => {
     let r = fresh();
     const offered: number[] = [];
@@ -404,9 +393,9 @@ describe("node flow (no repeatable rewards, no skipping)", () => {
     const other: FightNode = { ...w.node, battleSeed: w.node.battleSeed + 1 };
     expect(applyBattleResult(w.f, w.battle, other)).toBe(w.f);
   });
-  it("losing or fleeing frees the floor to pick another door; winning clears it", () => {
+  it("losing frees the floor to pick another door; winning clears it", () => {
     const base = fightRun();
-    for (const st of ["lost", "fled"] as const) {
+    for (const st of ["lost"] as const) {
       const { f, battle, node } = withStatus(base, st);
       const r = applyBattleResult(f, battle, node);
       expect(r.node).toBeNull();
@@ -424,10 +413,10 @@ describe("node flow (no repeatable rewards, no skipping)", () => {
   });
 });
 
-describe("retries and fleeing", () => {
+describe("retries", () => {
   it("every fight start bumps attempts and changes the RNG stream", () => {
     const base = fightRun();
-    const first = withStatus(base, "fled");
+    const first = withStatus(base, "lost");
     expect(first.f.attempts).toBe(1);
     const after = applyBattleResult(first.f, first.battle, first.node);
     const reopened = chooseDoor(after, 0)!.run;
@@ -439,13 +428,6 @@ describe("retries and fleeing", () => {
     const replay = startFight(chooseDoor(after, 0)!.run)!;
     expect(replay.battle.queue).toEqual(again.battle.queue);
     expect(replay.rng.next()).toBe(startFight(reopened)!.rng.next());
-  });
-  it("fleeing always costs at least 1 coin when you have any", () => {
-    const at = (coins: number) => fleeCost({ ...fresh(), coins });
-    expect(at(0)).toBe(0);
-    expect(at(1)).toBe(1);
-    expect(at(2)).toBe(1);
-    expect(at(100)).toBe(30);
   });
 });
 

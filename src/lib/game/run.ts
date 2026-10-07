@@ -1179,13 +1179,6 @@ function resolveBattle(run: Run, battle: Battle, node: FightNode): Run {
     const withParts = drop(dropped, source, 1 + run.attempts);
     return heal(withParts, maxHp(withParts) * healFrac);
   }
-  if (battle.status === "fled")
-    return {
-      ...run,
-      coins: run.coins - fleeCost(run),
-      hp: battle.player.hp,
-      node: null,
-    };
   if (battle.status === "lost") {
     const lives = run.lives - 1;
     let r: Run =

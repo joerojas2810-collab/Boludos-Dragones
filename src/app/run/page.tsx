@@ -97,7 +97,6 @@ import {
   topFloor,
   createRun,
   eventCost,
-  fleeCost,
   getFloor,
   itemUseless,
   maxHp,
@@ -829,7 +828,6 @@ function RunScreen() {
             b={b}
             target={targeting.target}
             onAct={(a, t) => act(screen, a, t)}
-            fleeCost={fleeCost(run)}
             auto={{
               reason: autoBlockReason(b),
               onAuto: () => quick(screen),
@@ -1533,8 +1531,6 @@ function fightSummary(
     const got = dropsText(after.lastDrops);
     return `Victoria: +${after.coins - before.coins} monedas${lv > 0 ? ` · ¡sube a nivel ${after.hero.level}!` : "."}${got ? ` Botín: ${got}.` : ""}`;
   }
-  if (status === "fled")
-    return `Huiste. Pagas ${before.coins - after.coins} monedas.`;
   return after.status === "over"
     ? "Derrota: perdiste tu última vida."
     : `Derrota: pierdes una vida (te quedan ${after.lives}).`;

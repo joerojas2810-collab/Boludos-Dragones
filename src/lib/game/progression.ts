@@ -28,7 +28,9 @@ const STAT_LABEL: Record<keyof Stats, string> = {
   crit: "crítico",
   dodge: "esquive",
   accuracy: "precisión",
-  flee: "huida",
+  critDmg: "daño crítico",
+  regen: "regeneración",
+  lifesteal: "vampirismo",
 };
 
 export interface Upgrade {
@@ -48,7 +50,6 @@ export const UPGRADES = {
   esquive: tier1("Pies ligeros", { k: "dodge", v: 0.05 }),
   precision: tier1("Pulso firme", { k: "accuracy", v: 0.05 }),
   velocidad: tier1("Sangre fría", { k: "speed", v: 0.1 }),
-  huida: tier1("Buen corredor", { k: "flee", v: 0.1 }),
   furia: tier1("Furia", { k: "atk", v: 0.18 }, { k: "def", v: -0.06 }),
   coloso: tier1("Coloso", { k: "hp", v: 0.2 }, { k: "speed", v: -0.05 }),
   // Tier 2: only offered from TIER2_LEVEL on.
@@ -64,7 +65,6 @@ export const UPGRADES = {
     "Danza de sombras",
     { k: "dodge", v: 0.1 },
     { k: "speed", v: 0.2 },
-    { k: "flee", v: 0.05 },
   ),
   hierro: tier2(
     "Voluntad de hierro",

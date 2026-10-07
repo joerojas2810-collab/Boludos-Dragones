@@ -70,7 +70,7 @@ export const runActionSchema = z.discriminatedUnion("t", [
   z.strictObject({ t: z.literal("door"), i: z.number().int().min(0).max(2) }),
   z.strictObject({
     t: z.literal("act"),
-    a: z.enum(["attack1", "attack2", "attack3", "defend", "flee"]),
+    a: z.enum(["attack1", "attack2", "attack3", "defend"]),
     target: z.number().int().min(0).max(2).optional(),
   }),
   z.strictObject({ t: z.literal("auto") }),

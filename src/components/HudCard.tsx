@@ -81,8 +81,6 @@ export function HudCard({
   ];
   if (!compact && s.accuracy)
     cells.push({ stat: "accuracy", label: "PRE", value: pct(s.accuracy) });
-  if (!compact && s.flee)
-    cells.push({ stat: "flee", label: "HUI", value: pct(s.flee) });
   const [open, setOpen] = useState(false);
   const ctx = { foe, you, inRun };
   const weapon = weaponTip(c);

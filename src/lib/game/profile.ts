@@ -545,8 +545,10 @@ const STAT_KEYS: (keyof Stats)[] = [
   "crit",
   "dodge",
   "accuracy",
-  "flee",
   "speed",
+  "critDmg",
+  "regen",
+  "lifesteal",
 ];
 
 function parseStats(v: unknown): Stats | null {

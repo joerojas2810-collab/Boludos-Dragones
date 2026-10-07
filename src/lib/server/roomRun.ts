@@ -173,7 +173,7 @@ export function replayFloor(
     if (fin) s = fin;
     settlePicks();
     const outcome: FightOutcome =
-      status === "won" ? "won" : status === "fled" ? "fled" : "lost";
+      status === "won" ? "won" : "lost";
     return {
       ok: true,
       outcome,

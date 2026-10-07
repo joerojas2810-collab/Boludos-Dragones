@@ -111,26 +111,6 @@ describe("progression", () => {
 });
 
 describe("combat edge cases", () => {
-  it("fleeing after the enemy already struck keeps that damage", () => {
-    for (let seed = 1; seed < 400; seed++) {
-      const rng = createRng(seed);
-      const b0 = startBattle(
-        generateCharacter(rng, "caballero"),
-        generateCharacter(rng, "picaro"),
-        rng,
-      );
-      const b = withRound(b0, true, ["attack1"]);
-      const next = step(b, "flee", rng);
-      if (
-        next.status === "fled" &&
-        next.events.some((e) => e.actor === "enemy" && e.kind !== "miss")
-      ) {
-        expect(next.player.hp).toBeLessThan(b.player.hp);
-        return;
-      }
-    }
-    throw new Error("no successful flee after an enemy hit found");
-  });
   it("enrages the enemy in long fights so they cannot stall forever", () => {
     const rng = createRng(11);
     const b0 = startBattle(

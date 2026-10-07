@@ -53,7 +53,6 @@ const STAT_ORDER: (keyof Stats)[] = [
   "crit",
   "dodge",
   "accuracy",
-  "flee",
 ];
 const FRACTION = ["hp", "atk", "def", "speed"];
 const fmt = (k: keyof Stats, v: number) =>

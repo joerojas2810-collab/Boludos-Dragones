@@ -14,7 +14,6 @@ import type { RunAction, ReplayState } from "@/lib/game/replay";
 import {
   buyItem,
   eventCost,
-  fleeCost,
   itemUseless,
   resolveEvent,
   type EventChange,
@@ -252,7 +251,6 @@ export function FloorPlayer({ client, floor, door }: Props) {
           b={b}
           target={targeting.target}
           onAct={act}
-          fleeCost={fleeCost(run)}
           auto={
             node.kind === "easy"
               ? {

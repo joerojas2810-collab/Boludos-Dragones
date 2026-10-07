@@ -68,11 +68,11 @@ describe("rarity", () => {
       );
   });
   it("scales stats by rarity x stars", () => {
-    expect(itemMult("s", 5)).toBeCloseTo(2.7, 10);
+    expect(itemMult("s", 5)).toBeCloseTo(3.525, 10);
     const s = CLASSES.mago.stats;
     const e = scaleStats(s, "s", 5);
-    expect(e.hp).toBe(Math.round(85 * 2.7));
-    expect(e.atk).toBeCloseTo(s.atk * 2.7, 1);
+    expect(e.hp).toBe(Math.round(85 * 3.525));
+    expect(e.atk).toBeCloseTo(s.atk * 3.525, 1);
     expect(e.crit).toBe(s.crit);
     expect(e.speed).toBe(s.speed);
     expect(scaleStats(s, "f", 0)).toEqual(s);
@@ -80,28 +80,25 @@ describe("rarity", () => {
 });
 
 describe("pity", () => {
-  it("guarantees SS at 100 and SSR at 200 and resets", () => {
+  it("only SSR has pity (at 250) and it resets", () => {
     const rng = createRng(5);
-    expect(rollRarity(rng, PITY_THRESHOLD - 1).pityTriggered).toBe(false);
-    const g = rollRarity(rng, PITY_THRESHOLD);
-    expect(["ss", "ssr"]).toContain(g.rarity);
+    // the legacy SS counter no longer guarantees anything
+    expect(rollRarity(rng, PITY_THRESHOLD).pityTriggered).toBe(false);
+    expect(rollRarity(rng, 0, PITY_SSR_THRESHOLD - 1).pityTriggered).toBe(
+      false,
+    );
     expect(rollRarity(rng, 0, PITY_SSR_THRESHOLD)).toEqual({
       rarity: "ssr",
       pityTriggered: true,
     });
     let p = rich();
-    let sinceSs = 0;
     let sinceSsr = 0;
     for (let i = 0; i < 3000; i++) {
       const r = pullCharacter(p, rng)!;
       p = r.profile;
       const res = r.results[0];
-      const top = res.rarity === "ss" || res.rarity === "ssr";
-      sinceSs = top ? 0 : sinceSs + 1;
       sinceSsr = res.rarity === "ssr" ? 0 : sinceSsr + 1;
-      expect(sinceSs).toBeLessThanOrEqual(PITY_THRESHOLD);
       expect(sinceSsr).toBeLessThanOrEqual(PITY_SSR_THRESHOLD);
-      expect(p.pity.character).toBe(sinceSs);
       expect(p.pitySsr.character).toBe(sinceSsr);
     }
   });
@@ -437,13 +434,13 @@ describe("weapons", () => {
   });
   it("atkBonus = round(base x rarity x stars)", () => {
     expect(weaponAtk("f", 0)).toBe(WEAPON_BASE_ATK);
-    expect(weaponAtk("s", 5)).toBe(10.8);
+    expect(weaponAtk("s", 5)).toBeCloseTo(14.1, 10);
     const w = generateWeapon(createRng(1), "c");
     expect(w.name).toMatch(
       new RegExp(`^${WEAPON_TYPE_DATA[w.type].label} de `),
     );
     expect(w.atkBonus).toBe(weaponAtk("c", 0, w.type));
-    expect(weaponAtk("c", 0, "espada")).toBe(5.2);
+    expect(weaponAtk("c", 0, "espada")).toBe(6);
     expect(weaponAtk("f", 0, "hacha")).toBe(4.8);
   });
   it("key space is 14 types x 5 elements x 9 ranks = 630", () => {

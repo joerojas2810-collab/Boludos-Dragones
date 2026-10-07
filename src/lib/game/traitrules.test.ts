@@ -12,7 +12,14 @@ import {
 } from "./combat";
 import { createRng } from "./rng";
 import { RELIC_CAPS } from "./relics";
-import { traitTotals, TRAITS, type TraitId } from "./traits";
+import {
+  RULE_TRAIT_IDS,
+  rollRuleTrait,
+  traitPlan,
+  traitTotals,
+  TRAITS,
+  type TraitId,
+} from "./traits";
 
 function hero(
   traits: TraitId[],
@@ -31,7 +38,9 @@ function hero(
       crit: 0,
       dodge: 0,
       accuracy: 1,
-      flee: 0,
+      critDmg: 1.5,
+      regen: 0,
+      lifesteal: 0,
       speed: 10,
       ...stats,
     },
@@ -48,54 +57,48 @@ const open = (p: Character, e: Character, opts = {}): Battle =>
   startBattle(p, e, createRng(3), opts);
 
 describe("trait rules: generation", () => {
-  it("keeps the main RNG stream and classic seeds unchanged", () => {
-    const gold: [number, string, string, string, number][] = [
-      [1, "Zumir", "agua", "glotón+fragil", 75],
-      [2, "Rengor", "viento", "temerario", 68],
-      [4, "Gorbodra", "viento", "temerario+cobarde", 86],
-      [6, "Kaka", "viento", "tenaz", 80],
-    ];
-    for (const [seed, name, el, traits, hp] of gold) {
-      const c = generateCharacter(createRng(seed));
-      expect([c.name, c.element, c.traits.join("+"), c.stats.hp]).toEqual([
-        name,
-        el,
-        traits,
-        hp,
-      ]);
-    }
-    // a character that gained a rule trait still has the same name/element
-    const r1 = createRng(5);
-    const a = generateCharacter(r1);
-    const b = generateCharacter(r1);
-    const r2 = createRng(5);
-    expect(generateCharacter(r2).name).toBe(a.name);
-    expect(generateCharacter(r2).name).toBe(b.name);
+  it("is deterministic per seed and keeps name/element independent of the rule trait", () => {
+    const a = generateCharacter(createRng(1));
+    expect(generateCharacter(createRng(1))).toEqual(a);
+    // same stream: a rank-S roll only adds a rule trait, same name/element
+    const lo = generateCharacter(createRng(5), "mago", "d");
+    const hi = generateCharacter(createRng(5), "mago", "s");
+    expect([hi.name, hi.element]).toEqual([lo.name, lo.element]);
   });
 
-  it("Espinas never rolls on a Caballero; others get rule traits ~20%", () => {
+  it("traitPlan by rank: F-D 1 classic, C-A 2, S-SSR 1 classic + rule", () => {
+    expect(traitPlan("f")).toEqual({ classic: 1, rule: false });
+    expect(traitPlan("d")).toEqual({ classic: 1, rule: false });
+    expect(traitPlan("c")).toEqual({ classic: 2, rule: false });
+    expect(traitPlan("a")).toEqual({ classic: 2, rule: false });
+    expect(traitPlan("s")).toEqual({ classic: 1, rule: true });
+    expect(traitPlan("ssr")).toEqual({ classic: 1, rule: true });
+  });
+
+  it("generateCharacter by rank; Espinas never on a Caballero", () => {
     const rng = createRng(77);
-    let rule = 0;
-    for (let i = 0; i < 2000; i++) {
-      const c = generateCharacter(rng, "caballero");
-      expect(c.traits).not.toContain("espinas");
-      expect(c.traits.length).toBeLessThanOrEqual(2);
-      expect(new Set(c.traits).size).toBe(c.traits.length);
+    const isRule = (t: string) => RULE_TRAIT_IDS.includes(t as never);
+    for (let i = 0; i < 500; i++) {
+      for (const [rank, n, rule] of [
+        ["f", 1, 0],
+        ["c", 2, 0],
+        ["s", 2, 1],
+        ["ssr", 2, 1],
+      ] as const) {
+        const c = generateCharacter(rng, "caballero", rank);
+        expect(c.traits).not.toContain("espinas");
+        expect(c.traits).toHaveLength(n);
+        expect(c.traits.filter(isRule)).toHaveLength(rule);
+        expect(new Set(c.traits).size).toBe(c.traits.length);
+      }
     }
     let thorns = 0;
-    for (let i = 0; i < 2000; i++) {
-      const c = generateCharacter(rng, "mago");
-      if (traitTotals(c.traits).thorns > 0) thorns++;
-      if (
-        c.traits.some((t) =>
-          ["filoAzar", "ultimoAliento", "espinas", "apostador"].includes(t),
-        )
-      )
-        rule++;
-    }
+    for (let i = 0; i < 500; i++)
+      if (traitTotals(generateCharacter(rng, "mago", "s").traits).thorns > 0)
+        thorns++;
     expect(thorns).toBeGreaterThan(0);
-    expect(rule / 2000).toBeGreaterThan(0.15);
-    expect(rule / 2000).toBeLessThan(0.25);
+    for (let i = 0; i < 100; i++)
+      expect(isRule(rollRuleTrait(rng, "caballero"))).toBe(true);
   });
 });
 

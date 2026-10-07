@@ -31,7 +31,9 @@ const unit = (
       crit: 0,
       dodge: 0,
       accuracy: 0.5,
-      flee: 0,
+      critDmg: 1.5,
+      regen: 0,
+      lifesteal: 0,
       speed: 10,
       ...stats,
     },
@@ -121,7 +123,7 @@ describe("multi-action rounds", () => {
     expect(b.turn).toBe(1);
     expect(actionsLeft(b)).toBe(1);
     expect(b.player.cooldown).toBe(3);
-    expect(b.log.some((l) => l.includes("se bendice"))).toBe(false);
+    expect(b.log.some((l) => l.includes("se recupera"))).toBe(false);
     // attack2 is locked for the second action
     expect(step(b, "attack2", never)).toBe(b);
     const hpBefore = b.player.hp;
@@ -129,7 +131,7 @@ describe("multi-action rounds", () => {
     expect(b.turn).toBe(2);
     expect(b.player.cooldown).toBe(2);
     expect(b.player.hp).toBeGreaterThan(hpBefore);
-    expect(b.log.filter((l) => l.includes("se bendice"))).toHaveLength(1);
+    expect(b.log.filter((l) => l.includes("se recupera"))).toHaveLength(1);
     expect(b.log.filter((l) => l.includes("— Ronda 2 —"))).toHaveLength(1);
   });
 
@@ -157,23 +159,7 @@ describe("multi-action rounds", () => {
     expect(s2.turn).toBe(2);
   });
 
-  it("fleeing mid-round keeps the damage already taken", () => {
-    const b0 = withRound(fastClerigo(), true, ["attack1"], 2); // E P P
-    const s1 = step(b0, "attack1", always);
-    expect(s1.player.hp).toBeLessThan(b0.player.hp);
-    const s2 = step(s1, "flee", always);
-    expect(s2.status).toBe("fled");
-    expect(s2.player.hp).toBe(s1.player.hp);
-    expect(s2.queue).toEqual([]);
-  });
 
-  it("a failed flee still uses up an action", () => {
-    const b0 = withRound(fastClerigo(), false, ["attack1"], 2);
-    const s = step(b0, "flee", never);
-    expect(s.status).toBe("ongoing");
-    expect(actionsLeft(s)).toBe(1);
-    expect(s.log.some((l) => l.includes("no logra huir"))).toBe(true);
-  });
 
   it("dying mid-round ends the round at once", () => {
     const b0 = startBattle(

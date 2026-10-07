@@ -10,7 +10,6 @@ export interface RelicMods {
   crit?: number;
   dodge?: number;
   accuracy?: number;
-  flee?: number;
 }
 
 export type RelicRarity = "comun" | "rara" | "legendaria";
@@ -80,9 +79,9 @@ export const RELICS = {
   },
   botas: {
     name: "Botas aladas",
-    description: "+15% velocidad, +10 huida",
+    description: "+15% velocidad",
     rarity: "comun",
-    mods: { speed: 0.15, flee: 0.1 },
+    mods: { speed: 0.15 },
   },
   piedra: {
     name: "Piedra de afilar",
@@ -325,7 +324,6 @@ export const RELIC_CAPS = {
   statFraction: 1.2, // hp/atk/def
   speedFraction: 0.5,
   accuracy: 0.3,
-  flee: 0.3,
   lifesteal: 0.4,
   critDamage: 1.2,
   regen: 0.1,
@@ -404,6 +402,8 @@ export function applyRelicStats(stats: Stats, ids: readonly RelicId[]): Stats {
     crit: clamp(stats.crit + m("crit")),
     dodge: clamp(stats.dodge + m("dodge")),
     accuracy: stats.accuracy + capped(m("accuracy"), RELIC_CAPS.accuracy),
-    flee: stats.flee + capped(m("flee"), RELIC_CAPS.flee),
+    critDmg: stats.critDmg,
+    regen: stats.regen,
+    lifesteal: stats.lifesteal,
   };
 }

@@ -95,7 +95,7 @@ export function replayFloor(
     const a = actions[i];
     if (a.t === "fin" && s.fight) {
       const st = s.fight.battle.status;
-      outcome = st === "won" ? "won" : st === "fled" ? "fled" : "lost";
+      outcome = st === "won" ? "won" : "lost";
     }
     const n = applyLogged(s, a, boost);
     if (!n) return result(i);

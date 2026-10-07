@@ -7,7 +7,6 @@ import { CLASSES } from "@/lib/game/characters";
 import {
   actionsLeft,
   estimateDamage,
-  fleeChance,
   hitChance,
   livingEnemies,
   skillOf,
@@ -22,7 +21,6 @@ import {
   attackTip,
   autoTip,
   defendTip,
-  fleeTip,
   skillTip,
   type Tip,
 } from "@/lib/game/explain";
@@ -32,7 +30,6 @@ type Props = {
   b: Battle;
   target: number; // index among the LIVING enemies (what step() expects)
   onAct: (a: Action, target: number) => void;
-  fleeCost?: number; // coins lost on a successful flee (runs)
   // Quick resolve (easy fights in runs): why it is blocked, or null if allowed.
   auto?: { reason: string | null; onAuto: () => void };
   side?: boolean; // vertical list in a side column (desktop)
@@ -99,7 +96,6 @@ export function ActionPanel({
   b,
   target,
   onAct,
-  fleeCost,
   auto,
   side,
   float,
@@ -234,20 +230,6 @@ export function ActionPanel({
             sub={perfect ? "¡Guardia perfecta!" : "Recibes la mitad de daño"}
             hot={perfect}
           />
-          <ActionButton
-            left={float}
-            tip={fleeTip(b, fleeCost)}
-            onClick={() => onAct("flee", target)}
-            icon={iconFor("skill", "flee")}
-            title="Huir"
-            sub={`${pct(fleeChance(b.player))} de éxito${
-              fleeCost === undefined
-                ? ""
-                : fleeCost > 0
-                  ? ` · cuesta ${fleeCost}`
-                  : " · sin costo"
-            }`}
-          />
           {auto && (
             <ActionButton
               left={float}
@@ -266,9 +248,7 @@ export function ActionPanel({
             Resultado:{" "}
             {b.status === "won"
               ? "victoria"
-              : b.status === "lost"
-                ? "derrota"
-                : "huiste"}
+              : "derrota"}
           </div>
           {children}
         </div>

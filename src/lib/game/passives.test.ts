@@ -33,7 +33,9 @@ function hero(
       crit: 0,
       dodge: 0,
       accuracy: 0,
-      flee: 0,
+      critDmg: c.stats.critDmg,
+      regen: 0,
+      lifesteal: 0,
       speed: 10,
       ...over,
     },
@@ -116,7 +118,7 @@ describe("class passives", () => {
     b = withRound({ ...b, player: comb(c, 100) }, false, ["defend"]);
     b = step(b, "defend", createRng(5));
     expect(b.player.hp).toBe(100 + Math.round(200 * CLASS_PASSIVE_REGEN));
-    expect(b.log.some((l) => l.includes("se bendice y recupera 3"))).toBe(true);
+    expect(b.log.some((l) => l.includes("se recupera 3"))).toBe(true);
   });
 
   it("Bendición never exceeds max hp", () => {
@@ -128,7 +130,7 @@ describe("class passives", () => {
     expect(b.player.hp).toBe(200);
     b = step(withRound(b, false, ["defend"]), "defend", createRng(5));
     expect(b.player.hp).toBe(200);
-    expect(b.log.filter((l) => l.includes("se bendice")).length).toBe(1);
+    expect(b.log.filter((l) => l.includes("se recupera")).length).toBe(1);
   });
 
   it("Bendición does not trigger when the clérigo dies or the fight ends", () => {
@@ -142,7 +144,7 @@ describe("class passives", () => {
     b = step(b, "defend", rng);
     expect(b.status).toBe("lost");
     expect(b.player.hp).toBe(0);
-    expect(b.log.some((l) => l.includes("se bendice"))).toBe(false);
+    expect(b.log.some((l) => l.includes("se recupera"))).toBe(false);
   });
 
   it("no passive-relevant situation: other classes are unchanged", () => {

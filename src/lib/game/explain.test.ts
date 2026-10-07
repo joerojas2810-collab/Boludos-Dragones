@@ -13,7 +13,6 @@ import {
   doorTip,
   elementTip,
   fightReward,
-  fleeTip,
   intentTip,
   modTip,
   passiveTip,
@@ -28,7 +27,6 @@ import {
   chooseDoor,
   doorsFor,
   createRun,
-  fleeCost,
   type FightNode,
 } from "./run";
 import { RELICS } from "./relics";
@@ -53,7 +51,9 @@ function hero(
       crit: 0.29,
       dodge: 0.05,
       accuracy: 0,
-      flee: 0,
+      critDmg: c.stats.critDmg,
+      regen: 0,
+      lifesteal: 0,
       speed: 12,
       ...over,
     },
@@ -113,8 +113,8 @@ describe("explain: stats", () => {
     expect(t).toContain(`~${estimateDamage(me, foe, "attack1")} por golpe`);
   });
 
-  it("DEF says DEF x 0.5", () => {
-    expect(text(statTip("def", me, { foe }))).toContain("DEF × 0.5 = 4");
+  it("DEF is a percentage reduction vs the attacker", () => {
+    expect(text(statTip("def", me, { foe }))).toContain("44.4%");
   });
 
   it("CRIT gives chance and multiplier", () => {
@@ -148,15 +148,13 @@ describe("explain: elements, traits, actions", () => {
     ).toContain("No disponible");
   });
 
-  it("flee and intents use real numbers", () => {
+  it("intents use real numbers", () => {
     const p = hero("caballero", "agua", { dodge: 0.05 });
     const b = withRound(
       startBattle(p, hero("mago", "fuego"), createRng(2)),
       false,
       ["attack1", "defend"],
     );
-    expect(text(fleeTip(b, 7))).toContain("45%");
-    expect(text(fleeTip(b, 7))).toContain("7 monedas");
     expect(text(intentTip("defend", b))).toContain("mitad");
     expect(text(intentTip("attack1", b))).toContain(
       `~${estimateDamage(b.enemies[0], b.player, "attack1")}`,
@@ -195,10 +193,6 @@ describe("explain: run", () => {
     expect(won.coins - run.coins).toBe(fightReward(node.kind, run).coins);
     expect(text(doorTip(node.kind, run))).toContain(
       `${fightReward(node.kind, run).coins} monedas`,
-    );
-    const rich = { ...run, coins: 50 };
-    expect(text(doorTip(node.kind, rich))).toContain(
-      `pagas ${fleeCost(rich)} monedas`,
     );
   });
 });
