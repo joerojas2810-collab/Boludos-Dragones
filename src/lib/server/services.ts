@@ -13,6 +13,7 @@ import {
   type PullResult,
   type Profile,
 } from "../game/profile";
+import { isTowerMode, towerHero, type TowerMode } from "../game/tower";
 import {
   isDungeonRank,
   isUnlocked,
@@ -242,6 +243,33 @@ export interface RunStartBody {
   characterId: string | null;
   rank?: RarityId;
   ascension?: number;
+  tower?: TowerMode; // weekly tower (no dungeon): the week's seed, no payout
+}
+
+// Opens the run row; a stale open run (page reloaded mid-run) is closed unpaid first.
+async function openRunRow(
+  d: Deps,
+  playerId: string,
+  args: Record<string, unknown>,
+): Promise<{ run_id: string }> {
+  try {
+    return await call(d.rpc, "start_run", args);
+  } catch (e) {
+    if (!(e instanceof RpcError && e.message === "run_open")) throw e;
+    const stale = await d.openRunId(playerId);
+    if (!stale) throw e;
+    await call(d.rpc, "bank_run", {
+      p_player: playerId,
+      p_run_id: stale,
+      p_coins: 0,
+      p_max_floor: 0,
+      p_log: null,
+      p_verdict: "rejected", // SQL verdict that pays nothing: closes the stale run unpaid
+      p_reason: "replaced",
+    });
+    await audit(d.rpc, playerId, "run_replaced", { stale });
+    return await call(d.rpc, "start_run", args);
+  }
 }
 
 export async function startRunService(
@@ -252,6 +280,45 @@ export async function startRunService(
   await limit(d.rpc, `runstart:${playerId}`, 10, 60);
   await limit(d.rpc, `runstarth:${playerId}`, 20, 3600);
   const me = await loadMe(d.rpc, playerId);
+  if (body.tower) {
+    // Weekly tower: everybody gets the week's seed (first request of the week fixes it).
+    const ws = await call<{ seed: number }>(d.rpc, "get_weekly_seed", {
+      p_seed: d.randomSeed(),
+    });
+    const seed = Number(ws.seed);
+    const hero = towerHero(
+      me.profile,
+      body.tower,
+      body.characterId,
+      body.classId,
+      seed,
+      playerId,
+    );
+    if (!hero)
+      throw new ApiError(
+        404,
+        "character_not_found",
+        "Personaje no encontrado.",
+      );
+    try {
+      const r = await openRunRow(d, playerId, {
+        p_player: playerId,
+        p_character_id: body.characterId,
+        p_seed: seed,
+        p_hero: { ...hero, engineVersion: ENGINE_VERSION, tower: body.tower },
+      });
+      return {
+        runId: r.run_id,
+        seed,
+        hero,
+        rank: null,
+        tower: body.tower,
+        engineVersion: ENGINE_VERSION,
+      };
+    } catch (e) {
+      return mapRpcError(e);
+    }
+  }
   const rank = body.rank ?? "f";
   if (!isUnlocked(me.profile.dungeons, rank))
     throw new ApiError(
@@ -295,26 +362,7 @@ export async function startRunService(
     },
   };
   try {
-    let r: { run_id: string };
-    try {
-      r = await call(d.rpc, "start_run", args);
-    } catch (e) {
-      if (!(e instanceof RpcError && e.message === "run_open")) throw e;
-      // Stale open run (page reloaded mid-run): close it unpaid, then retry.
-      const stale = await d.openRunId(playerId);
-      if (!stale) throw e;
-      await call(d.rpc, "bank_run", {
-        p_player: playerId,
-        p_run_id: stale,
-        p_coins: 0,
-        p_max_floor: 0,
-        p_log: null,
-        p_verdict: "rejected", // SQL verdict that pays nothing: closes the stale run unpaid
-        p_reason: "replaced",
-      });
-      await audit(d.rpc, playerId, "run_replaced", { stale });
-      r = await call(d.rpc, "start_run", args);
-    }
+    const r = await openRunRow(d, playerId, args);
     return {
       runId: r.run_id,
       seed,
@@ -380,12 +428,15 @@ export async function submitRunService(
     engineVersion: stored = 1,
     dungeon,
     ascension: storedAsc,
+    tower: storedTower,
     ...hero
   } = row.hero as Character & {
     engineVersion?: number;
     dungeon?: RarityId;
     ascension?: number;
+    tower?: string;
   };
+  const tower = isTowerMode(storedTower) ? storedTower : null;
   const ascension = rank0(storedAsc);
   const rank = isDungeonRank(dungeon) ? dungeon : null;
   // Impossibly fast log: close the run unpaid (nothing is credited) and say why.
@@ -444,11 +495,10 @@ export async function submitRunService(
     0,
     RUN_COINS_PER_DAY - (await d.coinsToday(playerId)),
   );
-  const coins = Math.min(
-    rep.run.coins,
-    runCoinCap(floors, clearBonus),
-    dayLeft,
-  );
+  // The tower pays nothing per run (no coins, loot or parts): only the weekly prizes.
+  const coins = tower
+    ? 0
+    : Math.min(rep.run.coins, runCoinCap(floors, clearBonus), dayLeft);
   let verdict: Verdict = "accepted";
   let reason: string | null = null;
   // Keep the action log of every S+ clear so its pace can be reviewed later.
@@ -458,9 +508,7 @@ export async function submitRunService(
     elapsed !== null &&
     elapsed + MIN_ACTION_GRACE_MS < body.actions.length * DOUBT_ACTION_MS_HIGH;
   const keepLog =
-    highRank &&
-    (isVictory(rep.run) || doubtful) &&
-    body.actions.length <= 2000;
+    highRank && (isVictory(rep.run) || doubtful) && body.actions.length <= 2000;
   if (rep.rejectedAt !== null) {
     verdict = "truncated";
     reason = `illegal action at ${rep.rejectedAt}`;
@@ -487,19 +535,26 @@ export async function submitRunService(
       p_verdict: SQL_VERDICT[verdict],
       p_reason: reason,
       // First clear / better clear of the dungeon, as the replay says.
-      p_parts: rep.run.partSecured,
+      p_parts: tower ? {} : rep.run.partSecured,
       p_clear:
         rank && isVictory(rep.run) && rep.rejectedAt === null
           ? { rank, lives: rep.run.lives, asc: ascension }
           : null,
       // Pieces locked in by defeated bosses, as the REPLAY says (never the client).
-      p_loot: rep.run.secured.slice(0, 80).map((p) => ({
+      p_loot: (tower ? [] : rep.run.secured).slice(0, 80).map((p) => ({
         type: p.type,
         element: p.element,
         rarity: p.rarity,
         name: p.name,
       })),
     });
+    // Tower ranking: only a fully verified log counts; the best floor of the week stays.
+    if (tower && verdict === "accepted")
+      await call(d.rpc, "tower_record", {
+        p_player: playerId,
+        p_mode: tower,
+        p_floor: floors,
+      });
     if (doubtful)
       await audit(d.rpc, playerId, "run_slow_pace", {
         runId: body.runId,
@@ -507,7 +562,7 @@ export async function submitRunService(
         n: body.actions.length,
         rank,
       });
-    if (verdict !== "accepted" || r.capped || coins < rep.run.coins)
+    if (verdict !== "accepted" || r.capped || (!tower && coins < rep.run.coins))
       await audit(d.rpc, playerId, "run_" + verdict, {
         runId: body.runId,
         reason,
@@ -549,4 +604,18 @@ export async function doForge(d: Deps, playerId: string, op: ForgeOp) {
   });
   const fresh = await loadMe(d.rpc, playerId);
   return { text: r.text, profile: fresh.profile };
+}
+
+// ---- weekly tower ----
+
+/** Week, boards of both modes, my place and last week's podium (settles finished weeks). */
+export async function towerStateService(d: Deps, playerId: string) {
+  await limit(d.rpc, `tower:${playerId}`, 60, 60);
+  try {
+    return await call<Record<string, unknown>>(d.rpc, "tower_state", {
+      p_player: playerId,
+    });
+  } catch (e) {
+    return mapRpcError(e);
+  }
 }

@@ -21,6 +21,7 @@ import {
   type PullResult,
 } from "./game/profile";
 import { isUnlocked, maxAscension } from "./game/dungeons";
+import { localWeekSeed, towerHero, type TowerMode } from "./game/tower";
 import { applyForge, type ForgeOp } from "./game/forge";
 import type { RunPiece } from "./game/loot";
 import type { Parts } from "./game/parts";
@@ -47,8 +48,9 @@ export interface RunStartInfo {
   runId: string;
   seed: number;
   hero: Character;
-  rank: RarityId;
+  rank: RarityId | null; // null = weekly tower (no dungeon)
   ascension?: number;
+  tower?: TowerMode;
 }
 export interface RunBankInfo {
   coinsAdded: number;
@@ -79,6 +81,7 @@ export interface ProfileRepo {
     seedHint?: number,
     rank?: RarityId,
     ascension?: number,
+    tower?: TowerMode,
   ): Promise<RunStartInfo>;
   submitRun(
     runId: string,
@@ -169,7 +172,32 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       seedHint,
       rank = "f",
       ascension = 0,
+      tower,
     ) => {
+      if (tower) {
+        // Offline tower: the week's seed from the calendar, no ranking.
+        const seed = localWeekSeed();
+        const hero = towerHero(
+          store.get(),
+          tower,
+          characterId,
+          classId,
+          seed,
+          "local",
+        );
+        if (!hero)
+          throw new RepoError(
+            "character_not_found",
+            "Personaje no encontrado.",
+          );
+        return {
+          runId: `${seed}-${Date.now()}`,
+          seed,
+          hero,
+          rank: null,
+          tower,
+        };
+      }
       const p = store.get();
       if (!isUnlocked(p.dungeons, rank))
         throw new RepoError("dungeon_locked", "Dungeon bloqueado.");
@@ -277,13 +305,13 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       store.replace(r.profile);
       return { text: r.text };
     },
-    startRun: (classId, characterId, _seed, rank = "f", ascension = 0) =>
-      api<RunStartInfo>("/api/run/start", {
-        classId,
-        characterId,
-        rank,
-        ascension,
-      }),
+    startRun: (classId, characterId, _seed, rank = "f", ascension = 0, tower) =>
+      api<RunStartInfo>(
+        "/api/run/start",
+        tower
+          ? { classId, characterId, tower }
+          : { classId, characterId, rank, ascension },
+      ),
     submitRun: async (runId, actions, claimed, keepalive) => {
       const r = await api<{
         coinsAdded: number;

@@ -2,6 +2,7 @@
 
 import { Confetti } from "@/components/Confetti";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -17,6 +18,7 @@ import { EnemySprite } from "@/components/EnemySprite";
 import { LogPanel } from "@/components/LogPanel";
 import { MuteButton } from "@/components/MuteButton";
 import { EventResult } from "@/components/EventResult";
+import { isTowerMode, TOWER_LABEL, type TowerMode } from "@/lib/game/tower";
 import { Panel } from "@/components/Panel";
 import { Chip } from "@/components/Chip";
 import { ItemCard } from "@/components/ItemCard";
@@ -293,6 +295,8 @@ function RunScreen() {
   const [randomHero, setRandomHero] = useState(false); // classic run: no collection hero
   const [dungeon, setDungeon] = useState<RarityId | null>(null);
   const [asc, setAsc] = useState(0);
+  const [tower, setTower] = useState<TowerMode | null>(null); // weekly tower (?torre=)
+  const router = useRouter();
   const { profile, ready } = useProfile();
 
   // Banking: exactly once per run. The runId guard lives in the ref (this
@@ -313,12 +317,13 @@ function RunScreen() {
         id,
         actionsRef.current,
         {
-          coins: r.coins,
+          // The weekly tower pays nothing per run (the server ignores it anyway).
+          coins: tower ? 0 : r.coins,
           maxFloor: r.maxFloor,
-          loot: r.secured,
-          parts: r.partSecured,
+          loot: tower ? [] : r.secured,
+          parts: tower ? {} : r.partSecured,
           clear:
-            r.rank && isVictory(r)
+            !tower && r.rank && isVictory(r)
               ? { rank: r.rank, lives: r.lives, asc: r.ascension }
               : undefined,
         },
@@ -367,6 +372,7 @@ function RunScreen() {
         seed,
         dungeon ?? "f",
         asc,
+        tower ?? undefined,
       );
       runIdRef.current = info.runId;
       actionsRef.current = [];
@@ -399,9 +405,12 @@ function RunScreen() {
     const q = Number(new URLSearchParams(location.search).get("seed"));
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSeed(Number.isFinite(q) && q > 0 ? Math.floor(q) : Date.now());
+    const t = new URLSearchParams(location.search).get("torre");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isTowerMode(t)) setTower(t);
   }, []);
   if (seed === null || !ready || !profile) return null;
-  if (!run && !dungeon)
+  if (!run && !dungeon && !tower)
     return (
       <DungeonSelect
         clears={profile.dungeons}
@@ -416,24 +425,28 @@ function RunScreen() {
     return (
       <CharacterSelect
         profile={profile}
-        dungeon={dungeon!}
+        dungeon={dungeon ?? "f"}
+        tower={tower}
         onPick={(id) => {
           const c = profile.characters.find((x) => x.id === id);
           if (c) void start(c.classId, id);
         }}
         onRandom={() => setRandomHero(true)}
-        onBack={() => setDungeon(null)}
+        onBack={() => (tower ? router.push("/torre") : setDungeon(null))}
       />
     );
   if (!run)
     return (
       <ClassSelect
-        dungeon={dungeon!}
+        dungeon={dungeon ?? "f"}
+        tower={tower}
         onPick={(c) => void start(c, null)}
         onBack={() =>
           profile.characters.length > 0
             ? setRandomHero(false)
-            : setDungeon(null)
+            : tower
+              ? router.push("/torre")
+              : setDungeon(null)
         }
       />
     );
@@ -547,7 +560,11 @@ function RunScreen() {
     main = (
       <Center>
         <Panel title="Fin de la run" className="text-center">
-          {isVictory(run) ? (
+          {tower ? (
+            <div className="text-xl text-yellow-300">
+              {TOWER_LABEL[tower]}: llegaste al piso {runScore(run)}
+            </div>
+          ) : isVictory(run) ? (
             <>
               <Confetti />
               <div className="text-2xl text-yellow-300">
@@ -557,17 +574,25 @@ function RunScreen() {
           ) : (
             <div className="text-xl text-[#d9d2ca]">Caíste en la mazmorra</div>
           )}
-          <div className="mt-2 text-yellow-300">
-            Puntaje (piso máximo): {runScore(run)}
-          </div>
+          {!tower && (
+            <div className="mt-2 text-yellow-300">
+              Puntaje (piso máximo): {runScore(run)}
+            </div>
+          )}
           <div className="mt-1 text-sm opacity-80">
             {run.hero.name} · Nv {run.hero.level} · {run.coins} monedas ·{" "}
             {run.relics.length} reliquias
           </div>
-          <div className="mt-2 text-green-300">
-            +{run.coins} monedas guardadas
-          </div>
-          {run.lootEnabled && (
+          {tower ? (
+            <div className="mt-2 text-sm text-green-300">
+              Cuenta tu mejor piso de la semana. Intentos ilimitados.
+            </div>
+          ) : (
+            <div className="mt-2 text-green-300">
+              +{run.coins} monedas guardadas
+            </div>
+          )}
+          {!tower && run.lootEnabled && (
             <div className="mt-1 text-sm">
               <span className="text-green-300">
                 {run.secured.length} piezas y {partCount(run.partSecured)}{" "}
@@ -584,11 +609,17 @@ function RunScreen() {
           )}
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <button className="btn text-center" onClick={toSelect}>
-              Nueva run
+              {tower ? "Otro intento" : "Nueva run"}
             </button>
-            <Link href="/gacha" className="btn text-center">
-              Ir al gacha
-            </Link>
+            {tower ? (
+              <Link href="/torre" className="btn text-center">
+                Ver ranking
+              </Link>
+            ) : (
+              <Link href="/gacha" className="btn text-center">
+                Ir al gacha
+              </Link>
+            )}
             <Link href="/" className="btn btn-gray text-center">
               Menú
             </Link>
@@ -1163,7 +1194,10 @@ function DungeonSelect({
             );
           })}
         </div>
-        <div className="mt-3 text-center">
+        <div className="mt-3 flex flex-col justify-center gap-2 text-center sm:flex-row">
+          <Link href="/torre" className="btn inline-block text-center">
+            Torre semanal
+          </Link>
           <Link href="/" className="btn btn-gray inline-block text-center">
             ← Volver al menú
           </Link>
@@ -1282,10 +1316,12 @@ function AscensionModal({
 
 function ClassSelect({
   dungeon,
+  tower,
   onPick,
   onBack,
 }: {
   dungeon: RarityId;
+  tower?: TowerMode | null;
   onPick: (c: ClassId) => void;
   onBack: () => void;
 }) {
@@ -1293,8 +1329,10 @@ function ClassSelect({
     <main className="flex flex-col justify-center gap-4 p-3 pt-8 md:h-screen md:overflow-hidden">
       <Panel title="Elige tu clase" className="mx-auto w-full max-w-4xl">
         <p className="mb-3 text-center text-base text-[#d9d2ca]">
-          Dungeon {RARITIES[dungeon].label}: {DUNGEONS[dungeon].name}. Elemento,
-          rasgos y stats se sortean al empezar.{" "}
+          {tower
+            ? `${TOWER_LABEL[tower]}.`
+            : `Dungeon ${RARITIES[dungeon].label}: ${DUNGEONS[dungeon].name}.`}{" "}
+          Elemento, rasgos y stats se sortean al empezar.{" "}
           <button className="text-cyan-300 underline" onClick={onBack}>
             Volver
           </button>
@@ -1401,12 +1439,14 @@ function PowerWarning({
 function CharacterSelect({
   profile,
   dungeon,
+  tower,
   onPick,
   onRandom,
   onBack,
 }: {
   profile: Profile;
   dungeon: RarityId;
+  tower?: TowerMode | null;
   onPick: (ownedId: string) => void;
   onRandom: () => void;
   onBack: () => void;
@@ -1475,13 +1515,19 @@ function CharacterSelect({
   return (
     <main className="flex flex-col justify-center gap-4 p-3 pt-8">
       <Panel
-        title={`Elige héroe · ${RARITIES[dungeon].label}`}
+        title={
+          tower
+            ? `Elige héroe · ${TOWER_LABEL[tower]}`
+            : `Elige héroe · ${RARITIES[dungeon].label}`
+        }
         className="mx-auto w-full max-w-4xl"
       >
         <p className="mb-3 text-center text-base text-[#d9d2ca]">
-          {DUNGEONS[dungeon].name}. Tus personajes, del más fuerte al más débil
-          (el poder cuenta rango, estrellas, arma y equipo). El más fuerte viene
-          preseleccionado.
+          {tower
+            ? tower === "nivelado"
+              ? "Torre de la semana, la misma para todos. Aquí todos quedan con poder base parecido: elige el héroe que mejor sepas jugar."
+              : "Torre de la semana, la misma para todos. Tu héroe entra con todo su poder."
+            : `${DUNGEONS[dungeon].name}. Tus personajes, del más fuerte al más débil (el poder cuenta rango, estrellas, arma y equipo). El más fuerte viene preseleccionado.`}
         </p>
         <div className="grid max-h-[calc(100vh-22rem)] min-h-40 grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] justify-items-center gap-x-2 gap-y-4 overflow-y-auto pr-1">
           {owned.map(({ c, power }, i) => {
@@ -1508,7 +1554,7 @@ function CharacterSelect({
             );
           })}
         </div>
-        {chosen && (
+        {chosen && !tower && (
           <div className="mt-3">
             <PowerWarning
               power={heroPower(profile, chosen.id)}
@@ -1531,7 +1577,7 @@ function CharacterSelect({
             Personaje al azar (run clásica)
           </button>
           <button className="btn btn-gray text-center" onClick={onBack}>
-            Cambiar de dungeon
+            {tower ? "Volver a la torre" : "Cambiar de dungeon"}
           </button>
         </div>
       </Panel>

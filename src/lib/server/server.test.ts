@@ -672,6 +672,64 @@ describe("run anti-farming", () => {
   });
 });
 
+describe("weekly tower", () => {
+  const h0 = generateCharacter(createRng(7), "caballero");
+  const hero = {
+    ...h0,
+    stats: {
+      ...h0.stats,
+      hp: h0.stats.hp * 25,
+      atk: h0.stats.atk * 6,
+      def: h0.stats.def * 6,
+    },
+  };
+  it("starts on the week's seed with no dungeon and records only a verified floor, paying nothing", async () => {
+    const db = new FakeDb();
+    const info = await startRunService(db.deps, "u1", {
+      classId: "mago",
+      characterId: null,
+      tower: "nivelado",
+    });
+    expect(info).toMatchObject({ seed: 777, rank: null, tower: "nivelado" });
+    expect(db.calls.find((c) => c.name === "start_run")!.args).toMatchObject({
+      p_seed: 777,
+      p_hero: { tower: "nivelado" },
+    });
+    // A strong hero climbs the same classic run and submits its log.
+    const log = playBot(777, hero, 800);
+    const truth = replayRun(777, hero, log, ENGINE_VERSION, null).run;
+    db.run = {
+      seed: 777,
+      hero: { ...hero, engineVersion: ENGINE_VERSION, tower: "coleccion" },
+      status: "open",
+    };
+    await submitRunService(db.deps, "u1", {
+      runId: UUID,
+      actions: log as never,
+      claimed: { coins: truth.coins, maxFloor: truth.maxFloor },
+    });
+    expect(db.banked[0]).toMatchObject({ p_coins: 0, p_loot: [], p_parts: {} });
+    expect(db.towerRecords[0]).toMatchObject({
+      p_mode: "coleccion",
+      p_floor: truth.maxFloor,
+    });
+  });
+
+  it("an illegal log never reaches the ranking", async () => {
+    const db = new FakeDb();
+    db.run = {
+      seed: 777,
+      hero: { ...hero, engineVersion: ENGINE_VERSION, tower: "nivelado" },
+      status: "open",
+    };
+    await submitRunService(db.deps, "u1", {
+      runId: UUID,
+      actions: [{ t: "act", a: "attack1" }] as never, // no fight is open
+    });
+    expect(db.towerRecords).toHaveLength(0);
+  });
+});
+
 describe("forge service", () => {
   it("runs the pure forge and persists exactly its diff; invalid combos never reach the DB", async () => {
     const db = new FakeDb();

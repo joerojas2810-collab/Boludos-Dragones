@@ -36,6 +36,7 @@ export class FakeDb {
   } | null = null;
   banked: Args[] = [];
   coinsToday = 0;
+  towerRecords: Args[] = [];
   audits: string[] = [];
 
   deps: Deps = {
@@ -157,6 +158,13 @@ export class FakeDb {
         });
       case "start_run":
         return this.okv({ run_id: "00000000-0000-4000-8000-000000000001" });
+      case "get_weekly_seed":
+        return this.okv({ week: "2026-10-05", seed: 777 });
+      case "tower_record":
+        this.towerRecords.push(a);
+        return this.okv({ week: "2026-10-05", max_floor: a.p_floor });
+      case "tower_state":
+        return this.okv({ week: "2026-10-05", modes: {}, last: {} });
       case "get_streak":
         return this.okv(null);
       case "settle_daily_streak":

@@ -62,6 +62,7 @@ export const runStartBody = z.strictObject({
   characterId: z.string().min(1).max(100).nullable(),
   rank: z.enum(RARITY_IDS).default("f"),
   ascension: z.number().int().min(0).max(5).default(0),
+  tower: z.enum(["nivelado", "coleccion"]).optional(),
 });
 
 const id = (max: number) => z.string().min(1).max(max);

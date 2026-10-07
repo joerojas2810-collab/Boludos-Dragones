@@ -17,7 +17,12 @@ interface Tab {
   remoteOnly?: boolean;
 }
 const TABS: readonly Tab[] = [
-  { id: "dungeons", label: "Dungeons", href: "/run", match: ["/run"] },
+  {
+    id: "dungeons",
+    label: "Dungeons",
+    href: "/run",
+    match: ["/run", "/torre"],
+  },
   {
     id: "heroes",
     label: "Héroes",
@@ -43,6 +48,7 @@ const SHELL_ROUTES = [
   "/gacha",
   "/forja",
   "/sala",
+  "/torre",
 ];
 
 // 16x16 pixel-style glyphs, drawn with the current text colour.
