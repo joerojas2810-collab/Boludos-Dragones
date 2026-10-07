@@ -183,7 +183,7 @@ textarea:focus-visible,
   animation: frame-glow 1.6s ease-in-out infinite;
 }
 .rarity-frame.rarity-frame-art:is([data-rarity="s"], [data-rarity="ss"], [data-rarity="ssr"])::after {
-  inset: 6.5% 9%;
+  inset: 14% 16%;
   z-index: 14;
 }
 @keyframes frame-glow {

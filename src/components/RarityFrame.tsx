@@ -61,7 +61,7 @@ export function RarityFrame({
           />
         )}
       {size >= 64 && (
-        <span className="absolute left-[3%] top-[2.5%] z-20 drop-shadow-[0_1px_2px_#000]">
+        <span className="absolute left-[1%] top-[0.5%] z-20 drop-shadow-[0_1px_2px_#000]">
           <RankIcon
             rank={rarity}
             letter

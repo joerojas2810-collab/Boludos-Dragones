@@ -30,6 +30,19 @@ type Props = {
   className?: string;
 };
 
+// Opening of each painted card frame as [top, side, bottom] % of the card (measured from the frame alpha).
+const OPENING: Record<RarityId, readonly [number, number, number]> = {
+  f: [11.5, 15.5, 12],
+  e: [13.5, 15.5, 12.5],
+  d: [10.5, 12.5, 10],
+  c: [12.5, 15.5, 12],
+  b: [11, 14, 11.5],
+  a: [14, 16.5, 13.5],
+  s: [14, 17, 13.5],
+  ss: [18.5, 19, 12.5],
+  ssr: [17.5, 17.5, 11],
+};
+
 export function ItemCard({
   item,
   size = 96,
@@ -39,6 +52,7 @@ export function ItemCard({
   const r = RARITIES[item.rarity];
   const S = size + 24; // everything lives inside the frame
   const big = S >= 100;
+  const o = OPENING[item.rarity];
   const title = [`${item.name} · Rango ${r.label}`, ...(item.lines ?? [])].join(
     "\n",
   );
@@ -50,14 +64,22 @@ export function ItemCard({
     >
       <RarityFrame rarity={item.rarity} size={S} selected={selected} painted>
         {/* everything lives inside the painted frame's opening */}
-        <div className="absolute inset-x-[9%] inset-y-[6.5%] overflow-hidden">
+        <div
+          className="absolute overflow-hidden"
+          style={{
+            left: `${o[1]}%`,
+            right: `${o[1]}%`,
+            top: `${o[0]}%`,
+            bottom: `${o[2]}%`,
+          }}
+        >
           <div className="absolute inset-0">
             {item.kind === "character" ? (
               <HeroSprite
                 classId={item.classId}
                 element={item.element}
                 traits={item.traits}
-                className="h-full w-full"
+                className="absolute bottom-0 left-1/2 aspect-square h-full -translate-x-1/2"
                 crop
               />
             ) : (
