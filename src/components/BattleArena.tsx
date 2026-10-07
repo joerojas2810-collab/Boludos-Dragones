@@ -126,6 +126,7 @@ type Props = {
   enemyChips?: (i: number, c: Combatant) => ReactNode;
   enemy: number; // highlighted target (index in b.enemies)
   onTarget?: (i: number) => void;
+  tall?: boolean; // no definite parent height (room page): give the stage its own height
 };
 
 export function BattleArena({
@@ -142,6 +143,7 @@ export function BattleArena({
   enemyChips,
   enemy,
   onTarget,
+  tall,
 }: Props) {
   const n = b.enemies.length;
   const multi = n > 1;
@@ -150,7 +152,7 @@ export function BattleArena({
   const { fx, paused } = useBattleFx(b, boss);
   return (
     <div
-      className={`stage relative min-h-[clamp(21rem,50vh,38rem)] flex-1 overflow-hidden border-4 border-[var(--edge)] ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
+      className={`stage relative ${tall ? "h-[clamp(20rem,50vh,34rem)] flex-none" : "min-h-[clamp(17rem,36vh,30rem)] flex-1 max-md:flex-none"} max-md:h-[25rem] overflow-hidden border-4 border-[var(--edge)] ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
       style={big?.style}
       data-hitstop={paused}
     >
@@ -184,7 +186,7 @@ export function BattleArena({
           className="h-full w-full"
           style={fxStyle(b, "player")}
         >
-          <div className="fx-breathe h-full w-full origin-bottom">
+          <div className="fx-breathe h-full w-full origin-bottom scale-[1.15]">
             <CuedHero b={b} />
           </div>
         </div>
@@ -242,7 +244,7 @@ export function BattleArena({
               className={`stage-foe relative flex min-w-0 flex-col items-center justify-end rounded-sm outline-offset-2 ${multi && !dead ? "cursor-pointer" : ""} ${selected && multi ? "outline outline-[3px] outline-yellow-300" : ""} ${dead ? "opacity-50 grayscale" : ""}`}
             >
               <FxLayer t={fx?.enemies[i]} k={fx?.key ?? 0} />
-              <div className={`relative z-10 w-full ${isBoss ? "" : "mb-[calc(var(--s)*-0.16)]"}`}>
+              <div className={`relative z-10 w-full ${isBoss ? "mb-[calc(var(--s)*0.25)]" : ""}`}>
                 <HudCard
                   c={c}
                   foe={b.player}

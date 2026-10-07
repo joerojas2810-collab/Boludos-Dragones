@@ -244,6 +244,7 @@ export function FloorPlayer({ client, floor, door }: Props) {
           )}
           enemy={targeting.enemy}
           onTarget={targeting.select}
+          tall
           inRun
           world={Math.floor((run.floor - 1) / FLOORS_PER_WORLD) % WORLDS.length}
           boss={node.kind === "boss"}

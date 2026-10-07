@@ -24,6 +24,8 @@ type Props = {
   animated?: boolean;
   // Static only: zoom on the body (feet low) so the hero fills a card frame.
   crop?: boolean;
+  // Static, hi-res idle frame (640 px) for large displays such as the hub.
+  big?: boolean;
 };
 
 const sheet = (src: string, action: HeroAction): SheetAnim => ({
@@ -47,6 +49,7 @@ function Hero({
   action = "idle",
   animated = false,
   crop = false,
+  big = false,
 }: Props & { action: HeroAction }) {
   const [done, setDone] = useState(false);
   const a: HeroAction = animated && !done ? action : "idle";
@@ -58,8 +61,37 @@ function Hero({
       .filter((k) => ACCESSORY_SHEETS.has(k))
       .map((k) => `/art/heroes/acc/${k}.webp`),
   ];
+  if (big) {
+    const srcs = [
+      `/art/heroes/big/${cls}_${ELEMENT_ART[element]}.webp`,
+      ...traits
+        .map((t) => `${cls}_${TRAIT_ASSET[t]}`)
+        .filter((k) => ACCESSORY_SHEETS.has(`${k}_idle`))
+        .map((k) => `/art/heroes/big/acc_${k}.webp`),
+    ];
+    return (
+      <div
+        role="img"
+        aria-hidden="true"
+        className={`relative aspect-square ${flip ? "-scale-x-100" : ""} ${className}`}
+      >
+        {srcs.map((src, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={src}
+            src={src}
+            alt=""
+            draggable={false}
+            className={`h-full w-full ${i ? "absolute inset-0" : ""}`}
+          />
+        ))}
+      </div>
+    );
+  }
   const root = `relative aspect-square ${flip ? "-scale-x-100" : ""} ${className}`;
-  const notHold = !HERO_ACTIONS[action].loop && !("hold" in HERO_ACTIONS[action] && HERO_ACTIONS[action].hold);
+  const notHold =
+    !HERO_ACTIONS[action].loop &&
+    !("hold" in HERO_ACTIONS[action] && HERO_ACTIONS[action].hold);
   if (!animated) {
     const n = HERO_ACTIONS.idle.frames;
     return (

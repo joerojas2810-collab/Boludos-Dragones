@@ -70,7 +70,7 @@ export default function Home() {
               element={hero.element}
               traits={hero.traits}
               className="hub-hero"
-              animated
+              big
             />
             <div className="hub-shadow" />
             <div className="hub-name pixel-frame">

@@ -171,7 +171,7 @@ export function ActionPanel({
         </div>
       )}
       {!over && (
-        <div className="grid grid-cols-3 gap-2 md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]">
           {attack("attack1")}
           {attack("attack2")}
           {attack("attack3")}

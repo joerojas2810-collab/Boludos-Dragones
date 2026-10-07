@@ -616,6 +616,17 @@ hr,
   border-image: url("/art/ui/panel_raised.webp") 33 fill / 12px stretch;
   padding: 0.25rem 1rem;
 }
+.game-emblem {
+  width: 8.5rem;
+  height: auto;
+  margin: 0 auto;
+  filter: drop-shadow(0 3px 0 rgb(0 0 0 / 0.5));
+}
+.game-plate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 .game-logo {
   width: 100%;
   max-width: 32rem;
