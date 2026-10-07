@@ -44,6 +44,11 @@ const DIFF_LABEL: Record<keyof GearBonus, string> = {
   dodge: "esquive",
   crit: "crítico",
   accuracy: "precisión",
+  critDmg: "daño crítico",
+  regen: "regeneración",
+  lifesteal: "robo de vida",
+  dmgTaken: "daño recibido",
+  dmgDealt: "daño",
 };
 export function pieceDelta(
   w: OwnedWeapon,

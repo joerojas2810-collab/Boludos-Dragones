@@ -151,6 +151,15 @@ export const dmgReductionOf = (c: Combatant): number => {
   );
 };
 
+// Class passive + style resonance damage reduction, capped together.
+export const PASSIVE_REDUCTION_CAP = 0.25;
+export const passiveReduction = (c: Combatant): number =>
+  Math.min(
+    PASSIVE_REDUCTION_CAP,
+    (c.char.classId === "caballero" ? CLASS_PASSIVE_DMG_REDUCTION : 0) +
+      (c.char.gear?.dmgTaken ?? 0),
+  );
+
 // Fraction of damage absorbed by defense (0..DEF_CAP).
 export const defReduction = (att: Combatant, def: Combatant): number =>
   Math.min(
@@ -472,9 +481,8 @@ export function estimateDamage(
         (att.perks?.dmgMult ?? 1) *
         (1 - dmgReductionOf(def)) *
         (crit ? 1 : 1 - rulesOf(att).nonCritPenalty) *
-        (def.char.classId === "caballero"
-          ? 1 - CLASS_PASSIVE_DMG_REDUCTION
-          : 1) *
+        (1 - passiveReduction(def)) *
+        (1 + (att.char.gear?.dmgDealt ?? 0)) *
         ((def.reflect ?? 0) > 0 ? COUNTER_TAKEN : 1) *
         (att.riposte ? 1 + GUARD_COUNTER_BONUS : 1) *
         executeFactor(att, def, key),

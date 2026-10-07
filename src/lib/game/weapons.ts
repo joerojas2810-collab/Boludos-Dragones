@@ -1,3 +1,4 @@
+import type { GearLine } from "./gear";
 import type { ClassId } from "./characters";
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "./elements";
 import { itemMult, RARITY_IDS, type RarityId } from "./rarity";
@@ -194,6 +195,9 @@ export interface Weapon {
   rarity: RarityId;
   stars: number;
   atkBonus: number; // flat ATQ (already includes the type multiplier)
+  // Per-piece roll (+-15%) and extra lines, see gear.ts. Absent on pieces saved before Run v2.
+  roll?: number;
+  lines?: GearLine[];
 }
 
 const ADJECTIVES = [
