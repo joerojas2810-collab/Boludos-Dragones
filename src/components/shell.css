@@ -84,7 +84,8 @@
   gap: 0.1rem;
   padding: 0.3rem 0.25rem;
   font-size: 0.8rem;
-  color: #d7cfc6;
+  color: #efe8de;
+  font-weight: 600;
   border: solid transparent;
   border-width: 6px 13px;
   border-image: url("/art/ui/tab_normal.webp") 12 26 fill / 6px 13px stretch;
@@ -135,7 +136,7 @@
   }
 }
 
-/* Hub (home): stacked on narrow screens, hero left / info right on wide ones */
+/* Hub (home): stacked on narrow screens; hero left / title + info right on wide ones, no page scroll */
 .hub {
   flex: 1;
   display: grid;
@@ -152,24 +153,25 @@
   display: flex;
   justify-content: center;
 }
-@media (min-width: 900px) {
-  .hub-title {
-    justify-content: flex-start;
-    padding-left: 0.5rem;
-  }
-  .hub-title .game-title {
-    max-width: 48rem;
-  }
+.hub .game-title {
+  max-width: 30rem;
+  gap: 0.5rem;
+}
+.hub .game-title-emblem {
+  width: clamp(4.5rem, 9vw, 7rem);
 }
 @media (min-width: 900px) {
   .hub {
-    grid-template-areas: "title title" "stage stats" "stage actions";
-    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    grid-template-areas: "stage title" "stage stats" "stage actions";
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
     grid-template-rows: auto auto auto;
+    align-content: center;
     column-gap: 2rem;
+    row-gap: 0.8rem;
     max-width: 70rem;
     margin: 0 auto;
     width: 100%;
+    max-height: calc(100dvh - 8.5rem);
   }
 }
 .hub-stage {
@@ -187,7 +189,7 @@
 }
 .hub-hero {
   position: relative;
-  width: min(88vw, 54vh, 32rem);
+  width: min(88vw, 52vh, 30rem);
   transform-origin: 50% 88%;
   scale: 1.2;
   animation: hub-bob 2.4s steps(6) infinite;
@@ -207,15 +209,19 @@
 }
 .hub-stats {
   grid-area: stats;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
   gap: 0.5rem;
-  max-width: 44rem;
+  width: min(100%, 30rem);
 }
 .hub-stat {
-  padding: 0.2rem 0.7rem;
+  padding: 0.1rem 0.5rem;
   text-align: center;
+  align-self: stretch;
+}
+.hub-stat:last-child {
+  grid-column: 1 / -1;
 }
 .hub-actions {
   grid-area: actions;
@@ -332,4 +338,26 @@
   font-size: 0.9rem;
   border: 3px solid var(--edge);
   background: var(--panel);
+}
+
+.shell-user {
+  font-family: var(--font-title), serif;
+  font-size: 1.1rem;
+  color: #f6ead6;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.6);
+}
+.shell-role {
+  padding: 0.05rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fde68a;
+  background: rgb(0 0 0 / 0.35);
+  border: 2px solid #b8743a;
+  border-radius: 999px;
+  text-decoration: none;
+}
+.shell-role:hover {
+  background: rgb(184 116 58 / 0.35);
 }

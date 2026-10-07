@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
-import { Chakra_Petch, MedievalSharp } from "next/font/google";
+import { Alegreya, Nunito } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
 import "./globals.css";
 
-const pixel = Chakra_Petch({
+// Painted-art typography: Nunito for text and controls, Alegreya for titles and the logo.
+const pixel = Nunito({
   variable: "--font-pixel",
   subsets: ["latin"],
-  weight: ["400", "600"],
+  weight: ["400", "600", "700"],
 });
 
-const title = MedievalSharp({
+const title = Alegreya({
   variable: "--font-title",
   subsets: ["latin"],
-  weight: "400",
+  weight: ["700"],
 });
 
 export const metadata: Metadata = {
@@ -31,7 +32,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${pixel.variable} ${title.variable} h-full antialiased`}>
+    <html
+      lang="es"
+      className={`${pixel.variable} ${title.variable} h-full antialiased`}
+    >
       <body className="min-h-full flex flex-col">
         <AppShell>{children}</AppShell>
       </body>

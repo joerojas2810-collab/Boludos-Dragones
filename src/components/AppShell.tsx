@@ -157,10 +157,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Icon name="system_coin" className="h-5" />{" "}
           {profile ? profile.coins : "…"}
         </span>
-        <span className="ml-auto flex items-center gap-2 text-sm">
-          {remote && <span className="hidden sm:inline">{session.name}</span>}
+        <span className="ml-auto flex items-center gap-2">
+          {remote && (
+            <span className="shell-user hidden sm:inline">{session.name}</span>
+          )}
           {remote && session.isAdmin && (
-            <Link href="/admin" className="text-cyan-300 underline">
+            <Link href="/admin" className="shell-role">
               Admin
             </Link>
           )}
@@ -181,7 +183,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             (t.id === "missions" && missionsPending);
           const inner = (
             <>
-              <Icon name={NAV_ICON[t.id]} className="h-9 w-9" />
+              <Icon
+                name={NAV_ICON[t.id]}
+                className={t.id === "forge" ? "h-12 w-12" : "h-10 w-10"}
+              />
               <span>{t.label}</span>
               {badge && (
                 <i
