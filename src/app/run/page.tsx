@@ -17,7 +17,7 @@ import { BattleArena } from "@/components/BattleArena";
 import { DoorIcon } from "@/components/DoorIcon";
 import { ElementIcon } from "@/components/ElementIcon";
 import { EnemySprite } from "@/components/EnemySprite";
-import { LogPanel } from "@/components/LogPanel";
+import { FightLog, LogPanel } from "@/components/LogPanel";
 import { MuteButton } from "@/components/MuteButton";
 import { EventResult } from "@/components/EventResult";
 import { isTowerMode, TOWER_LABEL, type TowerMode } from "@/lib/game/tower";
@@ -221,7 +221,9 @@ function Hud({ run, float = false }: { run: Run; float?: boolean }) {
             <span className="hud-meter ml-2 inline-block w-28 align-middle">
               <i
                 className="bg-[#46b04f]"
-                style={{ width: `${Math.max(0, (run.hp / maxHp(run)) * 100)}%` }}
+                style={{
+                  width: `${Math.max(0, (run.hp / maxHp(run)) * 100)}%`,
+                }}
               />
             </span>
           )}
@@ -776,80 +778,83 @@ function RunScreen() {
     main = (
       <div className="flex min-w-0 flex-1 flex-col gap-3 md:min-h-0 md:flex-row">
         <div className="flex min-w-0 flex-1 flex-col md:min-h-0">
-        <BattleArena
-          bleed
-          b={b}
-          enemyExtra={(i, c) =>
-            `${node.kind === "boss" && i === 0 ? "JEFE · " : ""}Nv ${c.char.level}`
-          }
-          playerExtra={`Nv ${run.hero.level} · XP ${run.hero.xp}/${xpToNext(run.hero.level)}`}
-          enemyArt={(i, c) => (
-            <EnemySprite
-              family={fam}
-              element={c.char.element}
-              boss={node.kind === "boss" && i === 0}
-              elite={node.kind === "hard"}
-              finalRank={finalRank}
-            />
-          )}
-          enemy={targeting.enemy}
-          onTarget={targeting.select}
-          playerExtraTip={levelTip(run)}
-          inRun
-          world={
-            run.rank
-              ? DUNGEONS[run.rank].world
-              : Math.floor((run.floor - 1) / FLOORS_PER_WORLD) % WORLDS.length
-          }
-          rank={run.rank}
-          finalRank={finalRank}
-          boss={node.kind === "boss"}
-          enemyChips={(_, c) =>
-            mods
-              .filter((m) => m !== "escudo")
-              .map((m) => (
-                <Chip
-                  key={m}
-                  tone="danger"
-                  icon={iconFor("enemy_modifier", m)}
-                  tip={modTip(m, c)}
-                >
-                  {MOD_LABEL[m]}
-                </Chip>
-              ))
-          }
-        />
+          <BattleArena
+            bleed
+            b={b}
+            enemyExtra={(i, c) =>
+              `${node.kind === "boss" && i === 0 ? "JEFE · " : ""}Nv ${c.char.level}`
+            }
+            playerExtra={`Nv ${run.hero.level} · XP ${run.hero.xp}/${xpToNext(run.hero.level)}`}
+            enemyArt={(i, c) => (
+              <EnemySprite
+                family={fam}
+                element={c.char.element}
+                boss={node.kind === "boss" && i === 0}
+                elite={node.kind === "hard"}
+                finalRank={finalRank}
+              />
+            )}
+            enemy={targeting.enemy}
+            onTarget={targeting.select}
+            playerExtraTip={levelTip(run)}
+            inRun
+            world={
+              run.rank
+                ? DUNGEONS[run.rank].world
+                : Math.floor((run.floor - 1) / FLOORS_PER_WORLD) % WORLDS.length
+            }
+            rank={run.rank}
+            finalRank={finalRank}
+            boss={node.kind === "boss"}
+            enemyChips={(_, c) =>
+              mods
+                .filter((m) => m !== "escudo")
+                .map((m) => (
+                  <Chip
+                    key={m}
+                    tone="danger"
+                    icon={iconFor("enemy_modifier", m)}
+                    tip={modTip(m, c)}
+                  >
+                    {MOD_LABEL[m]}
+                  </Chip>
+                ))
+            }
+          />
         </div>
-        <ActionPanel
-          side
-          float
-          b={b}
-          target={targeting.target}
-          onAct={(a, t) => act(screen, a, t)}
-          fleeCost={fleeCost(run)}
-          auto={
-            node.kind === "easy"
-              ? {
-                  reason: autoBlockReason(b, node.kind),
-                  onAuto: () => quick(screen),
-                }
-              : undefined
-          }
-        >
-          {result && (
-            <>
-              <div className="text-sm">
-                {fightSummary(run, result, b.status)}
-              </div>
-              <button
-                className="btn btn-gray w-full text-center"
-                onClick={() => finishFight(screen)}
-              >
-                {result.status === "over" ? "Ver resultado" : "Continuar"}
-              </button>
-            </>
-          )}
-        </ActionPanel>
+        <div className="flex flex-col gap-2 max-md:contents md:min-h-0 md:w-[22rem]">
+          <ActionPanel
+            side
+            float
+            b={b}
+            target={targeting.target}
+            onAct={(a, t) => act(screen, a, t)}
+            fleeCost={fleeCost(run)}
+            auto={
+              node.kind === "easy"
+                ? {
+                    reason: autoBlockReason(b, node.kind),
+                    onAuto: () => quick(screen),
+                  }
+                : undefined
+            }
+          >
+            {result && (
+              <>
+                <div className="text-sm">
+                  {fightSummary(run, result, b.status)}
+                </div>
+                <button
+                  className="btn btn-gray w-full text-center"
+                  onClick={() => finishFight(screen)}
+                >
+                  {result.status === "over" ? "Ver resultado" : "Continuar"}
+                </button>
+              </>
+            )}
+          </ActionPanel>
+          <FightLog lines={b.log} />
+        </div>
       </div>
     );
   } else if (screen.t === "picks" && run.pendingSkill) {

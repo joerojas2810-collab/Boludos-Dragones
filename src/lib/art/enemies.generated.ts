@@ -5,3301 +5,3301 @@ export const ENEMY_ANIMS: Record<string, EnemyAnimMeta> = {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_normal_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_elite_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_slime_boss_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_slime_boss_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_normal_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_normal_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_elite_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_imp_boss_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_imp_boss_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_normal_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_normal_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_elite_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_harpy_boss_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_harpy_boss_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_normal_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_normal_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_elite_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_golem_boss_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_golem_boss_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_normal_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_normal_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_elite_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 288
+  "cell": 384
  },
  "enemy_specter_boss_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "enemy_specter_boss_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_great_devourer_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_ash_king_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_withered_queen_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_hollow_colossus_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_eternal_watcher_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_mother_hydra_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_lord_of_flies_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_faceless_one_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_fire_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_water_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_earth_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_lightning_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_wind_idle": {
   "frames": 4,
   "fps": 6,
   "loop": true,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_fire_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_water_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_earth_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_lightning_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_wind_attack": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_fire_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_water_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_earth_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_lightning_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_wind_hit": {
   "frames": 2,
   "fps": 12,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_fire_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_water_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_earth_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_lightning_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_wind_defeat": {
   "frames": 4,
   "fps": 8,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_fire_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_water_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_earth_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_lightning_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  },
  "boss_thunder_king_wind_entrance": {
   "frames": 4,
   "fps": 10,
   "loop": false,
-  "cell": 320
+  "cell": 384
  }
 };
 // Final boss design per dungeon rank (boss_catalog.json).

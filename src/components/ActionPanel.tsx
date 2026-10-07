@@ -64,15 +64,30 @@ function ActionButton({
   return (
     <Tooltip tip={tip} className="block" focusable={false}>
       <button
-        className={`btn h-full min-h-14 max-md:min-h-12 w-full md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1 ${hot ? "!border-yellow-300" : ""}`}
+        className={`btn h-full w-full ${left ? "min-h-11 !px-2 !py-1" : "min-h-14 max-md:min-h-12 md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1"} ${hot ? "!border-yellow-300" : ""}`}
         disabled={disabled}
         onClick={onClick}
       >
-        <div className={`flex items-center gap-2 ${left ? "justify-start text-left" : "justify-center"}`}>
-          {icon && <Icon name={icon} className="h-8 shrink-0 max-md:h-6" />}
+        <div
+          className={`flex items-center gap-2 ${left ? "justify-start text-left" : "justify-center"}`}
+        >
+          {icon && (
+            <Icon
+              name={icon}
+              className={`shrink-0 max-md:h-6 ${left ? "h-6" : "h-8"}`}
+            />
+          )}
           <div>
-            <div className="text-base font-semibold leading-tight max-md:text-sm">{title}</div>
-            <div className="text-sm leading-snug max-md:text-xs">{sub}</div>
+            <div
+              className={`font-semibold leading-tight max-md:text-sm ${left ? "text-sm" : "text-base"}`}
+            >
+              {title}
+            </div>
+            <div
+              className={`leading-snug max-md:text-xs ${left ? "text-[11px]" : "text-sm"}`}
+            >
+              {sub}
+            </div>
           </div>
         </div>
       </button>
@@ -130,7 +145,7 @@ export function ActionPanel({
         : hits;
     return (
       <ActionButton
-          left={float}
+        left={float}
         tip={attackTip(b.player, k, foe)}
         disabled={!!reason}
         onClick={() => onAct(k, target)}
@@ -145,9 +160,17 @@ export function ActionPanel({
   };
 
   return (
-    <Panel className={`${float ? "panel-float" : ""} shrink-0 !p-2 max-md:sticky max-md:bottom-0 max-md:z-30 ${side ? `md:w-[22rem] md:overflow-y-auto ${float ? "md:max-h-full md:self-start" : "md:self-stretch"}` : ""}`}>
+    <Panel
+      className={`${float ? "panel-float" : ""} shrink-0 !p-2 max-md:sticky max-md:bottom-0 max-md:z-30 ${side ? `md:w-[22rem] md:overflow-y-auto ${float ? "md:max-h-full" : "md:self-stretch"}` : ""}`}
+    >
       {!over && (
-        <div className={float ? "mb-2" : "mb-1.5 flex flex-wrap items-center justify-center gap-x-4 text-center"}>
+        <div
+          className={
+            float
+              ? "mb-2"
+              : "mb-1.5 flex flex-wrap items-center justify-center gap-x-4 text-center"
+          }
+        >
           <div
             className={`flex flex-wrap items-center gap-x-3 text-base ${float ? "justify-between" : "justify-center"}`}
           >
@@ -174,9 +197,17 @@ export function ActionPanel({
           >
             Orden: {order}
             {alive.length > 1 && (
-              <span className={float ? "block text-yellow-300" : "ml-2 text-yellow-300"}>
+              <span
+                className={
+                  float ? "block text-yellow-300" : "ml-2 text-yellow-300"
+                }
+              >
                 Elige un rival (clic o 1-3)
-                {float ? <span className="block">Objetivo: {foe.char.name}</span> : <> · objetivo: {foe.char.name}</>}
+                {float ? (
+                  <span className="block">Objetivo: {foe.char.name}</span>
+                ) : (
+                  <> · objetivo: {foe.char.name}</>
+                )}
               </span>
             )}
           </div>
@@ -188,12 +219,14 @@ export function ActionPanel({
         </div>
       )}
       {!over && (
-        <div className={`grid grid-cols-2 gap-2 ${side ? "md:grid-cols-1" : "md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]"}`}>
+        <div
+          className={`grid grid-cols-2 gap-2 ${side ? (float ? "md:grid-cols-2" : "md:grid-cols-1") : "md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]"}`}
+        >
           {attack("attack1")}
           {attack("attack2")}
           {attack("attack3")}
           <ActionButton
-          left={float}
+            left={float}
             tip={defendTip(b)}
             onClick={() => onAct("defend", target)}
             icon={iconFor("skill", "defend")}
@@ -202,7 +235,7 @@ export function ActionPanel({
             hot={perfect}
           />
           <ActionButton
-          left={float}
+            left={float}
             tip={fleeTip(b, fleeCost)}
             onClick={() => onAct("flee", target)}
             icon={iconFor("skill", "flee")}
@@ -217,7 +250,7 @@ export function ActionPanel({
           />
           {auto && (
             <ActionButton
-          left={float}
+              left={float}
               tip={autoTip(auto.reason)}
               disabled={!!auto.reason}
               onClick={auto.onAuto}

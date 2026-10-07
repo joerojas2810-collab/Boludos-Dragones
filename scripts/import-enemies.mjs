@@ -12,7 +12,7 @@ const find = finder(base, "enemies");
 const csv = find("animations.csv");
 const catalog = readJson(find("boss_catalog.json"));
 
-const FRAME = { 768: 288, 1024: 320 }; // delivered cell -> output cell (px)
+const FRAME = { 768: 384, 1024: 384 }; // delivered cell -> output cell (px)
 const out = join("public", "art", "enemies");
 mkdirSync(out, { recursive: true });
 
