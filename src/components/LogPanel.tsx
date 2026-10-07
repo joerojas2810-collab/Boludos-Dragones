@@ -26,10 +26,7 @@ export function LogPanel({
 export function FightLog({ lines }: { lines: string[] }) {
   return (
     <Panel className="panel-float hidden !p-2 md:flex md:min-h-0 md:flex-1 md:flex-col">
-      <div className="mb-1 font-[family-name:var(--font-title)] text-base font-bold text-yellow-300">
-        Registro
-      </div>
-      <ul className="action-inset min-h-0 flex-1 space-y-1 overflow-y-auto text-[13px] leading-5 text-[#d9d2ca]">
+      <ul className="action-inset min-h-0 flex-1 space-y-0.5 overflow-y-auto text-[13px] leading-5 text-[#d9d2ca]">
         {[...lines].reverse().map((l, i) => (
           <li
             key={lines.length - i}
