@@ -1,9 +1,9 @@
 # Línea de arte pixel: traspaso a otra IA
 
 Rama de trabajo: `design/pixel-art` (sale de `main` en `4d23f57`). Commits de esta línea: `e969c0b`, `b896a25`, `c485230`, `c56f862`, `b2cddf9`.
-Actualización del 7 de octubre de 2026: Fase 3 integrada y seis lotes de Fase 4 terminados. El usuario autorizó continuar después de los cinco primeros lotes; el lote 6 (9 dungeons) queda pendiente de revisión visual. La integración base está versionada en el commit `5bdcb1b`, las mejoras en `d5b0a60` y los eventos en `d8f1079` de `design/pixel-art`; con los dungeons hay 201 PNG estáticos finales. El usuario indicó hacer commit y push al completar cada fase; se mantienen las entregas por lote en esta rama. No se fusiona con `main` ni se crea PR sin una solicitud explícita.
+Actualización del 7 de octubre de 2026: Fase 3 integrada y siete lotes de Fase 4 terminados. El usuario autorizó continuar después de los seis primeros lotes; el lote 7 (7 íconos de ascensión) queda pendiente de revisión visual. Con ascensión hay 208 PNG estáticos finales en `design/pixel-art`. El usuario indicó hacer commit y push al completar cada fase; se mantienen las entregas por lote en esta rama. También indicó ejecutar las pruebas de código solo al cerrar cada fase; por lote se conserva la revisión visual y de formato. No se fusiona con `main` ni se crea PR sin una solicitud explícita.
 
-Reglas del proyecto que siguen valiendo (ver `CLAUDE.md`): textos de UI en español, código y commits en inglés, componentes sin lógica de juego, `tsc` + `eslint` siempre antes de cerrar, capturas pocas y a escala 0.5, preferir `read_page`/DOM a imágenes. Commits pequeños, uno por cambio lógico, con la línea `Co-Authored-By` que indique tu entorno.
+Reglas del proyecto que siguen valiendo (ver `CLAUDE.md`): textos de UI en español, código y commits en inglés, componentes sin lógica de juego, capturas pocas y a escala 0.5, preferir `read_page`/DOM a imágenes. Por instrucción posterior del usuario, `tsc`, `eslint` y `vitest` se ejecutan al cierre de cada fase, no de cada lote. Commits pequeños, uno por cambio lógico, con la línea `Co-Authored-By` que indique tu entorno.
 
 ## 0. Dónde está el código y cómo obtenerlo
 
@@ -30,7 +30,7 @@ Pedido de arte completo por fases: `docs/PEDIDO_ARTE_3.md`. Una fase por vez, si
 | 1 | Héroes (4 clases × 10 acciones, 64×96) | Entregada, integrada, aprobada |
 | 2 | Enemigos (5 familias × normal/élite/jefe + 9 jefes finales) | Entregada, integrada, aprobada con ajustes (sin brillo) |
 | 3 | Armas, equipo, partes, núcleos, marcos de carta | Entregada e integrada localmente: 42 originales, 98 PNG de juego |
-| 4 | Íconos del sistema | Lote 1: 25 PNG (elementos, clases, rangos, puertas). Lote 2: 22 PNG (4 pasivos y 18 habilidades). Lote 3: 24 rasgos. Lote 4: 15 mejoras. Lote 5: 8 eventos. Lote 6: 9 dungeons, pendiente aprobación visual. Los seis integrados; quedan 135 íconos |
+| 4 | Íconos del sistema | Lote 1: 25 PNG (elementos, clases, rangos, puertas). Lote 2: 22 PNG (4 pasivos y 18 habilidades). Lote 3: 24 rasgos. Lote 4: 15 mejoras. Lote 5: 8 eventos. Lote 6: 9 dungeons. Lote 7: 7 íconos de ascensión, pendiente aprobación visual. Los siete integrados; quedan 128 íconos |
 | 5 | Interfaz (9-slice, botones, barras, logos) | Pendiente |
 | 6 | Fondos (5 capas) | Pendiente |
 | 7 | Efectos | Pendiente |
@@ -55,7 +55,7 @@ Mientras no se completen las fases 4 a 7, la pantalla mezcla pixel (héroes y en
 | `src/lib/art/pixel-palettes.json` | Rampas canónicas de cinco elementos; Rayo amarillo |
 | `src/lib/art/pixel.ts` y `pixel-icons.generated.json` | Interruptor, catálogo disponible y abertura de cartas pixel |
 | `public/art/weapons-px/` y `equipment-px/` | 45 armas y 25 piezas de equipo: 5 variantes de cada base |
-| `public/art/icons-px/` y `frames-px/` | 122 íconos y 9 marcos (201 PNG estáticos en total con armas/equipo) |
+| `public/art/icons-px/` y `frames-px/` | 129 íconos y 9 marcos (208 PNG estáticos en total con armas/equipo) |
 | `src/components/Icon.tsx`, `WeaponSprite.tsx`, `RarityFrame.tsx`, `ItemCard.tsx` | Selección del arte alterno y render pixelado; abertura pixel 44×58 dentro de 60×80 |
 | `public/art/heroes-px/` | 200 tiras (4 clases × 5 elementos × 10 acciones), ~1 MB |
 | `public/art/enemies-px/` | 550 tiras, ~3 MB |
@@ -308,9 +308,8 @@ La galería `src/app/galeria-px/` (`page.tsx` con `notFound()` en producción y 
 
 ## 10. Validación de este traspaso
 
-- TypeScript sin errores; ESLint sin errores (7 advertencias preexistentes en archivos ajenos al cambio).
-- Vitest: las 449 pruebas pasan entre la corrida completa y la repetición aislada. La corrida completa aprobó 448 y tuvo un timeout de 5 segundos en una prueba de gacha, sin fallo de aserción; al repetir `gacha.test.ts` por separado, sus 31 pruebas pasaron en 3,20 segundos. No se modificaron reglas ni tiempos de espera para resolverlo.
-- Galería local: `/galeria-px` incluye héroes, enemigos, armas/equipo/forja, íconos y marcos. Se verificaron previamente las 89 imágenes de inventario y los 18 marcos de las muestras de carta. La revisión actual confirmó 122 íconos sin recursos faltantes, todos con render pixelado; los 9 nuevos aparecen en la sección Dungeons con los nombres de `DUNGEONS`.
-- Los íconos nuevos conservan 32×32 y alfa binario. Los ZIP de Fase 4 contienen respectivamente 25, 22, 24, 15, 8 y 9 PNG, cada uno con su manifiesto. El manifiesto acumulado de `icons/` contiene 122 entradas (19 de Fase 3 y 103 de Fase 4). Se comprobó que la importación de los 9 dungeons conserva exactamente sus píxeles. Los cinco núcleos de Fase 3 y los íconos de elemento usan las mismas rampas canónicas.
+- No se ejecutaron pruebas de código en el lote 7, por instrucción del usuario. Se ejecutarán al cierre de Fase 4. La última validación, en el lote 6, dio TypeScript y ESLint sin errores (7 advertencias preexistentes); Vitest aprobó 448 pruebas en la corrida completa y la restante al repetir aisladamente las 31 de gacha tras un timeout, sin modificar reglas ni tiempos de espera.
+- Galería local: `/galeria-px` incluye héroes, enemigos, armas/equipo/forja, íconos y marcos. La revisión actual confirmó 129 íconos sin recursos faltantes; los 7 nuevos aparecen en Ascensión con etiquetas en español y render pixelado.
+- Los íconos nuevos conservan 32×32 y alfa binario. Los ZIP de Fase 4 contienen respectivamente 25, 22, 24, 15, 8, 9 y 7 PNG, cada uno con su manifiesto. El manifiesto acumulado de `icons/` contiene 129 entradas (19 de Fase 3 y 110 de Fase 4). Se comprobó que la importación de los 7 íconos de ascensión conserva exactamente sus píxeles. Los cinco núcleos de Fase 3 y los íconos de elemento usan las mismas rampas canónicas.
 - El arte pintado sigue disponible sin `NEXT_PUBLIC_ART=pixel`. La galería sigue siendo solo de desarrollo. No se verificaron partidas multijugador, móvil o despliegue de producción en este traspaso.
-- No subir originales, ZIP, borradores, `node_modules` ni `.next*`. El lote 6 de Fase 4 se revisa antes de producir el siguiente (7 íconos de ascensión).
+- No subir originales, ZIP, borradores, `node_modules` ni `.next*`. El lote 7 de Fase 4 se revisa antes de producir el siguiente (4 íconos de enemigos).

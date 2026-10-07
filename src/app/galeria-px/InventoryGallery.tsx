@@ -13,7 +13,7 @@ const ITEMS = [
   ["helmet", "Casco"], ["chest", "Peto"], ["legs", "Piernas"], ["boots", "Botas"], ["necklace", "Collar"],
 ] as const;
 const FAMILY_LABELS: Record<string, string> = {
-  element: "Elementos", class: "Clases", rank: "Rangos", door: "Puertas",
+  element: "Elementos", class: "Clases", rank: "Rangos", asc: "Ascensión", door: "Puertas",
   passive: "Pasivos", skill: "Habilidades", trait: "Rasgos", upgrade: "Mejoras", event: "Eventos", dungeon: "Dungeons", part: "Partes de forja", core: "Núcleos",
 };
 const LABELS: Record<string, string> = {
@@ -156,7 +156,7 @@ export function InventoryGallery({ lot, zoom, bg }: { lot: "items" | "icons" | "
             {names.map((name) => {
               const id = name.slice(family.length + 1);
               const dungeon = family === "dungeon" ? RARITY_IDS.find((rank) => id === "rank_" + rank) : undefined;
-              const title = dungeon ? DUNGEONS[dungeon].name : family === "rank" ? id.toUpperCase() : (family === "door" ? DOOR_LABELS[id] : LABELS[id]) ?? id;
+              const title = dungeon ? DUNGEONS[dungeon].name : family === "asc" ? (id === "max_star" ? "Estrella máxima" : "Ascensión " + id) : family === "rank" ? id.toUpperCase() : (family === "door" ? DOOR_LABELS[id] : LABELS[id]) ?? id;
               return <figure key={name}>
                 <PixelImage path={"icons-px/icon_" + name} label={title} width={32 * zoom} bg={bg} />
                 <figcaption className="mt-1 text-center text-xs">{title}</figcaption>
