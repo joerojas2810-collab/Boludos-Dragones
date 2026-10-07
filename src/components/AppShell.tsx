@@ -8,7 +8,7 @@ import { claimedToday, dayKey } from "@/lib/game/streak";
 import { logout, repo, useProfile } from "@/lib/useProfile";
 import "./shell.css";
 
-type TabId = "dungeons" | "heroes" | "summon" | "forge" | "room";
+type TabId = "dungeons" | "tower" | "heroes" | "summon" | "forge" | "room";
 interface Tab {
   id: TabId;
   label: string;
@@ -21,8 +21,9 @@ const TABS: readonly Tab[] = [
     id: "dungeons",
     label: "Dungeons",
     href: "/run",
-    match: ["/run", "/torre"],
+    match: ["/run"],
   },
+  { id: "tower", label: "Torre", href: "/torre", match: ["/torre"] },
   {
     id: "heroes",
     label: "Héroes",
@@ -54,6 +55,7 @@ const SHELL_ROUTES = [
 // 16x16 pixel-style glyphs, drawn with the current text colour.
 const ICONS: Record<TabId, ReactNode> = {
   dungeons: <path d="M3 15V6l5-4 5 4v9h-3V8H6v7z" />,
+  tower: <path d="M4 15V7H3V3h2v1h1V3h1v1h2V3h1v1h1V3h2v4h-1v8zm3-2h2v-3H7z" />,
   heroes: (
     <path d="M2 2h12v6c0 4-3 6-6 7-3-1-6-3-6-7zm3 2v3c0 2 1 3 3 4 2-1 3-2 3-4V4z" />
   ),

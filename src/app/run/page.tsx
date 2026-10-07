@@ -1194,10 +1194,7 @@ function DungeonSelect({
             );
           })}
         </div>
-        <div className="mt-3 flex flex-col justify-center gap-2 text-center sm:flex-row">
-          <Link href="/torre" className="btn inline-block text-center">
-            Torre semanal
-          </Link>
+        <div className="mt-3 text-center">
           <Link href="/" className="btn btn-gray inline-block text-center">
             ← Volver al menú
           </Link>
