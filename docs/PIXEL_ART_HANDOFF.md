@@ -1,28 +1,27 @@
 # Línea de arte pixel: traspaso a otra IA
 
 Rama de trabajo: `design/pixel-art` (sale de `main` en `4d23f57`). Commits de esta línea: `e969c0b`, `b896a25`, `c485230`, `c56f862`, `b2cddf9`.
-Tú (la otra IA) integras el arte que llegue y **subes el git** (commit, push, PR). Yo no he empujado nada.
+Actualización del 7 de octubre de 2026: Fase 3 integrada y tres lotes de Fase 4 terminados. El usuario autorizó continuar después de los lotes 1 y 2; el lote 3 (24 rasgos) queda pendiente de revisión visual. La integración está versionada en el commit `5bdcb1b` de `design/pixel-art`, con 169 PNG finales. El usuario autorizó el commit y push a esta rama; no se fusiona con `main` ni se crea PR sin una solicitud explícita.
 
 Reglas del proyecto que siguen valiendo (ver `CLAUDE.md`): textos de UI en español, código y commits en inglés, componentes sin lógica de juego, `tsc` + `eslint` siempre antes de cerrar, capturas pocas y a escala 0.5, preferir `read_page`/DOM a imágenes. Commits pequeños, uno por cambio lógico, con la línea `Co-Authored-By` que indique tu entorno.
 
 ## 0. Dónde está el código y cómo obtenerlo
 
-- Repositorio: `https://github.com/joerojas2810-collab/Boludos-Dragones.git` (remoto `origin`). En GitHub **solo existe `main`**.
-- La rama `design/pixel-art` está **solo en la carpeta local** `/Users/josephrojas/Desktop/Nuevo Juego` y **nunca se ha empujado**. Tiene 5 commits propios y archivos sin versionar (los dos `.md` de arte).
-- Caso A, trabajas en esta misma computadora (lo más simple): abre esa carpeta, `git checkout design/pixel-art` y sigue desde ahí. Ahí ya están `node_modules`, `.env.local` y `.claude/launch.json`. Después `git push -u origin design/pixel-art`.
-- Caso B, trabajas en otra máquina o en la nube: antes hay que empujar la rama desde esta carpeta (`git add docs/PEDIDO_ARTE_3.md docs/PIXEL_ART_HANDOFF.md && git commit && git push -u origin design/pixel-art`). Solo entonces `git clone` + `git checkout design/pixel-art` la trae.
-- No viven en el repo y hay que tenerlos aparte: `.env.local` (secretos de Supabase; no hace falta para el modo local de esta línea de arte), `node_modules` (`npm install --legacy-peer-deps`, ver `CLAUDE.md`) y las carpetas con el arte de origen en `Downloads/heroes` y `Downloads/enemies` (solo para volver a correr el importador; los PNG finales ya están en `public/art/*-px/`).
+- Repositorio: `https://github.com/joerojas2810-collab/Boludos-Dragones.git`. La rama remota `design/pixel-art` ya existe; este trabajo parte de `de2e3f7`.
+- Copia local de Felipe: `C:/Users/Felipe/OneDrive/Escritorio/Proyecto de Juego/Boludos-Dragones`.
+- Arte entregado, fuera del repositorio: `../Pedido de Arte Pixel Art/`. Solo PNG finales y manifiestos se importan a `public/art/*-px/`.
+- Preparación: clonar, seleccionar `design/pixel-art` e instalar con `npm install --legacy-peer-deps`. `.env.local` no es necesario para revisar el modo local y nunca debe subirse.
 
 ## 1. Qué es esto
 
 Una línea de arte **alterna** al arte pintado actual (`public/art/*.webp`). Reemplaza al pintado cuando esté aprobada, pero mientras tanto **conviven** y se elige con un interruptor de compilación:
 
 ```
-NEXT_PUBLIC_ART=pixel   -> héroes y enemigos en pixel art
+NEXT_PUBLIC_ART=pixel   -> recursos pixel disponibles; el resto conserva el arte pintado
 (sin variable)          -> arte pintado, igual que antes
 ```
 
-Pedido de arte completo por fases: `docs/PEDIDO_ARTE_3.md` (archivo sin versionar aún; súbelo). Una fase por vez, sin avanzar sin aprobación del usuario.
+Pedido de arte completo por fases: `docs/PEDIDO_ARTE_3.md`. Una fase por vez, sin avanzar sin aprobación del usuario.
 
 ## 2. Estado por fase
 
@@ -30,13 +29,13 @@ Pedido de arte completo por fases: `docs/PEDIDO_ARTE_3.md` (archivo sin versiona
 |---|---|---|
 | 1 | Héroes (4 clases × 10 acciones, 64×96) | Entregada, integrada, aprobada |
 | 2 | Enemigos (5 familias × normal/élite/jefe + 9 jefes finales) | Entregada, integrada, aprobada con ajustes (sin brillo) |
-| 3 | Armas, equipo, partes, núcleos, marcos de carta | Pendiente |
-| 4 | Íconos del sistema | Pendiente |
+| 3 | Armas, equipo, partes, núcleos, marcos de carta | Entregada e integrada localmente: 42 originales, 98 PNG de juego |
+| 4 | Íconos del sistema | Lote 1: 25 PNG (elementos, clases, rangos, puertas). Lote 2: 22 PNG (4 pasivos y 18 habilidades). Lote 3: 24 rasgos, pendiente aprobación visual. Los tres integrados localmente; quedan 167 íconos |
 | 5 | Interfaz (9-slice, botones, barras, logos) | Pendiente |
 | 6 | Fondos (5 capas) | Pendiente |
 | 7 | Efectos | Pendiente |
 
-Mientras no lleguen las fases 3 a 7, la pantalla mezcla pixel (héroes y enemigos) con arte pintado (resto). Es esperado.
+Mientras no se completen las fases 4 a 7, la pantalla mezcla pixel (héroes y enemigos) con arte pintado (resto). Es esperado.
 
 ## 3. Datos de las entregas
 
@@ -45,13 +44,19 @@ Mientras no lleguen las fases 3 a 7, la pantalla mezcla pixel (héroes y enemigo
 - Héroes: `hero_<clase>_<acción>.png`, clases `knight mage rogue cleric`, acciones `idle attack_1 attack_2 attack_3 defend perfect_guard hit dodge defeat victory`.
 - Enemigos: `enemy_<familia>_<normal|elite|boss>_fire_<acción>.png` y `boss_<id>_fire_<acción>.png`. Familias `slime imp harpy golem specter`. Acciones `idle attack hit defeat entrance` (entrance solo en jefes). Jefes finales por rango (del manifest): f great_devourer, e ash_king, d withered_queen, c hollow_colossus, b eternal_watcher, a mother_hydra, s lord_of_flies, ss faceless_one, ssr thunder_king.
 - fps y cuadros por acción: héroes en `src/lib/art/heroes.ts` (`HERO_ACTIONS`); enemigos en `PX_ACTIONS` de `src/lib/art/enemies.ts` (idle 4/6 loop, attack 4/10, hit 2/12, defeat 4/8 queda, entrance 4/10).
-- Origen en esta máquina: `/Users/josephrojas/Downloads/heroes/` y `/Users/josephrojas/Downloads/enemies/` (fuera del repo; no subir originales).
+- Origen en esta máquina: `../Pedido de Arte Pixel Art/heroes/` y `../Pedido de Arte Pixel Art/enemies/` (fuera del repo; no subir originales). Las tiras de enemigos ya integradas conservan los ajustes aprobados de brillo; no se regeneraron en este traspaso.
 
 ## 4. Archivos que tocan esta línea
 
 | Archivo | Rol |
 |---|---|
 | `scripts/import-pixel.mjs` | Importador de héroes y enemigos: recoloreo, quita brillo en enemigos, agrega margen |
+| `scripts/import-pixel-static.mjs` | Importador de Fases 3 y 4; valida tamaño/alfa y recolorea por RGB exacto sin escalar |
+| `src/lib/art/pixel-palettes.json` | Rampas canónicas de cinco elementos; Rayo amarillo |
+| `src/lib/art/pixel.ts` y `pixel-icons.generated.json` | Interruptor, catálogo disponible y abertura de cartas pixel |
+| `public/art/weapons-px/` y `equipment-px/` | 45 armas y 25 piezas de equipo: 5 variantes de cada base |
+| `public/art/icons-px/` y `frames-px/` | 90 íconos y 9 marcos (169 PNG estáticos en total con armas/equipo) |
+| `src/components/Icon.tsx`, `WeaponSprite.tsx`, `RarityFrame.tsx`, `ItemCard.tsx` | Selección del arte alterno y render pixelado; abertura pixel 44×58 dentro de 60×80 |
 | `public/art/heroes-px/` | 200 tiras (4 clases × 5 elementos × 10 acciones), ~1 MB |
 | `public/art/enemies-px/` | 550 tiras, ~3 MB |
 | `src/components/HeroSprite.tsx` | Rama `PIXEL` (usa `heroes-px`, sin accesorios de rasgo) |
@@ -68,8 +73,9 @@ Mientras no lleguen las fases 3 a 7, la pantalla mezcla pixel (héroes y enemigo
 
 ```bash
 # regenerar el arte (idempotente, sobrescribe)
-node scripts/import-pixel.mjs "/Users/josephrojas/Downloads/heroes"  heroes
-node scripts/import-pixel.mjs "/Users/josephrojas/Downloads/enemies" enemies
+node scripts/import-pixel.mjs "../Pedido de Arte Pixel Art/heroes" heroes
+node scripts/import-pixel.mjs "../Pedido de Arte Pixel Art/enemies" enemies
+node scripts/import-pixel-static.mjs "../Pedido de Arte Pixel Art" all
 
 # ver en el navegador (segundo servidor, no choca con el principal)
 NEXT_PUBLIC_ART=pixel NEXT_DIST_DIR=.next-pixel NEXT_PUBLIC_SUPABASE_URL= NEXT_PUBLIC_SUPABASE_ANON_KEY= npx next dev -p 3112
@@ -287,7 +293,7 @@ La galería `src/app/galeria-px/` (`page.tsx` con `notFound()` en producción y 
 
 1. **Calidad percibida de los héroes.** Los cuadros son de 64×96 y el usuario compara con una referencia mucho más detallada (≈4-5× la resolución). No se puede recuperar detalle escalando (Scale2x/xBR suavizan sin agregar; la IA rompe el recoloreo exacto y parpadea entre cuadros). Camino recomendado: pedir al artista los **mismos cuadros a 128×192 o 192×288** (o su archivo original). Cuando lleguen: cambiar `PAD` proporcionalmente, `PX_ASPECT` (hoy 70/96 en `HeroSprite.tsx`, `enemies.ts` y `Gallery.tsx`), la base 90/96 del anclaje y revisar que el recoloreo siga encontrando la rampa exacta.
 2. **Escalado a números enteros.** Hoy el sprite se dibuja al tamaño que deja cada pantalla, que casi nunca es múltiplo de 64×96; con `pixelated` salen píxeles de distinto ancho. Mejora: calcular `k = max(1, floor(altoDisponible / 96))` y fijar el sprite a `96*k` px de alto. Probar en hub, combate, tarjetas de colección (`ItemCard`, modo `crop`), gacha, salas y podio.
-3. **Fases 3 a 7**, en ese orden, una por vez y con revisión visual antes de seguir. Nombres de archivo y carpetas de referencia están en `docs/PEDIDO_ARTE_3.md` y en `public/art/<lote>/`. Para cada fase: importador nuevo o extensión de `import-pixel.mjs`, interruptor `PIXEL` en el componente que hoy lee ese arte (`Icon`, `ItemCard`, `Panel`/9-slice, `ArenaBackground`, `Vfx`/`BattleFx`), y entrada en la galería de desarrollo si tiene sentido.
+3. **Resto de Fase 4 y Fases 5 a 7**, en ese orden, una por vez y con revisión visual antes de seguir. Nombres de archivo y carpetas de referencia están en `docs/PEDIDO_ARTE_3.md` y en `public/art/<lote>/`. Para cada fase: importador nuevo o extensión de `import-pixel.mjs`, interruptor `PIXEL` en el componente que hoy lee ese arte (`Icon`, `ItemCard`, `Panel`/9-slice, `ArenaBackground`, `Vfx`/`BattleFx`), y entrada en la galería de desarrollo si tiene sentido.
 4. **Accesorios de rasgo** (fase 1b): sin arte de capas, los 24 rasgos no se ven sobre el héroe en pixel. Hoy se ignoran en `HeroSprite`. Pedir las capas al artista o mostrar el rasgo con un chip.
 5. Revisar con el usuario las paletas de Agua, Tierra y Viento.
 6. Revisión visual que no hicimos: celular, salas en vivo (`/sala`), podio, jefe cooperativo y las animaciones `entrance` de los jefes en una pelea real. Quedó una "+" mínima de brillo en el limo élite.
@@ -296,6 +302,15 @@ La galería `src/app/galeria-px/` (`page.tsx` con `notFound()` en producción y 
 ## 9. Para subir el git
 
 - Rama `design/pixel-art`; PR contra `main` solo cuando el usuario lo pida. No fusionar sola.
-- Antes de commitear: `git status`. Archivos sin versionar que **son parte del trabajo**: `docs/PEDIDO_ARTE_3.md`, `docs/PIXEL_ART_HANDOFF.md`. `docs/PROPUESTA_RUN_V2.md` es del usuario, de otro tema: no la toques ni la incluyas sin preguntar.
+- Antes de commitear: `git status`. Los dos documentos de arte ya estaban versionados en la rama remota. `docs/PROPUESTA_RUN_V2.md` es del usuario, de otro tema: no la toques ni la incluyas sin preguntar.
 - No subir las carpetas de origen (`Downloads/heroes`, `Downloads/enemies`) ni nada de `.next*`.
 - Vercel despliega cada push a `main`; en esta rama no hay despliegue a producción, pero genera preview por rama.
+
+## 10. Validación de este traspaso
+
+- TypeScript sin errores; ESLint sin errores (7 advertencias preexistentes en archivos ajenos al cambio).
+- Vitest: 37 archivos y 449 pruebas aprobadas.
+- Galería local: `/galeria-px` incluye héroes, enemigos, armas/equipo/forja, íconos y marcos. Se verificaron las 89 imágenes de inventario, los 18 marcos de las muestras de carta y los 90 íconos sin recursos faltantes; los íconos usan render pixelado. Los 24 rasgos aparecen en su sección con etiquetas en español.
+- Los íconos nuevos conservan 32×32 y alfa binario. Los ZIP de Fase 4 contienen respectivamente 25, 22 y 24 PNG, cada uno con su manifiesto. El manifiesto acumulado de `icons/` contiene 90 entradas (19 de Fase 3 y 71 de Fase 4). Se comprobó que la importación de los 24 rasgos conserva exactamente sus píxeles. Los cinco núcleos de Fase 3 y los íconos de elemento usan las mismas rampas canónicas.
+- El arte pintado sigue disponible sin `NEXT_PUBLIC_ART=pixel`. La galería sigue siendo solo de desarrollo. No se verificaron partidas multijugador, móvil o despliegue de producción en este traspaso.
+- No subir originales, ZIP, borradores, `node_modules` ni `.next*`. El lote 3 de Fase 4 se revisa antes de producir el siguiente (15 mejoras).
