@@ -80,7 +80,7 @@ export default function TowerPage() {
           <Panel key={m} title={TOWER_LABEL[m]}>
             <div className="flex flex-col items-center gap-2">
               <Icon
-                name={m === "nivelado" ? "dungeon_rank_d" : "dungeon_rank_s"}
+                name={m === "nivelado" ? "passive_wall" : "relic_titan_crown"}
                 className="h-32 w-32"
               />
               <p className="text-center text-sm text-[#d9d2ca]">

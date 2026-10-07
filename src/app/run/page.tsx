@@ -793,7 +793,10 @@ function RunScreen() {
     main = (
       <Center>
         <Panel title="¡Subes de nivel!">
-        <Vfx id="level_up" className="pointer-events-none mx-auto -mt-2 -mb-6 w-40" />
+          <Vfx
+            id="level_up"
+            className="pointer-events-none mx-auto -mt-2 -mb-6 w-40"
+          />
           <SkillChoice
             classId={run.hero.classId}
             ids={skillOffer(run)}
@@ -810,7 +813,10 @@ function RunScreen() {
     main = (
       <Center>
         <Panel title="¡Subes de nivel!">
-        <Vfx id="level_up" className="pointer-events-none mx-auto -mt-2 -mb-6 w-40" />
+          <Vfx
+            id="level_up"
+            className="pointer-events-none mx-auto -mt-2 -mb-6 w-40"
+          />
           <div className="mb-3 text-center text-base text-yellow-300">
             Elige una mejora ({run.pendingPicks} pendiente
             {run.pendingPicks > 1 ? "s" : ""})
@@ -1142,7 +1148,9 @@ function RunScreen() {
       <div className={`mx-auto w-full ${wide}`}>
         <Hud run={run} />
       </div>
-      <div className={`mx-auto flex w-full flex-col gap-3 md:min-h-0 md:flex-1 ${wide}`}>
+      <div
+        className={`mx-auto flex w-full flex-col gap-3 md:min-h-0 md:flex-1 ${wide}`}
+      >
         <div className="flex min-w-0 flex-1 flex-col gap-3 md:min-h-0">
           {main}
         </div>
@@ -1192,10 +1200,10 @@ function DungeonSelect({
               >
                 <Icon
                   name={`dungeon_rank_${rank}`}
-                  className="h-20 w-20 shrink-0"
+                  className="h-[92px] w-[92px] shrink-0"
                 />
                 <span className="min-w-0 text-base">
-                  <span className="block text-base font-semibold text-yellow-300">
+                  <span className="name-title block text-yellow-300">
                     {d.name}
                   </span>
                   <span className="flex items-center gap-1">
@@ -1310,7 +1318,7 @@ function AscensionModal({
                     {n === 0 ? "0" : `+${n}`}
                   </span>
                   <span className="min-w-0 text-sm">
-                    <span className="block text-base font-semibold text-yellow-300">
+                    <span className="name-title block text-yellow-300">
                       {n === 0 ? "Normal" : `Ascensión +${n}`}
                     </span>
                     <span className="block text-[#d9d2ca]">

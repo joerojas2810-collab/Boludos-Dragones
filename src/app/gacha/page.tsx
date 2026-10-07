@@ -154,7 +154,7 @@ export default function GachaPage() {
               style={{ color: RARITIES[id].color }}
             >
               <Icon name={`rank_${id}`} className="h-6" />
-              <div className="break-words text-[10px] font-semibold leading-tight sm:text-sm">
+              <div className="rank-label break-words text-[10px] leading-tight sm:text-sm">
                 {RARITIES[id].label}
               </div>
               <div>{+(RARITIES[id].probability * 100).toFixed(1)}%</div>

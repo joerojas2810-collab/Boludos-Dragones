@@ -142,7 +142,7 @@ export function RankPicker({
             onClick={() => onChange(r)}
           >
             <Icon name={`rank_${r}`} className="h-9" />
-            <b className="text-sm" style={{ color: RARITIES[r].color }}>
+            <b className="rank-label text-sm" style={{ color: RARITIES[r].color }}>
               {RARITIES[r].label}
             </b>
             {sub && <Sub ok={rd}>{sub(r)}</Sub>}

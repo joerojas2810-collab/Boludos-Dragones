@@ -83,7 +83,7 @@ export default function Home() {
                 {CLASSES[hero.classId].name} · {ELEMENT_LABEL[hero.element]} ·
                 Nv {hero.level}
               </span>
-              <StarRow stars={hero.stars} className="h-4" />
+              <StarRow stars={hero.stars} className="h-[1.1rem]" />
             </div>
           </>
         ) : (
