@@ -232,7 +232,12 @@ function play(seed: number, strat: Strategy): Result {
             ...st,
             hp: st.hp * (1 + Number(process.env.GEAR_HP ?? 0)),
             def: st.def * (1 + Number(process.env.GEAR_DEF ?? 0)),
-            atk: st.atk * (1 + Number(process.env.GEAR_ATK ?? 0)),
+            atk:
+              st.atk * (1 + Number(process.env.GEAR_ATK ?? 0)) +
+              Number(process.env.WEAPON_ATK ?? 0), // flat, like a worn weapon
+            speed: st.speed * (1 + Number(process.env.GEAR_SPEED ?? 0)),
+            crit: st.crit + Number(process.env.GEAR_CRIT ?? 0),
+            dodge: st.dodge + Number(process.env.GEAR_DODGE ?? 0),
           };
         })(),
       }
