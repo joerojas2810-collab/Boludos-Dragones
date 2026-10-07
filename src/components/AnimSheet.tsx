@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
 export type SheetAnim = {
   src: string; // horizontal strip: one row, `frames` equal cells
@@ -27,45 +27,53 @@ export const AnimSheet = (props: Props) => (
 );
 
 function Sheet({ anim, flip = false, className = "", onDone, last, shift }: Props) {
-  const [frame, setFrame] = useState(last ? anim.frames - 1 : 0);
   const { frames, fps, loop } = anim;
+  const ref = useRef<HTMLDivElement>(null);
+  const pos = (i: number) => `${frames > 1 ? (i / (frames - 1)) * 100 : 0}% 0`;
+  const move = (i: number) =>
+    shift
+      ? `translate(${shift[Math.min(i, shift.length - 1)][0]}%, ${shift[Math.min(i, shift.length - 1)][1]}%)`
+      : "none";
+  // Frames advance on the compositor via one Web Animation (no React render per frame).
   useEffect(() => {
+    const el = ref.current;
     if (
+      !el ||
       last ||
       frames < 2 ||
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
       return;
     }
-    let i = 0;
-    const id = setInterval(() => {
-      i++;
-      if (i >= frames) {
-        if (loop) i = 0;
-        else {
-          clearInterval(id);
-          onDone?.();
-          return;
-        }
-      }
-      setFrame(i);
-    }, 1000 / fps);
-    return () => clearInterval(id);
-  }, [anim.src, frames, fps, loop]); // eslint-disable-line react-hooks/exhaustive-deps
+    const keys: Keyframe[] = Array.from({ length: frames }, (_, i) => ({
+      backgroundPosition: pos(i),
+      transform: move(i),
+      offset: i / frames,
+      easing: "step-end",
+    }));
+    keys.push({ backgroundPosition: pos(frames - 1), transform: move(frames - 1), offset: 1 });
+    const run = el.animate(keys, {
+      duration: (frames / fps) * 1000,
+      iterations: loop ? Infinity : 1,
+      fill: "forwards",
+    });
+    if (!loop) run.onfinish = () => onDone?.();
+    return () => run.cancel();
+  }, [anim.src, frames, fps, loop, last]); // eslint-disable-line react-hooks/exhaustive-deps
+  const f0 = last ? frames - 1 : 0;
   return (
     <div
+      ref={ref}
       role="img"
       aria-hidden="true"
       className={`${flip ? "-scale-x-100" : ""} ${className}`}
       style={{
         aspectRatio: anim.aspect ?? 1,
-        transform: shift
-          ? `translate(${shift[Math.min(frame, shift.length - 1)][0]}%, ${shift[Math.min(frame, shift.length - 1)][1]}%)`
-          : undefined,
+        transform: shift ? move(f0) : undefined,
         backgroundImage: `url(${anim.src})`,
         backgroundRepeat: "no-repeat",
         backgroundSize: `${frames * 100}% 100%`,
-        backgroundPosition: `${frames > 1 ? (frame / (frames - 1)) * 100 : 0}% 0`,
+        backgroundPosition: pos(f0),
       }}
     />
   );

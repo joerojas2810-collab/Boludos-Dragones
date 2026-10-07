@@ -31,6 +31,16 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Painted art never changes under the same name in a deploy for long: cache hard, revalidate in the background.
+        source: "/art/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=604800, stale-while-revalidate=2592000",
+          },
+        ],
+      },
+      {
         source: "/:path*",
         headers: [
           { key: "Content-Security-Policy", value: csp },

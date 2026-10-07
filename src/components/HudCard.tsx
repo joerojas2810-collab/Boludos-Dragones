@@ -95,7 +95,7 @@ export function HudCard({
     !!children;
   return (
     <div
-      className={`relative min-w-0 rounded-md border border-[#b9855a]/55 bg-[#141d28]/80 p-2 shadow-[0_4px_14px_rgb(0_0_0/0.45)] backdrop-blur-[2px] ${className}`}
+      className={`relative min-w-0 rounded-md border border-[#b9855a]/55 bg-[#141d28]/90 p-2 shadow-[0_4px_14px_rgb(0_0_0/0.45)] ${className}`}
     >
       <div className="flex items-center gap-1.5">
         {tone === "enemy" && label !== "RIVAL" && (
