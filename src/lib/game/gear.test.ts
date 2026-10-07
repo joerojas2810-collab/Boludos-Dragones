@@ -26,6 +26,11 @@ describe("element sets", () => {
     const four = activeSets(["rayo", "rayo", "rayo", "rayo", "agua"], "fuego");
     expect(four[0].tier).toBe(4);
     expect(four[0].bonus.crit).toBe(SET_BONUS.rayo[1].crit);
+    const five = activeSets(Array(5).fill("rayo"), "fuego");
+    expect(five[0].tier).toBe(4);
+    const six = activeSets(Array(6).fill("rayo"), "fuego");
+    expect(six[0].tier).toBe(6);
+    expect(six[0].bonus.crit).toBe(SET_BONUS.rayo[2].crit);
   });
   it("multiplies by affinity when the set matches the hero's element", () => {
     const [s] = activeSets(["fuego", "fuego"], "fuego");

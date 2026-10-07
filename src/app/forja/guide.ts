@@ -25,7 +25,7 @@ export const GUIDE: Record<
       "Paso 3: elige el rango. Usa partes de ese mismo rango, así que una pieza SSR pide partes SSR.",
       "Paso 4: revisa el costo. Son 3 partes del tipo y rango, 1 núcleo del elemento y unas monedas (la mitad de lo que cuesta fusionar hasta ese rango).",
       "Paso 5: pulsa Armar. La pieza aparece en tu colección. Si ya tenías esa misma pieza (tipo, elemento y rango), en vez de repetirse sube 1 estrella, hasta un máximo de 5.",
-      "Después: equípala en Héroes, en el muñeco de 6 casillas. Cada estrella suma bonos, y las piezas del mismo elemento dan bonos de set (2 piezas, 4 piezas).",
+      "Después: equípala en Héroes, en el muñeco de 6 casillas. Cada estrella suma bonos, y las piezas del mismo elemento dan bonos de set (2, 4 y 6 piezas).",
     ],
   },
   merge: {

@@ -1,4 +1,5 @@
 "use client";
+import type { Element as GameElement } from "@/lib/game/elements";
 
 import { RankIcon } from "@/components/RankIcon";
 import Link from "next/link";
@@ -8,7 +9,14 @@ import { HeroSprite } from "@/components/HeroSprite";
 import { StarRow } from "@/components/StarRow";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import { CLASSES } from "@/lib/game/characters";
-import { activeSets, setLine } from "@/lib/game/gear";
+import {
+  activeSets,
+  SET_AFFINITY,
+  SET_BONUS,
+  SET_TIERS,
+  setLine,
+  setTierText,
+} from "@/lib/game/gear";
 import {
   autoEquipPlan,
   slotKey,
@@ -228,13 +236,41 @@ export function EquipmentEditor({
       </div>
 
       <div className="text-sm text-[#d9d2ca]">
-        {sets.length === 0
-          ? "Sets: 2 piezas del mismo elemento dan un bono, 4 uno mayor (×1.5 si es el elemento del héroe)."
-          : sets.map((st) => (
-              <div key={st.element} className="text-green-300">
-                {setLine(st)}
+        {sets.length === 0 ? (
+          <div>Sets: piezas del mismo elemento dan bonos a 2, 4 y 6.</div>
+        ) : (
+          sets.map((st) => (
+            <div key={st.element} className="text-green-300">
+              {setLine(st)}
+            </div>
+          ))
+        )}
+        <details className="mt-1">
+          <summary className="cursor-pointer">Ver todos los sets</summary>
+          <div className="mt-1 space-y-0.5 text-xs">
+            {(Object.keys(SET_BONUS) as GameElement[]).map((el) => (
+              <div key={el}>
+                <span className="font-semibold capitalize">{el}</span>
+                {SET_TIERS.map((n, i) => (
+                  <span
+                    key={n}
+                    className={
+                      sets.find((x) => x.element === el && x.tier >= n)
+                        ? "ml-2 text-green-300"
+                        : "ml-2"
+                    }
+                  >
+                    {n}: {setTierText(el, i)}
+                  </span>
+                ))}
               </div>
             ))}
+            <div>
+              ×{SET_AFFINITY} si el set es del elemento de tu héroe. Los bonos
+              de varios sets se suman.
+            </div>
+          </div>
+        </details>
       </div>
       {[sel].map((slot) => {
         const worn = profile.weapons.find(

@@ -129,25 +129,26 @@ export const applyGearDelta = (
 // each with the element's signature stat. If the set matches the HERO's element the bonus
 // is multiplied (SET_AFFINITY). Sums into the gear caps like any piece.
 export const SET_AFFINITY = 1.5;
-export const SET_TIERS = [2, 4] as const;
+export const SET_TIERS = [2, 4, 6] as const;
 export const SET_BONUS: Record<
   Element,
-  [Partial<GearBonus>, Partial<GearBonus>]
+  [Partial<GearBonus>, Partial<GearBonus>, Partial<GearBonus>]
 > = {
-  rayo: [{ crit: 0.03 }, { crit: 0.07 }],
-  fuego: [{ atk: 0.04 }, { atk: 0.09 }],
-  agua: [{ hp: 0.05 }, { hp: 0.12 }],
-  tierra: [{ def: 0.05 }, { def: 0.12 }],
+  rayo: [{ crit: 0.03 }, { crit: 0.07 }, { crit: 0.11 }],
+  fuego: [{ atk: 0.04 }, { atk: 0.09 }, { atk: 0.15 }],
+  agua: [{ hp: 0.05 }, { hp: 0.12 }, { hp: 0.2 }],
+  tierra: [{ def: 0.05 }, { def: 0.12 }, { def: 0.2 }],
   viento: [
     { speed: 0.04, dodge: 0.01 },
     { speed: 0.08, dodge: 0.02 },
+    { speed: 0.12, dodge: 0.03 },
   ],
 };
 
 export interface ActiveSet {
   element: Element;
   pieces: number;
-  tier: 2 | 4;
+  tier: 2 | 4 | 6;
   affinity: boolean;
   bonus: GearBonus;
 }
@@ -159,12 +160,12 @@ export function activeSets(
   const out: ActiveSet[] = [];
   for (const el of Object.keys(SET_BONUS) as Element[]) {
     const n = elements.filter((e) => e === el).length;
-    const tier = n >= 4 ? 4 : n >= 2 ? 2 : null;
+    const tier = n >= 6 ? 6 : n >= 4 ? 4 : n >= 2 ? 2 : null;
     if (!tier) continue;
     const affinity = el === heroElement;
     const mult = affinity ? SET_AFFINITY : 1;
     const bonus = { ...NO_GEAR };
-    for (const [k, v] of Object.entries(SET_BONUS[el][tier === 4 ? 1 : 0]))
+    for (const [k, v] of Object.entries(SET_BONUS[el][SET_TIERS.indexOf(tier)]))
       bonus[k as keyof GearBonus] =
         Math.round((v as number) * mult * 1000) / 1000;
     out.push({ element: el, pieces: n, tier, affinity, bonus });
@@ -174,6 +175,10 @@ export function activeSets(
 
 export const setBonus = (sets: readonly ActiveSet[]): GearBonus =>
   sets.reduce((acc, s) => combineGear(acc, s.bonus), NO_GEAR);
+
+// Full table line for one element and tier index (no affinity), e.g. "+3% crítico".
+export const setTierText = (el: Element, i: number): string =>
+  bonusText({ ...NO_GEAR, ...SET_BONUS[el][i] });
 
 // "Set de Rayo (2): +4.5% crítico (afinidad ×1.5)"
 export const setLine = (s: ActiveSet): string =>
