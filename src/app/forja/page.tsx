@@ -558,6 +558,10 @@ export default function ForgePage() {
                 Varias partes del mismo tipo y rango + 1 núcleo + monedas dan 1
                 parte del rango siguiente.
               </p>
+              <p className="text-sm font-bold text-amber-300">
+                ⚠ Esto da una PARTE, no una pieza equipable. Para el equipo usa
+                la pestaña Armar (3 partes del rango + 1 núcleo).
+              </p>
               {jumpBtn}
               <Step n={1} title="Tipo de parte">
                 <TypePicker
@@ -615,7 +619,9 @@ export default function ForgePage() {
                     rarity={nextRank}
                     className="w-10"
                   />
-                  <span>1 {partLabel(partKey(type, nextRank))}</span>
+                  <span>
+                    1 {partLabel(partKey(type, nextRank))} (parte, no equipable)
+                  </span>
                 </ResultCard>
               )}
               {status(check(mergeOp()))}
