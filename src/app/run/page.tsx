@@ -739,7 +739,8 @@ function RunScreen() {
       run.rank && run.floor === DUNGEONS[run.rank].floors ? run.rank : null;
     const mods = b.mods ?? [];
     main = (
-      <>
+      <div className="flex min-w-0 flex-1 flex-col gap-3 md:min-h-0 md:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col md:min-h-0">
         <BattleArena
           b={b}
           enemyExtra={(i, c) =>
@@ -783,7 +784,9 @@ function RunScreen() {
               ))
           }
         />
+        </div>
         <ActionPanel
+          side
           b={b}
           target={targeting.target}
           onAct={(a, t) => act(screen, a, t)}
@@ -811,7 +814,7 @@ function RunScreen() {
             </>
           )}
         </ActionPanel>
-      </>
+      </div>
     );
   } else if (screen.t === "picks" && run.pendingSkill) {
     main = (
@@ -1168,7 +1171,7 @@ function RunScreen() {
   // Fights: width follows the available height (~16:9 stage) so the arena never becomes a wide strip.
   const wide =
     screen.t === "fight"
-      ? "max-w-[min(90rem,calc((100vh-21rem)*1.78))] md:min-w-[48rem]"
+      ? "max-w-[min(100rem,calc((100vh-15rem)*1.78+23rem))] md:min-w-[48rem]"
       : "max-w-4xl";
   return (
     <main className="flex flex-col gap-3 p-3 pt-6 text-base md:h-screen md:overflow-hidden">
@@ -1229,7 +1232,7 @@ function DungeonSelect({
                   rank={rank}
                   door
                   letter
-                  className="h-[101px] w-[101px]"
+                  className="h-[min(101px,9vh)] w-[min(101px,9vh)]"
                 />
                 <span className="min-w-0 text-base">
                   <span className="name-title block text-yellow-300">

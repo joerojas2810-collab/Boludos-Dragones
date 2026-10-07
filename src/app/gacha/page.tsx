@@ -109,7 +109,7 @@ export default function GachaPage() {
   const doPull = (count: 1 | 10) => run(() => repo.pull(banner, count));
 
   return (
-    <main className="flex flex-col gap-4 p-3 pt-4">
+    <main className="flex flex-col gap-3 p-3 pt-2">
       <div className="mx-auto flex w-full max-w-4xl gap-2" role="tablist">
         {(Object.keys(BANNERS) as Banner[]).map((k) => (
           <button
@@ -128,14 +128,14 @@ export default function GachaPage() {
       </div>
 
       <Panel title={b.title} className="mx-auto w-full max-w-4xl">
-        <div className="mb-3 flex flex-wrap justify-center gap-1">
+        <div className="mb-2 flex flex-wrap justify-center gap-1">
           {banner === "character"
             ? CLASS_IDS.map((id, i) => (
                 <HeroSprite
                   key={id}
                   classId={id}
                   element={ELEMENTS[(i + 1) % ELEMENTS.length]}
-                  className="w-20 sm:w-32"
+                  className="w-20 sm:w-[min(8rem,8vh)]"
                   crop
                 />
               ))
@@ -145,20 +145,20 @@ export default function GachaPage() {
                   type={t}
                   element={ELEMENTS[i % ELEMENTS.length]}
                   rarity="a"
-                  className="w-14 sm:w-24"
+                  className="w-14 sm:w-[min(6rem,8vh)]"
                 />
               ))}
         </div>
-        <p className="mb-3 text-center text-base text-[#d9d2ca]">{b.text}</p>
+        <p className="mb-2 text-center text-base text-[#d9d2ca]">{b.text}</p>
 
-        <ul className="mb-3 grid grid-cols-5 gap-1 text-center sm:grid-cols-9 text-xs sm:text-sm">
+        <ul className="mb-2 grid grid-cols-5 gap-1 text-center sm:grid-cols-9 text-xs sm:text-sm">
           {RARITY_IDS.map((id) => (
             <li
               key={id}
               className="border-2 border-[var(--edge)] px-0.5 py-1"
               style={{ color: RARITIES[id].color }}
             >
-              <RankIcon rank={id} className="mx-auto h-12 w-12 sm:h-14 sm:w-14" />
+              <RankIcon rank={id} className="mx-auto h-12 w-12 sm:h-[min(3.5rem,4.5vh)] sm:w-[min(3.5rem,4.5vh)]" />
               <div className="rank-label break-words text-[10px] leading-tight sm:text-sm">
                 {RARITIES[id].label}
               </div>
@@ -167,7 +167,7 @@ export default function GachaPage() {
           ))}
         </ul>
 
-        <div className="mb-3 text-center">
+        <div className="mb-2 text-center">
           <Tooltip
             tip={{
               title: "Garantía (pity)",
@@ -226,7 +226,7 @@ export default function GachaPage() {
                   {n === MULTI_PULL &&
                     ` (-${Math.round(MULTI_PULL_DISCOUNT * 100)}%)`}
                 </button>
-                <span className="min-h-5 text-center text-sm text-red-300">
+                <span className="text-center text-sm text-red-300">
                   {missing > 0 && `Te faltan ${missing} monedas`}
                 </span>
               </div>
@@ -234,7 +234,7 @@ export default function GachaPage() {
           })}
         </div>
         <button
-          className="btn btn-gray mx-auto mt-3 block text-center"
+          className="btn btn-gray mx-auto mt-2 block text-center"
           disabled={busy || claimedToday(profile.daily, dayKey())}
           onClick={() => run(() => repo.dailyPull(banner))}
         >

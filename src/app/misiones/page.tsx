@@ -155,12 +155,10 @@ export default function MissionsPage() {
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`/art/ui/chest_tier${Math.min(i + 1, 3)}.webp`}
+                      src={`/art/ui/chest_tier${i < s.claimed ? Math.max(i + 1, 2) : 1}.webp`}
                       alt=""
                       draggable={false}
-                      className={
-                        i === 0 ? "h-[72px]" : i === 1 ? "h-20" : "h-[88px]"
-                      }
+                      className="h-20"
                     />
                     <span className="flex items-center gap-1">
                       {i < s.claimed ? "✔ " : ""}

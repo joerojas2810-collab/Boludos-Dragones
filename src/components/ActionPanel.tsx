@@ -35,6 +35,7 @@ type Props = {
   fleeCost?: number; // coins lost on a successful flee (runs)
   // Quick resolve (easy fights in runs): why it is blocked, or null if allowed.
   auto?: { reason: string | null; onAuto: () => void };
+  side?: boolean; // vertical list in a side column (desktop)
   children?: ReactNode; // shown below the result once the fight is over
 };
 
@@ -82,6 +83,7 @@ export function ActionPanel({
   onAct,
   fleeCost,
   auto,
+  side,
   children,
 }: Props) {
   const over = b.status !== "ongoing";
@@ -137,7 +139,7 @@ export function ActionPanel({
   };
 
   return (
-    <Panel className="shrink-0 !p-2 max-md:sticky max-md:bottom-0 max-md:z-30">
+    <Panel className={`shrink-0 !p-2 max-md:sticky max-md:bottom-0 max-md:z-30 ${side ? "md:w-[22rem] md:self-stretch md:overflow-y-auto" : ""}`}>
       {!over && (
         <div className="mb-1.5 flex flex-wrap items-center justify-center gap-x-4 text-center">
           <div className="flex flex-wrap items-center justify-center gap-x-3 text-base">
@@ -171,7 +173,7 @@ export function ActionPanel({
         </div>
       )}
       {!over && (
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]">
+        <div className={`grid grid-cols-2 gap-2 ${side ? "md:grid-cols-1" : "md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]"}`}>
           {attack("attack1")}
           {attack("attack2")}
           {attack("attack3")}
