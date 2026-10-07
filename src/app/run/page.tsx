@@ -830,14 +830,10 @@ function RunScreen() {
             target={targeting.target}
             onAct={(a, t) => act(screen, a, t)}
             fleeCost={fleeCost(run)}
-            auto={
-              node.kind === "easy"
-                ? {
-                    reason: autoBlockReason(b, node.kind),
-                    onAuto: () => quick(screen),
-                  }
-                : undefined
-            }
+            auto={{
+              reason: autoBlockReason(b, node.kind),
+              onAuto: () => quick(screen),
+            }}
           >
             {result && (
               <>
