@@ -16,7 +16,7 @@ import type { TraitId } from "@/lib/game/traits";
 
 // Alternate art line: NEXT_PUBLIC_ART=pixel swaps the painted heroes for 64x96 pixel art.
 const PIXEL = process.env.NEXT_PUBLIC_ART === "pixel";
-const PX_ASPECT = 64 / 96;
+const PX_ASPECT = 70 / 96; // 64 px frame + 3 px padding per side
 
 type Props = {
   classId: ClassId;

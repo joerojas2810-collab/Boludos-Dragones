@@ -28,7 +28,7 @@ export function Gallery() {
   const rows = lot === "heroes" ? heroRows : enemyRows;
   const a = action in actions ? action : "idle";
   const meta = (actions as Record<string, { frames: number; fps: number }>)[a];
-  const w = 64 * zoom;
+  const w = 70 * zoom;
   const btn = (on: boolean) => `rounded border px-2 py-1 text-sm ${on ? "bg-amber-500 text-black" : "bg-neutral-800 text-neutral-200"}`;
   return (
     <main className="min-h-screen bg-neutral-900 p-4 text-neutral-100">
@@ -65,7 +65,7 @@ function Row({ row, action, meta, w, bg }: { row: Row; action: string; meta: { f
       <div className="self-center text-xs text-neutral-300">{row.label}</div>
       {ELEMENTS.map((e) => (
         <div key={e} style={{ width: w, background: bg, imageRendering: "pixelated" }}>
-          <AnimSheet anim={{ src: `/art/${row.file(e, action)}.png`, frames: meta.frames, fps: meta.fps, loop: true, aspect: 64 / 96 }} className="w-full" />
+          <AnimSheet anim={{ src: `/art/${row.file(e, action)}.png`, frames: meta.frames, fps: meta.fps, loop: true, aspect: 70 / 96 }} className="w-full" />
         </div>
       ))}
     </>

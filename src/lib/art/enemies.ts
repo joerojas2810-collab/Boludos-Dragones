@@ -6,7 +6,7 @@ import { ENEMY_ANIMS, FINAL_BOSS_BY_RANK } from "./enemies.generated";
 
 // Alternate art line (NEXT_PUBLIC_ART=pixel): 64x96 strips in /art/enemies-px, entrance only on bosses.
 export const PIXEL = process.env.NEXT_PUBLIC_ART === "pixel";
-export const PX_ASPECT = 64 / 96;
+export const PX_ASPECT = 70 / 96; // 64 px frame + 3 px transparent padding per side (scripts/import-pixel.mjs)
 export const PX_ACTIONS = {
   idle: { frames: 4, fps: 6, loop: true },
   attack: { frames: 4, fps: 10, loop: false },
