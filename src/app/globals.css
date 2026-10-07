@@ -632,3 +632,15 @@ hr,
 .tile-art.tile-ready:not([aria-pressed="true"]) {
   filter: drop-shadow(0 0 5px rgb(74 222 128 / 0.75));
 }
+
+/* Legacy brown boxes -> painted raised panel (rank colors are carried by icons now) */
+.pixel-frame {
+  border: 12px solid transparent;
+  border-image: url("/art/ui/panel_raised.webp") 33 fill / 12px stretch;
+  background: none;
+  box-shadow: none;
+}
+.pixel-frame.choice-card {
+  border-width: 12px;
+  box-shadow: none;
+}
