@@ -169,7 +169,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
       <header className="shell-top">
         <Link href="/" className="shell-brand" aria-label="Inicio">
-          B&amp;D
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/art/ui/logo_emblem.webp" alt="B&D" draggable={false} />
         </Link>
         <span className="shell-coins" aria-label="Monedas">
           <Icon name="system_coin" className="h-5" />{" "}

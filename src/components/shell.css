@@ -6,34 +6,49 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  height: 3rem;
+  height: 3.25rem;
   padding: 0 0.75rem;
-  background: linear-gradient(#4a3b30, #2f2620);
-  border-bottom: 4px solid var(--edge);
-  box-shadow: 0 2px 0 var(--trim);
+  background: linear-gradient(#25313d, #161e27);
+  border-bottom: 4px solid transparent;
+  border-image: linear-gradient(#aeb9c4, #5b6672 60%, #b8743a) 1;
+  box-shadow: 0 3px 8px rgb(0 0 0 / 0.5);
 }
 .shell-brand {
-  font-family: var(--font-title), serif;
-  font-size: 1.25rem;
-  color: #fbbf24;
-  text-shadow: 2px 2px 0 var(--edge);
+  display: flex;
+  align-items: center;
+}
+.shell-brand img {
+  height: 2.6rem;
+  width: auto;
+  filter: drop-shadow(0 2px 0 rgb(0 0 0 / 0.5));
 }
 .shell-coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.7rem;
   color: #fde047;
-  font-weight: 600;
+  font-weight: 700;
+  background: rgb(0 0 0 / 0.35);
+  border: 2px solid #5b6672;
+  border-radius: 999px;
 }
 .shell-icon {
-  min-height: 2rem;
-  padding: 0 0.5rem;
-  border: 2px solid var(--edge);
-  background: var(--panel);
-  color: var(--text);
+  min-height: 2.2rem;
+  padding: 0 0.8rem;
+  border-width: 8px 18px;
+  border-style: solid;
+  border-color: transparent;
+  border-image: url("/art/ui/button_secondary_normal.webp") 12 26 fill / 6px 14px stretch;
+  background: none;
+  color: #1c2530;
+  font-weight: 700;
 }
 .shell-icon:hover {
-  filter: brightness(1.2);
+  border-image-source: url("/art/ui/button_secondary_hover.webp");
 }
 .shell-body {
-  padding-top: 3rem;
+  padding-top: 3.25rem;
   padding-bottom: 4.75rem;
   min-height: 100vh;
   display: flex;
@@ -54,9 +69,10 @@
   justify-content: center;
   gap: 0.25rem;
   padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
-  background: linear-gradient(#2f2620, #1d1714);
-  border-top: 4px solid var(--edge);
-  box-shadow: 0 -2px 0 var(--trim);
+  background: linear-gradient(#25313d, #161e27);
+  border-top: 4px solid transparent;
+  border-image: linear-gradient(#b8743a, #5b6672 40%, #aeb9c4) 1;
+  box-shadow: 0 -3px 8px rgb(0 0 0 / 0.5);
 }
 .shell-tab {
   position: relative;
