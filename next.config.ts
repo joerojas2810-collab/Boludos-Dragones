@@ -28,6 +28,7 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  distDir: process.env.NEXT_DIST_DIR || ".next", // lets a second dev server (pixel art line) run beside the main one
   async headers() {
     return [
       {
