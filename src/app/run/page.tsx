@@ -1620,7 +1620,7 @@ function CharacterSelect({
             profile={profile}
             act={(job) => void job()}
           />
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <div className="sticky bottom-0 z-10 flex flex-col gap-2 rounded bg-[#1c1917]/90 py-2 sm:flex-row sm:justify-center">
             <button
               className="btn text-center"
               onClick={() => onPick(chosen.id)}
