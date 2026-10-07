@@ -15,23 +15,32 @@ export interface VoteEvent {
 
 export const VOTE_EVENT: VoteEvent = {
   title: "El cofre maldito",
-  question: "¿Abrimos el cofre maldito? Si sale bien, todos ganan fichas; si sale mal, todos pierden.",
+  question:
+    "¿Abrimos el cofre maldito? Si sale bien, todos ganan fichas; si sale mal, todos pierden.",
   good: "¡Tesoro! Todos ganan fichas.",
   bad: "¡Maldición! Todos pierden fichas.",
 };
 
 export const voteFloor = hasVote;
 /** Voting stops (and the result is paid) this long before the reveal ends. */
-export const voteClosesAt = (revealDeadline: number) => revealDeadline - ROOM_K.voteShowMs;
+export const voteClosesAt = (revealDeadline: number) =>
+  revealDeadline - ROOM_K.voteShowMs;
 
 /** Chips at stake per present player: x1 with 7 players, x1.5 with 2. */
 export function voteAmount(present: number): number {
   const n = Math.min(ROOM_K.maxPlayers, Math.max(1, present));
-  return Math.round(ROOM_K.voteChips * (1 + (ROOM_K.maxPlayers - n) * ROOM_K.voteScalePerMissing));
+  return Math.round(
+    ROOM_K.voteChips *
+      (1 + (ROOM_K.maxPlayers - n) * ROOM_K.voteScalePerMissing),
+  );
 }
 
 /** Secret outcome of opening the chest, fixed by the round seed (same for everybody). */
-export const voteOutcomeFor = (seed: number, round: number, floor: number): "good" | "bad" =>
+export const voteOutcomeFor = (
+  seed: number,
+  round: number,
+  floor: number,
+): "good" | "bad" =>
   createRng(hashSeed(seed, round, floor, 0x70e)).chance(0.5) ? "good" : "bad";
 
 export interface Tally {
@@ -42,7 +51,10 @@ export interface Tally {
 }
 
 /** Only votes from `eligible` (present members) count; the rest abstain. */
-export function tallyVote(votes: Readonly<Record<string, boolean>>, eligible: readonly string[]): Tally {
+export function tallyVote(
+  votes: Readonly<Record<string, boolean>>,
+  eligible: readonly string[],
+): Tally {
   let yes = 0;
   let no = 0;
   for (const id of eligible) {

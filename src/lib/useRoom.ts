@@ -82,7 +82,13 @@ export function useRoom(client: RoomClient | null) {
             ...m,
             [t.fighter]: [
               ...(m[t.fighter] ?? []),
-              { n: t.n, actor: t.actor, kind: t.kind, dmg: t.dmg, at: Date.now() },
+              {
+                n: t.n,
+                actor: t.actor,
+                kind: t.kind,
+                dmg: t.dmg,
+                at: Date.now(),
+              },
             ].slice(-FEED_MAX),
           }));
       }
@@ -153,7 +159,10 @@ export function useRoom(client: RoomClient | null) {
   const emote = useCallback(
     (id: EmoteId) => {
       const t = Date.now();
-      if (!client || (lastEmote.current !== null && t - lastEmote.current < EMOTE_MIN_GAP_MS))
+      if (
+        !client ||
+        (lastEmote.current !== null && t - lastEmote.current < EMOTE_MIN_GAP_MS)
+      )
         return false;
       lastEmote.current = t;
       client.emote(id);

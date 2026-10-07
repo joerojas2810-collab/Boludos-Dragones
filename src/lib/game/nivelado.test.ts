@@ -43,9 +43,7 @@ describe("niveladoBonus", () => {
     expect(niveladoBonus("s", 3)).toBeGreaterThan(0.08);
     expect(niveladoBonus("s", 3)).toBeLessThan(0.09);
     expect(niveladoBonus("c", 0)).toBeLessThan(niveladoBonus("s", 0));
-    expect(niveladoBonus("s", 99)).toBeLessThanOrEqual(
-      NIVELADO_MAX_BONUS,
-    );
+    expect(niveladoBonus("s", 99)).toBeLessThanOrEqual(NIVELADO_MAX_BONUS);
   });
 });
 

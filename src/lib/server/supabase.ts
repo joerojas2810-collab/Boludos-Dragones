@@ -88,17 +88,14 @@ export function realDeps(): Deps {
           }
         : null;
     },
-    async coinsToday(playerId) {
+    async runsToday(playerId) {
       const since = new Date(Date.now() - 24 * 3600_000).toISOString();
-      const { data } = await sb
+      const { count } = await sb
         .from("runs")
-        .select("coins_earned")
+        .select("id", { count: "exact", head: true })
         .eq("player_id", playerId)
         .gte("finished_at", since);
-      return (data ?? []).reduce(
-        (n, r) => n + Number((r as { coins_earned: number }).coins_earned),
-        0,
-      );
+      return count ?? 0;
     },
   };
 }

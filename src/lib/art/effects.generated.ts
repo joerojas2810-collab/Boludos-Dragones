@@ -10,833 +10,620 @@ export type EffectMeta = {
   advance?: number;
 };
 export const EFFECTS: Record<string, EffectMeta> = {
- "hit_fire": {
-  "frames": 4,
-  "fps": 16,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   256,
-   256
-  ],
-  "rows": 1
- },
- "hit_water": {
-  "frames": 4,
-  "fps": 16,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   256,
-   256
-  ],
-  "rows": 1
- },
- "hit_earth": {
-  "frames": 4,
-  "fps": 16,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   256,
-   256
-  ],
-  "rows": 1
- },
- "hit_lightning": {
-  "frames": 4,
-  "fps": 16,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   256,
-   256
-  ],
-  "rows": 1
- },
- "hit_wind": {
-  "frames": 4,
-  "fps": 16,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   256,
-   256
-  ],
-  "rows": 1
- },
- "element_advantage": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "element_disadvantage": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "perfect_guard": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "shield": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "regeneration": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "boss_entrance": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "level_up": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "victory": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   768,
-   256
-  ],
-  "rows": 1
- },
- "defeat": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   768,
-   256
-  ],
-  "rows": 1
- },
- "boss_entrance_f": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   768,
-   384
-  ],
-  "rows": 1
- },
- "boss_entrance_e": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   768,
-   384
-  ],
-  "rows": 1
- },
- "boss_entrance_d": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   768,
-   384
-  ],
-  "rows": 1
- },
- "boss_entrance_c": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   768,
-   384
-  ],
-  "rows": 1
- },
- "boss_entrance_b": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   768,
-   384
-  ],
-  "rows": 1
- },
- "boss_entrance_a": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   768,
-   384
-  ],
-  "rows": 1
- },
- "boss_entrance_s": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   768,
-   384
-  ],
-  "rows": 1
- },
- "boss_entrance_ss": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   768,
-   384
-  ],
-  "rows": 1
- },
- "boss_entrance_ssr": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   768,
-   384
-  ],
-  "rows": 1
- },
- "damage_normal": {
-  "frames": 6,
-  "fps": 12,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   64,
-   96
-  ],
-  "rows": 13,
-  "glyphRow": {
-   "0": 0,
-   "1": 1,
-   "2": 2,
-   "3": 3,
-   "4": 4,
-   "5": 5,
-   "6": 6,
-   "7": 7,
-   "8": 8,
-   "9": 9,
-   "+": 10,
-   "-": 11,
-   ".": 12
+  hit_fire: {
+    frames: 4,
+    fps: 16,
+    loop: false,
+    finish: "remove",
+    cell: [256, 256],
+    rows: 1,
   },
-  "advance": 32
- },
- "damage_critical": {
-  "frames": 6,
-  "fps": 12,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   64,
-   96
-  ],
-  "rows": 13,
-  "glyphRow": {
-   "0": 0,
-   "1": 1,
-   "2": 2,
-   "3": 3,
-   "4": 4,
-   "5": 5,
-   "6": 6,
-   "7": 7,
-   "8": 8,
-   "9": 9,
-   "+": 10,
-   "-": 11,
-   ".": 12
+  hit_water: {
+    frames: 4,
+    fps: 16,
+    loop: false,
+    finish: "remove",
+    cell: [256, 256],
+    rows: 1,
   },
-  "advance": 32
- },
- "heal_number": {
-  "frames": 6,
-  "fps": 12,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   64,
-   96
-  ],
-  "rows": 13,
-  "glyphRow": {
-   "0": 0,
-   "1": 1,
-   "2": 2,
-   "3": 3,
-   "4": 4,
-   "5": 5,
-   "6": 6,
-   "7": 7,
-   "8": 8,
-   "9": 9,
-   "+": 10,
-   "-": 11,
-   ".": 12
+  hit_earth: {
+    frames: 4,
+    fps: 16,
+    loop: false,
+    finish: "remove",
+    cell: [256, 256],
+    rows: 1,
   },
-  "advance": 32
- },
- "dodge": {
-  "frames": 6,
-  "fps": 12,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   256,
-   128
-  ],
-  "rows": 1
- },
- "critical_label": {
-  "frames": 6,
-  "fps": 12,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   256,
-   128
-  ],
-  "rows": 1
- },
- "gacha_open_f": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_reveal_f": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_open_e": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_reveal_e": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_open_d": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_reveal_d": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_open_c": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_reveal_c": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_open_b": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_reveal_b": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_open_a": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_reveal_a": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_open_s": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_reveal_s": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_open_ss": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_reveal_ss": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_open_ssr": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_reveal_ssr": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_duplicate": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_pity_ss": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "gacha_pity_ssr": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "rank_glint_s": {
-  "frames": 8,
-  "fps": 6,
-  "loop": true,
-  "finish": "loop",
-  "cell": [
-   256,
-   352
-  ],
-  "rows": 1
- },
- "rank_glint_ss": {
-  "frames": 8,
-  "fps": 6,
-  "loop": true,
-  "finish": "loop",
-  "cell": [
-   256,
-   352
-  ],
-  "rows": 1
- },
- "rank_glint_ssr": {
-  "frames": 8,
-  "fps": 6,
-  "loop": true,
-  "finish": "loop",
-  "cell": [
-   256,
-   352
-  ],
-  "rows": 1
- },
- "forge_craft": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "forge_merge": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "forge_refine": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "forge_dismantle": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "forge_sparks": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "forge_success": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "forge_failure": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "confetti": {
-  "frames": 8,
-  "fps": 8,
-  "loop": false,
-  "finish": "remove",
-  "cell": [
-   512,
-   512
-  ],
-  "rows": 1
- },
- "podium": {
-  "frames": 8,
-  "fps": 6,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   768,
-   512
-  ],
-  "rows": 1
- },
- "emote_laugh": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   128,
-   128
-  ],
-  "rows": 1
- },
- "emote_fire": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   128,
-   128
-  ],
-  "rows": 1
- },
- "emote_skull": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   128,
-   128
-  ],
-  "rows": 1
- },
- "emote_clap": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   128,
-   128
-  ],
-  "rows": 1
- },
- "emote_clown": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   128,
-   128
-  ],
-  "rows": 1
- },
- "emote_luck": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   128,
-   128
-  ],
-  "rows": 1
- },
- "emote_cheers": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   128,
-   128
-  ],
-  "rows": 1
- },
- "emote_heart": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   128,
-   128
-  ],
-  "rows": 1
- },
- "emote_gg": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   128,
-   128
-  ],
-  "rows": 1
- },
- "emote_oops": {
-  "frames": 6,
-  "fps": 8,
-  "loop": false,
-  "finish": "hold",
-  "cell": [
-   128,
-   128
-  ],
-  "rows": 1
- }
+  hit_lightning: {
+    frames: 4,
+    fps: 16,
+    loop: false,
+    finish: "remove",
+    cell: [256, 256],
+    rows: 1,
+  },
+  hit_wind: {
+    frames: 4,
+    fps: 16,
+    loop: false,
+    finish: "remove",
+    cell: [256, 256],
+    rows: 1,
+  },
+  element_advantage: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  element_disadvantage: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  perfect_guard: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  shield: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  regeneration: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  boss_entrance: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  level_up: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  victory: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [768, 256],
+    rows: 1,
+  },
+  defeat: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [768, 256],
+    rows: 1,
+  },
+  boss_entrance_f: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [768, 384],
+    rows: 1,
+  },
+  boss_entrance_e: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [768, 384],
+    rows: 1,
+  },
+  boss_entrance_d: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [768, 384],
+    rows: 1,
+  },
+  boss_entrance_c: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [768, 384],
+    rows: 1,
+  },
+  boss_entrance_b: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [768, 384],
+    rows: 1,
+  },
+  boss_entrance_a: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [768, 384],
+    rows: 1,
+  },
+  boss_entrance_s: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [768, 384],
+    rows: 1,
+  },
+  boss_entrance_ss: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [768, 384],
+    rows: 1,
+  },
+  boss_entrance_ssr: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [768, 384],
+    rows: 1,
+  },
+  damage_normal: {
+    frames: 6,
+    fps: 12,
+    loop: false,
+    finish: "remove",
+    cell: [64, 96],
+    rows: 13,
+    glyphRow: {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "+": 10,
+      "-": 11,
+      ".": 12,
+    },
+    advance: 32,
+  },
+  damage_critical: {
+    frames: 6,
+    fps: 12,
+    loop: false,
+    finish: "remove",
+    cell: [64, 96],
+    rows: 13,
+    glyphRow: {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "+": 10,
+      "-": 11,
+      ".": 12,
+    },
+    advance: 32,
+  },
+  heal_number: {
+    frames: 6,
+    fps: 12,
+    loop: false,
+    finish: "remove",
+    cell: [64, 96],
+    rows: 13,
+    glyphRow: {
+      "0": 0,
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "+": 10,
+      "-": 11,
+      ".": 12,
+    },
+    advance: 32,
+  },
+  dodge: {
+    frames: 6,
+    fps: 12,
+    loop: false,
+    finish: "remove",
+    cell: [256, 128],
+    rows: 1,
+  },
+  critical_label: {
+    frames: 6,
+    fps: 12,
+    loop: false,
+    finish: "remove",
+    cell: [256, 128],
+    rows: 1,
+  },
+  gacha_open_f: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_reveal_f: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_open_e: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_reveal_e: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_open_d: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_reveal_d: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_open_c: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_reveal_c: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_open_b: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_reveal_b: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_open_a: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_reveal_a: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_open_s: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_reveal_s: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_open_ss: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_reveal_ss: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_open_ssr: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_reveal_ssr: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_duplicate: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_pity_ss: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  gacha_pity_ssr: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  rank_glint_s: {
+    frames: 8,
+    fps: 6,
+    loop: true,
+    finish: "loop",
+    cell: [256, 352],
+    rows: 1,
+  },
+  rank_glint_ss: {
+    frames: 8,
+    fps: 6,
+    loop: true,
+    finish: "loop",
+    cell: [256, 352],
+    rows: 1,
+  },
+  rank_glint_ssr: {
+    frames: 8,
+    fps: 6,
+    loop: true,
+    finish: "loop",
+    cell: [256, 352],
+    rows: 1,
+  },
+  forge_craft: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  forge_merge: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  forge_refine: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  forge_dismantle: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  forge_sparks: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  forge_success: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  forge_failure: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  confetti: {
+    frames: 8,
+    fps: 8,
+    loop: false,
+    finish: "remove",
+    cell: [512, 512],
+    rows: 1,
+  },
+  podium: {
+    frames: 8,
+    fps: 6,
+    loop: false,
+    finish: "hold",
+    cell: [768, 512],
+    rows: 1,
+  },
+  emote_laugh: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [128, 128],
+    rows: 1,
+  },
+  emote_fire: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [128, 128],
+    rows: 1,
+  },
+  emote_skull: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [128, 128],
+    rows: 1,
+  },
+  emote_clap: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [128, 128],
+    rows: 1,
+  },
+  emote_clown: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [128, 128],
+    rows: 1,
+  },
+  emote_luck: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [128, 128],
+    rows: 1,
+  },
+  emote_cheers: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [128, 128],
+    rows: 1,
+  },
+  emote_heart: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [128, 128],
+    rows: 1,
+  },
+  emote_gg: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [128, 128],
+    rows: 1,
+  },
+  emote_oops: {
+    frames: 6,
+    fps: 8,
+    loop: false,
+    finish: "hold",
+    cell: [128, 128],
+    rows: 1,
+  },
 };

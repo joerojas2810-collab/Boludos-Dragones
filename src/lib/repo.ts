@@ -21,6 +21,7 @@ import {
   type PullResult,
 } from "./game/profile";
 import { isUnlocked, maxAscension } from "./game/dungeons";
+import { dayPayMult } from "./game/economy";
 import { localWeekSeed, towerHero, type TowerMode } from "./game/tower";
 import { applyForge, type ForgeOp } from "./game/forge";
 import type { RunPiece } from "./game/loot";
@@ -210,6 +211,9 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       return { runId: `${seed}-${Date.now()}`, seed, hero, rank, ascension };
     },
     submitRun: async (runId, _actions, claimed) => {
+      const before = store.get();
+      const prior = before.runsDay?.day === dayKey() ? before.runsDay.n : 0;
+      const paid = Math.floor(claimed.coins * dayPayMult(prior + 1));
       store.update((p) =>
         bankRun(
           p,
@@ -221,7 +225,11 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
           claimed.parts,
         ),
       );
-      return { coinsAdded: claimed.coins, verdict: "local", capped: false };
+      return {
+        coinsAdded: paid,
+        verdict: "local",
+        capped: paid < claimed.coins,
+      };
     },
   };
 }

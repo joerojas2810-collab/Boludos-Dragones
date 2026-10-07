@@ -21,6 +21,7 @@ import {
   victoryCoins,
 } from "../game/dungeons";
 import { applyForge, type ForgeOp } from "../game/forge";
+import { dayPayMult } from "../game/economy";
 import type { RarityId } from "../game/rarity";
 import { ENGINE_VERSION, replayRun, type RunAction } from "../game/replay";
 import { isVictory } from "../game/run";
@@ -387,8 +388,7 @@ export const runCoinCap = (floors: number, victoryBonus = 0) =>
   floors * 120 + (15 * floors * (floors + 1)) / 2 + victoryBonus;
 
 // Anti-farming (a script can replay the deterministic engine at CPU speed):
-// a run cannot be faster than a person clicking, a day pays a bounded amount of
-// run coins, and starts / banked runs are rate limited.
+// a run cannot be faster than a person clicking, run pay decays with the runs of the day, and starts / banked runs are rate limited.
 export const MIN_ACTION_MS = 400; // fastest believable pace per logged action
 // High-stakes dungeons (unlocks, big payouts): below the floor = unpaid; between the
 // floor and the doubt line = paid, but audited ("run_slow_pace") with its log kept.
@@ -396,8 +396,6 @@ export const MIN_ACTION_MS_HIGH = 700;
 export const DOUBT_ACTION_MS_HIGH = 1_000;
 export const HIGH_RANKS: readonly RarityId[] = ["s", "ss", "ssr"];
 export const MIN_ACTION_GRACE_MS = 3_000; // clock skew between app and database
-export const RUN_COINS_PER_DAY = 10_000; // ~40 normal runs; more pays 0 coins
-export const RUNS_PER_DAY = 60;
 
 export interface RunSubmitBody {
   runId: string;
@@ -425,7 +423,6 @@ export async function submitRunService(
   if (!row) throw new ApiError(404, "run_not_found", "Run no encontrada.");
   if (row.status !== "open")
     throw new ApiError(409, "duplicate_run", "Esta run ya fue entregada.");
-  await limit(d.rpc, `rundaily:${playerId}`, RUNS_PER_DAY, 86400);
   const {
     engineVersion: stored = 1,
     dungeon,
@@ -493,14 +490,14 @@ export async function submitRunService(
     rank && isVictory(rep.run) && rep.rejectedAt === null
       ? victoryCoins(rank, ascension)
       : 0;
-  const dayLeft = Math.max(
-    0,
-    RUN_COINS_PER_DAY - (await d.coinsToday(playerId)),
-  );
+  // Runs pay less the more you bank in a day (economy.ts), never a hard stop.
+  const dayMult = dayPayMult((await d.runsToday(playerId)) + 1);
   // The tower pays nothing per run (no coins, loot or parts): only the weekly prizes.
   const coins = tower
     ? 0
-    : Math.min(rep.run.coins, runCoinCap(floors, clearBonus), dayLeft);
+    : Math.floor(
+        Math.min(rep.run.coins, runCoinCap(floors, clearBonus)) * dayMult,
+      );
   let verdict: Verdict = "accepted";
   let reason: string | null = null;
   // Keep the action log of every S+ clear so its pace can be reviewed later.

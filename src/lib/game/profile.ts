@@ -33,7 +33,8 @@ import {
   type RarityId,
 } from "./rarity";
 import type { Rng } from "./rng";
-import { isDayKey, type DailyState } from "./streak";
+import { dayKey, isDayKey, type DailyState } from "./streak";
+import { dayPayMult } from "./economy";
 import { TRAIT_IDS, type TraitId } from "./traits";
 import {
   generateWeapon,
@@ -81,6 +82,7 @@ export interface Profile {
   fragments: Record<string, number>;
   daily?: DailyState; // free daily pull streak (see streak.ts)
   lastBankedRunId?: string; // guard against banking the same run twice
+  runsDay?: { day: string; n: number }; // runs banked on that game day (pay decays, see economy.ts)
   bestFloor: number;
   runsPlayed: number;
   dungeons: Clears; // dungeon rank -> most lives left in a clear (see dungeons.ts)
@@ -399,6 +401,11 @@ export function bankRun(
 ): Profile {
   if (runId !== undefined && p.lastBankedRunId === runId) return p;
   const q = loot.reduce(grantPiece, p);
+  const today = dayKey();
+  const prior = p.runsDay?.day === today ? p.runsDay.n : 0;
+  const paid = Math.floor(
+    Math.max(0, Math.floor(runCoins) || 0) * dayPayMult(prior + 1),
+  );
   // One-off bonus chest the first time a rank (or a higher ascension level) is cleared.
   const bonus = clear
     ? firstClearCoins(
@@ -412,7 +419,8 @@ export function bankRun(
   return {
     ...q,
     lastBankedRunId: runId ?? p.lastBankedRunId,
-    coins: q.coins + Math.max(0, Math.floor(runCoins) || 0) + bonus,
+    runsDay: { day: today, n: prior + 1 },
+    coins: q.coins + paid + bonus,
     bestFloor: Math.max(p.bestFloor, Math.floor(maxFloor) || 0),
     runsPlayed: p.runsPlayed + 1,
     parts: addParts(q.parts, parts),
@@ -701,6 +709,9 @@ export function migrate(json: unknown): Profile {
             streak: Math.max(1, nat(json.daily.streak, 100000)),
           },
         }
+      : {}),
+    ...(isObj(json.runsDay) && isDayKey(json.runsDay.day)
+      ? { runsDay: { day: json.runsDay.day, n: nat(json.runsDay.n, 100000) } }
       : {}),
     ...(typeof json.lastBankedRunId === "string"
       ? { lastBankedRunId: json.lastBankedRunId.slice(0, 100) }

@@ -123,14 +123,14 @@ export const FINAL_BOSS_MULT = 1.25; // the last boss hits harder than the other
 // bank_run (0017: +20000 when a clear is submitted).
 export const VICTORY_COINS: Record<RarityId, number> = {
   f: 30,
-  e: 50,
-  d: 80,
-  c: 120,
-  b: 200,
-  a: 350,
-  s: 600,
-  ss: 1000,
-  ssr: 1600,
+  e: 45,
+  d: 65,
+  c: 100,
+  b: 150,
+  a: 230,
+  s: 350,
+  ss: 600,
+  ssr: 1000,
 };
 // First time a dungeon rank / ascension level is cleared: a one-off bonus chest of coins.
 export const FIRST_CLEAR_MULT = 4; // x victory coins, first clear of a rank

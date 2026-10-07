@@ -14,13 +14,7 @@ import { parseEnv } from "./envSchema";
 import { ApiError, checkOrigin, readJson } from "./http";
 import { BAD_CREDENTIALS, login } from "./loginFlow";
 import { limit } from "./rpc";
-import {
-  doForge,
-  doPull,
-  RUN_COINS_PER_DAY,
-  startRunService,
-  submitRunService,
-} from "./services";
+import { doForge, doPull, startRunService, submitRunService } from "./services";
 import { FakeDb, playBot } from "./testkit";
 import {
   credsBody,
@@ -654,21 +648,21 @@ describe("run anti-farming", () => {
     expect(lowRank.banked[0].p_coins).toBe(truth.coins);
   });
 
-  it("a plausible pace still pays, and the daily coin cap stops the rest", async () => {
+  it("a plausible pace still pays, and later runs of the day pay less but never zero", async () => {
     const db = new FakeDb();
     open(db, Date.now() - log.length * 1000);
     await sub(db);
     expect(db.banked[0].p_coins).toBe(truth.coins);
-    const capped = new FakeDb();
-    open(capped, Date.now() - log.length * 1000);
-    capped.coinsToday = RUN_COINS_PER_DAY - 5;
-    await sub(capped);
-    expect(capped.banked[0].p_coins).toBe(Math.min(5, truth.coins));
-    const full = new FakeDb();
-    open(full, Date.now() - log.length * 1000);
-    full.coinsToday = RUN_COINS_PER_DAY;
-    await sub(full);
-    expect(full.banked[0].p_coins).toBe(0);
+    const mid = new FakeDb();
+    open(mid, Date.now() - log.length * 1000);
+    mid.runsToday = 10; // this is the 11th run: half pay
+    await sub(mid);
+    expect(mid.banked[0].p_coins).toBe(Math.floor(truth.coins * 0.5));
+    const late = new FakeDb();
+    open(late, Date.now() - log.length * 1000);
+    late.runsToday = 200; // far past the tiers: floor pay, still > 0
+    await sub(late);
+    expect(late.banked[0].p_coins).toBe(Math.floor(truth.coins * 0.1));
   });
 });
 

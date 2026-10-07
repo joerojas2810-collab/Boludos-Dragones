@@ -289,7 +289,7 @@ Falta (mismo patrón): `rooms`, `room_players` (`chips check >= 0`), `chip_ledge
 
 **Riesgo real encontrado (corregido):** el motor es determinista y el cliente conoce la semilla, así que un script con IA podía jugar runs a velocidad de CPU y entregarlas en bucle (granja de monedas/botín, o descartar semillas malas). Ahora (`services.ts`):
 - una run no puede ser más rápida que `MIN_ACTION_MS` (400 ms) por acción registrada: se cierra sin pagar y se anota `run_too_fast`;
-- tope de `RUN_COINS_PER_DAY` (10.000) monedas de runs por jugador y 24 h (lo que pase paga 0 monedas);
+- pago decreciente por runs del día (`economy.ts`: 100% las primeras 10, 50% hasta 30, 20% hasta 60, 10% después); sin tope duro;
 - límites: 20 inicios de run por hora y 60 runs entregadas por día;
 - `clientIp` prefiere `x-vercel-forwarded-for` (no falsificable en Vercel).
 

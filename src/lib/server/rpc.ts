@@ -24,8 +24,8 @@ export interface Deps {
     status: string;
     startedAt?: number; // ms epoch, set by the DB when the run opened
   } | null>;
-  /** Coins credited by this player's runs in the last 24 h. */
-  coinsToday(playerId: string): Promise<number>;
+  /** Runs this player banked in the last 24 h. */
+  runsToday(playerId: string): Promise<number>;
 }
 
 // SQL errors arrive as the exception message == contract error code.

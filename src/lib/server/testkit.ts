@@ -35,7 +35,7 @@ export class FakeDb {
     startedAt?: number;
   } | null = null;
   banked: Args[] = [];
-  coinsToday = 0;
+  runsToday = 0;
   towerRecords: Args[] = [];
   audits: string[] = [];
 
@@ -44,7 +44,7 @@ export class FakeDb {
     randomSeed: () => 12345,
     openRunId: async () => null,
     getRun: async () => this.run,
-    coinsToday: async () => this.coinsToday,
+    runsToday: async () => this.runsToday,
   };
 
   private err(m: string): RpcResult {

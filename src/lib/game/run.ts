@@ -54,7 +54,13 @@ import {
   FINAL_BOSS_MULT,
   victoryCoins,
 } from "./dungeons";
-import { WORLD_ELEMENT_BIAS, WORLDS, worldOf, type EnemyFamily, type World } from "./worlds";
+import {
+  WORLD_ELEMENT_BIAS,
+  WORLDS,
+  worldOf,
+  type EnemyFamily,
+  type World,
+} from "./worlds";
 
 // Bump when a change makes old action logs replay differently. The server
 // rejects logs from another version with a clear error (replay.ts).
@@ -1092,11 +1098,7 @@ export const fleeCost = (run: Run) =>
 // Won: rewards + carry hp, floor cleared. Fled: pay fleeCost, keep hp.
 // Lost: -1 life, LIFE_LOSS_HEAL hp; 0 lives = over. Fled/lost close the node
 // but not the floor, so another door can be chosen. `node` must be the open one.
-function resolveBattle(
-  run: Run,
-  battle: Battle,
-  node: FightNode,
-): Run {
+function resolveBattle(run: Run, battle: Battle, node: FightNode): Run {
   const open = run.node;
   if (
     run.status !== "active" ||
