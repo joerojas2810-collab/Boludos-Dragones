@@ -12,14 +12,14 @@ const RUN_COINS: Record<RarityId, number> = {
   d: 320,
   c: 371,
   b: 380,
-  a: 330,
-  s: 265,
-  ss: 170,
-  ssr: 101,
+  a: 445,
+  s: 353,
+  ss: 205,
+  ssr: 78,
 };
 // Mission income per day (missions.ts): daily 500 + weekly 1250/7 + Friday event 1000/7.
 const MISSION_COINS_PER_DAY = 500 + 1250 / 7 + 1000 / 7;
-const AVG_RUN_COINS = 300;
+const AVG_RUN_COINS = 600; // geared runs (full build, 3 stars) pay ~860-930 at A-SS
 const RUNS_PER_DAY = 3;
 
 // coins to make ONE part of each rank from F parts (merges only)

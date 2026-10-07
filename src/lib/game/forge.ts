@@ -26,11 +26,11 @@ export const COMBINE: Partial<
   f: { ratio: 4, coins: 3 },
   e: { ratio: 4, coins: 5 },
   d: { ratio: 3, coins: 10 },
-  c: { ratio: 3, coins: 25 },
-  b: { ratio: 3, coins: 75 },
-  a: { ratio: 2, coins: 225 },
-  s: { ratio: 2, coins: 700 },
-  ss: { ratio: 2, coins: 2100 },
+  c: { ratio: 3, coins: 20 },
+  b: { ratio: 3, coins: 50 },
+  a: { ratio: 2, coins: 130 },
+  s: { ratio: 2, coins: 350 },
+  ss: { ratio: 2, coins: 1000 },
 };
 export const CRAFT_PARTS = 3; // parts of the type (same rank) + 1 core of the element
 export const REFINE_RATIO = 3; // any 3 parts of a rank -> 1 part of the type you choose

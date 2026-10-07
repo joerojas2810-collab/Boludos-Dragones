@@ -10,7 +10,7 @@ import {
   type Stats,
 } from "./characters";
 import { ELEMENTS, type Element } from "./elements";
-import type { Ascensions, Clears } from "./dungeons";
+import { firstClearCoins, type Ascensions, type Clears } from "./dungeons";
 import type { RunPiece } from "./loot";
 import { addParts, isPartKey, MAX_STACK, type Parts } from "./parts";
 import {
@@ -399,10 +399,20 @@ export function bankRun(
 ): Profile {
   if (runId !== undefined && p.lastBankedRunId === runId) return p;
   const q = loot.reduce(grantPiece, p);
+  // One-off bonus chest the first time a rank (or a higher ascension level) is cleared.
+  const bonus = clear
+    ? firstClearCoins(
+        clear.rank,
+        (clear.asc ?? 0) > (p.ascensions[clear.rank] ?? 0)
+          ? (clear.asc ?? 0)
+          : 0,
+        p.dungeons[clear.rank] === undefined,
+      )
+    : 0;
   return {
     ...q,
     lastBankedRunId: runId ?? p.lastBankedRunId,
-    coins: q.coins + Math.max(0, Math.floor(runCoins) || 0),
+    coins: q.coins + Math.max(0, Math.floor(runCoins) || 0) + bonus,
     bestFloor: Math.max(p.bestFloor, Math.floor(maxFloor) || 0),
     runsPlayed: p.runsPlayed + 1,
     parts: addParts(q.parts, parts),
