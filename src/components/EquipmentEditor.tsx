@@ -351,23 +351,25 @@ export function EquipmentEditor({
               )
             )}
             {blocked.length > 0 && (
-              <ul className="mt-2 space-y-2 opacity-40">
-                {blocked.map((w) => (
-                  <li
-                    key={w.id}
-                    title={`${CLASSES[c.classId].name} no usa ${WEAPON_TYPE_DATA[w.type].label.toLowerCase()}`}
-                  >
-                    <GearCard
-                      w={w}
-                      action={
-                        <span className="text-xs">
-                          No la usa {CLASSES[c.classId].name}
-                        </span>
-                      }
-                    />
-                  </li>
-                ))}
-              </ul>
+              <details className="mt-2">
+                <summary className="cursor-pointer text-sm text-[#d9d2ca]">
+                  Armas que {CLASSES[c.classId].name} no usa ({blocked.length})
+                </summary>
+                <ul className="mt-2 space-y-2 opacity-40">
+                  {blocked.map((w) => (
+                    <li key={w.id}>
+                      <GearCard
+                        w={w}
+                        action={
+                          <span className="text-xs">
+                            No la usa {CLASSES[c.classId].name}
+                          </span>
+                        }
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </details>
             )}
           </div>
         );
