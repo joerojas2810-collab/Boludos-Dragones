@@ -49,7 +49,7 @@
 }
 .shell-body {
   padding-top: 3.25rem;
-  padding-bottom: 5.5rem;
+  padding-bottom: 6.5rem;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -81,11 +81,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
-  padding: 0.3rem 0.25rem;
+  gap: 0;
+  padding: 0.1rem 0.25rem;
   font-size: 0.8rem;
-  color: #efe8de;
+  color: #fbf7f1;
   font-weight: 600;
+  height: 5.5rem;
+  justify-content: space-between;
   border: solid transparent;
   border-width: 6px 13px;
   border-image: url("/art/ui/tab_normal.webp") 12 26 fill / 6px 13px stretch;
