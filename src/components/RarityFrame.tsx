@@ -42,15 +42,20 @@ export function RarityFrame({
         <span key={c} className={`rarity-notch ${c}`} />
       ))}
       {children}
-      {size >= 64 && (rarity === "s" || rarity === "ss" || rarity === "ssr") && (
-        <Vfx
-          id={`rank_glint_${rarity}`}
-          className="pointer-events-none absolute inset-y-0 left-1/2 z-10 h-full -translate-x-1/2"
-        />
-      )}
+      {size >= 64 &&
+        (rarity === "s" || rarity === "ss" || rarity === "ssr") && (
+          <Vfx
+            id={`rank_glint_${rarity}`}
+            className="pointer-events-none absolute inset-y-0 left-1/2 z-10 h-full -translate-x-1/2"
+          />
+        )}
       {size >= 64 && (
         <span className="absolute left-0.5 top-0.5 z-10">
-          <Icon name={`rank_${rarity}`} className="h-[30%] w-auto" />
+          <Icon
+            name={`rank_${rarity}`}
+            className="h-auto max-w-none"
+            style={{ width: Math.round(size * 0.3) }}
+          />
         </span>
       )}
     </div>

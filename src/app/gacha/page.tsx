@@ -170,10 +170,9 @@ export default function GachaPage() {
                   </span>
                   <span className="pity-bar">
                     <i
-                      style={{
-                        width: `${Math.min(100, (n / max) * 100)}%`,
-                        background: color,
-                      }}
+                      className="bar-fill"
+                      data-fill={label === "SS" ? "pity_ss" : "pity_ssr"}
+                      style={{ width: `${Math.min(100, (n / max) * 100)}%` }}
                     />
                   </span>
                   <span className="w-16 text-left">

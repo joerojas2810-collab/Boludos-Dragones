@@ -69,22 +69,24 @@
   padding: 0.3rem 0.25rem;
   font-size: 0.8rem;
   color: #b8aea4;
-  border: 2px solid transparent;
+  border: solid transparent;
+  border-width: 6px 13px;
+  border-image: url("/art/ui/tab_normal.webp") 12 26 fill / 6px 13px stretch;
   transition:
     color 120ms,
     background 120ms;
 }
 .shell-tab:hover:not([data-disabled]) {
   color: #fff;
-  background: #3f3733;
+  border-image-source: url("/art/ui/tab_hover.webp");
 }
 .shell-tab[data-active="true"] {
   color: #fde047;
-  background: #3f3733;
-  border-color: var(--trim);
+  border-image-source: url("/art/ui/tab_active.webp");
 }
 .shell-tab[data-disabled] {
-  opacity: 0.45;
+  border-image-source: url("/art/ui/tab_disabled.webp");
+  opacity: 0.7;
   cursor: not-allowed;
 }
 .shell-tab small {
@@ -265,17 +267,18 @@
   place-items: center;
   width: 3.4rem;
   height: 3.4rem;
-  border: 3px solid var(--edge);
-  background: var(--panel);
+  border: solid transparent;
+  border-width: 10px;
+  border-image: url("/art/ui/slot_normal.webp") 16 fill / 10px stretch;
+  background: none;
   color: var(--muted);
   font-size: 0.65rem;
 }
 .doll-slot[aria-pressed="true"] {
-  outline: 3px solid #fde047;
-  outline-offset: 1px;
+  border-image-source: url("/art/ui/slot_selected.webp");
 }
-.doll-slot:hover {
-  filter: brightness(1.2);
+.doll-slot:hover:not([aria-pressed="true"]) {
+  border-image-source: url("/art/ui/slot_hover.webp");
 }
 .doll-empty {
   opacity: 0.7;
@@ -286,14 +289,14 @@
   display: block;
   flex: 1;
   max-width: 14rem;
-  height: 0.7rem;
-  border: 2px solid var(--edge);
-  background: #1d1714;
+  height: 1.1rem;
+  border: solid transparent;
+  border-width: 6px 13px;
+  border-image: url("/art/ui/bar_track.webp") 12 26 fill / 6px 13px stretch;
 }
 .pity-bar > i {
   display: block;
   height: 100%;
-  transition: width 300ms steps(6);
 }
 
 /* Forge parts (placeholder tiles) */

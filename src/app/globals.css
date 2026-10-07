@@ -516,3 +516,104 @@ a:focus-visible {
 .btn-gray:active:not(:disabled) {
   border-image-source: url("/art/ui/button_secondary_pressed.webp");
 }
+
+/* Painted bars: track = 9-slice, fill = stretched strip (data-fill picks the colour). */
+.bar-track {
+  position: relative;
+  border: solid transparent;
+  border-width: 6px 13px;
+  border-image: url("/art/ui/bar_track.webp") 12 26 fill / 6px 13px stretch;
+  background: none;
+}
+.bar-fill {
+  background: center / 100% 100% no-repeat url("/art/ui/bar_fill_health.webp");
+  transition: width 200ms steps(6);
+}
+.bar-fill[data-fill="health_low"] { background-image: url("/art/ui/bar_fill_health_low.webp"); }
+.bar-fill[data-fill="xp"] { background-image: url("/art/ui/bar_fill_xp.webp"); }
+.bar-fill[data-fill="turn"] { background-image: url("/art/ui/bar_fill_turn.webp"); }
+.bar-fill[data-fill="shield"] { background-image: url("/art/ui/bar_fill_shield.webp"); }
+.bar-fill[data-fill="pity_ss"] { background-image: url("/art/ui/bar_fill_pity_ss.webp"); }
+.bar-fill[data-fill="pity_ssr"] { background-image: url("/art/ui/bar_fill_pity_ssr.webp"); }
+
+/* <progress> (missions) */
+progress {
+  appearance: none;
+  border: 0;
+  background: center / 100% 100% url("/art/ui/bar_track.webp");
+  overflow: hidden;
+}
+progress::-webkit-progress-bar { background: transparent; }
+progress::-webkit-progress-value { background: center / 100% 100% url("/art/ui/bar_fill_xp.webp"); }
+progress::-moz-progress-bar { background: center / 100% 100% url("/art/ui/bar_fill_xp.webp"); }
+
+/* Form controls */
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"]),
+textarea {
+  border: solid transparent;
+  border-width: 7px 16px;
+  border-image: url("/art/ui/input_normal.webp") 12 26 fill / 7px 16px stretch;
+  background: none;
+  color: var(--text);
+}
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"]):focus,
+textarea:focus {
+  border-image-source: url("/art/ui/input_focus.webp");
+}
+input:disabled:not([type="checkbox"], [type="radio"]) {
+  border-image-source: url("/art/ui/input_disabled.webp");
+  opacity: 0.8;
+}
+select {
+  appearance: none;
+  border: solid transparent;
+  border-width: 7px 16px;
+  border-image: url("/art/ui/select_normal.webp") 12 26 fill / 7px 16px stretch;
+  background: no-repeat right 0.15rem center / 0.9rem url("/art/ui/glyph_down.webp");
+  color: var(--text);
+  padding-right: 1.2rem;
+}
+select:focus { border-image-source: url("/art/ui/select_focus.webp"); }
+select:disabled { border-image-source: url("/art/ui/select_disabled.webp"); opacity: 0.8; }
+select option { background: #26323f; color: var(--text); }
+input[type="checkbox"],
+input[type="radio"] {
+  appearance: none;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  vertical-align: middle;
+  background: center / contain no-repeat url("/art/ui/checkbox_off.webp");
+}
+input[type="checkbox"]:checked { background-image: url("/art/ui/checkbox_on.webp"); }
+input[type="radio"] { background-image: url("/art/ui/radio_off.webp"); }
+input[type="radio"]:checked { background-image: url("/art/ui/radio_on.webp"); }
+input[type="checkbox"]:disabled { opacity: 0.5; }
+
+/* Scrollbars (Chromium/Safari; Firefox keeps its own) */
+::-webkit-scrollbar { width: 14px; height: 14px; }
+::-webkit-scrollbar-track {
+  border: solid transparent;
+  border-width: 12px 5px;
+  border-image: url("/art/ui/scrollbar_track.webp") 12 5 fill / 12px 5px stretch;
+}
+::-webkit-scrollbar-thumb {
+  border: solid transparent;
+  border-width: 10px 5px;
+  border-image: url("/art/ui/scrollbar_thumb.webp") 10 5 fill / 10px 5px stretch;
+}
+
+hr,
+.separator {
+  height: 8px;
+  border: 0;
+  background: center / 100% 100% no-repeat url("/art/ui/separator.webp");
+}
+
+/* Game logo */
+.game-logo {
+  width: 100%;
+  max-width: 28rem;
+  height: auto;
+  filter: drop-shadow(0 4px 0 rgb(0 0 0 / 0.45));
+}

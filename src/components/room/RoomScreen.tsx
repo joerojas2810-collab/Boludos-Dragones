@@ -612,11 +612,11 @@ function FightStrip({
                 <div className="mt-1 flex items-center gap-2 text-xs">
                   <Bar
                     pct={pct}
-                    color="bg-green-500"
+                    fill="health"
                     label={`Vida de ${p.name}`}
                   />
                   {epct !== null && (
-                    <Bar pct={epct} color="bg-red-500" label="Vida del rival" />
+                    <Bar pct={epct} fill="health_low" label="Vida del rival" />
                   )}
                 </div>
               )}
@@ -810,11 +810,11 @@ function BetPanel({
 
 function Bar({
   pct,
-  color,
+  fill,
   label,
 }: {
   pct: number;
-  color: string;
+  fill: "health" | "health_low";
   label: string;
 }) {
   const w = Math.min(100, Math.max(0, pct));
@@ -826,7 +826,8 @@ function Bar({
       className="relative h-2 min-w-0 flex-1 overflow-hidden rounded bg-black/50"
     >
       <span
-        className={`absolute inset-y-0 left-0 ${color}`}
+        className="bar-fill absolute inset-y-0 left-0"
+        data-fill={fill}
         style={{ width: `${w}%` }}
       />
     </span>

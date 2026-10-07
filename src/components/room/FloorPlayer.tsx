@@ -31,6 +31,7 @@ import type { RoomClient } from "@/lib/roomui/types";
 import { errorText } from "@/lib/roomui/viewModels";
 import { useNow } from "@/lib/useRoom";
 import { playEvents } from "@/lib/sfx";
+import { Vfx } from "@/components/fx/Vfx";
 
 interface Props {
   client: RoomClient;
@@ -279,6 +280,7 @@ export function FloorPlayer({ client, floor, door }: Props) {
   if (rs.picks)
     return (
       <Panel title="¡Subes de nivel!">
+        <Vfx id="level_up" className="pointer-events-none mx-auto -mt-2 -mb-6 w-40" />
         {run.pendingSkill ? (
           <SkillChoice
             classId={run.hero.classId}

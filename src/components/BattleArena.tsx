@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
 import { ArenaBackground } from "@/components/ArenaBackground";
 import { Chip } from "@/components/Chip";
 import { BossIntro, FxLayer, useBattleFx } from "@/components/fx/BattleFx";
@@ -7,6 +9,7 @@ import { HudCard } from "@/components/HudCard";
 import { HeroSprite } from "@/components/HeroSprite";
 import { Tooltip } from "@/components/Tooltip";
 import type { HeroAction } from "@/lib/art/heroes";
+import { Vfx } from "@/components/fx/Vfx";
 import { CLASSES } from "@/lib/game/characters";
 import { enemyIntents, type Battle, type Combatant } from "@/lib/game/combat";
 import { intentTip, targetTip, type Tip } from "@/lib/game/explain";
@@ -51,22 +54,51 @@ function enemyCue(b: Battle, i: number, boss?: boolean): EnemyCue {
 }
 
 // Painted hero action for the last step: one pose per step, most telling first.
-function heroAction(b: Battle): HeroAction {
-  if (b.status === "won") return "victory";
-  if (b.status === "lost") return "defeat";
-  if (b.guardEarned) return "perfect_guard";
-  const own = b.events.find((e) => e.actor === "player" && e.kind !== "buff");
-  if (own)
-    return own.move === "attack1"
-      ? "attack_1"
-      : own.move === "attack2"
-        ? "attack_2"
-        : "attack_3";
-  const foe = b.events.filter((e) => e.actor === "enemy");
-  if (b.player.defending && foe.length) return "defend";
-  if (foe.some((e) => e.kind === "hit" || e.kind === "crit")) return "hit";
-  if (foe.some((e) => e.kind === "miss")) return "dodge";
-  return b.player.defending ? "defend" : "idle";
+// `delay` (ms) holds idle until the event that causes the pose, like fxStyle.
+function heroCue(b: Battle): { action: HeroAction; delay: number } {
+  const at = (i: number, extra = 0.1) => Math.max(0, i) * STAGGER_S * 1000 + extra * 1000;
+  const lastAt = at(b.events.length - 1, 0.3);
+  if (b.status === "won") return { action: "victory", delay: lastAt };
+  if (b.status === "lost") return { action: "defeat", delay: lastAt };
+  const foeIdx = (f: (e: Battle["events"][number]) => boolean) =>
+    b.events.findIndex((e) => e.actor === "enemy" && f(e));
+  if (b.guardEarned)
+    return { action: "perfect_guard", delay: at(foeIdx((e) => e.kind !== "buff")) };
+  const ownIdx = b.events.findIndex((e) => e.actor === "player" && e.kind !== "buff");
+  if (ownIdx >= 0) {
+    const m = b.events[ownIdx].move;
+    return {
+      action: m === "attack1" ? "attack_1" : m === "attack2" ? "attack_2" : "attack_3",
+      delay: at(ownIdx, 0),
+    };
+  }
+  const anyFoe = foeIdx(() => true);
+  if (b.player.defending && anyFoe >= 0) return { action: "defend", delay: 0 };
+  const hitIdx = foeIdx((e) => e.kind === "hit" || e.kind === "crit");
+  if (hitIdx >= 0) return { action: "hit", delay: at(hitIdx) };
+  const missIdx = foeIdx((e) => e.kind === "miss");
+  if (missIdx >= 0) return { action: "dodge", delay: at(missIdx) };
+  return { action: b.player.defending ? "defend" : "idle", delay: 0 };
+}
+
+// Idle until `delay` ms, then the requested pose (remounted per step by the caller's key).
+function CuedHero({ b }: { b: Battle }) {
+  const { action, delay } = heroCue(b);
+  const [on, setOn] = useState(delay <= 0);
+  useEffect(() => {
+    if (delay <= 0) return;
+    const id = setTimeout(() => setOn(true), delay);
+    return () => clearTimeout(id);
+  }, [delay]);
+  return (
+    <HeroSprite
+      classId={b.player.char.classId}
+      element={b.player.char.element}
+      traits={b.player.char.traits}
+      action={on ? action : "idle"}
+      animated
+    />
+  );
 }
 
 // Screen shake on a crit (timed with its event) or a perfect guard. Two
@@ -95,6 +127,9 @@ type Props = {
   enemy: number; // highlighted target (index in b.enemies)
   onTarget?: (i: number) => void;
 };
+
+// Painted enemy scale by group size (the frame has margin; 3 in a row must not overlap).
+const ENEMY_SCALE = { 1: 1.35, 2: 1.2, 3: 1 } as const;
 
 const COLS = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3" } as const;
 
@@ -138,6 +173,14 @@ export function BattleArena({
           }}
         />
       )}
+      {(b.status === "won" || b.status === "lost") && (
+        <Vfx
+          key={b.status}
+          id={b.status === "won" ? "victory" : "defeat"}
+          delay={b.events.length * STAGGER_S}
+          className="pointer-events-none absolute left-1/2 top-2 z-20 w-[min(60%,24rem)] -translate-x-1/2"
+        />
+      )}
       {world === undefined ? (
         <div className="absolute inset-x-0 bottom-0 h-[30%] border-t-4 border-[var(--edge)] bg-[#2b2420]" />
       ) : (
@@ -163,13 +206,9 @@ export function BattleArena({
             style={fxStyle(b, "player")}
           >
             <div className={`${spriteSize} fx-breathe`}>
-              <HeroSprite
-                classId={b.player.char.classId}
-                element={b.player.char.element}
-                traits={b.player.char.traits}
-                action={heroAction(b)}
-                animated
-              />
+              <div className="h-full w-full origin-bottom scale-[1.4]">
+                <CuedHero b={b} />
+              </div>
             </div>
           </div>
         </div>
@@ -177,6 +216,7 @@ export function BattleArena({
           role="radiogroup"
           aria-label="Objetivo del ataque"
           className={`grid min-h-0 min-w-0 gap-2 ${COLS[n as 1 | 2 | 3] ?? COLS[3]}`}
+          style={{ ["--es" as string]: ENEMY_SCALE[n as 1 | 2 | 3] ?? 1 }}
         >
           {b.enemies.map((c, i) => {
             const dead = c.hp <= 0;

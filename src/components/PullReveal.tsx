@@ -122,6 +122,12 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
                   className="pointer-events-none absolute left-1/2 top-1/2 w-[200%] max-w-none -translate-x-1/2 -translate-y-1/2"
                 />
               )}
+              {!legacy && i === shown && /^(\+1|REEMBOLSO)/.test(it.badge ?? "") && (
+                <Vfx
+                  id="gacha_duplicate"
+                  className="pointer-events-none absolute left-1/2 top-1/2 w-[180%] max-w-none -translate-x-1/2 -translate-y-1/2"
+                />
+              )}
               <div className="relative">
                 <ItemCard item={it} size={single ? 144 : 76} />
               </div>

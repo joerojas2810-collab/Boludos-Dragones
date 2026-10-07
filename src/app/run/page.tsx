@@ -114,6 +114,7 @@ import {
 } from "@/lib/game/run";
 import { FLOORS_PER_WORLD, WORLDS } from "@/lib/game/worlds";
 import { playEvents } from "@/lib/sfx";
+import { Vfx } from "@/components/fx/Vfx";
 
 type Screen =
   | { t: "doors" }
@@ -792,6 +793,7 @@ function RunScreen() {
     main = (
       <Center>
         <Panel title="¡Subes de nivel!">
+        <Vfx id="level_up" className="pointer-events-none mx-auto -mt-2 -mb-6 w-40" />
           <SkillChoice
             classId={run.hero.classId}
             ids={skillOffer(run)}
@@ -808,6 +810,7 @@ function RunScreen() {
     main = (
       <Center>
         <Panel title="¡Subes de nivel!">
+        <Vfx id="level_up" className="pointer-events-none mx-auto -mt-2 -mb-6 w-40" />
           <div className="mb-3 text-center text-base text-yellow-300">
             Elige una mejora ({run.pendingPicks} pendiente
             {run.pendingPicks > 1 ? "s" : ""})

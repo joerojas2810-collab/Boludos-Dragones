@@ -42,7 +42,8 @@ export function CoopBar({ view }: { view: RoomView }) {
             </span>
             <span className="h-2 flex-1 bg-black/40">
               <span
-                className="block h-full bg-yellow-400"
+                className="bar-fill block h-full"
+                data-fill="xp"
                 style={{
                   width: `${Math.min(100, (100 * r.damage) / c.pool)}%`,
                 }}

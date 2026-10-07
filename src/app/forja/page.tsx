@@ -1,5 +1,6 @@
 "use client";
 
+import { Vfx } from "@/components/fx/Vfx";
 import { Icon } from "@/components/Icon";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -63,7 +64,8 @@ function Need({
       </div>
       <div className="h-1.5 bg-black/40">
         <div
-          className={`h-full ${ok ? "bg-green-400" : "bg-red-400"}`}
+          className="bar-fill h-full"
+          data-fill={ok ? "health" : "health_low"}
           style={{ width: `${Math.min(100, (have / need) * 100)}%` }}
         />
       </div>
@@ -82,6 +84,20 @@ const TABS: [Tab, string][] = [
   ["shortcuts", "Atajos"],
 ];
 
+// Painted effect per forge operation.
+const FORGE_FX: Record<ForgeOp["op"], string> = {
+  craft: "forge_craft",
+  craftMax: "forge_craft",
+  combineParts: "forge_merge",
+  combinePieces: "forge_merge",
+  mergeAll: "forge_merge",
+  chain: "forge_merge",
+  refine: "forge_refine",
+  refineAll: "forge_refine",
+  dismantle: "forge_dismantle",
+  dismantleLow: "forge_dismantle",
+};
+
 export default function ForgePage() {
   const { profile, ready } = useProfile();
   const [tab, setTab] = useState<Tab>("craft");
@@ -96,6 +112,8 @@ export default function ForgePage() {
   const [spend, setSpend] = useState<Parts>({}); // parts to refine
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  // Painted effect of the last action (re-keyed by n so it replays).
+  const [fx, setFx] = useState<{ n: number; ids: string[] } | null>(null);
   // What every forge action produced: the latest stays on screen, plus a short history.
   const [log, setLog] = useState<
     { n: number; what: string; r: ForgeReceipt }[]
@@ -153,6 +171,7 @@ export default function ForgePage() {
       const pre = applyForge(profile, op); // same pure code the server runs
       const r = await repo.forge(op);
       setMsg({ ok: true, text: r.text });
+      setFx((f) => ({ n: (f?.n ?? 0) + 1, ids: [FORGE_FX[op.op], "forge_success"] }));
       if (pre.ok)
         setLog((l) =>
           [
@@ -168,6 +187,7 @@ export default function ForgePage() {
       setSpend({});
     } catch (e) {
       setMsg({ ok: false, text: e instanceof Error ? e.message : "Error" });
+      setFx((f) => ({ n: (f?.n ?? 0) + 1, ids: ["forge_failure"] }));
     }
     setBusy(false);
   };
@@ -280,6 +300,22 @@ export default function ForgePage() {
 
   return (
     <main className="mx-auto grid w-full max-w-6xl gap-4 p-3 lg:grid-cols-[1fr_18rem]">
+      {fx && (
+        <div
+          key={fx.n}
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center"
+        >
+          {fx.ids.map((id, i) => (
+            <Vfx
+              key={id}
+              id={id}
+              delay={i * 0.5}
+              className="absolute w-[min(80vw,22rem)]"
+            />
+          ))}
+        </div>
+      )}
       <div className="min-w-0 space-y-4">
         {msg && !msg.ok && (
           <p role="status" className="text-center text-red-300">
@@ -773,7 +809,8 @@ export default function ForgePage() {
             >
               <div className="h-1.5 bg-black/40">
                 <div
-                  className="h-full bg-green-400"
+                  className="bar-fill h-full"
+                  data-fill="health"
                   style={{
                     width: `${Math.min(100, (refineTotal / REFINE_RATIO) * 100)}%`,
                   }}

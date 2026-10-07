@@ -18,6 +18,7 @@ const title = MedievalSharp({
 export const metadata: Metadata = {
   title: "Boludos & Dragones",
   description: "RPG por turnos para noches de juegos",
+  icons: { icon: "/art/ui/favicon_64.webp", apple: "/art/ui/favicon_180.webp" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

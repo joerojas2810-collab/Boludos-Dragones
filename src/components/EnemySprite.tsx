@@ -49,7 +49,9 @@ export function EnemySprite({
   const anim = enemyAnim(family, tier, element, shown, finalRank);
   return (
     <div
-      className={`h-full w-full origin-bottom ${boss ? "scale-[1.7]" : "scale-[1.35]"} ${className}`}
+      className={`h-full w-full origin-bottom ${className}`}
+      // --es set by BattleArena by group size (1.35 alone, smaller with 2-3 so neighbours don't overlap)
+      style={{ transform: `scale(calc(var(--es, 1.35) * ${boss ? 1.26 : 1}))` }}
     >
       <AnimSheet
         key={shown}

@@ -3,6 +3,7 @@
 import { iconFor } from "@/lib/art";
 import { useState, type ReactNode } from "react";
 import { Chip } from "@/components/Chip";
+import { Icon } from "@/components/Icon";
 import { ElementIcon } from "@/components/ElementIcon";
 import { HealthBar } from "@/components/HealthBar";
 import { Tooltip } from "@/components/Tooltip";
@@ -198,7 +199,13 @@ export function HudCard({
             className="block"
           >
             <span className="stat-cell">
-              <span className="stat-k">{cell.label}</span>
+              <span className="stat-k">
+                <Icon
+                  name={iconFor("stat", cell.stat) ?? ""}
+                  className="mr-0.5 h-3.5"
+                />
+                {cell.label}
+              </span>
               <span
                 className={`stat-v ${cell.hot ? "text-orange-300" : "text-[var(--text)]"}`}
               >

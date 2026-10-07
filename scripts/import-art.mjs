@@ -55,3 +55,9 @@ for (const [lot, sub, outName, size] of JOBS) {
   console.log(`${lot}/${sub}: ${seen.size}`);
 }
 console.log("total", total);
+
+// Non-image branding copied as is: favicon.ico -> src/app (Next convention). social_share.png is not in the lot yet.
+for (const r of readdirSync(base).filter((d) => d.startsWith("phase_2_ui"))) {
+  const ico = join(base, r, "branding", "favicon.ico");
+  if (existsSync(ico)) copyFileSync(ico, join("src", "app", "favicon.ico"));
+}

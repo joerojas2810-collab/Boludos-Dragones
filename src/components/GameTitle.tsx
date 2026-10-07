@@ -1,9 +1,11 @@
 export function GameTitle() {
   return (
-    <div className="title-plaque" aria-label="Boludos & Dragones">
-      <span className="title-main">Boludos</span>
-      <span className="title-amp">&amp;</span>
-      <span className="title-main">Dragones</span>
-    </div>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/art/ui/logo_primary.webp"
+      alt="Boludos & Dragones"
+      className="game-logo"
+      draggable={false}
+    />
   );
 }

@@ -22,7 +22,9 @@ type Num = {
   delay: number;
 };
 type Part = { element: Element; delay: number };
-export type TargetFx = { num?: Num; parts: Part[]; dodge?: number };
+// Painted overlays on a target (element arrows, guard, shield, regeneration).
+type Extra = { id: string; delay: number };
+export type TargetFx = { num?: Num; parts: Part[]; dodge?: number; extras?: Extra[] };
 type StepFx = {
   key: number;
   player: TargetFx;
@@ -80,6 +82,7 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
   const [snap, setSnap] = useState({
     log: b.log.length,
     p: b.player.hp,
+    sh: b.player.shield ?? 0,
     e: hpsOf(b),
   });
   const [fx, setFx] = useState<StepFx | null>(null);
@@ -87,7 +90,12 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
   const [paused, setPaused] = useState(false);
 
   if (snap.log !== b.log.length) {
-    const next = { log: b.log.length, p: b.player.hp, e: hpsOf(b) };
+    const next = {
+      log: b.log.length,
+      p: b.player.hp,
+      sh: b.player.shield ?? 0,
+      e: hpsOf(b),
+    };
     setSnap(next);
     if (b.log.length < snap.log || b.events.length === 0) {
       setFx(null);
@@ -120,6 +128,15 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
           tgt.parts.push({ element: attacker.char.element, delay: t });
         }
         if (ev.kind === "crit" || ev.move !== "attack1") strong.push(t);
+        const m = elementMultiplier(
+          attacker.char.element,
+          (toEnemy ? b.enemies[ev.enemy] : b.player).char.element,
+        );
+        if (m !== 1 && tgt && !tgt.extras?.some((x) => x.id.startsWith("element_")))
+          (tgt.extras ??= []).push({
+            id: m > 1 ? "element_advantage" : "element_disadvantage",
+            delay: t,
+          });
       });
       const mkNum = (
         id: string,
@@ -158,13 +175,23 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
         "foe",
       );
       const gained = b.player.hp - snap.p;
-      if (gained > 0 && !player.num)
+      if (gained > 0 && !player.num) {
         player.num = {
           text: `+${gained}`,
           tone: "heal",
           crit: false,
           delay: IMPACT_S,
         };
+        (player.extras ??= []).push({ id: "regeneration", delay: IMPACT_S });
+      }
+      if ((b.player.shield ?? 0) > snap.sh)
+        (player.extras ??= []).push({ id: "shield", delay: IMPACT_S });
+      if (b.guardEarned)
+        (player.extras ??= []).push({ id: "perfect_guard", delay: IMPACT_S });
+      b.enemies.forEach((en, i) => {
+        if (en.hp > (snap.e[i] ?? en.hp) && en.hp > 0)
+          (enemies[i].extras ??= []).push({ id: "regeneration", delay: IMPACT_S });
+      });
       if (boss && b.status === "won" && !calm)
         strong.push((b.events.length - 1) * STAGGER_S + IMPACT_S);
       setFx({ key: b.log.length, player, enemies, stops: strong.slice(0, 3) });
@@ -193,7 +220,11 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
 }
 
 export function FxLayer({ t, k }: { t?: TargetFx; k: number }) {
-  if (!t || (!t.num && t.parts.length === 0 && t.dodge === undefined)) return null;
+  if (
+    !t ||
+    (!t.num && t.parts.length === 0 && t.dodge === undefined && !t.extras?.length)
+  )
+    return null;
   return (
     <div
       key={k}
@@ -234,6 +265,14 @@ export function FxLayer({ t, k }: { t?: TargetFx; k: number }) {
           className="absolute left-1/2 top-[10%] w-28 -translate-x-1/2"
         />
       )}
+      {t.extras?.map((x, i) => (
+        <Vfx
+          key={`x${i}`}
+          id={x.id}
+          delay={x.delay}
+          className="absolute left-1/2 top-[-10%] w-32 -translate-x-1/2"
+        />
+      ))}
       {t.parts.map((p, pi) =>
         PAINTED_HITS ? (
           <Vfx

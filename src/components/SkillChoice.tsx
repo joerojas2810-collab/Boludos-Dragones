@@ -1,4 +1,6 @@
+import { Icon } from "@/components/Icon";
 import { Tooltip } from "@/components/Tooltip";
+import { iconFor } from "@/lib/art";
 import type { ClassId } from "@/lib/game/characters";
 import { CLASSES } from "@/lib/game/characters";
 import { SKILL_LEVEL, SKILLS, type SkillId } from "@/lib/game/skills";
@@ -39,7 +41,10 @@ export function SkillChoice({
               focusable={false}
             >
               <button className="btn h-full w-full" onClick={() => onPick(id)}>
-                <div className="font-semibold">{s.name}</div>
+                <div className="flex items-center justify-center gap-2 font-semibold">
+                  <Icon name={iconFor("skill", id) ?? ""} className="h-8" />
+                  {s.name}
+                </div>
                 <div className="text-sm text-yellow-200">
                   {s.area ? "Área · " : ""}
                   {s.power > 0 ? "Daño" : "Apoyo"} · recarga {s.cooldown}

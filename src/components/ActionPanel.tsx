@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import { Icon } from "@/components/Icon";
 import { Panel } from "@/components/Panel";
 import { Tooltip } from "@/components/Tooltip";
+import { iconFor } from "@/lib/art";
 import { CLASSES } from "@/lib/game/characters";
 import {
   actionsLeft,
@@ -45,6 +47,7 @@ function ActionButton({
   title,
   sub,
   hot,
+  icon,
 }: {
   tip: Tip;
   disabled?: boolean;
@@ -52,6 +55,7 @@ function ActionButton({
   title: string;
   sub: string;
   hot?: boolean; // highlighted (perfect guard available)
+  icon?: string; // painted skill icon name (iconFor)
 }) {
   return (
     <Tooltip tip={tip} className="block" focusable={false}>
@@ -60,8 +64,13 @@ function ActionButton({
         disabled={disabled}
         onClick={onClick}
       >
-        <div className="text-base font-semibold leading-tight">{title}</div>
-        <div className="text-sm leading-snug">{sub}</div>
+        <div className="flex items-center justify-center gap-2">
+          {icon && <Icon name={icon} className="h-8 shrink-0 max-md:h-6" />}
+          <div>
+            <div className="text-base font-semibold leading-tight">{title}</div>
+            <div className="text-sm leading-snug">{sub}</div>
+          </div>
+        </div>
       </button>
     </Tooltip>
   );
@@ -117,6 +126,10 @@ export function ActionPanel({
         tip={attackTip(b.player, k, foe)}
         disabled={!!reason}
         onClick={() => onAct(k, target)}
+        icon={iconFor(
+          "skill",
+          k === "attack3" ? (skill?.id ?? "") : `${b.player.char.classId}.${k}`,
+        )}
         title={name}
         sub={reason ?? (a && a.heal > 0 ? `${stats} · cura` : stats)}
       />
@@ -168,6 +181,7 @@ export function ActionPanel({
           <ActionButton
             tip={defendTip(b)}
             onClick={() => onAct("defend", target)}
+            icon={iconFor("skill", "defend")}
             title="Defender"
             sub={perfect ? "¡Guardia perfecta!" : "Recibes la mitad de daño"}
             hot={perfect}
@@ -175,6 +189,7 @@ export function ActionPanel({
           <ActionButton
             tip={fleeTip(b, fleeCost)}
             onClick={() => onAct("flee", target)}
+            icon={iconFor("skill", "flee")}
             title="Huir"
             sub={`${pct(fleeChance(b.player))} de éxito${
               fleeCost === undefined
