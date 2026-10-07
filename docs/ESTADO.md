@@ -1,6 +1,6 @@
 # Estado de traspaso (leer junto con CLAUDE.md)
 
-Última actualización: 2026-10-06, tras publicar en Vercel y añadir salas reales, racha diaria, votación de sala y mercado.
+Última actualización: 2026-10-07 (v6.0, arte pintado integrado; antes: 2026-10-06, Vercel, salas reales, racha diaria, votación y mercado).
 
 ## Hecho y verificado
 - Etapas 1-3 jugables (`/prueba` solo admin, `/run`, `/gacha`, `/coleccion`), combate v2 (`ENGINE_VERSION = 2`), pasivos de clase, velocidad, guardia perfecta, habilidad 3, modo rápido, 1-3 enemigos, tooltips, fondos por mundo.
@@ -12,6 +12,11 @@
 - Tope de 100 pisos (`MAX_FLOOR`, `run.ts`): al limpiar el piso 100 la run termina en victoria con +500 monedas (`VICTORY_COINS`).
 - 4 rasgos con regla de run (`ENGINE_VERSION = 3`: runs abiertas de la versión 2 se rechazan con `engine_outdated`). Balance de rasgos con 150000 peleas: nuevos entre −1.6 y +2.2; Blindado −5.1 y Cobarde −4.2 quedan algo fuera de ±3.5 (revisar). Runs: mediana 15, p90 29, p99 45.
 - 352 tests Vitest, pglite: rooms 271, run 450, market 47.
+
+## Arte pintado (v6.0, 2026-10-07)
+- Los 8 lotes de arte (héroes, enemigos, armas, equipo, íconos, fondos, interfaz, efectos) están integrados como WebP en `public/art` (~65 MB), con importadores reproducibles en `scripts/`. Detalle y reglas en la sección "Arte" de `CLAUDE.md`. Se conservan los sprites SVG de `src/sprites/` como respaldo (no se usan en el flujo normal).
+- Rediseños hechos: hub, combate (arena ~16:9, sin registro), cartas con la información dentro del marco, torre, misiones (cofres por nivel), forja (selectores pintados), login, salas, barras superior e inferior, tipografía Nunito + Alegreya.
+- Pendiente de arte: pantalla "Crear legendario" (y su sprite), retratos, sonido; revisar a ojo podio, jefe cooperativo y celular; `next build` con Turbopack falla por el symlink de `node_modules` en copias del repo (usar `next build --webpack`).
 
 ## Pendiente
 0. **Pity 100 listo pero sin publicar** (commit local `2df22f6`, migración `0010_pity_100.sql`): el usuario debe ejecutar `setup.sql` en Supabase ANTES del push, o las tiradas con pity ≥30 fallarán. Fase 2 visual ("juice") en ejecución según `docs/MEJORA_VISUAL.md`; un solo push al terminar.

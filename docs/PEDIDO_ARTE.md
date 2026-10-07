@@ -1,3 +1,5 @@
+> **Estado (2026-10-07): entregado e integrado** (8 lotes, ver `CLAUDE.md` → Arte). No se entregó: sonido y música, retratos de héroe, imagen `social_share` ni arte de legendarios de los amigos. Este documento queda como referencia del pedido original.
+
 # Pedido de arte completo (para un artista, un generador de imágenes o un agente)
 
 **Enviar junto con:** `DUNGEONS_FORJA.md` (sistemas: rangos, equipo, dungeons, forja) y, si hace falta más detalle visual del estado actual, `MEJORA_VISUAL.md`. Estado al 2026-10-06: el juego se llama "Boludos & Dragones", es un RPG por turnos para jugar con amigos en la PC (el celular es secundario); idioma de la interfaz: español.

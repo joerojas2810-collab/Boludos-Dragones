@@ -1,3 +1,5 @@
+> **Nota (2026-10-07):** este documento describe la fase de pixel art por código. Desde v6.0 el juego usa arte pintado en archivos; las reglas vigentes están en la sección "Arte" de `CLAUDE.md`. Se conserva como historial.
+
 # Dirección de mejora visual — Boludos & Dragones
 
 **Estado:** las 7 etapas están aplicadas en secuencia; falta la revisión visual final en navegador.  
