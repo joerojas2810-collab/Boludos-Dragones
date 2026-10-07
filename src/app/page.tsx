@@ -8,25 +8,21 @@ import { StarRow } from "@/components/StarRow";
 import { TitleScene } from "@/components/TitleScene";
 import { CLASSES } from "@/lib/game/characters";
 import { ELEMENT_LABEL } from "@/lib/game/elements";
-import type { OwnedCharacter, Profile } from "@/lib/game/profile";
-import { RARITIES, RARITY_IDS } from "@/lib/game/rarity";
+import {
+  heroPower,
+  type OwnedCharacter,
+  type Profile,
+} from "@/lib/game/profile";
+import { RARITIES } from "@/lib/game/rarity";
 import { claimedToday, dayKey } from "@/lib/game/streak";
 import { repo, useProfile } from "@/lib/useProfile";
 
-// Showcase hero: highest rank, then stars, then level.
+// Showcase hero: the strongest one (rank, stars, weapon and gear, see heroPower).
 const bestHero = (p: Profile): OwnedCharacter | null =>
-  p.characters.reduce<OwnedCharacter | null>(
-    (b, c) =>
-      !b ||
-      [
-        RARITY_IDS.indexOf(c.rarity) - RARITY_IDS.indexOf(b.rarity),
-        c.stars - b.stars,
-        c.level - b.level,
-      ].find((d) => d !== 0)! > 0
-        ? c
-        : b,
-    null,
-  );
+  p.characters.reduce<{ c: OwnedCharacter; power: number } | null>((b, c) => {
+    const power = heroPower(p, c.id);
+    return !b || power > b.power ? { c, power } : b;
+  }, null)?.c ?? null;
 
 function Stat({
   label,

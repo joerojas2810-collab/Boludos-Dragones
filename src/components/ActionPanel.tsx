@@ -62,7 +62,12 @@ function ActionButton({
   left?: boolean; // left-aligned content (side column)
 }) {
   return (
-    <Tooltip tip={tip} className="block" focusable={false}>
+    <Tooltip
+      tip={tip}
+      className="block"
+      focusable={false}
+      placement={left ? "side" : "auto"}
+    >
       <button
         className={`btn h-full w-full ${left ? "min-h-11 !px-2 !py-1" : "min-h-14 max-md:min-h-12 md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1"} ${hot ? "!border-yellow-300" : ""}`}
         disabled={disabled}

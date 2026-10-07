@@ -39,6 +39,9 @@ type Props = {
   // false when the child is itself focusable (button): the child gets the aria
   // link and a long press (touch) opens the tip instead of a tap.
   focusable?: boolean;
+  // "side": open beside the anchor (left, else right) on wide screens so it never covers
+  // the elements stacked above/below it (e.g. the action column).
+  placement?: "auto" | "side";
 };
 
 // Opens on mouse hover, keyboard focus and tap (touch). Rendered in a portal
@@ -49,6 +52,7 @@ export function Tooltip({
   children,
   className = "inline-flex",
   focusable = true,
+  placement = "auto",
 }: Props) {
   const [open, setOpen] = useState(false);
   const id = useId();
@@ -69,6 +73,19 @@ export function Tooltip({
     el.style.maxWidth = `${Math.min(320, vw - 2 * MARGIN)}px`;
     const w = el.offsetWidth;
     const h = el.offsetHeight;
+    if (placement === "side" && vw >= 768) {
+      const toLeft = a.left - GAP - w;
+      const x =
+        toLeft >= MARGIN ? toLeft : Math.min(a.right + GAP, vw - w - MARGIN);
+      const y = Math.min(
+        Math.max(MARGIN, a.top + a.height / 2 - h / 2),
+        Math.max(MARGIN, vh - h - MARGIN),
+      );
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      el.style.visibility = "visible";
+      return;
+    }
     const left = Math.min(
       Math.max(MARGIN, a.left + a.width / 2 - w / 2),
       vw - w - MARGIN,
@@ -87,7 +104,7 @@ export function Tooltip({
     el.style.left = `${left}px`;
     el.style.top = `${Math.min(Math.max(MARGIN, top), Math.max(MARGIN, vh - h - MARGIN))}px`;
     el.style.visibility = "visible";
-  }, []);
+  }, [placement]);
 
   useLayoutEffect(() => {
     if (open) place();
