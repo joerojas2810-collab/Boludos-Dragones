@@ -89,8 +89,8 @@ Cada etapa produce un cambio pequeño, verificable y fácil de revertir. Se impl
 
 - No cambiar economía, probabilidades, balance, RNG, motor de combate, persistencia, esquema de Supabase ni protocolo de sala como parte de una mejora estética.
 - No renombrar identificadores de clases, rasgos, elementos, rarezas, mundos o sprites si eso puede invalidar perfiles o datos guardados.
-- No reemplazar sprites de código por imágenes externas ni incorporar dependencias pagas para conseguir el resultado.
-- Evitar nuevas fuentes remotas o recursos de red; reutilizar las fuentes y recursos ya incluidos.
+- ~~No reemplazar sprites de código por imágenes externas~~ (derogado 2026-10-07: se adopta el arte pintado en archivos; ver `CLAUDE.md`, sección Arte). Siguen sin permitirse dependencias pagas.
+- Evitar fuentes remotas o recursos de red; usar fuentes locales (Nunito y Alegreya, OFL).
 - Los cambios visuales deben ser aditivos y acotados; conservar clases CSS existentes o sus aliases mientras se migra una pantalla.
 - Si una mejora requiere cambiar comportamiento, datos persistidos o una API, separarla en otra propuesta y no mezclarla con esta tarea.
 

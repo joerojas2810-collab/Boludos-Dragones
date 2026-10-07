@@ -1,7 +1,7 @@
 # CLAUDE.md — Boludos & Dragones (RPG Gacha de Noche de Juegos)
 
 ## Qué es este proyecto
-Juego web RPG por turnos, con runs infinitas y tiradas gacha, para jugar con amigos en noches de juegos (reemplazo de LoL). Cada uno juega desde su computadora (el celular es secundario) en una sala en línea. Arte en píxeles generado por código, sin archivos de imagen.
+Juego web RPG por turnos, con runs infinitas y tiradas gacha, para jugar con amigos en noches de juegos (reemplazo de LoL). Cada uno juega desde su computadora (el celular es secundario) en una sala en línea. Arte pintado (fantasía pintada) en archivos PNG bajo `public/art/`; los sprites SVG por código quedan como respaldo mientras se migra (ver "Arte").
 
 ## Contexto de uso (prioridad de diseño)
 - Lo más importante: que sea **divertido en una noche de juegos entre amigos**. Son 7 amigos, pero casi nunca juegan todos: debe funcionar bien con 2 a 7 jugadores, con gente que entra o se va a mitad de la noche, y sin que nadie quede bloqueado esperando.
@@ -125,7 +125,17 @@ Dos personajes de la misma clase nunca son iguales:
 - Tirada de personaje y tirada de arma, con las rarezas de arriba.
 - Duplicados suben estrellas. Pity incluido.
 
-## Arte (pixel art en código)
+## Arte
+**Decisión vigente (2026-10-07): arte pintado en archivos.** Se reemplaza el pixel art por código por la entrega visual en estilo "fantasía pintada" (8 lotes: héroes, enemigos, armas, equipo y forja, íconos, fondos, interfaz, efectos; fuente en Drive, descargada fuera del repo). Reglas:
+- Solo entran al repo los PNG finales ya reducidos y optimizados, en `public/art/<lote>/`. Nunca originales `.ora`, máscaras, prompts, maquetas ni la carpeta completa (~12 GB). Una sola escala (1x, o @2x si hace falta), elegida por lote.
+- Los `manifest.json` de cada lote mandan: tamaños, cuadros, velocidad, anclaje y capas. La interfaz usa 9-slice con los cortes del manifiesto; los fondos se componen en 5 capas; respetar `remove`/`hold`/`loop` de los efectos.
+- Fuentes: Nunito (texto) y Alegreya (títulos), locales, con licencia OFL; reemplazan a Chakra Petch. Sin fuentes remotas.
+- Los sprites SVG de `src/sprites/` y el estilo de abajo se conservan solo como respaldo hasta migrar cada pantalla; luego se borran. La lógica de efectos (temporización, hit-stop, `prefers-reduced-motion`) sigue en código y usa el arte solo para lo visible.
+- Equipo: casco, peto, piernas, zapatos y collar son íconos de inventario (no se dibujan sobre el héroe); el arma sí va en la mano.
+- Pendiente de arte: legendarios de los amigos ("Crear legendario"), retratos de héroe y sonido (fuera del alcance entregado).
+- Integración por etapas: 1) reglas (hecho), 2) copiar y optimizar íconos, equipo e interfaz, 3) conectar componentes, 4) revisión en navegador; luego héroes, armas, enemigos, fondos y efectos.
+
+### Arte anterior (respaldo en código, pixel art; vigente solo hasta migrar)
 - Sprites como cuadrículas de datos **32x32** (decidido; antes 16x16) renderizadas en SVG. Sin archivos de imagen. Pixel art duro, no chibi ni suave.
 - Cada clase se define con la mitad izquierda espejada más parches asimétricos (`OVERLAYS`) para armas. Luz arriba-izquierda calculada automáticamente en `shade.ts`.
 - Armas en mano por clase: Caballero espada y escudo, Mago bastón con orbe, Pícaro dos dagas, Clérigo maza y libro.
