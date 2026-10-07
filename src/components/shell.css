@@ -139,7 +139,7 @@
 @media (min-width: 900px) {
   .hub {
     grid-template-areas: "stage title" "stage stats" "stage actions";
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
     grid-template-rows: auto auto auto;
     column-gap: 2rem;
     max-width: 70rem;
@@ -153,7 +153,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: min(100%, 32rem);
+  width: min(100%, 40rem);
 }
 .hub-glow {
   position: absolute;
@@ -162,7 +162,9 @@
 }
 .hub-hero {
   position: relative;
-  width: min(78vw, 54vh, 28rem);
+  width: min(88vw, 64vh, 34rem);
+  transform-origin: 50% 88%;
+  scale: 1.2;
   animation: hub-bob 2.4s steps(6) infinite;
   filter: drop-shadow(0 4px 0 rgb(0 0 0 / 0.35));
 }

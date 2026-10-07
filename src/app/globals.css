@@ -610,9 +610,15 @@ hr,
 }
 
 /* Game logo */
+.game-plate {
+  max-width: 36rem;
+  border: 12px solid transparent;
+  border-image: url("/art/ui/panel_raised.webp") 33 fill / 12px stretch;
+  padding: 0.25rem 1rem;
+}
 .game-logo {
   width: 100%;
-  max-width: 28rem;
+  max-width: 32rem;
   height: auto;
   filter: drop-shadow(0 3px 0 rgb(0 0 0 / 0.6)) drop-shadow(0 0 8px rgb(0 0 0 / 0.55));
 }
