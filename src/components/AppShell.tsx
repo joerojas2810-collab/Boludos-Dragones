@@ -185,7 +185,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <>
               <Icon
                 name={NAV_ICON[t.id]}
-                className={t.id === "forge" ? "h-12 w-12" : "h-10 w-10"}
+                className={t.id === "forge" ? "h-14 w-14" : "h-[46px] w-[46px]"}
               />
               <span>{t.label}</span>
               {badge && (

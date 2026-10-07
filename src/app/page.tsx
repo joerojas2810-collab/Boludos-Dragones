@@ -39,9 +39,9 @@ function Stat({
 }) {
   return (
     <div className="hub-stat pixel-frame">
-      <div className="text-xs opacity-80">{label}</div>
-      <div className="text-lg font-semibold text-yellow-300">{value}</div>
-      {hint && <div className="text-xs opacity-80">{hint}</div>}
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">{value}</div>
+      {hint && <div className="stat-hint">{hint}</div>}
     </div>
   );
 }
@@ -100,7 +100,7 @@ export default function Home() {
             value={String(profile.characters.length)}
             hint={`${profile.weapons.length} piezas`}
           />
-          <div className="hub-stat pixel-frame text-sm">
+          <div className="hub-stat pixel-frame">
             <DailyStreak profile={profile} />
           </div>
         </section>
