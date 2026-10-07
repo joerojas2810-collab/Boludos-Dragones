@@ -1,7 +1,13 @@
+import { ScreenBg } from "@/components/ScreenBg";
 import "./fx.css";
 
-// Decorative mountain landscape behind the title screens (pure SVG, no image files).
-export function TitleScene() {
+// Painted menu backdrop behind the title screens; `legacy` = the old SVG landscape.
+export function TitleScene({ legacy = false }: { legacy?: boolean }) {
+  return legacy ? <SvgTitleScene /> : <ScreenBg scene="menu" />;
+}
+
+// Decorative mountain landscape (pure SVG, no image files); kept as a fallback.
+export function SvgTitleScene() {
   return (
     <svg
       aria-hidden

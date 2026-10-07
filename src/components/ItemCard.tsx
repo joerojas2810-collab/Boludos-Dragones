@@ -5,7 +5,7 @@ import type { TraitId } from "@/lib/game/traits";
 import type { WeaponType } from "@/lib/game/weapons";
 import { ElementIcon } from "./ElementIcon";
 import { RarityFrame } from "./RarityFrame";
-import { Sprite } from "./Sprite";
+import { HeroSprite } from "./HeroSprite";
 import { StarRow } from "./StarRow";
 import { WeaponSprite } from "./WeaponSprite";
 
@@ -48,7 +48,7 @@ export function ItemCard({
       )}
       <RarityFrame rarity={item.rarity} size={size} selected={selected}>
         {item.kind === "character" ? (
-          <Sprite
+          <HeroSprite
             classId={item.classId}
             element={item.element}
             traits={item.traits}

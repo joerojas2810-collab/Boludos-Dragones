@@ -1,5 +1,6 @@
 "use client";
 
+import { Vfx } from "@/components/fx/Vfx";
 import { usePrefersReducedMotion } from "@/lib/motion";
 import "./fx.css";
 
@@ -11,6 +12,10 @@ export function Confetti() {
   if (usePrefersReducedMotion()) return null;
   return (
     <div aria-hidden>
+      <Vfx
+        id="confetti"
+        className="pointer-events-none fixed left-1/2 top-0 z-40 w-[min(100vw,48rem)] -translate-x-1/2"
+      />
       {Array.from({ length: N }, (_, i) => (
         <span
           key={i}

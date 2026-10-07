@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Panel } from "@/components/Panel";
 import { DailyStreak } from "@/components/DailyStreak";
 import { PullReveal } from "@/components/PullReveal";
-import { Sprite } from "@/components/Sprite";
+import { HeroSprite } from "@/components/HeroSprite";
 import { Tooltip } from "@/components/Tooltip";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import type { ItemView } from "@/components/ItemCard";
@@ -105,7 +105,7 @@ export default function GachaPage() {
         <div className="mb-3 flex flex-wrap justify-center gap-1">
           {banner === "character"
             ? CLASS_IDS.map((id) => (
-                <Sprite
+                <HeroSprite
                   key={id}
                   classId={id}
                   element="rayo"

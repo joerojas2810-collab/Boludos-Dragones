@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { RARITIES, RARITY_IDS, isTopRank } from "@/lib/game/rarity";
 import { playPullSound } from "@/lib/sfx";
+import { Vfx } from "@/components/fx/Vfx";
 import { ItemCard, type ItemView } from "./ItemCard";
 import "./fx.css";
 
@@ -53,7 +54,7 @@ function Chest({ color }: { color: string }) {
   );
 }
 
-type Props = { items: ItemView[]; onDone: () => void };
+type Props = { items: ItemView[]; onDone: () => void; legacy?: boolean }; // legacy: pixel chest, no painted effects
 
 const SUMMON_MS = 1100;
 const STEP_MS = 450;
@@ -63,7 +64,7 @@ const best = (items: ItemView[]) =>
     RARITY_IDS.indexOf(b.rarity) > RARITY_IDS.indexOf(a.rarity) ? b : a,
   ).rarity;
 
-export function PullReveal({ items, onDone }: Props) {
+export function PullReveal({ items, onDone, legacy = false }: Props) {
   const [shown, setShown] = useState(-1); // -1 = summoning
   const bestId = best(items);
   const color = RARITIES[bestId].color;
@@ -95,7 +96,11 @@ export function PullReveal({ items, onDone }: Props) {
       {shown < 0 ? (
         <div className="relative flex h-40 w-40 items-center justify-center">
           {isTopRank(bestId) && <Rays color={color} />}
-          <Chest color={color} />
+          {legacy ? (
+            <Chest color={color} />
+          ) : (
+            <Vfx id={`gacha_open_${bestId}`} className="h-44 w-44 max-w-none" />
+          )}
           <p className="absolute -bottom-6 text-sm">Invocando...</p>
         </div>
       ) : (
@@ -111,7 +116,15 @@ export function PullReveal({ items, onDone }: Props) {
                   style={{ background: RARITIES[it.rarity].color }}
                 />
               )}
-              <ItemCard item={it} size={single ? 144 : 76} />
+              {!legacy && i === shown && (
+                <Vfx
+                  id={`gacha_reveal_${it.rarity}`}
+                  className="pointer-events-none absolute left-1/2 top-1/2 w-[200%] max-w-none -translate-x-1/2 -translate-y-1/2"
+                />
+              )}
+              <div className="relative">
+                <ItemCard item={it} size={single ? 144 : 76} />
+              </div>
             </div>
           ))}
         </div>

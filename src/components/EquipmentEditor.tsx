@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { ElementIcon } from "@/components/ElementIcon";
-import { Sprite } from "@/components/Sprite";
+import { HeroSprite } from "@/components/HeroSprite";
 import { StarRow } from "@/components/StarRow";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import { CLASSES } from "@/lib/game/characters";
@@ -223,11 +223,12 @@ export function EquipmentEditor({
             })}
           </div>
         ))}
-        <Sprite
+        <HeroSprite
           classId={c.classId}
           element={c.element}
           traits={c.traits}
           className="doll-hero"
+          animated
         />
       </div>
 

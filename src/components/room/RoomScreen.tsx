@@ -5,7 +5,7 @@ import { DoorIcon } from "@/components/DoorIcon";
 import { CoopBar, CoopFight } from "@/components/room/CoopBoss";
 import { FloorPlayer } from "@/components/room/FloorPlayer";
 import { Podium } from "@/components/room/Podium";
-import { Sprite } from "@/components/Sprite";
+import { HeroSprite } from "@/components/HeroSprite";
 import "@/components/fx.css";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
@@ -26,6 +26,7 @@ import { characterView } from "@/lib/viewModels";
 import { filterSortCharacters } from "@/lib/viewModels";
 import { AWARD_INFO, nightTitles } from "@/lib/game/awards";
 import { DEFAULT_HERO } from "@/lib/game/room";
+import { Vfx } from "@/components/fx/Vfx";
 import type { EmoteId, RoomClient, RoomView } from "@/lib/roomui/types";
 import {
   DOOR_NAME,
@@ -38,6 +39,7 @@ import {
   rankRows,
 } from "@/lib/roomui/viewModels";
 
+// Fallback glyphs; the painted sprites (vfx_emote_<id>) are shown when available.
 const EMOTES: Record<EmoteId, string> = {
   laugh: "😂",
   fire: "🔥",
@@ -399,7 +401,7 @@ export function RoomScreen({
                 >
                   <span className="w-5 text-right opacity-70">{r.pos}</span>
                   {p.hero ? (
-                    <Sprite
+                    <HeroSprite
                       classId={p.hero.classId}
                       element={p.hero.element}
                       traits={p.hero.traits}
@@ -418,7 +420,13 @@ export function RoomScreen({
                         {titles[r.id]}
                       </span>
                     )}
-                    {emotes[r.id] && <span> {EMOTES[emotes[r.id].id]}</span>}
+                    {emotes[r.id] && (
+                      <Vfx
+                        key={emotes[r.id].id}
+                        id={`emote_${emotes[r.id].id}`}
+                        className="ml-1 inline-block h-8 w-8 align-middle"
+                      />
+                    )}
                     <span className={`block text-xs ${STATUS_COLOR[st.kind]}`}>
                       {p.hero ? `${p.hero.name} · ` : ""}
                       {st.text}
@@ -455,7 +463,10 @@ export function RoomScreen({
                   className="btn btn-gray !px-2"
                   onClick={() => emote(id)}
                 >
-                  {EMOTES[id]}
+                  <span aria-label={id} className="relative block h-7 w-7">
+                    <Vfx id={`emote_${id}`} className="h-full w-full" />
+                    <span className="sr-only">{EMOTES[id]}</span>
+                  </span>
                 </button>
               ))}
             </div>

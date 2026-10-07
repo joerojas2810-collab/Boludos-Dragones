@@ -17,6 +17,7 @@ type Props = {
   flip?: boolean;
   className?: string;
   onDone?: () => void;
+  last?: boolean; // start (and stay) on the final frame
 };
 
 // Keyed by src so a new animation always restarts at frame 0.
@@ -24,11 +25,12 @@ export const AnimSheet = (props: Props) => (
   <Sheet key={props.anim.src} {...props} />
 );
 
-function Sheet({ anim, flip = false, className = "", onDone }: Props) {
-  const [frame, setFrame] = useState(0);
+function Sheet({ anim, flip = false, className = "", onDone, last }: Props) {
+  const [frame, setFrame] = useState(last ? anim.frames - 1 : 0);
   const { frames, fps, loop } = anim;
   useEffect(() => {
     if (
+      last ||
       frames < 2 ||
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {

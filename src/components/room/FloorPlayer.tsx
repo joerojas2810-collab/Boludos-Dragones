@@ -237,6 +237,7 @@ export function FloorPlayer({ client, floor, door }: Props) {
               family={worldOf(run.floor).family}
               element={c.char.element}
               boss={node.kind === "boss" && i === 0}
+              elite={node.kind === "hard"}
               flip
             />
           )}

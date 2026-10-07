@@ -26,7 +26,7 @@ import { ItemCard } from "@/components/ItemCard";
 import { RarityFrame } from "@/components/RarityFrame";
 import { dropsText } from "@/components/PartsList";
 import { partCount } from "@/lib/game/parts";
-import { Sprite } from "@/components/Sprite";
+import { HeroSprite } from "@/components/HeroSprite";
 import { StarRow } from "@/components/StarRow";
 import { Icon } from "@/components/Icon";
 import { Tooltip } from "@/components/Tooltip";
@@ -181,7 +181,7 @@ function Hud({ run }: { run: Run }) {
       <Tooltip tip={levelTip(run)}>
         <span className="flex cursor-help items-center gap-1.5 text-green-300">
           <RarityFrame rarity={hero.rarity ?? "f"} size={26}>
-            <Sprite
+            <HeroSprite
               classId={hero.classId}
               element={hero.element}
               traits={hero.traits}
@@ -707,7 +707,11 @@ function RunScreen() {
   } else if (screen.t === "fight") {
     const { battle: b, node, result } = screen;
     logLines = b.log;
-    const fam = getFloor(run).world.family;
+    const fam = run.rank
+      ? WORLDS[DUNGEONS[run.rank].world].family
+      : getFloor(run).world.family;
+    const finalRank =
+      run.rank && run.floor === DUNGEONS[run.rank].floors ? run.rank : null;
     const mods = b.mods ?? [];
     main = (
       <>
@@ -722,6 +726,8 @@ function RunScreen() {
               family={fam}
               element={c.char.element}
               boss={node.kind === "boss" && i === 0}
+              elite={node.kind === "hard"}
+              finalRank={finalRank}
               flip
             />
           )}
@@ -734,6 +740,8 @@ function RunScreen() {
               ? DUNGEONS[run.rank].world
               : Math.floor((run.floor - 1) / FLOORS_PER_WORLD) % WORLDS.length
           }
+          rank={run.rank}
+          finalRank={finalRank}
           boss={node.kind === "boss"}
           enemyChips={(_, c) =>
             mods
@@ -1364,7 +1372,7 @@ function ClassSelect({
                 key={id}
                 className="pixel-frame flex flex-col items-center gap-1 p-2 text-center"
               >
-                <Sprite
+                <HeroSprite
                   classId={id}
                   element="tierra"
                   className="w-20 md:w-24"

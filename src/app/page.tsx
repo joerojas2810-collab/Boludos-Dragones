@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { DailyStreak } from "@/components/DailyStreak";
 import { GameTitle } from "@/components/GameTitle";
-import { Sprite } from "@/components/Sprite";
+import { HeroSprite } from "@/components/HeroSprite";
 import { StarRow } from "@/components/StarRow";
 import { TitleScene } from "@/components/TitleScene";
 import { CLASSES } from "@/lib/game/characters";
@@ -65,11 +65,12 @@ export default function Home() {
                 background: `radial-gradient(closest-side, ${RARITIES[hero.rarity].color}88, transparent)`,
               }}
             />
-            <Sprite
+            <HeroSprite
               classId={hero.classId}
               element={hero.element}
               traits={hero.traits}
               className="hub-hero"
+              animated
             />
             <div className="hub-shadow" />
             <div className="hub-name pixel-frame">

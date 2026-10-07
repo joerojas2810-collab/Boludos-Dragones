@@ -2,9 +2,11 @@ import type { ReactNode } from "react";
 import { ArenaBackground } from "@/components/ArenaBackground";
 import { Chip } from "@/components/Chip";
 import { BossIntro, FxLayer, useBattleFx } from "@/components/fx/BattleFx";
+import { EnemyCueContext, type EnemyCue } from "@/components/EnemySprite";
 import { HudCard } from "@/components/HudCard";
-import { Sprite } from "@/components/Sprite";
+import { HeroSprite } from "@/components/HeroSprite";
 import { Tooltip } from "@/components/Tooltip";
+import type { HeroAction } from "@/lib/art/heroes";
 import { CLASSES } from "@/lib/game/characters";
 import { enemyIntents, type Battle, type Combatant } from "@/lib/game/combat";
 import { intentTip, targetTip, type Tip } from "@/lib/game/explain";
@@ -31,6 +33,42 @@ function fxStyle(b: Battle, side: "player" | "enemy", enemy?: number) {
   return anims.length ? { animation: anims.join(", ") } : undefined;
 }
 
+// Painted-enemy action for this step: attack when it acted, hit when the hero
+// connected, defeat once its hp is 0. Delays follow the same stagger as fxStyle.
+function enemyCue(b: Battle, i: number, boss?: boolean): EnemyCue {
+  if (boss && i === 0 && b.actions === 0) return { action: "entrance", delay: 0 };
+  const dead = b.enemies[i].hp <= 0;
+  let cue: EnemyCue = { action: dead ? "defeat" : "idle", delay: 0, held: dead };
+  b.events.forEach((e, k) => {
+    if (e.enemy !== i) return;
+    if (e.actor === "enemy" && e.kind !== "buff") {
+      if (!dead && cue.action === "idle") cue = { action: "attack", delay: k * STAGGER_S * 1000 };
+    } else if (e.actor === "player" && e.kind !== "miss" && e.kind !== "buff") {
+      cue = { action: dead ? "defeat" : "hit", delay: (k * STAGGER_S + 0.1) * 1000 };
+    }
+  });
+  return cue;
+}
+
+// Painted hero action for the last step: one pose per step, most telling first.
+function heroAction(b: Battle): HeroAction {
+  if (b.status === "won") return "victory";
+  if (b.status === "lost") return "defeat";
+  if (b.guardEarned) return "perfect_guard";
+  const own = b.events.find((e) => e.actor === "player" && e.kind !== "buff");
+  if (own)
+    return own.move === "attack1"
+      ? "attack_1"
+      : own.move === "attack2"
+        ? "attack_2"
+        : "attack_3";
+  const foe = b.events.filter((e) => e.actor === "enemy");
+  if (b.player.defending && foe.length) return "defend";
+  if (foe.some((e) => e.kind === "hit" || e.kind === "crit")) return "hit";
+  if (foe.some((e) => e.kind === "miss")) return "dodge";
+  return b.player.defending ? "defend" : "idle";
+}
+
 // Screen shake on a crit (timed with its event) or a perfect guard. Two
 // identical keyframes alternate so the animation restarts on every step.
 function bigMomentFx(b: Battle) {
@@ -47,6 +85,8 @@ type Props = {
   playerExtra: string;
   playerExtraTip?: Tip;
   inRun?: boolean;
+  rank?: string | null; // dungeon rank, for its own scenery
+  finalRank?: string | null; // set on the dungeon's final boss fight (named entrance)
   world?: number; // 0-4 index into WORLDS; omit for the plain test-bench look
   boss?: boolean;
   enemyExtra: (i: number, c: Combatant) => string;
@@ -64,6 +104,8 @@ export function BattleArena({
   playerExtraTip,
   inRun,
   world,
+  rank,
+  finalRank,
   boss,
   enemyExtra,
   enemyArt,
@@ -77,7 +119,7 @@ export function BattleArena({
   const sprite =
     "mt-auto flex min-h-20 max-md:min-h-14 md:[@media(max-height:620px)]:min-h-10 flex-1 items-end justify-center pt-1 w-full";
   const spriteSize =
-    "relative h-full max-h-[9.5rem] max-md:max-h-[5.5rem] aspect-square max-w-full [&>svg]:h-full [&>svg]:w-full";
+    "relative h-full max-h-[9.5rem] max-md:max-h-[5.5rem] aspect-square max-w-full [&>div]:h-full [&>div]:w-full";
   const big = bigMomentFx(b);
   const { fx, paused } = useBattleFx(b, boss);
   return (
@@ -86,7 +128,7 @@ export function BattleArena({
       style={big?.style}
       data-hitstop={paused}
     >
-      {boss && b.actions === 0 && <BossIntro name={b.enemies[0].char.name} />}
+      {boss && b.actions === 0 && <BossIntro name={b.enemies[0].char.name} finalRank={finalRank} />}
       {boss && b.status === "won" && (
         <div
           className="fx-flash pointer-events-none absolute inset-0 z-20 bg-yellow-300/60"
@@ -99,7 +141,7 @@ export function BattleArena({
       {world === undefined ? (
         <div className="absolute inset-x-0 bottom-0 h-[30%] border-t-4 border-[var(--edge)] bg-[#2b2420]" />
       ) : (
-        <ArenaBackground world={world} boss={boss} />
+        <ArenaBackground world={world} boss={boss} rank={rank} />
       )}
       <div className="relative grid min-h-0 flex-1 gap-2 md:grid-cols-[minmax(0,34%)_minmax(0,1fr)]">
         <div className="relative flex min-h-0 flex-col">
@@ -121,10 +163,12 @@ export function BattleArena({
             style={fxStyle(b, "player")}
           >
             <div className={`${spriteSize} fx-breathe`}>
-              <Sprite
+              <HeroSprite
                 classId={b.player.char.classId}
                 element={b.player.char.element}
                 traits={b.player.char.traits}
+                action={heroAction(b)}
+                animated
               />
             </div>
           </div>
@@ -209,7 +253,9 @@ export function BattleArena({
                   style={fxStyle(b, "enemy", i)}
                 >
                   <div className={`${spriteSize} fx-breathe fx-breathe-b`}>
-                    {enemyArt(i, c)}
+                    <EnemyCueContext.Provider value={enemyCue(b, i, boss)}>
+                      {enemyArt(i, c)}
+                    </EnemyCueContext.Provider>
                   </div>
                 </div>
               </div>

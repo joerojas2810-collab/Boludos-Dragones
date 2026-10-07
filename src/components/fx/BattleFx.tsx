@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { elementMultiplier, type Element } from "@/lib/game/elements";
 import type { Battle } from "@/lib/game/combat";
 import { ELEMENT_COLORS } from "@/sprites/palettes";
+import { ELEMENT_ART } from "@/lib/art";
+import { Vfx, VfxNumber } from "./Vfx";
 import { reducedMotion } from "./motion";
 import "./fx.css";
 
@@ -10,6 +12,8 @@ const STAGGER_S = 0.5;
 const IMPACT_S = 0.2;
 const HITSTOP_MS = 80;
 const MAX_PARTICLE_EVENTS = 3;
+// false = the old CSS particle bursts instead of the painted slash sprites.
+const PAINTED_HITS = true;
 
 type Num = {
   text: string;
@@ -18,7 +22,7 @@ type Num = {
   delay: number;
 };
 type Part = { element: Element; delay: number };
-export type TargetFx = { num?: Num; parts: Part[] };
+export type TargetFx = { num?: Num; parts: Part[]; dodge?: number };
 type StepFx = {
   key: number;
   player: TargetFx;
@@ -97,6 +101,11 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
       const foeOf: Record<string, number> = {};
       let particleEvents = 0;
       b.events.forEach((ev, i) => {
+        if (ev.kind === "miss") {
+          const t = ev.actor === "player" ? enemies[ev.enemy] : player;
+          if (t) t.dodge ??= i * STAGGER_S + IMPACT_S;
+          return;
+        }
         if (ev.kind !== "hit" && ev.kind !== "crit") return;
         const t = i * STAGGER_S + IMPACT_S;
         const toEnemy = ev.actor === "player";
@@ -184,7 +193,7 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
 }
 
 export function FxLayer({ t, k }: { t?: TargetFx; k: number }) {
-  if (!t || (!t.num && t.parts.length === 0)) return null;
+  if (!t || (!t.num && t.parts.length === 0 && t.dodge === undefined)) return null;
   return (
     <div
       key={k}
@@ -196,34 +205,86 @@ export function FxLayer({ t, k }: { t?: TargetFx; k: number }) {
           className={`fxn fxn-${t.num.tone} ${t.num.crit ? "fxn-crit" : ""}`}
           style={{ animationDelay: `${t.num.delay}s` }}
         >
-          {t.num.crit ? `${t.num.text}!` : t.num.text}
+          <VfxNumber
+            text={t.num.text}
+            kind={
+              t.num.tone === "heal"
+                ? "heal_number"
+                : t.num.crit
+                  ? "damage_critical"
+                  : "damage_normal"
+            }
+            delay={t.num.delay}
+            size={t.num.crit ? 52 : 40}
+          />
+          {t.num.text.match(/[▲▼]/)?.[0]}
         </span>
       )}
+      {t.num?.crit && (
+        <Vfx
+          id="critical_label"
+          delay={t.num.delay}
+          className="absolute left-1/2 top-0 w-24 -translate-x-1/2 -translate-y-1/2"
+        />
+      )}
+      {t.dodge !== undefined && (
+        <Vfx
+          id="dodge"
+          delay={t.dodge}
+          className="absolute left-1/2 top-[10%] w-28 -translate-x-1/2"
+        />
+      )}
       {t.parts.map((p, pi) =>
-        VECTORS[p.element].map(([dx, dy], i) => (
-          <i
-            key={`${pi}-${i}`}
-            className={`fxp fxp-${p.element}`}
-            style={{
-              background: ELEMENT_COLORS[p.element][i % 2 ? 2 : 0],
-              animationDelay: `${p.delay}s`,
-              ["--dx" as string]: `${dx}px`,
-              ["--dy" as string]: `${dy}px`,
-            }}
+        PAINTED_HITS ? (
+          <Vfx
+            key={pi}
+            id={`hit_${ELEMENT_ART[p.element]}`}
+            delay={p.delay}
+            className="absolute left-1/2 top-[30%] w-24 -translate-x-1/2 -translate-y-1/2"
           />
-        )),
+        ) : (
+          VECTORS[p.element].map(([dx, dy], i) => (
+            <i
+              key={`${pi}-${i}`}
+              className={`fxp fxp-${p.element}`}
+              style={{
+                background: ELEMENT_COLORS[p.element][i % 2 ? 2 : 0],
+                animationDelay: `${p.delay}s`,
+                ["--dx" as string]: `${dx}px`,
+                ["--dy" as string]: `${dy}px`,
+              }}
+            />
+          ))
+        ),
       )}
     </div>
   );
 }
 
-export function BossIntro({ name }: { name: string }) {
+export function BossIntro({
+  name,
+  finalRank,
+}: {
+  name: string;
+  finalRank?: string | null;
+}) {
   return (
     <div
       aria-hidden
       className="fx-bossintro pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-black/80"
     >
-      <span className="fx-bossname px-2 text-center text-3xl font-black uppercase tracking-widest text-red-200 md:text-5xl">
+      {finalRank ? (
+        <Vfx
+          id={`boss_entrance_${finalRank}`}
+          className="w-[min(90%,32rem)]"
+        />
+      ) : (
+        <Vfx
+          id="boss_entrance"
+          className="absolute w-[min(70%,20rem)] opacity-80"
+        />
+      )}
+      <span className={`fx-bossname relative px-2 text-center text-3xl font-black uppercase tracking-widest text-red-200 md:text-5xl ${finalRank ? "sr-only" : ""}`}>
         {name}
       </span>
     </div>

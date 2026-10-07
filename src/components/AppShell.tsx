@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/Icon";
+import { ScreenBg } from "@/components/ScreenBg";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -142,6 +143,15 @@ function useMissionsPending(on: boolean, path: string) {
   return pending;
 }
 
+// Painted backdrop per hub screen (scene ids of the backgrounds lot).
+const SCREEN_SCENE: Record<string, string> = {
+  "/gacha": "gacha",
+  "/coleccion": "collection",
+  "/mercado": "market",
+  "/forja": "forge",
+  "/sala": "lobby",
+};
+
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const { profile, session } = useProfile();
@@ -154,6 +164,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const dailyReady = !!profile && !claimedToday(profile.daily, dayKey());
   return (
     <>
+      {SCREEN_SCENE[path.replace(/\/$/, "")] && (
+        <ScreenBg scene={SCREEN_SCENE[path.replace(/\/$/, "")]} dim={0.45} />
+      )}
       <header className="shell-top">
         <Link href="/" className="shell-brand" aria-label="Inicio">
           B&amp;D

@@ -1,9 +1,12 @@
 import type { Element } from "@/lib/game/elements";
 import { RARITIES, type RarityId } from "@/lib/game/rarity";
 import { shadePixels } from "@/sprites/shade";
-import { gearIconSrc } from "@/lib/art";
+import { gearIconSrc, handIconSrc } from "@/lib/art";
 import { isGearType, type WeaponType } from "@/lib/game/weapons";
 import { WEAPON_SIZE, WEAPON_SPRITES_BY_TYPE } from "@/sprites/weapons";
+
+// ponytail: flip to false to render the old code-drawn SVG weapons.
+const PAINTED_HANDS = true;
 
 type Props = {
   type?: WeaponType;
@@ -29,6 +32,17 @@ export function WeaponSprite({
       />
     );
   }
+  // Painted icon; the pixel SVG below stays as a fallback.
+  if (PAINTED_HANDS)
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={handIconSrc(type, element)}
+        alt=""
+        draggable={false}
+        className={`aspect-square ${className}`}
+      />
+    );
   const grid = WEAPON_SPRITES_BY_TYPE[type][element];
   const gem = RARITIES[rarity].color;
   return (

@@ -1,4 +1,4 @@
-import { Sprite } from "@/components/Sprite";
+import { HeroSprite } from "@/components/HeroSprite";
 import type { PlayerView } from "@/lib/roomui/types";
 import "@/components/fx.css";
 
@@ -31,7 +31,7 @@ export function Podium({
               style={{ animationDelay: `${s.delay + 0.5}s` }}
             >
               {p.hero && (
-                <Sprite
+                <HeroSprite
                   classId={p.hero.classId}
                   element={p.hero.element}
                   traits={p.hero.traits}

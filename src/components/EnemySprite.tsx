@@ -1,12 +1,23 @@
+"use client";
+
+import { createContext, useContext, useEffect, useState } from "react";
+import { AnimSheet } from "@/components/AnimSheet";
+import { enemyAnim, type EnemyAction } from "@/lib/art/enemies";
 import type { Element } from "@/lib/game/elements";
 import type { EnemyFamily } from "@/lib/game/worlds";
-import { ENEMY_SIZE, ENEMY_SPRITES } from "@/sprites/enemies";
-import { shadePixels } from "@/sprites/shade";
+
+// Action requested by the arena for the enemy it wraps: plays after `delay` ms
+// (the arena staggers events like the sfx), then returns to idle.
+export type EnemyCue = { action: EnemyAction; delay: number; held?: boolean }; // held: already defeated, show the last frame
+export const EnemyCueContext = createContext<EnemyCue | null>(null);
 
 type Props = {
   family: EnemyFamily;
   element: Element;
   boss?: boolean;
+  elite?: boolean; // "hard" fights use the elite design
+  finalRank?: string | null; // unique final boss of that dungeon rank
+  action?: EnemyAction; // overrides the arena's cue
   flip?: boolean;
   className?: string;
 };
@@ -15,19 +26,39 @@ export function EnemySprite({
   family,
   element,
   boss = false,
+  elite = false,
+  finalRank,
+  action,
   flip = false,
   className = "",
 }: Props) {
-  const grid = ENEMY_SPRITES[family][boss ? "boss" : "normal"];
+  const cue = useContext(EnemyCueContext);
+  const want = action ?? cue?.action ?? "idle";
+  const delay = action ? 0 : (cue?.delay ?? 0);
+  const [playing, setPlaying] = useState(delay === 0);
+  useEffect(() => {
+    if (delay === 0) return;
+    const id = setTimeout(() => setPlaying(true), delay);
+    return () => clearTimeout(id);
+  }, [delay]);
+  const cur: EnemyAction = playing ? want : "idle";
+  const tier = boss ? "boss" : elite ? "elite" : "normal";
+  const [done, setDone] = useState(false);
+  // One-shot actions fall back to idle; defeat holds its last frame.
+  const shown = done && cur !== "defeat" ? "idle" : cur;
+  const anim = enemyAnim(family, tier, element, shown, finalRank);
   return (
-    <svg
-      viewBox={`0 0 ${ENEMY_SIZE} ${ENEMY_SIZE}`}
-      shapeRendering="crispEdges"
-      className={`aspect-square ${flip ? "-scale-x-100" : ""} ${className}`}
+    <div
+      className={`h-full w-full origin-bottom ${boss ? "scale-[1.7]" : "scale-[1.35]"} ${className}`}
     >
-      {shadePixels(grid, element).map(({ x, y, fill }) => (
-        <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill={fill} />
-      ))}
-    </svg>
+      <AnimSheet
+        key={shown}
+        anim={anim}
+        flip={flip}
+        last={cue?.held && !action && shown === "defeat"}
+        className="h-full w-full"
+        onDone={() => setDone(true)}
+      />
+    </div>
   );
 }

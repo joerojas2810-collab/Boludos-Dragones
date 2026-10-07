@@ -1,7 +1,8 @@
 import ids from "./artIds.json";
 import type { Element } from "@/lib/game/elements";
 import type { DoorKind } from "@/lib/game/run";
-import type { GearType } from "@/lib/game/weapons";
+import type { ClassId } from "@/lib/game/characters";
+import type { GearType, HandType } from "@/lib/game/weapons";
 
 // Spanish game ids -> English file names of the painted art in public/art.
 export const ELEMENT_ART: Record<Element, string> = {
@@ -38,3 +39,23 @@ type ArtCategory = keyof typeof ids;
 export const iconFor = (cat: ArtCategory, id: string | number) =>
   (ids[cat] as Record<string, string>)[String(id)] &&
   `${cat}_${(ids[cat] as Record<string, string>)[String(id)]}`;
+
+export const CLASS_ART: Record<ClassId, string> = {
+  caballero: "knight",
+  mago: "mage",
+  picaro: "rogue",
+  clerigo: "cleric",
+};
+export const HAND_ART: Record<HandType, string> = {
+  espada: "sword",
+  hacha: "axe",
+  lanza: "spear",
+  arco: "bow",
+  baston: "staff",
+  daga: "dagger",
+  maza: "mace",
+  varita: "wand",
+  libro: "book",
+};
+export const handIconSrc = (t: HandType, e: Element) =>
+  `/art/weapons/icon_weapon_${HAND_ART[t]}_${ELEMENT_ART[e]}.webp`;
