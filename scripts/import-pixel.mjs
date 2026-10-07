@@ -14,7 +14,7 @@ const RAMPS = {
   fire: manifest.recolor.exclusive_ramp_hex,
   water: ["#1F4E8C", "#2F86D9", "#5CC0F0", "#B8EEFF"],
   earth: ["#2F5A34", "#4F9448", "#8CCB5A", "#D4F08A"],
-  lightning: ["#4B2C86", "#8A56D8", "#F5D547", "#FFF6A8"],
+  lightning: ["#7A5412", "#D9A621", "#F8D84A", "#FFF7B0"],
   wind: ["#1F6F6A", "#33B5A0", "#7BE0C0", "#D2FFEA"],
 };
 const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
