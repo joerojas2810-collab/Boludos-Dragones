@@ -23,7 +23,12 @@ import {
   type Slot,
 } from "@/lib/game/weapons";
 import { repo } from "@/lib/useProfile";
-import { pieceLine, weaponEffect } from "@/lib/viewModels";
+import {
+  pieceDelta,
+  pieceLine,
+  weaponEffect,
+  type PieceDiff,
+} from "@/lib/viewModels";
 
 type Piece = Profile["weapons"][number];
 
@@ -32,10 +37,12 @@ type Piece = Profile["weapons"][number];
 function GearCard({
   w,
   worn,
+  diff,
   action,
 }: {
   w: Piece;
   worn?: boolean;
+  diff?: PieceDiff[]; // what swapping to this piece changes vs the worn one
   action: ReactNode;
 }) {
   const color = RARITIES[w.rarity].color;
@@ -86,6 +93,26 @@ function GearCard({
               </span>
             ))}
         </div>
+        {diff && diff.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 text-xs">
+            <span className="text-[#d9d2ca]">Si la equipas:</span>
+            {diff.map((d) => (
+              <span
+                key={d.text}
+                className={`rounded border px-1.5 tabular-nums ${
+                  d.good === true
+                    ? "border-green-400/60 bg-green-900/40 text-green-300"
+                    : d.good === false
+                      ? "border-red-400/60 bg-red-900/40 text-red-300"
+                      : "border-white/20 text-[#d9d2ca]"
+                }`}
+              >
+                {d.good === true ? "▲ " : d.good === false ? "▼ " : ""}
+                {d.text}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="text-xs text-[#d9d2ca]">{weaponEffect(w)}</div>
       </div>
       {action}
@@ -229,6 +256,7 @@ export function EquipmentEditor({
                     <li key={w.id}>
                       <GearCard
                         w={w}
+                        diff={pieceDelta(w, worn)}
                         action={
                           <button
                             className="btn text-center"

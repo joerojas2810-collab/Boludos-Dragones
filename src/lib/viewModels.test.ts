@@ -12,7 +12,12 @@ import {
   saveProfile,
   type KV,
 } from "./profileStorage";
-import { filterSortCharacters, resultViews, summarizePull } from "./viewModels";
+import {
+  filterSortCharacters,
+  pieceDelta,
+  resultViews,
+  summarizePull,
+} from "./viewModels";
 
 const rich = { ...createProfile(), coins: 100000 };
 
@@ -84,5 +89,37 @@ describe("profileStorage", () => {
     };
     expect(loadProfile(bad).coins).toBe(0);
     expect(saveProfile(createProfile(), bad)).toBe(false);
+  });
+});
+
+describe("pieceDelta", () => {
+  const piece = (type: string, rarity: string, stars: number, atkBonus = 0) =>
+    ({
+      id: `${type}${rarity}${stars}`,
+      name: type,
+      type,
+      element: "tierra",
+      rarity,
+      stars,
+      atkBonus,
+    }) as never;
+  it("shows gains and losses against the worn piece, nothing for an empty slot", () => {
+    const worn = piece("casco", "f", 0);
+    const better = piece("casco", "c", 2);
+    const d = pieceDelta(better, worn);
+    expect(d.every((x) => x.good === true)).toBe(true);
+    expect(d.map((x) => x.text).join()).toMatch(/\+\d+(\.\d)?% vida/);
+    const worse = pieceDelta(worn, better);
+    expect(worse.every((x) => x.good === false)).toBe(true);
+    expect(worse[0].text.startsWith("−")).toBe(true);
+    expect(pieceDelta(worn, worn)).toEqual([
+      { text: "Igual que la equipada", good: null },
+    ]);
+    expect(pieceDelta(better, undefined)).toEqual([]);
+  });
+  it("weapons compare their attack bonus", () => {
+    expect(
+      pieceDelta(piece("espada", "c", 0, 9), piece("hacha", "f", 0, 5)),
+    ).toEqual([{ text: "+4 ATQ", good: true }]);
   });
 });
