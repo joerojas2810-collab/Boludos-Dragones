@@ -1,6 +1,7 @@
+import { RARITY_IDS, type RarityId } from "./rarity";
 import type { Rng } from "./rng";
 
-// Multipliers are fractions (0.25 = +25%); crit/dodge/accuracy/flee are additive.
+// Multipliers are fractions (0.25 = +25%); crit/dodge/accuracy are additive.
 export interface TraitMods {
   hp?: number;
   atk?: number;
@@ -8,7 +9,6 @@ export interface TraitMods {
   crit?: number;
   dodge?: number;
   accuracy?: number;
-  flee?: number;
   speed?: number;
 }
 
@@ -74,8 +74,8 @@ export const TRAITS = {
   },
   cobarde: {
     name: "Cobarde",
-    description: "+20 huida, -2% ATQ",
-    mods: { flee: 0.2, atk: -0.02 },
+    description: "+10 esquive, -2% ATQ",
+    mods: { dodge: 0.1, atk: -0.02 },
   },
   certero: {
     name: "Certero",
@@ -124,13 +124,13 @@ export const TRAITS = {
   },
   cauteloso: {
     name: "Cauteloso",
-    description: "+15% DEF, +10 huida",
-    mods: { def: 0.15, flee: 0.1 },
+    description: "+15% DEF, +5 esquive",
+    mods: { def: 0.15, dodge: 0.05 },
   },
   tenaz: {
     name: "Tenaz",
-    description: "+10% vida, -15 huida, -5% velocidad",
-    mods: { hp: 0.1, flee: -0.15, speed: -0.05 },
+    description: "+10% vida, -5% velocidad",
+    mods: { hp: 0.1, speed: -0.05 },
   },
   lucido: {
     name: "Lúcido",
@@ -174,14 +174,16 @@ export const TRAIT_IDS = Object.keys(TRAITS) as TraitId[];
 // producing the same characters.
 export const CLASSIC_TRAIT_IDS = TRAIT_IDS.slice(0, 20);
 export const RULE_TRAIT_IDS = TRAIT_IDS.slice(20);
-// Chance that a generated character swaps its LAST trait for a rule trait.
-export const RULE_TRAIT_CHANCE = 0.2;
+// Traits by rank (Run v2): F-D 1 trait; C-A 2; S-SSR 2 with a guaranteed rule trait.
+export function traitPlan(rank: RarityId): { classic: number; rule: boolean } {
+  const i = RARITY_IDS.indexOf(rank);
+  if (i >= RARITY_IDS.indexOf("s")) return { classic: 1, rule: true };
+  return { classic: i >= RARITY_IDS.indexOf("c") ? 2 : 1, rule: false };
+}
 
 // Rolled from its own RNG (seeded from values the caller already has), so the
-// main generation stream is never consumed: old seeds give the same characters
-// except the ~RULE_TRAIT_CHANCE that gain a rule trait. Respects noClass.
-export function rollRuleTrait(rng: Rng, classId: string): TraitId | null {
-  if (!rng.chance(RULE_TRAIT_CHANCE)) return null;
+// main generation stream is never consumed. Respects noClass.
+export function rollRuleTrait(rng: Rng, classId: string): TraitId {
   const pool = RULE_TRAIT_IDS.filter(
     (id) => !(TRAITS[id] as Trait).noClass?.includes(classId),
   );
@@ -202,10 +204,10 @@ export const traitTotals = (ids: readonly TraitId[]): Required<TraitRules> => {
   };
 };
 
-export function rollTraits(rng: Rng): TraitId[] {
+export function rollTraits(rng: Rng, count: number): TraitId[] {
   const pool = [...CLASSIC_TRAIT_IDS];
   return Array.from(
-    { length: rng.int(1, 2) },
+    { length: count },
     () => pool.splice(rng.int(0, pool.length - 1), 1)[0],
   );
 }

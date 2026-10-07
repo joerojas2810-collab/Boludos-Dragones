@@ -35,6 +35,8 @@ import {
 import type { Rng } from "./rng";
 import { dayKey, isDayKey, type DailyState } from "./streak";
 import { dayPayMult } from "./economy";
+import { levelCap } from "./heroLevel";
+import { heroSkill } from "./skills";
 import { TRAIT_IDS, type TraitId } from "./traits";
 import {
   generateWeapon,
@@ -181,7 +183,7 @@ function pull(
     let fragmentGain = 0;
     let fKey: string | undefined;
     if (banner === "character") {
-      const c = generateCharacter(rng);
+      const c = generateCharacter(rng, undefined, rarity);
       const id = characterKey(c.classId, c.element, rarity);
       const owned = p.characters.find((x) => x.id === id);
       let item: OwnedCharacter = { ...c, id, rarity, stars: 0 };
@@ -448,7 +450,9 @@ export const charactersOfClass = (p: Profile, classId: ClassId) =>
 export function heroFromOwned(p: Profile, ownedId: string): Character | null {
   const c = p.characters.find((x) => x.id === ownedId);
   if (!c) return null;
-  const stats = scaleStats(c.stats, c.rarity, c.stars);
+  const level = Math.min(Math.max(1, c.level), levelCap(c.stars));
+  const stats = scaleStats(c.stats, c.rarity, c.stars, level);
+  const skill = heroSkill(c.classId, c.rarity, c.stars, c.skill);
   const w = p.weapons.find((x) => x.id === p.equipped[c.id]);
   const worn = GEAR_TYPES.flatMap((t) => {
     const g = p.weapons.find((x) => x.id === p.equipped[slotKey(c.id, t)]);
@@ -470,10 +474,18 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
   const geared = applyGear(stats, gear);
   const hasGear = JSON.stringify(gear) !== JSON.stringify(NO_GEAR);
   if (!w || isGearType(w.type) || !canUseWeapon(c.classId, w.type))
-    return { ...c, stats: geared, ...(hasGear ? { gear } : {}) };
+    return {
+      ...c,
+      level,
+      skill,
+      stats: geared,
+      ...(hasGear ? { gear } : {}),
+    };
   const sec = weaponSecondary(w.type);
   return {
     ...c,
+    level,
+    skill,
     ...(hasGear ? { gear } : {}),
     stats: {
       ...geared,

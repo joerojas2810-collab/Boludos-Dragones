@@ -64,7 +64,7 @@ import {
 
 // Bump when a change makes old action logs replay differently. The server
 // rejects logs from another version with a clear error (replay.ts).
-export const ENGINE_VERSION = 6; // 6: dungeon ascension; 5: additive capped upgrades; 4: run loot (weapons/gear found in the run)
+export const ENGINE_VERSION = 7; // 7: Run v2 combat (hero level, % defense, no flee); 6: dungeon ascension; 5: additive capped upgrades; 4: run loot (weapons/gear found in the run)
 
 // ---- Tunable constants ----
 export const START_LIVES = 3;

@@ -7,6 +7,7 @@ import {
   CATCHPHRASES,
   rollRuleTrait,
   rollTraits,
+  traitPlan,
   TRAITS,
   type Trait,
   type TraitId,
@@ -28,8 +29,10 @@ export interface Stats {
   crit: number;
   dodge: number;
   accuracy: number; // additive to attack accuracy
-  flee: number; // additive to flee chance
   speed: number; // initiative
+  critDmg: number; // crit damage multiplier (base x1.5, Pícaro x2.0)
+  regen: number; // gear line: fraction of max hp healed per round (capped in combat)
+  lifesteal: number; // gear line: fraction of damage dealt healed (capped in combat)
 }
 
 export interface Attack {
@@ -51,7 +54,8 @@ export interface Passive {
 // Class passive strengths (tuned with scripts/balance.ts).
 export const CLASS_PASSIVE_DMG_REDUCTION = 0.1; // Caballero: incoming damage
 export const CLASS_PASSIVE_ADVANTAGE_BONUS = 0.4; // Mago: replaces ADVANTAGE_BONUS
-export const CLASS_PASSIVE_CRIT_MULT = 2; // Pícaro: replaces CRIT_MULTIPLIER
+export const CLASS_PASSIVE_CRIT_MULT = 2; // Pícaro: base crit damage multiplier
+export const BASE_CRIT_DMG = 1.5;
 export const CLASS_PASSIVE_REGEN = 0.015; // Clérigo: max hp per turn
 
 const pct = (v: number) => `${+(v * 100).toFixed(1)}%`;
@@ -81,8 +85,10 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
       crit: 0.05,
       dodge: 0.05,
       accuracy: 0,
-      flee: 0,
       speed: 9.5,
+      critDmg: BASE_CRIT_DMG,
+      regen: 0,
+      lifesteal: 0,
     },
     attack1: { name: "Tajo", power: 1, accuracy: 0.95, cooldown: 0, heal: 0 },
     attack2: {
@@ -107,8 +113,10 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
       crit: 0.1,
       dodge: 0.05,
       accuracy: 0,
-      flee: 0,
       speed: 10,
+      critDmg: BASE_CRIT_DMG,
+      regen: 0,
+      lifesteal: 0,
     },
     attack1: {
       name: "Chispa",
@@ -130,7 +138,7 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
     passive: {
       id: "filoMortal",
       name: "Filo mortal",
-      description: `Sus críticos hacen x${CLASS_PASSIVE_CRIT_MULT.toFixed(1)} de daño en vez de x1.5.`,
+      description: `Sus críticos hacen x${CLASS_PASSIVE_CRIT_MULT.toFixed(1)} de daño (los demás x1.5).`,
     },
     stats: {
       hp: 85,
@@ -139,8 +147,10 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
       crit: 0.25,
       dodge: 0.2,
       accuracy: 0,
-      flee: 0,
       speed: 10.5,
+      critDmg: CLASS_PASSIVE_CRIT_MULT,
+      regen: 0,
+      lifesteal: 0,
     },
     attack1: {
       name: "Puñalada",
@@ -171,8 +181,10 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
       crit: 0.05,
       dodge: 0.05,
       accuracy: 0,
-      flee: 0,
       speed: 10,
+      critDmg: BASE_CRIT_DMG,
+      regen: 0,
+      lifesteal: 0,
     },
     attack1: { name: "Maza", power: 1, accuracy: 0.95, cooldown: 0, heal: 0 },
     attack2: {
@@ -246,14 +258,17 @@ function applyTraits(stats: Stats, ids: readonly TraitId[]): Stats {
     crit: clamp(stats.crit + sum("crit"), 0, 0.6),
     dodge: clamp(stats.dodge + sum("dodge"), 0, 0.6),
     accuracy: sum("accuracy"),
-    flee: sum("flee"),
     speed: Math.round(stats.speed * mult("speed") * 10) / 10,
+    critDmg: stats.critDmg,
+    regen: 0,
+    lifesteal: 0,
   };
 }
 
 export function generateCharacter(
   rng: Rng,
   classId: ClassId = rng.pick(CLASS_IDS),
+  rank: RarityId = "f",
 ): Character {
   const base = CLASSES[classId].stats;
   // Roll order matters for seeds: keep it equal to the Stats declaration order.
@@ -264,28 +279,31 @@ export function generateCharacter(
     crit: rollStat(rng, base.crit),
     dodge: rollStat(rng, base.dodge),
     accuracy: rollStat(rng, base.accuracy),
-    flee: rollStat(rng, base.flee),
     speed: rollStat(rng, base.speed),
+    critDmg: base.critDmg,
+    regen: 0,
+    lifesteal: 0,
   };
-  const classic = rollTraits(rng);
-  // Rule traits (engine v3) use their own RNG derived from the raw rolls, so the
-  // main stream (name, element, catchphrase, later characters) is unchanged.
-  const rule = rollRuleTrait(
-    createRng(
-      hashSeed(
-        Math.round(raw.hp * 1e4),
-        Math.round(raw.atk * 1e4),
-        Math.round(raw.speed * 1e4),
-      ),
-    ),
-    classId,
-  );
-  const traits = !rule
-    ? classic
-    : classic.length === 2
-      ? [classic[0], rule]
-      : [...classic, rule];
-  const stats = applyTraits({ ...raw, accuracy: 0, flee: 0 }, traits);
+  const plan = traitPlan(rank);
+  const classic = rollTraits(rng, plan.classic);
+  // Rule traits use their own RNG derived from the raw rolls, so the main stream
+  // (name, element, catchphrase, later characters) is not disturbed.
+  const traits = plan.rule
+    ? [
+        ...classic,
+        rollRuleTrait(
+          createRng(
+            hashSeed(
+              Math.round(raw.hp * 1e4),
+              Math.round(raw.atk * 1e4),
+              Math.round(raw.speed * 1e4),
+            ),
+          ),
+          classId,
+        ),
+      ]
+    : classic;
+  const stats = applyTraits({ ...raw, accuracy: 0 }, traits);
   const name = Array.from({ length: rng.int(2, 3) }, () =>
     rng.pick(SYLLABLES),
   ).join("");

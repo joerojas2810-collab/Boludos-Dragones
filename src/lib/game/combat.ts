@@ -1,6 +1,5 @@
 import {
   CLASS_PASSIVE_ADVANTAGE_BONUS,
-  CLASS_PASSIVE_CRIT_MULT,
   CLASS_PASSIVE_DMG_REDUCTION,
   CLASS_PASSIVE_REGEN,
   CLASSES,
@@ -27,14 +26,19 @@ import { traitTotals } from "./traits";
 
 export type AttackKey = "attack1" | "attack2";
 export type MoveKey = AttackKey | "attack3"; // attack3 = class skill (skills.ts)
-export type Action = MoveKey | "defend" | "flee";
+export type Action = MoveKey | "defend";
 export type Intent = AttackKey | "defend";
-export type Status = "ongoing" | "won" | "lost" | "fled";
+export type Status = "ongoing" | "won" | "lost";
 
-export const CRIT_MULTIPLIER = 1.5;
 export const DEFEND_FACTOR = 0.5;
-export const DEF_WEIGHT = 0.5;
-export const BASE_FLEE_CHANCE = 0.4;
+// Defense is a percentage: def / (def + DEF_K * attacker ATK), capped. Relative to
+// the attacker so it stays meaningful at every power level (tuned in phase 6).
+export const DEF_K = 1;
+export const DEF_CAP = 0.75;
+// Passive healing caps (active skills do not count).
+export const REGEN_CAP = 0.02; // gear regen, fraction of max hp per round
+export const LIFESTEAL_CAP = 0.15; // gear + perks, fraction of damage dealt
+export const PASSIVE_HEAL_CAP = 0.06; // class blessing + regen, per round
 export const MAX_ENEMIES = 3;
 
 // Perfect guard: choosing Defender while at least one STRONG hit (Ataque 2) is
@@ -146,6 +150,27 @@ export const dmgReductionOf = (c: Combatant): number => {
     perk + low * missing,
   );
 };
+
+// Fraction of damage absorbed by defense (0..DEF_CAP).
+export const defReduction = (att: Combatant, def: Combatant): number =>
+  Math.min(
+    DEF_CAP,
+    def.char.stats.def /
+      Math.max(1e-6, def.char.stats.def + DEF_K * att.char.stats.atk),
+  );
+
+// Passive healing per round as a fraction of max hp: class blessing plus gear
+// and perk regen, with the global cap.
+export const passiveHealRate = (c: Combatant): number =>
+  Math.min(
+    PASSIVE_HEAL_CAP,
+    (c.char.classId === "clerigo" ? CLASS_PASSIVE_REGEN : 0) +
+      Math.min(REGEN_CAP, c.char.stats.regen) +
+      (c.perks?.regen ?? 0),
+  );
+
+export const lifestealOf = (c: Combatant): number =>
+  Math.min(LIFESTEAL_CAP, c.char.stats.lifesteal + (c.perks?.lifesteal ?? 0));
 
 // Every heal (attack heal, skills, lifesteal, regen, Clérigo blessing).
 const healMult = (c: Combatant): number => 1 - rulesOf(c).healPenalty;
@@ -435,8 +460,10 @@ export function estimateDamage(
 ): number {
   const a = attackOf(att, key);
   const raw =
-    att.char.stats.atk * a.power * attackElementMultiplier(att, def) -
-    def.char.stats.def * DEF_WEIGHT;
+    att.char.stats.atk *
+    a.power *
+    attackElementMultiplier(att, def) *
+    (1 - defReduction(att, def));
   return Math.max(
     1,
     Math.round(
@@ -457,7 +484,7 @@ export function estimateDamage(
 
 // Crit multiplier: Pícaro passive replaces the base; relic bonus adds on top.
 export const critMultiplier = (c: Combatant): number =>
-  (c.char.classId === "picaro" ? CLASS_PASSIVE_CRIT_MULT : CRIT_MULTIPLIER) +
+  c.char.stats.critDmg +
   Math.min(
     Math.max(c.perks?.critDamage ?? 0, RELIC_CAPS.critDamage),
     (c.perks?.critDamage ?? 0) + rulesOf(c).critDamage,
@@ -477,18 +504,15 @@ export function attackElementMultiplier(
     : m;
 }
 
-// Flee chance: base + esquive + huida, clamped.
-export const fleeChance = (c: Combatant): number =>
-  clamp(BASE_FLEE_CHANCE + c.char.stats.dodge + c.char.stats.flee, 0.05, 0.95);
-
-// Clérigo passive, applied to whichever side is a Clérigo and still alive.
-function bless(c: Combatant, log: string[]): Combatant {
-  if (c.char.classId !== "clerigo") return c;
+// End-of-round passive heal (Clérigo blessing + regen), one capped number.
+function passiveHeal(c: Combatant, log: string[]): Combatant {
+  const rate = passiveHealRate(c);
+  if (rate <= 0) return c;
   const hp = Math.min(
     c.char.stats.hp,
-    c.hp + Math.round(c.char.stats.hp * CLASS_PASSIVE_REGEN * healMult(c)),
+    c.hp + Math.round(c.char.stats.hp * rate * healMult(c)),
   );
-  if (hp > c.hp) log.push(`${c.char.name} se bendice y recupera ${hp - c.hp}.`);
+  if (hp > c.hp) log.push(`${c.char.name} se recupera ${hp - c.hp}.`);
   return { ...c, hp };
 }
 
@@ -560,9 +584,7 @@ function strike(
   if (absorbed > 0)
     log.push(`El escudo de ${def.char.name} absorbe ${absorbed}.`);
   const steal = Math.round(
-    dmg *
-      ((att.perks?.lifesteal ?? 0) + (skill?.lifesteal ?? 0)) *
-      healMult(att),
+    dmg * (lifestealOf(att) + (skill?.lifesteal ?? 0)) * healMult(att),
   );
   let defender: Combatant = {
     ...def,
@@ -598,10 +620,9 @@ export const ENRAGE_STEP = 0.1;
 // Resolves the player's current action, then every slot up to the player's next
 // one (or the end of the round). An enemy opener acts after the player CHOSE
 // (so Defender covers it). Cooldowns, regen, mods and the round counter tick
-// once per round, not per action. Fleeing uses one action; a win, death or
-// successful flee ends the round on the spot. `target` indexes the LIVING
+// once per round, not per action. A win or death ends the round on the spot. `target` indexes the LIVING
 // enemies (default: the first one); single-target moves use it, area moves,
-// Defender and flee ignore it. An out-of-range target is an illegal action.
+// Defender ignores it. An out-of-range target is an illegal action.
 export function step(
   b: Battle,
   action: Action,
@@ -719,10 +740,7 @@ export function step(
     if (slot === "player") {
       playerActed = true;
       if (playerDone++ > 0) log.push(`${player.char.name} actúa de nuevo.`);
-      if (action === "flee") {
-        if (rng.chance(fleeChance(player))) end = "fled";
-        else log.push(`${player.char.name} no logra huir.`);
-      } else if (action !== "defend") playMove();
+      if (action !== "defend") playMove();
     } else if (enemies[slot.e].hp > 0) {
       let foe = enemies[slot.e];
       if (slot.n > 0) log.push(`${foe.char.name} actúa de nuevo.`);
@@ -759,19 +777,16 @@ export function step(
       }
       enemies[slot.e] = foe;
     }
-    if (end === "fled") log.push(`${player.char.name} huye.`);
-    else {
-      enemies.forEach((e, i) => {
-        if (e.hp <= 0 && !fallen[i]) {
-          fallen[i] = true;
-          log.push(`${e.char.name} cae.`);
-        }
-      });
-      if (enemies.every((e) => e.hp <= 0)) end = "won";
-      else if (player.hp <= 0) {
-        end = "lost";
-        log.push(`${player.char.name} cae.`);
+    enemies.forEach((e, i) => {
+      if (e.hp <= 0 && !fallen[i]) {
+        fallen[i] = true;
+        log.push(`${e.char.name} cae.`);
       }
+    });
+    if (enemies.every((e) => e.hp <= 0)) end = "won";
+    else if (player.hp <= 0) {
+      end = "lost";
+      log.push(`${player.char.name} cae.`);
     }
   }
 
@@ -798,18 +813,7 @@ export function step(
     cooldown3: Math.max(0, (player.cooldown3 ?? 0) - 1),
     reflect: Math.max(0, (player.reflect ?? 0) - 1),
   };
-  player = bless(player, log);
-  if (player.perks?.regen) {
-    const hp = Math.min(
-      player.char.stats.hp,
-      player.hp +
-        Math.round(
-          player.char.stats.hp * player.perks.regen * healMult(player),
-        ),
-    );
-    if (hp > player.hp) log.push(`${player.char.name} se recupera.`);
-    player = { ...player, hp };
-  }
+  player = passiveHeal(player, log);
   const turn = b.turn + 1;
   const next = enemies.map((e): Combatant => {
     if (e.hp <= 0) return e;
@@ -818,7 +822,7 @@ export function step(
       defending: false,
       cooldown: Math.max(0, e.cooldown - 1),
     };
-    c = bless(c, log);
+    c = passiveHeal(c, log);
     if (b.mods?.includes("regeneracion")) {
       const hp = Math.min(
         c.char.stats.hp,

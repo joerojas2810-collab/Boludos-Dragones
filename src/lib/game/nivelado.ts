@@ -2,13 +2,14 @@
 // traits, weapon element, rarity frame) is kept. Pure and deterministic.
 import { CLASSES, type Character, type Stats } from "./characters";
 import { NO_GEAR } from "./gear";
+import { levelMult } from "./heroLevel";
 import { RARITIES, starMult, type RarityId } from "./rarity";
 import type { RoomMode } from "./room";
 
 export const NIVELADO_MAX_BONUS = 0.15; // rarity + stars, total
 export const NIVELADO_VARIATION = 0.075; // personal variation, half of ±15%
 export const NIVELADO_WEAPON_CAP = 0.1; // flat weapon ATK, share of class base ATK
-const MAX_ITEM_MULT = RARITIES.ssr.multiplier * starMult(5); // 3.45
+const MAX_ITEM_MULT = RARITIES.ssr.multiplier * starMult(5); // 4.5
 
 const clamp = (v: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, v));
@@ -32,7 +33,8 @@ export function normalizeHero(hero: Character, mode: RoomMode): Character {
   const rarity: RarityId = hero.rarity ?? "f";
   const stars = hero.stars ?? 0;
   const base = CLASSES[hero.classId].stats;
-  const m = RARITIES[rarity].multiplier * starMult(stars);
+  const m =
+    RARITIES[rarity].multiplier * starMult(stars) * levelMult(hero.level);
   const weapon = hero.weapon?.atkBonus ?? 0;
   const bonus = 1 + niveladoBonus(rarity, stars);
   const gr = { ...NO_GEAR, ...hero.gear }; // gear is undone: nivelado ignores it
@@ -60,10 +62,12 @@ export function normalizeHero(hero: Character, mode: RoomMode): Character {
     ),
     // additive trait effects stay (traits are style); speed varies like the rest
     accuracy: hero.stats.accuracy - gr.accuracy,
-    flee: hero.stats.flee,
     speed: r1(
       base.speed * squash(hero.stats.speed / (1 + gr.speed) / base.speed),
     ),
+    critDmg: base.critDmg, // gear lines are undone in nivelado
+    regen: 0,
+    lifesteal: 0,
   };
   return {
     ...hero,
