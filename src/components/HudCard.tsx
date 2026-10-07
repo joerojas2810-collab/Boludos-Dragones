@@ -95,19 +95,19 @@ export function HudCard({
     !!children;
   return (
     <div
-      className={`relative min-w-0 rounded-sm border-2 border-[var(--edge)] bg-[#1b1410]/80 p-1.5 shadow-lg ${className}`}
+      className={`relative min-w-0 rounded-md border border-[#b9855a]/55 bg-[#141d28]/80 p-2 shadow-[0_4px_14px_rgb(0_0_0/0.45)] backdrop-blur-[2px] ${className}`}
     >
       <div className="flex items-center gap-1.5">
-        <span
-          className={`px-1.5 text-[13px] font-semibold leading-5 text-black ${tone === "enemy" ? "bg-red-400" : "bg-green-400"}`}
-        >
-          {label}
-        </span>
-        <span className="truncate text-base font-semibold">{c.char.name}</span>
+        {tone === "enemy" && label !== "RIVAL" && (
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#b9855a]/30 text-xs font-bold text-[#f6ead6]">
+            {label.slice(1)}
+          </span>
+        )}
+        <span className="truncate font-[family-name:var(--font-title)] text-lg font-bold leading-tight text-[#f6ead6]">{c.char.name}</span>
         <span className="ml-auto flex shrink-0 items-center gap-1.5">
           <button
             type="button"
-            className="text-[13px] leading-5 text-[#d9d2ca] hover:text-white"
+            className="text-[13px] leading-5 text-[#9fb0c0] hover:text-white"
             aria-expanded={open}
             aria-label="Detalles"
             onClick={() => setOpen(!open)}
@@ -121,11 +121,11 @@ export function HudCard({
           />
         </span>
       </div>
-      <div className="mb-0.5 flex items-center gap-2 text-[13px] leading-5 text-[#d9d2ca]">
+      <div className="mb-1 flex items-center gap-2 text-[13px] leading-5 text-[#9fb0c0]">
         <span className="truncate">{CLASSES[c.char.classId].name}</span>
         <Tooltip tip={extraTip} className="ml-auto">
           <span
-            className={`whitespace-nowrap text-yellow-300 ${extraTip ? "cursor-help" : ""}`}
+            className={`whitespace-nowrap text-[#e8d9b8] ${extraTip ? "cursor-help" : ""}`}
           >
             {extra}
           </span>

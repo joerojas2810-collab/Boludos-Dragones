@@ -218,7 +218,6 @@ export function CoopFight({ client }: { client: RoomClient }) {
             family={worldOf(COOP_K.bossFloor).family}
             element={c.char.element}
             boss
-            flip
           />
         )}
         enemy={targeting.enemy}

@@ -112,7 +112,7 @@ export function ActionPanel({
         />
       );
     const name = a?.name ?? skill?.name ?? "Ataque 3";
-    const hits = `${pct(hitChance(b.player, foe, k))} acierto · ~${estimateDamage(b.player, foe, k)} daño`;
+    const hits = `~${estimateDamage(b.player, foe, k)} daño · ${pct(hitChance(b.player, foe, k))} acierto`;
     const stats =
       k === "attack3" && skill
         ? skill.power === 0
@@ -161,7 +161,7 @@ export function ActionPanel({
             Orden: {order}
             {alive.length > 1 && (
               <span className="ml-2 text-yellow-300">
-                Objetivo: {foe.char.name} (clic en un rival, teclas 1-3)
+                Elige un rival (clic o 1-3) · objetivo: {foe.char.name}
               </span>
             )}
           </div>

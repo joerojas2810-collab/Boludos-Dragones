@@ -47,6 +47,10 @@ export function EnemySprite({
   // One-shot actions fall back to idle; defeat holds its last frame.
   const shown = done && cur !== "defeat" ? "idle" : cur;
   const anim = enemyAnim(family, tier, element, shown, finalRank);
+  useEffect(() => {
+    for (const a of ["idle", "attack", "hit", "defeat", "entrance"] as const)
+      new Image().src = enemyAnim(family, tier, element, a, finalRank).src;
+  }, [family, tier, element, finalRank]);
   return (
     <div
       className={`h-full w-full origin-bottom ${className}`}

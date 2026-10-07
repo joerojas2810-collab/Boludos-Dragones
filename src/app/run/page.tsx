@@ -149,7 +149,7 @@ function Hud({ run }: { run: Run }) {
   const world = getFloor(run).world;
   const hero = run.hero;
   return (
-    <div className="pixel-frame flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-2 text-base">
+    <div className="pixel-frame flex flex-wrap items-center gap-x-5 gap-y-1.5 px-3 py-2 text-base">
       <Tooltip tip={floorTip(run)}>
         <span className="flex cursor-help items-center gap-1.5">
           <b className="text-yellow-300">
@@ -177,10 +177,10 @@ function Hud({ run }: { run: Run }) {
       </Tooltip>
       <Tooltip tip={coinsTip(run)}>
         <span className="cursor-help font-semibold text-yellow-300">
-          <Icon name="system_coin" className="h-5" /> {run.coins} monedas
+          <Icon name="system_coin" className="h-5" /> {run.coins}
         </span>
       </Tooltip>
-      <Tooltip tip={levelTip(run)}>
+      <Tooltip tip={levelTip(run)} className="ml-auto inline-flex">
         <span className="flex cursor-help items-center gap-1.5 text-green-300">
           <RarityFrame rarity={hero.rarity ?? "f"} size={26}>
             <HeroSprite
@@ -754,7 +754,6 @@ function RunScreen() {
               boss={node.kind === "boss" && i === 0}
               elite={node.kind === "hard"}
               finalRank={finalRank}
-              flip
             />
           )}
           enemy={targeting.enemy}

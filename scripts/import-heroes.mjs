@@ -37,8 +37,8 @@ const heroes = find("heroes", "heroes", (f) => /^hero_[a-z]+_[a-z]+_[a-z_0-9]+\.
 const accs = find("heroes", "accessory_layers", () => true);
 const icons = find("weapons", "icons", (f) => f.startsWith("icon_weapon_"));
 const META_ONLY = !!process.env.META_ONLY; // regenerate heroes.ts without re-converting images
-for (const [f, p] of META_ONLY ? [] : heroes) await convert(p, join("public/art/heroes", f.replace(".png", ".webp")), 3);
-for (const [f, p] of META_ONLY ? [] : accs) await convert(p, join("public/art/heroes/acc", f.replace("hero_", "").replace("_trait", "").replace(".png", ".webp")), 3);
+for (const [f, p] of META_ONLY ? [] : heroes) await convert(p, join("public/art/heroes", f.replace(".png", ".webp")), 2);
+for (const [f, p] of META_ONLY ? [] : accs) await convert(p, join("public/art/heroes/acc", f.replace("hero_", "").replace("_trait", "").replace(".png", ".webp")), 2);
 for (const [f, p] of META_ONLY ? [] : icons) await convert(p, join("public/art/weapons", f.replace(".png", ".webp")), 2);
 console.log({ heroes: heroes.size, accessories: accs.size, weaponIcons: icons.size });
 

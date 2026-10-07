@@ -7,12 +7,14 @@ import { BossIntro, FxLayer, useBattleFx } from "@/components/fx/BattleFx";
 import { EnemyCueContext, type EnemyCue } from "@/components/EnemySprite";
 import { HudCard } from "@/components/HudCard";
 import { HeroSprite } from "@/components/HeroSprite";
+import { ACCESSORY_SHEETS, HERO_ACTIONS, TRAIT_ASSET } from "@/lib/art/heroes";
+import { CLASS_ART, ELEMENT_ART } from "@/lib/art";
 import { Tooltip } from "@/components/Tooltip";
 import type { HeroAction } from "@/lib/art/heroes";
 import { Vfx } from "@/components/fx/Vfx";
 import { CLASSES } from "@/lib/game/characters";
 import { enemyIntents, type Battle, type Combatant } from "@/lib/game/combat";
-import { intentTip, targetTip, type Tip } from "@/lib/game/explain";
+import { intentTip, type Tip } from "@/lib/game/explain";
 
 // Animation for who attacked / who got hit in the last step, staggered like the sfx.
 const STAGGER_S = 0.5;
@@ -112,6 +114,18 @@ function bigMomentFx(b: Battle) {
   };
 }
 
+// Warm the browser cache with every sheet of this fight so an action never
+// stalls on a first-time download (the hitch before attacks).
+function usePreload(urls: string[]) {
+  const key = urls.join("|");
+  useEffect(() => {
+    for (const u of key.split("|")) {
+      const im = new Image();
+      im.src = u;
+    }
+  }, [key]);
+}
+
 type Props = {
   b: Battle;
   playerExtra: string;
@@ -150,6 +164,17 @@ export function BattleArena({
   const first = b.enemies[Math.min(enemy, n - 1)];
   const big = bigMomentFx(b);
   const { fx, paused } = useBattleFx(b, boss);
+  const hc = b.player.char;
+  const cls = CLASS_ART[hc.classId];
+  const accs = hc.traits.map((t) => TRAIT_ASSET[t]);
+  usePreload(
+    Object.keys(HERO_ACTIONS).flatMap((a) => [
+      `/art/heroes/hero_${cls}_${ELEMENT_ART[hc.element]}_${a}.webp`,
+      ...accs
+        .filter((t) => ACCESSORY_SHEETS.has(`${cls}_${t}_${a}`))
+        .map((t) => `/art/heroes/acc/${cls}_${t}_${a}.webp`),
+    ]),
+  );
   return (
     <div
       className={`stage relative ${tall ? "h-[clamp(20rem,50vh,34rem)] flex-none" : "min-h-[clamp(17rem,36vh,30rem)] flex-1 max-md:flex-none"} max-md:h-[27rem] overflow-hidden border-4 border-[var(--edge)] ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
@@ -242,9 +267,17 @@ export function BattleArena({
                   }
                 }
               }}
-              className={`stage-foe relative flex min-w-0 flex-col items-center justify-end rounded-sm outline-offset-2 ${multi && !dead ? "cursor-pointer" : ""} ${selected && multi ? "outline outline-[3px] outline-yellow-300" : ""} ${dead ? "opacity-50 grayscale" : ""}`}
+              className={`stage-foe relative flex min-w-0 flex-col items-center justify-end rounded-sm outline-offset-2 ${multi && !dead ? "cursor-pointer" : ""} ${dead ? "opacity-50 grayscale" : ""}`}
             >
               <FxLayer t={fx?.enemies[i]} k={fx?.key ?? 0} />
+              {multi && selected && (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-1/2 top-[34%] z-20 -translate-x-1/2 animate-bounce text-3xl leading-none text-yellow-300 [text-shadow:0_2px_0_#000,0_0_8px_#000]"
+                >
+                  ▼
+                </span>
+              )}
               <div className="relative z-10 w-full">
                 <HudCard
                   c={c}
@@ -255,16 +288,9 @@ export function BattleArena({
                   tone="enemy"
                   extra={dead ? "Derrotado" : enemyExtra(i, c)}
                   compact={multi}
-                  className={multi && selected ? "!border-yellow-300" : ""}
+                  className=""
                   footer={
                     <div className="mt-1 flex min-h-6 flex-wrap items-center gap-1 text-[13px]">
-                      {multi && selected && (
-                        <Tooltip tip={targetTip(b, i)}>
-                          <span className="cursor-help font-semibold text-yellow-300 max-md:hidden">
-                            ▶ Objetivo
-                          </span>
-                        </Tooltip>
-                      )}
                       {intents.length > 0 && (
                         <span className={`font-semibold text-red-300 ${multi ? "max-md:hidden" : ""}`}>
                           Anuncia:

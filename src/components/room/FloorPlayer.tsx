@@ -239,7 +239,6 @@ export function FloorPlayer({ client, floor, door }: Props) {
               element={c.char.element}
               boss={node.kind === "boss" && i === 0}
               elite={node.kind === "hard"}
-              flip
             />
           )}
           enemy={targeting.enemy}

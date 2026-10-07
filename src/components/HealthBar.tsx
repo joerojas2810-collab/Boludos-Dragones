@@ -10,8 +10,8 @@ export function HealthBar({ hp, max }: Props) {
         data-fill={pct <= 30 ? "health_low" : "health"}
         style={{ width: `${pct}%` }}
       />
-      <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold [text-shadow:1px_1px_0_#000,-1px_1px_0_#000]">
-        PV {Math.round(hp)}/{Math.round(max)} · {Math.ceil(pct)}%
+      <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold [text-shadow:0_1px_2px_#000]">
+        {Math.round(hp)} / {Math.round(max)}
       </span>
     </div>
   );
