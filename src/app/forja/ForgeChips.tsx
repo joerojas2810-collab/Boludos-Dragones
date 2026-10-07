@@ -5,10 +5,19 @@ import { WeaponSprite } from "@/components/WeaponSprite";
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "@/lib/game/elements";
 import { RARITIES, RARITY_IDS, type RarityId } from "@/lib/game/rarity";
 import {
+  GEAR_TYPES,
+  HAND_TYPES,
+  isGearType,
   WEAPON_TYPE_DATA,
   WEAPON_TYPES,
   type WeaponType,
 } from "@/lib/game/weapons";
+
+export type Category = "arma" | "equipo";
+export const catOf = (t: WeaponType): Category =>
+  isGearType(t) ? "equipo" : "arma";
+export const typesOf = (c: Category): readonly WeaponType[] =>
+  c === "equipo" ? GEAR_TYPES : HAND_TYPES;
 
 // ready: true = green glow, false = dimmed, undefined = neutral (no availability meaning).
 function Tile({
@@ -51,6 +60,7 @@ export function TypePicker({
   rank,
   ready,
   sub,
+  types = WEAPON_TYPES,
 }: {
   value: WeaponType;
   onChange: (t: WeaponType) => void;
@@ -58,10 +68,11 @@ export function TypePicker({
   rank: RarityId;
   ready?: (t: WeaponType) => boolean;
   sub?: (t: WeaponType) => string;
+  types?: readonly WeaponType[];
 }) {
   return (
     <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-5">
-      {WEAPON_TYPES.map((t) => {
+      {types.map((t) => {
         const r = ready?.(t);
         return (
           <Tile
@@ -83,6 +94,40 @@ export function TypePicker({
           </Tile>
         );
       })}
+    </div>
+  );
+}
+
+export function CategoryPicker({
+  value,
+  onChange,
+  element,
+  rank,
+}: {
+  value: Category;
+  onChange: (c: Category) => void;
+  element: Element;
+  rank: RarityId;
+}) {
+  const opts: [Category, WeaponType, string][] = [
+    ["arma", "espada", "Arma"],
+    ["equipo", "casco", "Equipo"],
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-1.5">
+      {opts.map(([c, t, label]) => (
+        <Tile key={c} selected={c === value} onClick={() => onChange(c)}>
+          <span className="flex h-24 w-24 items-center justify-center">
+            <WeaponSprite
+              type={t}
+              element={element}
+              rarity={rank}
+              className="w-24"
+            />
+          </span>
+          <span>{label}</span>
+        </Tile>
+      ))}
     </div>
   );
 }
@@ -158,15 +203,38 @@ export function RankPicker({
   );
 }
 
+// With summary + onOpen the step folds into one line once it is not the open one
+// (same look as the "Ir a lo que puedo forjar" button); click to reopen it.
 export function Step({
   n,
   title,
   children,
+  summary,
+  open = true,
+  onOpen,
 }: {
   n: number;
   title: string;
   children: ReactNode;
+  summary?: ReactNode;
+  open?: boolean;
+  onOpen?: () => void;
 }) {
+  if (!open && onOpen)
+    return (
+      <button
+        type="button"
+        className="btn btn-gray flex w-full items-center justify-between gap-2 !min-h-8 text-sm"
+        onClick={onOpen}
+      >
+        <span>
+          {n}. {title}
+        </span>
+        <span className="flex items-center gap-1 text-yellow-300">
+          {summary} ▾
+        </span>
+      </button>
+    );
   return (
     <div className="space-y-1.5">
       <h4 className="text-sm font-semibold text-yellow-300">

@@ -1,6 +1,7 @@
 "use client";
 
 import { Vfx } from "@/components/fx/Vfx";
+import { ElementIcon } from "@/components/ElementIcon";
 import { Icon } from "@/components/Icon";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -35,11 +36,14 @@ import {
 } from "@/lib/game/weapons";
 import { repo, useProfile } from "@/lib/useProfile";
 import {
+  CategoryPicker,
+  catOf,
   ElementPicker,
   RankPicker,
   ResultCard,
   Step,
   TypePicker,
+  typesOf,
 } from "./ForgeChips";
 import { GuidePanel } from "./GuidePanel";
 
@@ -110,6 +114,8 @@ export default function ForgePage() {
   const [rank, setRank] = useState<RarityId>("f");
   const [picked, setPicked] = useState<string[]>([]); // pieces to merge
   const [spend, setSpend] = useState<Parts>({}); // parts to refine
+  // Open step of each guided form (0 = all folded), see Step in ForgeChips.
+  const [open, setOpen] = useState({ craft: 1, parts: 1, pieces: 1, refine: 1 });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   // Painted effect of the last action (re-keyed by n so it replays).
@@ -236,8 +242,26 @@ export default function ForgePage() {
     setPicked([]);
     setSpend({});
   };
+  type Form = keyof typeof open;
+  const go = (f: Form, n: number) => setOpen((o) => ({ ...o, [f]: n }));
+  const pickCat = (c: "arma" | "equipo") => {
+    if (catOf(type) !== c) setType(typesOf(c)[0]);
+  };
+  const sumElement = (
+    <>
+      <ElementIcon element={element} bare className="h-5" />
+      {ELEMENT_LABEL[element]}
+    </>
+  );
+  const sumRank = (
+    <b style={{ color: RARITIES[rank].color }}>{RARITIES[rank].label}</b>
+  );
+  const sumType = WEAPON_TYPE_DATA[type].label;
+  const sumCat = catOf(type) === "equipo" ? "Equipo" : "Arma";
   // Jump to the best recipe that can be forged right now (highest rank first).
   const jump = () => {
+    const f: Form | null = tab === "craft" ? "craft" : tab === "merge" ? "parts" : tab === "refine" ? "refine" : null;
+    if (f) go(f, 0);
     const ranks = [...RARITY_IDS].reverse();
     for (const r of ranks)
       for (const t of WEAPON_TYPES) {
@@ -521,28 +545,49 @@ export default function ForgePage() {
               monedas. Si ya tienes la pieza, sube una estrella.
             </p>
             {jumpBtn}
-            <Step n={1} title="Tipo de pieza">
+            <Step n={1} title="Arma o equipo" summary={sumCat} open={open.craft === 1} onOpen={() => go("craft", 1)}>
+              <CategoryPicker
+                value={catOf(type)}
+                onChange={(c) => {
+                  pickCat(c);
+                  go("craft", 2);
+                }}
+                element={element}
+                rank={rank}
+              />
+            </Step>
+            <Step n={2} title="Tipo de pieza" summary={sumType} open={open.craft === 2} onOpen={() => go("craft", 2)}>
               <TypePicker
+                types={typesOf(catOf(type))}
                 value={type}
-                onChange={setType}
+                onChange={(t) => {
+                  setType(t);
+                  go("craft", 3);
+                }}
                 element={element}
                 rank={rank}
                 ready={(t) => ok(craftOp(t))}
                 sub={(t) => `${have(partKey(t, rank))}/${CRAFT_PARTS} partes`}
               />
             </Step>
-            <Step n={2} title="Elemento">
+            <Step n={3} title="Elemento" summary={sumElement} open={open.craft === 3} onOpen={() => go("craft", 3)}>
               <ElementPicker
                 value={element}
-                onChange={setElement}
+                onChange={(el) => {
+                  setElement(el);
+                  go("craft", 4);
+                }}
                 ready={(el) => ok(craftOp(type, el))}
                 sub={(el) => `${have(coreKey(el))} núcleo`}
               />
             </Step>
-            <Step n={3} title="Rango">
+            <Step n={4} title="Rango" summary={sumRank} open={open.craft === 4} onOpen={() => go("craft", 4)}>
               <RankPicker
                 value={rank}
-                onChange={pickRank}
+                onChange={(r) => {
+                  pickRank(r);
+                  go("craft", 0);
+                }}
                 max="ssr"
                 ready={(r) => ok(craftOp(type, element, r))}
                 sub={(r) => `${have(partKey(type, r))}/${CRAFT_PARTS}`}
@@ -600,20 +645,38 @@ export default function ForgePage() {
                 la pestaña Armar (3 partes del rango + 1 núcleo).
               </p>
               {jumpBtn}
-              <Step n={1} title="Tipo de parte">
+              <Step n={1} title="Arma o equipo" summary={sumCat} open={open.parts === 1} onOpen={() => go("parts", 1)}>
+                <CategoryPicker
+                  value={catOf(type)}
+                  onChange={(c) => {
+                    pickCat(c);
+                    go("parts", 2);
+                  }}
+                  element={element}
+                  rank={rank}
+                />
+              </Step>
+              <Step n={2} title="Tipo de parte" summary={sumType} open={open.parts === 2} onOpen={() => go("parts", 2)}>
                 <TypePicker
+                  types={typesOf(catOf(type))}
                   value={type}
-                  onChange={setType}
+                  onChange={(t) => {
+                    setType(t);
+                    go("parts", 3);
+                  }}
                   element={element}
                   rank={rank}
                   ready={(t) => ok(mergeOp(t))}
                   sub={(t) => `${have(partKey(t, rank))}/${rule?.ratio ?? "-"}`}
                 />
               </Step>
-              <Step n={2} title="Rango">
+              <Step n={3} title="Rango" summary={sumRank} open={open.parts === 3} onOpen={() => go("parts", 3)}>
                 <RankPicker
                   value={rank}
-                  onChange={pickRank}
+                  onChange={(r) => {
+                    pickRank(r);
+                    go("parts", 4);
+                  }}
                   max="ss"
                   ready={(r) => ok(mergeOp(type, element, r))}
                   sub={(r) =>
@@ -621,10 +684,13 @@ export default function ForgePage() {
                   }
                 />
               </Step>
-              <Step n={3} title="Núcleo a gastar">
+              <Step n={4} title="Núcleo a gastar" summary={sumElement} open={open.parts === 4} onOpen={() => go("parts", 4)}>
                 <ElementPicker
                   value={element}
-                  onChange={setElement}
+                  onChange={(el) => {
+                    setElement(el);
+                    go("parts", 0);
+                  }}
                   ready={(el) => ok(mergeOp(type, el))}
                   sub={(el) => `${have(coreKey(el))} núcleo`}
                 />
@@ -677,10 +743,25 @@ export default function ForgePage() {
                 sus elementos (+ 1 núcleo de ese elemento y monedas). Pierdes
                 sus estrellas.
               </p>
-              <Step n={1} title="Tipo y rango de las piezas">
+              <Step n={1} title="Arma o equipo" summary={sumCat} open={open.pieces === 1} onOpen={() => go("pieces", 1)}>
+                <CategoryPicker
+                  value={catOf(type)}
+                  onChange={(c) => {
+                    pickCat(c);
+                    go("pieces", 2);
+                  }}
+                  element={element}
+                  rank={rank}
+                />
+              </Step>
+              <Step n={2} title="Tipo de las piezas" summary={sumType} open={open.pieces === 2} onOpen={() => go("pieces", 2)}>
                 <TypePicker
+                  types={typesOf(catOf(type))}
                   value={type}
-                  onChange={setType}
+                  onChange={(t) => {
+                    setType(t);
+                    go("pieces", 3);
+                  }}
                   element={element}
                   rank={rank}
                   ready={(t) =>
@@ -688,9 +769,14 @@ export default function ForgePage() {
                   }
                   sub={(t) => `${ownedPieces(t, rank)} piezas`}
                 />
+              </Step>
+              <Step n={3} title="Rango de las piezas" summary={sumRank} open={open.pieces === 3} onOpen={() => go("pieces", 3)}>
                 <RankPicker
                   value={rank}
-                  onChange={pickRank}
+                  onChange={(r) => {
+                    pickRank(r);
+                    go("pieces", 4);
+                  }}
                   max="ss"
                   ready={(r) =>
                     ownedPieces(type, r) >= (COMBINE[r]?.ratio ?? Infinity)
@@ -700,11 +786,17 @@ export default function ForgePage() {
                   }
                 />
               </Step>
-              <Step n={2} title="Elemento resultante">
-                <ElementPicker value={element} onChange={setElement} />
+              <Step n={4} title="Elemento resultante" summary={sumElement} open={open.pieces === 4} onOpen={() => go("pieces", 4)}>
+                <ElementPicker
+                  value={element}
+                  onChange={(el) => {
+                    setElement(el);
+                    go("pieces", 0);
+                  }}
+                />
               </Step>
               <Step
-                n={3}
+                n={5}
                 title={`Elige piezas (${picked.length} de ${rule?.ratio ?? "?"})`}
               >
                 {pieces.length === 0 && (
@@ -794,10 +886,13 @@ export default function ForgePage() {
               {refineCoins(rank)} monedas.
             </p>
             {jumpBtn}
-            <Step n={1} title="Rango">
+            <Step n={1} title="Rango" summary={sumRank} open={open.refine === 1} onOpen={() => go("refine", 1)}>
               <RankPicker
                 value={rank}
-                onChange={pickRank}
+                onChange={(r) => {
+                  pickRank(r);
+                  go("refine", 0);
+                }}
                 max="ssr"
                 ready={refineReady}
                 sub={(r) => `${partsAt(r)} partes`}
@@ -856,10 +951,25 @@ export default function ForgePage() {
                 ))}
               </ul>
             </Step>
-            <Step n={3} title="Tipo que quiero">
+            <Step n={3} title="Arma o equipo" summary={sumCat} open={open.refine === 3} onOpen={() => go("refine", 3)}>
+              <CategoryPicker
+                value={catOf(type)}
+                onChange={(c) => {
+                  pickCat(c);
+                  go("refine", 4);
+                }}
+                element={element}
+                rank={rank}
+              />
+            </Step>
+            <Step n={4} title="Tipo que quiero" summary={sumType} open={open.refine === 4} onOpen={() => go("refine", 4)}>
               <TypePicker
+                types={typesOf(catOf(type))}
                 value={type}
-                onChange={setType}
+                onChange={(t) => {
+                  setType(t);
+                  go("refine", 0);
+                }}
                 element={element}
                 rank={rank}
               />
