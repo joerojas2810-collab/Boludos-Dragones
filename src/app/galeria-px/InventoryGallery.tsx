@@ -13,11 +13,19 @@ const ITEMS = [
 ] as const;
 const FAMILY_LABELS: Record<string, string> = {
   element: "Elementos", class: "Clases", rank: "Rangos", door: "Puertas",
-  passive: "Pasivos", skill: "Habilidades", trait: "Rasgos", upgrade: "Mejoras", part: "Partes de forja", core: "Núcleos",
+  passive: "Pasivos", skill: "Habilidades", trait: "Rasgos", upgrade: "Mejoras", event: "Eventos", part: "Partes de forja", core: "Núcleos",
 };
 const LABELS: Record<string, string> = {
   fire: "Fuego", water: "Agua", earth: "Tierra", lightning: "Rayo", wind: "Viento",
   knight: "Caballero", mage: "Mago", rogue: "Pícaro", cleric: "Clérigo",
+  shining_fountain: "Fuente brillante",
+  suspicious_beggar: "Mendigo sospechoso",
+  spike_trap: "Trampa de pinchos",
+  forgotten_altar: "Altar olvidado",
+  abandoned_bag: "Bolsa tirada",
+  whispering_book: "Libro susurrante",
+  abandoned_campfire: "Fogata abandonada",
+  ruby_statue: "Estatua con ojos de rubí",
   oak_skin: "Piel de roble",
   sharp_edge: "Filo afilado",
   firm_shield: "Escudo firme",
