@@ -709,22 +709,22 @@ function drop(run: Run, source: DropSource, salt: number): Run {
 
 // Wears a piece for the run and puts it in the bag (it only reaches the
 // collection once a boss secures it).
-function takePiece(run: Run, piece: RunPiece): Run {
+function takePiece(run: Run, piece: RunPiece, wear = true): Run {
   return rebuild(run, {
-    loot: { ...run.loot, [pieceSlot(piece)]: piece },
+    loot: wear ? { ...run.loot, [pieceSlot(piece)]: piece } : run.loot,
     bag: [...run.bag, piece],
   });
 }
 
-// Takes piece `i` of the loot offer (-1 = skip). A new piece replaces whatever
-// the run wears in that slot. When it was the boss drop, the floor advances.
-export function chooseLoot(run: Run, i: number): Run {
+// Takes piece `i` of the loot offer (-1 = skip). With `wear` it replaces whatever
+// the run wears in that slot; without it the piece only goes to the bag. When it was the boss drop, the floor advances.
+export function chooseLoot(run: Run, i: number, wear = true): Run {
   const offer = run.pendingLoot;
   if (run.status !== "active" || !offer || i < -1 || i >= offer.length)
     return run;
   const piece = offer[i];
   let r = piece
-    ? takePiece({ ...run, pendingLoot: null }, piece)
+    ? takePiece({ ...run, pendingLoot: null }, piece, wear)
     : { ...run, pendingLoot: null };
   if (r.floorCleared && r.node === null) {
     // Boss drop: the boss locks in everything carried so far.

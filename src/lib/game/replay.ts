@@ -40,7 +40,7 @@ export type RunAction =
   | { t: "fin" } // "Continuar" after a fight ended
   | { t: "pick"; id: UpgradeId }
   | { t: "relic"; id: RelicId }
-  | { t: "loot"; i: number } // take loot piece i of the offer, -1 = skip
+  | { t: "loot"; i: number; w?: false } // take loot piece i of the offer, -1 = skip
   | { t: "buy"; id: string }
   | { t: "event"; i: number }
   | { t: "leave" }; // leave chest / rest / shop / resolved event
@@ -167,7 +167,7 @@ export function applyRunAction(
     }
     case "loot": {
       if (!idle || !run.pendingLoot) return null;
-      const r = chooseLoot(run, a.i);
+      const r = chooseLoot(run, a.i, a.w !== false);
       return r === run ? null : { ...s, run: r };
     }
     case "buy": {

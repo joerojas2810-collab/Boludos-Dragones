@@ -638,51 +638,74 @@ function RunScreen() {
         <Panel title="Botín">
           <div className="mb-3 text-center text-base text-yellow-300">
             {offer.length > 1
-              ? "Elige una pieza: la conservas al vencer al próximo jefe"
+              ? "Solo puedes llevarte UNA de estas piezas. Elige cuál: se asegura al vencer al próximo jefe"
               : "Encuentras una pieza: la conservas al vencer al próximo jefe"}
+            {run.floor >= topFloor(run) &&
+              " (este es el último jefe: va a tu colección)"}
           </div>
           <div
             className={`grid gap-2 ${offer.length > 1 ? "sm:grid-cols-2" : ""}`}
           >
             {offer.map((p, i) => {
               const worn = run.loot[slotOf(p.type)];
+              const last = run.floor >= topFloor(run);
+              const take = (wear: boolean) => {
+                rec(wear ? { t: "loot", i } : { t: "loot", i, w: false });
+                const n = chooseLoot(run, i, wear);
+                log(`Botín: ${p.name} (${RARITIES[p.rarity].label}).`);
+                setRun(n);
+                if (n.secured.length > run.secured.length)
+                  log(`Jefe vencido: ${n.secured.length} piezas aseguradas.`);
+                if (n.pendingRelic) setScreen({ t: "relic" });
+                else if (n.floor !== run.floor) {
+                  log(`— Piso ${n.floor} —`);
+                  setScreen({ t: "doors" });
+                }
+              };
               return (
-                <button
+                <div
                   key={i}
-                  className="btn choice-button flex h-full w-full items-center gap-3 text-left"
+                  className="flex h-full flex-col gap-2 rounded border-2 p-2"
                   style={{ borderColor: RARITIES[p.rarity].color }}
-                  onClick={() => {
-                    rec({ t: "loot", i });
-                    const n = chooseLoot(run, i);
-                    log(`Botín: ${p.name} (${RARITIES[p.rarity].label}).`);
-                    setRun(n);
-                    if (n.secured.length > run.secured.length)
-                      log(
-                        `Jefe vencido: ${n.secured.length} piezas aseguradas.`,
-                      );
-                    if (n.pendingRelic) setScreen({ t: "relic" });
-                    else if (n.floor !== run.floor) {
-                      log(`— Piso ${n.floor} —`);
-                      setScreen({ t: "doors" });
-                    }
-                  }}
                 >
-                  <WeaponSprite
-                    type={p.type}
-                    element={p.element}
-                    rarity={p.rarity}
-                    className="w-14 shrink-0"
-                  />
-                  <span className="min-w-0">
-                    <span className="block font-semibold">{p.name}</span>
-                    <span className="block text-sm">{pieceSummary(p)}</span>
-                    <span className="block text-xs text-[#d9d2ca]">
-                      {worn
-                        ? `Reemplaza: ${worn.name} (${RARITIES[worn.rarity].label})`
-                        : "Casilla libre en esta run"}
+                  <div className="flex items-center gap-3">
+                    <WeaponSprite
+                      type={p.type}
+                      element={p.element}
+                      rarity={p.rarity}
+                      className="w-14 shrink-0"
+                    />
+                    <span className="min-w-0">
+                      <span className="block font-semibold">{p.name}</span>
+                      <span className="block text-sm">{pieceSummary(p)}</span>
+                      {!last && (
+                        <span className="block text-xs text-[#d9d2ca]">
+                          {worn
+                            ? `Reemplaza: ${worn.name} (${RARITIES[worn.rarity].label})`
+                            : "Casilla libre en esta run"}
+                        </span>
+                      )}
                     </span>
-                  </span>
-                </button>
+                  </div>
+                  <div className="mt-auto flex gap-2">
+                    {!last && (
+                      <button
+                        className="btn flex-1"
+                        style={{ color: "#000", textShadow: "none" }}
+                        onClick={() => take(true)}
+                      >
+                        Equipar y guardar
+                      </button>
+                    )}
+                    <button
+                      className={`btn flex-1 ${last ? "" : "btn-gray"}`}
+                      style={{ color: "#000", textShadow: "none" }}
+                      onClick={() => take(false)}
+                    >
+                      Guardar en mochila
+                    </button>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -701,7 +724,7 @@ function RunScreen() {
               }
             }}
           >
-            Dejarla
+            Descartar
           </button>
         </Panel>
       </Center>
@@ -1267,6 +1290,16 @@ function DungeonSelect({
   );
 }
 
+// Stand-in icons (no ascension art in the pack): one per rule, level 0 = star.
+const ASC_ICONS = [
+  "system_star",
+  "stat_attack",
+  "event_abandoned_campfire",
+  "door_hard_fight",
+  "enemy_modifier_double_attack",
+  "system_heart_half",
+];
+
 // Over the (dimmed) dungeon list: the same dungeon with its ascension levels.
 // +N opens only after clearing +N-1 (level 0 = the normal dungeon).
 function AscensionModal({
@@ -1317,11 +1350,16 @@ function AscensionModal({
                   className="pixel-frame flex w-full items-center gap-3 p-2 text-left enabled:hover:brightness-125 disabled:opacity-60"
                   style={{ borderColor: color }}
                 >
-                  <span
-                    className="grid h-12 w-12 shrink-0 place-items-center border-4 border-[var(--edge)] text-xl font-bold"
-                    style={{ background: color, color: "#1d1714" }}
-                  >
-                    {n === 0 ? "0" : `+${n}`}
+                  <span className="relative shrink-0">
+                    <Icon name={ASC_ICONS[n]} className="h-14 w-14" />
+                    {n > 0 && (
+                      <span
+                        className="absolute -bottom-1 -right-1 rounded px-1 text-xs font-bold"
+                        style={{ background: color, color: "#000" }}
+                      >
+                        +{n}
+                      </span>
+                    )}
                   </span>
                   <span className="min-w-0 text-sm">
                     <span className="name-title block text-yellow-300">

@@ -95,6 +95,7 @@ export const runActionSchema = z.discriminatedUnion("t", [
   z.strictObject({
     t: z.literal("loot"),
     i: z.number().int().min(-1).max(3),
+    w: z.literal(false).optional(),
   }),
   z.strictObject({ t: z.literal("buy"), id: id(20) }),
   z.strictObject({ t: z.literal("event"), i: z.number().int().min(0).max(5) }),
