@@ -333,6 +333,7 @@ function RunScreen() {
   const runIdRef = useRef<string | null>(null);
   const bankedRef = useRef<string | null>(null);
   const actionsRef = useRef<RunAction[]>([]);
+  const [paid, setPaid] = useState<number | null>(null); // coins the server/profile really credited
   const rec = (a: RunAction) => void actionsRef.current.push(a);
   const bank = useCallback(() => {
     const r = runRef.current;
@@ -357,6 +358,7 @@ function RunScreen() {
         true,
       )
       .then((info) => {
+        setPaid(info.coinsAdded);
         if (info.verdict === "truncated" || info.verdict === "mismatch")
           pushNotice(
             "El servidor ajustó tu run: no pudo repetir todas tus jugadas. Se pagó solo lo verificado.",
@@ -403,6 +405,7 @@ function RunScreen() {
       );
       runIdRef.current = info.runId;
       actionsRef.current = [];
+      setPaid(null);
       setRandomHero(false);
       setRun(
         createRun(info.seed, info.hero, true, info.rank, null, info.ascension),
@@ -617,7 +620,13 @@ function RunScreen() {
             </div>
           ) : (
             <div className="mt-2 text-green-300">
-              +{run.coins} monedas guardadas
+              +{paid ?? run.coins} monedas guardadas
+              {paid !== null && paid !== run.coins && (
+                <div className="text-xs text-[#d9d2ca]">
+                  (el pago baja después de 10 runs al día; incluye bonos de
+                  primera vez)
+                </div>
+              )}
             </div>
           )}
           {!tower && run.lootEnabled && (
