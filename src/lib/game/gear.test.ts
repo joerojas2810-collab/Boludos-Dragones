@@ -54,6 +54,6 @@ describe("element sets", () => {
   });
   it("describes the active set in Spanish", () => {
     const [s] = activeSets(["rayo", "rayo"], "rayo");
-    expect(setLine(s)).toBe("Set de Rayo (2): +4.5% crítico (afinidad ×1.5)");
+    expect(setLine(s)).toBe("Set de Rayo (2): +7.5% crítico (afinidad ×1.5)");
   });
 });

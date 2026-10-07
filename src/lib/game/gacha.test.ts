@@ -1,3 +1,4 @@
+import { GEAR_CAP } from "./gear";
 import { describe, expect, it } from "vitest";
 import { generateCharacter, CLASSES, CLASS_IDS } from "./characters";
 import { startBattle, estimateDamage } from "./combat";
@@ -352,10 +353,13 @@ describe("gear", () => {
     p = { ...p, weapons: all };
     for (const w of all) p = equipWeapon(p, c.id, w.id);
     const h = heroFromOwned(p, c.id)!;
-    expect(h.stats.hp).toBe(Math.round(plain.stats.hp * 1.5));
-    expect(h.stats.def).toBeCloseTo(plain.stats.def * 1.5, 0);
-    expect(h.stats.speed).toBeCloseTo(plain.stats.speed * 1.25, 0);
-    expect(h.stats.crit).toBeCloseTo(plain.stats.crit + 0.069, 2);
+    expect(h.stats.hp).toBe(Math.round(plain.stats.hp * (1 + GEAR_CAP.hp)));
+    expect(h.stats.def).toBeCloseTo(plain.stats.def * (1 + GEAR_CAP.def), 0);
+    expect(h.stats.speed).toBeCloseTo(
+      plain.stats.speed * (1 + GEAR_CAP.speed),
+      0,
+    );
+    expect(h.stats.crit).toBeCloseTo(plain.stats.crit + GEAR_CAP.crit, 2);
     expect(h.gear).toBeDefined();
     expect(migrate(JSON.parse(JSON.stringify(p))).equipped).toEqual(p.equipped);
   });

@@ -1,6 +1,6 @@
 import type { Stats } from "./characters";
 import type { Element } from "./elements";
-import { itemMult, type RarityId } from "./rarity";
+import { RARITIES, RARITY_IDS, starMult, type RarityId } from "./rarity";
 import { isGearType, type GearType, type WeaponType } from "./weapons";
 
 // Bonus from worn gear. hp/def/speed are fractions of the hero's stat;
@@ -26,21 +26,45 @@ export const NO_GEAR: GearBonus = {
 
 // Tune here: bonus of one piece at rank F, no stars.
 export const GEAR_BASE: Record<GearType, Partial<GearBonus>> = {
-  casco: { hp: 0.1, def: 0.05 },
-  peto: { def: 0.1, hp: 0.05 },
-  piernas: { def: 0.08, dodge: 0.015 },
+  casco: { hp: 0.14, def: 0.06 },
+  peto: { hp: 0.14, def: 0.08 },
+  piernas: { atk: 0.06, dodge: 0.02 },
   zapatos: { speed: 0.06, dodge: 0.015 },
-  collar: { crit: 0.02, accuracy: 0.02 },
+  collar: { crit: 0.03, accuracy: 0.03, atk: 0.04 },
 };
-// Caps on the sum of all pieces (so full gear is about +40-50% at high rank).
+// Extra lines a piece unlocks with rank (like substats by rarity): the first at C,
+// the second at A, the third at SS. Same scaling as the base bonus.
+export const GEAR_EXTRA: Record<
+  GearType,
+  [GearBonus1, GearBonus1, GearBonus1]
+> = {
+  casco: [{ atk: 0.02 }, { crit: 0.01 }, { accuracy: 0.01 }],
+  peto: [{ atk: 0.02 }, { dodge: 0.01 }, { speed: 0.02 }],
+  piernas: [{ hp: 0.03 }, { crit: 0.01 }, { accuracy: 0.01 }],
+  zapatos: [{ atk: 0.02 }, { hp: 0.03 }, { crit: 0.01 }],
+  collar: [{ hp: 0.04 }, { speed: 0.02 }, { dodge: 0.01 }],
+};
+type GearBonus1 = Partial<GearBonus>;
+const EXTRA_FROM = ["c", "a", "ss"] as const;
+export const extraLines = (rarity: RarityId): number =>
+  EXTRA_FROM.filter((r) => RARITY_IDS.indexOf(rarity) >= RARITY_IDS.indexOf(r))
+    .length;
+// Gear grows faster with rank than heroes do (rank mult ^ GEAR_RANK_EXP), and stars
+// add milestones: +10% at 3 stars, +20% at 5.
+export const GEAR_RANK_EXP = 1.25;
+export const gearMult = (rarity: RarityId, stars: number): number =>
+  RARITIES[rarity].multiplier ** GEAR_RANK_EXP *
+  starMult(stars) *
+  (stars >= 5 ? 1.2 : stars >= 3 ? 1.1 : 1);
+// Caps on the sum of all pieces (so full gear is about half of a geared hero's power).
 export const GEAR_CAP: GearBonus = {
-  atk: 0.15,
-  hp: 0.5,
-  def: 0.5,
-  speed: 0.25,
-  dodge: 0.1,
-  crit: 0.15,
-  accuracy: 0.1,
+  atk: 0.6,
+  hp: 1,
+  def: 0.8,
+  speed: 0.3,
+  dodge: 0.15,
+  crit: 0.2,
+  accuracy: 0.15,
 };
 
 export interface WornPiece {
@@ -53,9 +77,14 @@ export function gearBonus(pieces: readonly WornPiece[]): GearBonus {
   const sum = { ...NO_GEAR };
   for (const p of pieces) {
     if (!isGearType(p.type)) continue;
-    const m = itemMult(p.rarity, p.stars);
-    for (const k of Object.keys(sum) as (keyof GearBonus)[])
-      sum[k] += (GEAR_BASE[p.type][k] ?? 0) * m;
+    const m = gearMult(p.rarity, p.stars);
+    const lines = [
+      GEAR_BASE[p.type],
+      ...GEAR_EXTRA[p.type].slice(0, extraLines(p.rarity)),
+    ];
+    for (const line of lines)
+      for (const k of Object.keys(sum) as (keyof GearBonus)[])
+        sum[k] += (line[k] ?? 0) * m;
   }
   for (const k of Object.keys(sum) as (keyof GearBonus)[])
     sum[k] = Math.round(Math.min(sum[k], GEAR_CAP[k]) * 1000) / 1000;
@@ -134,14 +163,14 @@ export const SET_BONUS: Record<
   Element,
   [Partial<GearBonus>, Partial<GearBonus>, Partial<GearBonus>]
 > = {
-  rayo: [{ crit: 0.03 }, { crit: 0.07 }, { crit: 0.11 }],
-  fuego: [{ atk: 0.04 }, { atk: 0.09 }, { atk: 0.15 }],
-  agua: [{ hp: 0.05 }, { hp: 0.12 }, { hp: 0.2 }],
-  tierra: [{ def: 0.05 }, { def: 0.12 }, { def: 0.2 }],
+  rayo: [{ crit: 0.05 }, { crit: 0.1 }, { crit: 0.15 }],
+  fuego: [{ atk: 0.1 }, { atk: 0.2 }, { atk: 0.3 }],
+  agua: [{ hp: 0.1 }, { hp: 0.2 }, { hp: 0.3 }],
+  tierra: [{ def: 0.1 }, { def: 0.2 }, { def: 0.3 }],
   viento: [
-    { speed: 0.04, dodge: 0.01 },
     { speed: 0.08, dodge: 0.02 },
-    { speed: 0.12, dodge: 0.03 },
+    { speed: 0.16, dodge: 0.04 },
+    { speed: 0.24, dodge: 0.06 },
   ],
 };
 
