@@ -244,7 +244,7 @@ export function RoomScreen({
                   } ${d.kind === "boss" ? "!border-red-700" : ""}`}
                   onClick={() => void run(client.door(view.floor, d.kind))}
                 >
-                  <DoorIcon kind={d.kind} className="h-20 sm:h-24" />
+                  <DoorIcon kind={d.kind} className="h-24 sm:h-28" />
                   <span className="choice-title">{DOOR_NAME[d.kind]}</span>
                 </button>
               ))}
@@ -594,7 +594,7 @@ function FightStrip({
                     crop
                   />
                 )}
-                {p.door && <DoorIcon kind={p.door} className="h-8 shrink-0" />}
+                {p.door && <DoorIcon kind={p.door} className="h-10 shrink-0" />}
                 <span className="min-w-0 flex-1 truncate">
                   {p.name}
                   {b.interfered && (

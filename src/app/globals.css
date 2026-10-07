@@ -97,17 +97,24 @@ body {
   box-shadow: inset 0 -5px 0 #a39f9a;
 }
 
+/* Focus is shown with the painted focus art / a brightness lift, never a yellow box. */
 .btn:focus-visible,
 input:focus-visible,
 select:focus-visible,
-textarea:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
+textarea:focus-visible,
+.choice-card:focus-visible,
+.choice-button:focus-visible {
+  outline: none;
+}
+.btn:focus-visible {
+  border-image-source: url("/art/ui/button_primary_focus.webp");
+}
+.btn-gray:focus-visible {
+  border-image-source: url("/art/ui/button_secondary_focus.webp");
 }
 .choice-card:focus-visible,
 .choice-button:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
+  filter: brightness(1.2);
 }
 
 @keyframes lunge-right {
@@ -365,8 +372,8 @@ textarea:focus-visible {
 [role="group"][tabindex]:focus-visible,
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
+  outline: none;
+  filter: brightness(1.2);
 }
 
 .panel-title {
@@ -559,7 +566,16 @@ textarea {
   border-width: 7px 16px;
   border-image: url("/art/ui/input_normal.webp") 12 26 fill / 7px 16px stretch;
   background: none;
-  color: var(--text);
+  background-clip: padding-box;
+  color: #f6ead6;
+  caret-color: #f6ead6;
+}
+/* Browser autofill paints a light background and dark text: keep it painted and cream. */
+input:-webkit-autofill,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f6ead6;
+  caret-color: #f6ead6;
+  transition: background-color 9999s ease-in-out 0s;
 }
 input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"]):focus,
 textarea:focus {

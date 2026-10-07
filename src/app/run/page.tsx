@@ -1,6 +1,6 @@
 "use client";
 
-import { iconFor } from "@/lib/art";
+import { iconFor, relicIcon } from "@/lib/art";
 import { Confetti } from "@/components/Confetti";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -879,17 +879,16 @@ function RunScreen() {
                     setScreen({ t: "doors" });
                   }}
                 >
-                  <Icon
-                    name={iconFor("relic", id) ?? "system_chest"}
-                    className="mx-auto h-12"
-                  />
-                  <div className="font-semibold">{RELICS[id].name}</div>
-                  <div
-                    className="text-sm font-semibold"
-                    style={{ color: RELIC_RARITY_COLOR[RELICS[id].rarity] }}
+                  <Icon name={relicIcon(id)} className="mx-auto h-16" />
+                  <div className="name-title">{RELICS[id].name}</div>
+                  <span
+                    className="my-1 inline-block rounded-full border-2 border-[#1b1410] px-3 py-0.5 text-sm font-bold text-[#1b1410]"
+                    style={{
+                      background: RELIC_RARITY_COLOR[RELICS[id].rarity],
+                    }}
                   >
                     {RELIC_RARITY_LABEL[RELICS[id].rarity]}
-                  </div>
+                  </span>
                   <div className="text-sm">{RELICS[id].description}</div>
                 </button>
               </Tooltip>
@@ -1062,7 +1061,7 @@ function RunScreen() {
     main = (
       <Center>
         <Panel title={screen.title} className="text-center">
-          <DoorIcon kind={screen.kind} className="mx-auto h-16" />
+          <DoorIcon kind={screen.kind} className="mx-auto h-24" />
           <div className="my-3 text-yellow-300">{screen.text}</div>
           <button
             className="btn btn-gray w-full text-center"
@@ -1104,7 +1103,7 @@ function RunScreen() {
                     d.kind === "boss" ? "animate-pulse !border-red-700" : ""
                   }`}
                 >
-                  <DoorIcon kind={d.kind} className="h-14 md:h-16" />
+                  <DoorIcon kind={d.kind} className="h-24 md:h-28" />
                   <span
                     className={`choice-title text-base font-semibold ${d.kind === "boss" ? "!text-red-300" : d.kind === "hard" ? "!text-orange-200" : ""}`}
                   >
@@ -1143,7 +1142,11 @@ function RunScreen() {
     </>
   );
 
-  const wide = screen.t === "fight" ? "max-w-[90rem]" : "max-w-4xl";
+  // Fights: width follows the available height (~16:9 stage) so the arena never becomes a wide strip.
+  const wide =
+    screen.t === "fight"
+      ? "max-w-[min(90rem,calc((100vh-21rem)*1.78))] md:min-w-[48rem]"
+      : "max-w-4xl";
   return (
     <main className="flex flex-col gap-3 p-3 pt-6 text-base md:h-screen md:overflow-hidden">
       <div className={`mx-auto w-full ${wide}`}>

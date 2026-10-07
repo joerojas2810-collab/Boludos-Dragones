@@ -85,7 +85,7 @@ export default function LoginPage() {
           <label className="text-sm">
             Nombre
             <input
-              className="mt-1 w-full text-base"
+              className="mt-1 w-full text-center text-base"
               value={name}
               maxLength={16}
               autoComplete="username"
@@ -114,7 +114,7 @@ export default function LoginPage() {
             <label className="text-sm">
               Código de la casa
               <input
-                className="mt-1 w-full text-base"
+                className="mt-1 w-full text-center text-base"
                 value={house}
                 maxLength={64}
                 autoCapitalize="none"
