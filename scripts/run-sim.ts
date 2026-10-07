@@ -204,6 +204,8 @@ export interface Result {
   relics: RelicId[];
   level: number;
   coins: number;
+  pieces?: string[]; // ranks of the pieces banked at the end
+  parts?: number; // forge parts + cores banked at the end
   classId: string;
   won: boolean;
 }
@@ -347,11 +349,14 @@ function play(seed: number, strat: Strategy): Result {
   }
   res.floor = run.maxFloor;
   res.won = isVictory(run);
-  if (res.won && process.env.WINS) console.log(`WIN prompts ${res.turns} fights ${res.fights}`);
+  if (res.won && process.env.WINS)
+    console.log(`WIN prompts ${res.turns} fights ${res.fights}`);
   res.lives = run.lives;
   res.relics = run.relics;
   res.level = run.hero.level;
   res.coins = run.coins;
+  res.pieces = run.secured.map((p) => p.rarity);
+  res.parts = Object.values(run.partSecured).reduce((a, n) => a + n, 0);
   return res;
 }
 
@@ -403,6 +408,18 @@ function report(strat: Strategy) {
   console.log(
     `${strat.padEnd(8)} ${DUNGEON ? `clear ${pct(cleared, N)} coins ${avg((r) => r.coins)} | ` : ""}lvl ${avg((r) => r.level)} rel ${avg((r) => r.relics.length)} | med ${q(0.5)} p10 ${q(0.1)} p90 ${q(0.9)} p99 ${q(0.99)} max ${floors[N - 1]} | <=4: ${pct(early, N)} boss-deaths: ${pct(boss, N)} (max single boss ${pct(maxBoss, N)}) | fights/run ${(fights / N).toFixed(1)} prompts/fight ${(turns / fights).toFixed(1)} rounds/fight ${(rounds / fights).toFixed(1)} | ~${mins.toFixed(1)} min | worst: ${top}`,
   );
+  if (process.env.LOOTSTAT) {
+    const by: Record<string, number> = {};
+    for (const r of rs)
+      for (const k of r.pieces ?? []) by[k] = (by[k] ?? 0) + 1;
+    console.log(
+      `loot/run: pieces ${(Object.values(by).reduce((a, n) => a + n, 0) / N).toFixed(2)} (${Object.entries(
+        by,
+      )
+        .map(([k, n]) => `${k} ${(n / N).toFixed(2)}`)
+        .join(" ")}) | parts+cores ${avg((r) => r.parts ?? 0)}`,
+    );
+  }
   if (BUILDS) {
     const med = (xs: number[]) =>
       xs.sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? 0;
