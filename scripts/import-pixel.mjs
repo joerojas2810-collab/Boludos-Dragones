@@ -1,11 +1,12 @@
-// Importer: pixel-art heroes (fire only, 64x96 PNG strips) -> public/art/heroes-px/ for all 5 elements.
-// Usage: node scripts/import-heroes-pixel.mjs "<heroes dir>"   (dir has manifest.json + hero_<class>_<action>.png)
+// Importer: pixel-art strips (fire only, 64x96 PNG) -> public/art/<heroes|enemies>-px/ for all 5 elements.
+// Usage: node scripts/import-pixel.mjs "<dir>" <heroes|enemies>   (dir has manifest.json + the strips)
 import sharp from "sharp";
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const dir = process.argv[2];
-if (!dir) throw new Error("pass the heroes directory");
+const lot = process.argv[3];
+if (!dir || !["heroes", "enemies"].includes(lot)) throw new Error("usage: <dir> <heroes|enemies>");
 const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
 
 // Tone order: dark, main, light, highlight. Fire comes from the manifest; the rest are ours.
@@ -20,7 +21,7 @@ const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const key = ([r, g, b]) => (r << 16) | (g << 8) | b;
 const src = RAMPS.fire.map(rgb);
 
-const out = "public/art/heroes-px";
+const out = `public/art/${lot}-px`;
 mkdirSync(out, { recursive: true });
 let n = 0;
 for (const { file } of manifest.files) {
@@ -33,7 +34,7 @@ for (const { file } of manifest.files) {
       if (to) [buf[p], buf[p + 1], buf[p + 2]] = to;
     }
     await sharp(buf, { raw: info }).png({ compressionLevel: 9 })
-      .toFile(join(out, file.replace("hero_", "hero_").replace(/^(hero_[a-z]+)_/, `$1_${el}_`)));
+      .toFile(join(out, file.includes("_fire_") ? file.replace("_fire_", `_${el}_`) : file.replace(/^(hero_[a-z]+)_/, `$1_${el}_`)));
     n++;
   }
 }

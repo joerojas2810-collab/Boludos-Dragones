@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { AnimSheet } from "@/components/AnimSheet";
-import { enemyAnim, type EnemyAction } from "@/lib/art/enemies";
+import { enemyAnim, PIXEL, PX_ASPECT, type EnemyAction } from "@/lib/art/enemies";
 import type { Element } from "@/lib/game/elements";
 import type { EnemyFamily } from "@/lib/game/worlds";
 
@@ -57,14 +57,19 @@ export function EnemySprite({
       // --es set by BattleArena by group size (1.35 alone, smaller with 2-3 so neighbours don't overlap)
       style={{ transform: `scale(calc(var(--es, 1.35) * ${boss ? 1.26 : 1}))` }}
     >
-      <AnimSheet
-        key={shown}
-        anim={anim}
-        flip={flip}
-        last={cue?.held && !action && shown === "defeat"}
-        className="h-full w-full"
-        onDone={() => setDone(true)}
-      />
+      <div
+        className={PIXEL ? "mx-auto h-full" : "h-full w-full"}
+        style={PIXEL ? { aspectRatio: PX_ASPECT, imageRendering: "pixelated" } : undefined}
+      >
+        <AnimSheet
+          key={shown}
+          anim={anim}
+          flip={flip}
+          last={cue?.held && !action && shown === "defeat"}
+          className="h-full w-full"
+          onDone={() => setDone(true)}
+        />
+      </div>
     </div>
   );
 }
