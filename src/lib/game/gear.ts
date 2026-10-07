@@ -52,6 +52,8 @@ export const extraLines = (rarity: RarityId): number =>
 // Gear grows faster with rank than heroes do (rank mult ^ GEAR_RANK_EXP), and stars
 // add milestones: +10% at 3 stars, +20% at 5.
 export const GEAR_RANK_EXP = 1.25;
+// Global knob for patches: scales every piece bonus (base and extra lines).
+export const GEAR_SCALE = 0.5;
 export const gearMult = (rarity: RarityId, stars: number): number =>
   RARITIES[rarity].multiplier ** GEAR_RANK_EXP *
   starMult(stars) *
@@ -77,7 +79,7 @@ export function gearBonus(pieces: readonly WornPiece[]): GearBonus {
   const sum = { ...NO_GEAR };
   for (const p of pieces) {
     if (!isGearType(p.type)) continue;
-    const m = gearMult(p.rarity, p.stars);
+    const m = gearMult(p.rarity, p.stars) * GEAR_SCALE;
     const lines = [
       GEAR_BASE[p.type],
       ...GEAR_EXTRA[p.type].slice(0, extraLines(p.rarity)),
