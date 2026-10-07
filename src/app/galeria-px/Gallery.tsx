@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AnimSheet } from "@/components/AnimSheet";
 import { HERO_ACTIONS } from "@/lib/art/heroes";
 import { PX_ACTIONS } from "@/lib/art/enemies";
+import { InventoryGallery } from "./InventoryGallery";
 
 const ELEMENTS = ["fire", "water", "earth", "lightning", "wind"] as const;
 const CLASSES = ["knight", "mage", "rogue", "cleric"];
@@ -20,12 +21,14 @@ const enemyRows: Row[] = [
 ];
 
 export function Gallery() {
-  const [lot, setLot] = useState<"heroes" | "enemies">("heroes");
+  const [lot, setLot] = useState<"heroes" | "enemies" | "items" | "icons" | "frames">("heroes");
   const [action, setAction] = useState("idle");
   const [bg, setBg] = useState<keyof typeof BGS>("oscuro");
   const [zoom, setZoom] = useState(2);
   const actions = lot === "heroes" ? HERO_ACTIONS : PX_ACTIONS;
   const rows = lot === "heroes" ? heroRows : enemyRows;
+  const animated = lot === "heroes" || lot === "enemies";
+  const lotLabels = { heroes: "Héroes", enemies: "Enemigos y jefes", items: "Armas, equipo y forja", icons: "Íconos", frames: "Marcos" };
   const a = action in actions ? action : "idle";
   const meta = (actions as Record<string, { frames: number; fps: number }>)[a];
   const w = 70 * zoom;
@@ -33,11 +36,11 @@ export function Gallery() {
   return (
     <main className="min-h-screen bg-neutral-900 p-4 text-neutral-100">
       <div className="sticky top-0 z-10 mb-3 flex flex-wrap gap-2 bg-neutral-900/95 py-2">
-        {(["heroes", "enemies"] as const).map((l) => (
-          <button key={l} className={btn(lot === l)} onClick={() => { setLot(l); setAction("idle"); }}>{l === "heroes" ? "Héroes" : "Enemigos y jefes"}</button>
+        {(["heroes", "enemies", "items", "icons", "frames"] as const).map((l) => (
+          <button key={l} className={btn(lot === l)} onClick={() => { setLot(l); setAction("idle"); }}>{lotLabels[l]}</button>
         ))}
         <span className="mx-2 border-l border-neutral-600" />
-        {Object.keys(actions).map((k) => (
+        {animated && Object.keys(actions).map((k) => (
           <button key={k} className={btn(a === k)} onClick={() => setAction(k)}>{k}</button>
         ))}
         <span className="mx-2 border-l border-neutral-600" />
@@ -48,13 +51,13 @@ export function Gallery() {
           <button key={z} className={btn(zoom === z)} onClick={() => setZoom(z)}>x{z}</button>
         ))}
       </div>
-      <div className="grid gap-1" style={{ gridTemplateColumns: `8rem repeat(5, ${w}px)` }}>
+      {animated ? <div className="grid gap-1" style={{ gridTemplateColumns: `8rem repeat(5, ${w}px)` }}>
         <div />
         {ELEMENTS.map((e) => <div key={e} className="text-center text-xs text-neutral-400">{e}</div>)}
         {rows.map((r) => (
           <Row key={r.label} row={r} action={a} meta={meta} w={w} bg={BGS[bg]} />
         ))}
-      </div>
+      </div> : <InventoryGallery lot={lot as "items" | "icons" | "frames"} zoom={zoom} bg={BGS[bg]} />}
     </main>
   );
 }
