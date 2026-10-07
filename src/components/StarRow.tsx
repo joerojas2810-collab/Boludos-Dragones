@@ -1,10 +1,5 @@
+import { icon } from "@/lib/art";
 import { MAX_STARS } from "@/lib/game/rarity";
-
-const STAR = ["..XX..", ".XXXX.", "XXXXXX", ".XXXX.", ".XX.XX"] as const;
-// 6x5 pixel star
-const PIXELS = STAR.flatMap((row, y) =>
-  [...row].flatMap((ch, x) => (ch === "X" ? [[x, y]] : [])),
-);
 
 export function StarRow({
   stars,
@@ -15,22 +10,19 @@ export function StarRow({
 }) {
   return (
     <span
-      className="inline-flex gap-0.5"
+      className="inline-flex"
       role="img"
       aria-label={`${stars} de ${MAX_STARS} estrellas`}
     >
       {Array.from({ length: MAX_STARS }, (_, i) => (
-        <svg
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
           key={i}
-          viewBox="0 0 6 5"
-          shapeRendering="crispEdges"
-          className={`aspect-[6/5] ${className}`}
-          fill={i < stars ? "#fbbf24" : "#4a4541"}
-        >
-          {PIXELS.map(([x, y]) => (
-            <rect key={`${x}${y}`} x={x} y={y} width={1} height={1} />
-          ))}
-        </svg>
+          src={icon("system_star")}
+          alt=""
+          draggable={false}
+          className={`aspect-square ${className} ${i < stars ? "" : "opacity-30 grayscale"}`}
+        />
       ))}
     </span>
   );

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Icon } from "@/components/Icon";
 import { RARITIES, type RarityId } from "@/lib/game/rarity";
 
 type Props = {
@@ -40,6 +41,11 @@ export function RarityFrame({
         <span key={c} className={`rarity-notch ${c}`} />
       ))}
       {children}
+      {size >= 64 && (
+        <span className="absolute left-0.5 top-0.5 z-10">
+          <Icon name={`rank_${rarity}`} className="h-[30%] w-auto" />
+        </span>
+      )}
     </div>
   );
 }

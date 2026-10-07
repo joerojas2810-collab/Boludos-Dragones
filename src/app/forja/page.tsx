@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/Icon";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Panel } from "@/components/Panel";
@@ -704,7 +705,14 @@ export default function ForgePage() {
                         <span className="min-w-0">
                           <span className="block truncate">{w.name}</span>
                           <span className="opacity-80">
-                            {eq ? "🔒 equipada" : `${w.stars}★`}
+                            {eq ? (
+                              <>
+                                <Icon name="system_locked" className="h-4" />{" "}
+                                equipada
+                              </>
+                            ) : (
+                              `${w.stars}★`
+                            )}
                           </span>
                         </span>
                       </button>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/Icon";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -158,7 +159,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           B&amp;D
         </Link>
         <span className="shell-coins" aria-label="Monedas">
-          ● {profile ? profile.coins : "…"}
+          <Icon name="system_coin" className="h-5" />{" "}
+          {profile ? profile.coins : "…"}
         </span>
         <span className="ml-auto flex items-center gap-2 text-sm">
           {remote && <span className="hidden sm:inline">{session.name}</span>}

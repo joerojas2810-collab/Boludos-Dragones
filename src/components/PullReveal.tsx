@@ -12,7 +12,13 @@ function Rays({ color }: { color: string }) {
     <div className="b-rays pointer-events-none absolute inset-0 m-auto h-72 w-72 max-w-[90vw]">
       <svg viewBox="-50 -50 100 100" className="h-full w-full">
         {Array.from({ length: 12 }, (_, i) => (
-          <path key={i} d="M0 0 L-6 -50 L6 -50Z" fill={color} opacity="0.55" transform={`rotate(${i * 30})`} />
+          <path
+            key={i}
+            d="M0 0 L-6 -50 L6 -50Z"
+            fill={color}
+            opacity="0.55"
+            transform={`rotate(${i * 30})`}
+          />
         ))}
       </svg>
     </div>
@@ -23,8 +29,15 @@ function Rays({ color }: { color: string }) {
 function Chest({ color }: { color: string }) {
   return (
     <div className="b-chest relative h-24 w-28">
-      <div className="b-chest-glow absolute -inset-4 rounded-full blur-xl" style={{ background: color }} />
-      <svg viewBox="0 0 14 12" shapeRendering="crispEdges" className="relative h-full w-full">
+      <div
+        className="b-chest-glow absolute -inset-4 rounded-full blur-xl"
+        style={{ background: color }}
+      />
+      <svg
+        viewBox="0 0 14 12"
+        shapeRendering="crispEdges"
+        className="relative h-full w-full"
+      >
         <rect x="1" y="1" width="12" height="5" fill="#8a5a2b" />
         <rect x="1" y="6" width="12" height="5" fill="#6b4220" />
         <rect x="0" y="0" width="14" height="1" fill="#3a2410" />

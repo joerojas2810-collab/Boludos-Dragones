@@ -1,5 +1,6 @@
 "use client";
 
+import { iconFor } from "@/lib/art";
 import { useState, type ReactNode } from "react";
 import { Chip } from "@/components/Chip";
 import { ElementIcon } from "@/components/ElementIcon";
@@ -132,12 +133,21 @@ export function HudCard({
         {open ? "Ocultar info ▴" : "Ver info ▾"}
       </button>
       <div className={`mt-1.5 flex flex-wrap gap-1 ${fold}`}>
-        <Chip tip={passiveTip(c, foe, you)} tone="passive">
+        <Chip
+          tip={passiveTip(c, foe, you)}
+          tone="passive"
+          icon={iconFor("passive", CLASSES[c.char.classId].passive.id)}
+        >
           {CLASSES[c.char.classId].passive.name}
         </Chip>
         {!compact &&
           c.char.traits.map((id) => (
-            <Chip key={id} tip={traitTip(id, c.char)} tone="trait">
+            <Chip
+              key={id}
+              tip={traitTip(id, c.char)}
+              tone="trait"
+              icon={iconFor("trait", id)}
+            >
               {TRAITS[id].name}
             </Chip>
           ))}

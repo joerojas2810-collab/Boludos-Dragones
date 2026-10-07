@@ -70,7 +70,9 @@
   font-size: 0.8rem;
   color: #b8aea4;
   border: 2px solid transparent;
-  transition: color 120ms, background 120ms;
+  transition:
+    color 120ms,
+    background 120ms;
 }
 .shell-tab:hover:not([data-disabled]) {
   color: #fff;
@@ -234,7 +236,11 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
-  background: radial-gradient(closest-side, rgb(255 255 255 / 0.08), transparent);
+  background: radial-gradient(
+    closest-side,
+    rgb(255 255 255 / 0.08),
+    transparent
+  );
 }
 .doll > .doll-col:first-child {
   grid-column: 1;

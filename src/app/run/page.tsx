@@ -1,5 +1,6 @@
 "use client";
 
+import { iconFor } from "@/lib/art";
 import { Confetti } from "@/components/Confetti";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -27,6 +28,7 @@ import { dropsText } from "@/components/PartsList";
 import { partCount } from "@/lib/game/parts";
 import { Sprite } from "@/components/Sprite";
 import { StarRow } from "@/components/StarRow";
+import { Icon } from "@/components/Icon";
 import { Tooltip } from "@/components/Tooltip";
 import {
   classStatTip,
@@ -77,7 +79,7 @@ import { autoBlockReason, autoResolve } from "@/lib/game/auto";
 import { step, type Action, type Battle } from "@/lib/game/combat";
 import { SkillChoice } from "@/components/SkillChoice";
 import { useTargeting } from "@/components/useTargeting";
-import type { GameEvent } from "@/lib/game/events";
+import { EVENTS, type GameEvent } from "@/lib/game/events";
 import { UPGRADES, upgradeLabel, xpToNext } from "@/lib/game/progression";
 import { SKILLS } from "@/lib/game/skills";
 import { RELICS } from "@/lib/game/relics";
@@ -160,21 +162,20 @@ function Hud({ run }: { run: Run }) {
       <Tooltip tip={livesTip(run)}>
         <span
           aria-label={`Vidas: ${run.lives}`}
-          className="cursor-help whitespace-nowrap text-xl leading-none"
+          className="inline-flex cursor-help items-center whitespace-nowrap"
         >
           {Array.from({ length: Math.max(START_LIVES, run.lives) }, (_, i) => (
-            <span
+            <Icon
               key={i}
-              className={i < run.lives ? "text-red-500" : "opacity-30"}
-            >
-              ♥
-            </span>
+              name={i < run.lives ? "system_heart_full" : "system_heart_empty"}
+              className="h-7"
+            />
           ))}
         </span>
       </Tooltip>
       <Tooltip tip={coinsTip(run)}>
         <span className="cursor-help font-semibold text-yellow-300">
-          ● {run.coins} monedas
+          <Icon name="system_coin" className="h-5" /> {run.coins} monedas
         </span>
       </Tooltip>
       <Tooltip tip={levelTip(run)}>
@@ -260,6 +261,7 @@ function Hud({ run }: { run: Run }) {
             <Chip
               key={id}
               tone="passive"
+              icon={iconFor("relic", id)}
               tip={relicTip(id, run.relics, hero)}
               className={RARITY_BORDER[RELICS[id].rarity]}
             >
@@ -737,7 +739,12 @@ function RunScreen() {
             mods
               .filter((m) => m !== "escudo")
               .map((m) => (
-                <Chip key={m} tone="danger" tip={modTip(m, c)}>
+                <Chip
+                  key={m}
+                  tone="danger"
+                  icon={iconFor("enemy_modifier", m)}
+                  tip={modTip(m, c)}
+                >
                   {MOD_LABEL[m]}
                 </Chip>
               ))
@@ -815,6 +822,10 @@ function RunScreen() {
                     proceed(pickUpgrade(run, id), screen.advance);
                   }}
                 >
+                  <Icon
+                    name={iconFor("upgrade", id) ?? "system_star"}
+                    className="mx-auto h-12"
+                  />
                   <div className="font-semibold">{UPGRADES[id].name}</div>
                   <div className="text-sm">
                     {upgradeLabel(id, run.ups[id] ?? 0)}
@@ -850,6 +861,10 @@ function RunScreen() {
                     setScreen({ t: "doors" });
                   }}
                 >
+                  <Icon
+                    name={iconFor("relic", id) ?? "system_chest"}
+                    className="mx-auto h-12"
+                  />
                   <div className="font-semibold">{RELICS[id].name}</div>
                   <div
                     className="text-sm font-semibold"
@@ -950,6 +965,12 @@ function RunScreen() {
     main = (
       <Center>
         <Panel title={ev.title}>
+          {iconFor("event", EVENTS.indexOf(ev)) && (
+            <Icon
+              name={iconFor("event", EVENTS.indexOf(ev))!}
+              className="mx-auto mb-2 h-20"
+            />
+          )}
           <div className="mb-3 text-center">{ev.text}</div>
           {screen.text === null ? (
             <div className="grid gap-2">
@@ -1157,12 +1178,10 @@ function DungeonSelect({
                 className="pixel-frame flex items-center gap-3 p-2 text-left enabled:hover:brightness-125 disabled:opacity-60"
                 style={{ borderColor: color }}
               >
-                <span
-                  className="grid h-14 w-14 shrink-0 place-items-center border-4 border-[var(--edge)] text-2xl font-bold"
-                  style={{ background: color, color: "#1d1714" }}
-                >
-                  {RARITIES[rank].label}
-                </span>
+                <Icon
+                  name={`dungeon_rank_${rank}`}
+                  className="h-14 w-14 shrink-0"
+                />
                 <span className="min-w-0 text-sm">
                   <span className="block text-base font-semibold text-yellow-300">
                     {d.name}
@@ -1177,12 +1196,14 @@ function DungeonSelect({
                   </span>
                   {lock ? (
                     <span className="block text-red-300">
-                      🔒 Limpia {RARITIES[lock.rank].label} con {lock.lives}{" "}
+                      <Icon name="system_locked" className="h-4" /> Limpia{" "}
+                      {RARITIES[lock.rank].label} con {lock.lives}{" "}
                       {lock.lives === 1 ? "vida" : "vidas"} o más
                     </span>
                   ) : best ? (
                     <span className="block text-green-300">
-                      ✔ Limpiado · mejor: {best} ♥
+                      ✔ Limpiado · mejor: {best}{" "}
+                      <Icon name="system_heart_full" className="h-4" />
                       {(ascensions[rank] ?? 0) > 0 &&
                         ` · Ascensión +${ascensions[rank]}${(ascensions[rank] ?? 0) >= MAX_ASCENSION ? " ★" : ""}`}
                     </span>
@@ -1287,8 +1308,8 @@ function AscensionModal({
                     </span>
                     {locked ? (
                       <span className="block text-red-300">
-                        🔒 Pasa la {n - 1 === 0 ? "normal (0)" : `+${n - 1}`}{" "}
-                        para abrirla
+                        <Icon name="system_locked" className="h-4" /> Pasa la{" "}
+                        {n - 1 === 0 ? "normal (0)" : `+${n - 1}`} para abrirla
                       </span>
                     ) : done ? (
                       <span className="block text-green-300">✔ Superada</span>
@@ -1369,7 +1390,11 @@ function ClassSelect({
                 <span className="text-sm text-[#d9d2ca]">
                   {c.attack1.name} / {c.attack2.name}
                 </span>
-                <Chip tone="passive" tip={passiveTip(pv)}>
+                <Chip
+                  tone="passive"
+                  icon={iconFor("passive", c.passive.id)}
+                  tip={passiveTip(pv)}
+                >
                   {c.passive.name}
                 </Chip>
                 <span className="text-sm text-cyan-300">

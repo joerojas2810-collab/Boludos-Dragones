@@ -1,38 +1,113 @@
 /* Phase 2, group B: gacha chest, title parallax, confetti, room entrances, podium. */
 @keyframes b-chest-shake {
-  0%, 100% { transform: translate(0, 0) rotate(0); }
-  25% { transform: translate(-3px, 0) rotate(-3deg); }
-  75% { transform: translate(3px, 0) rotate(3deg); }
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0);
+  }
+  25% {
+    transform: translate(-3px, 0) rotate(-3deg);
+  }
+  75% {
+    transform: translate(3px, 0) rotate(3deg);
+  }
 }
 @keyframes b-chest-pulse {
-  0%, 100% { opacity: 0.35; transform: scale(0.9); }
-  50% { opacity: 1; transform: scale(1.15); }
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
 }
 @keyframes b-ray-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 @keyframes b-ray-in {
-  from { opacity: 0; transform: scale(0.3); }
-  to { opacity: 0.9; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 0.9;
+    transform: scale(1);
+  }
 }
-.b-chest { animation: b-chest-shake 0.3s steps(4) infinite; }
-.b-chest-glow { animation: b-chest-pulse 0.5s steps(5) infinite; }
-.b-rays { animation: b-ray-in 0.4s steps(4) both; }
-.b-rays > svg { animation: b-ray-spin 6s linear infinite; }
+.b-chest {
+  animation: b-chest-shake 0.3s steps(4) infinite;
+}
+.b-chest-glow {
+  animation: b-chest-pulse 0.5s steps(5) infinite;
+}
+.b-rays {
+  animation: b-ray-in 0.4s steps(4) both;
+}
+.b-rays > svg {
+  animation: b-ray-spin 6s linear infinite;
+}
 
-@keyframes b-drift-slow { from { transform: translateX(-60px); } to { transform: translateX(60px); } }
-@keyframes b-drift-mid { from { transform: translateX(-30px); } to { transform: translateX(30px); } }
-@keyframes b-drift-near { from { transform: translateX(-12px); } to { transform: translateX(12px); } }
-@keyframes b-cloud { from { transform: translateX(-200px); } to { transform: translateX(1800px); } }
-.b-clouds-far { animation: b-cloud 240s linear infinite; }
-.b-clouds-near { animation: b-cloud 150s linear infinite; animation-delay: -60s; }
-.b-layer-far { animation: b-drift-slow 40s ease-in-out infinite alternate; }
-.b-layer-mid { animation: b-drift-mid 30s ease-in-out infinite alternate; }
-.b-layer-near { animation: b-drift-near 22s ease-in-out infinite alternate; }
+@keyframes b-drift-slow {
+  from {
+    transform: translateX(-60px);
+  }
+  to {
+    transform: translateX(60px);
+  }
+}
+@keyframes b-drift-mid {
+  from {
+    transform: translateX(-30px);
+  }
+  to {
+    transform: translateX(30px);
+  }
+}
+@keyframes b-drift-near {
+  from {
+    transform: translateX(-12px);
+  }
+  to {
+    transform: translateX(12px);
+  }
+}
+@keyframes b-cloud {
+  from {
+    transform: translateX(-200px);
+  }
+  to {
+    transform: translateX(1800px);
+  }
+}
+.b-clouds-far {
+  animation: b-cloud 240s linear infinite;
+}
+.b-clouds-near {
+  animation: b-cloud 150s linear infinite;
+  animation-delay: -60s;
+}
+.b-layer-far {
+  animation: b-drift-slow 40s ease-in-out infinite alternate;
+}
+.b-layer-mid {
+  animation: b-drift-mid 30s ease-in-out infinite alternate;
+}
+.b-layer-near {
+  animation: b-drift-near 22s ease-in-out infinite alternate;
+}
 
 @keyframes b-confetti {
-  0% { transform: translateY(-10vh) rotate(0); opacity: 1; }
-  100% { transform: translateY(105vh) rotate(540deg); opacity: 1; }
+  0% {
+    transform: translateY(-10vh) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(105vh) rotate(540deg);
+    opacity: 1;
+  }
 }
 .b-confetti {
   position: fixed;
@@ -45,25 +120,62 @@
 }
 
 @keyframes b-enter {
-  0% { transform: translateX(24px) scale(0.9); opacity: 0; }
-  100% { transform: none; opacity: 1; }
+  0% {
+    transform: translateX(24px) scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
 }
-.b-enter { animation: b-enter 0.4s steps(6) both; }
+.b-enter {
+  animation: b-enter 0.4s steps(6) both;
+}
 
 @keyframes b-podium-rise {
-  from { transform: scaleY(0); }
-  to { transform: scaleY(1); }
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
 }
 @keyframes b-podium-pop {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: none; opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
 }
-.b-podium-step { transform-origin: bottom; animation: b-podium-rise 0.6s steps(8) both; }
-.b-podium-who { animation: b-podium-pop 0.4s steps(5) both; }
+.b-podium-step {
+  transform-origin: bottom;
+  animation: b-podium-rise 0.6s steps(8) both;
+}
+.b-podium-who {
+  animation: b-podium-pop 0.4s steps(5) both;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .b-chest, .b-chest-glow, .b-rays, .b-rays > svg, .b-clouds-far, .b-clouds-near,
-  .b-layer-far, .b-layer-mid, .b-layer-near, .b-confetti, .b-enter,
-  .b-podium-step, .b-podium-who { animation: none; }
-  .b-confetti { display: none; }
+  .b-chest,
+  .b-chest-glow,
+  .b-rays,
+  .b-rays > svg,
+  .b-clouds-far,
+  .b-clouds-near,
+  .b-layer-far,
+  .b-layer-mid,
+  .b-layer-near,
+  .b-confetti,
+  .b-enter,
+  .b-podium-step,
+  .b-podium-who {
+    animation: none;
+  }
+  .b-confetti {
+    display: none;
+  }
 }

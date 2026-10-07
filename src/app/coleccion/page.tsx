@@ -1,5 +1,6 @@
 "use client";
 
+import { iconFor } from "@/lib/art";
 import Link from "next/link";
 import { useState } from "react";
 import { Chip } from "@/components/Chip";
@@ -99,7 +100,12 @@ function Detail({
           </div>
           <div className="flex flex-wrap gap-1">
             {c.traits.map((t) => (
-              <Chip key={t} tone="trait" tip={traitTip(t, c)}>
+              <Chip
+                key={t}
+                tone="trait"
+                icon={iconFor("trait", t)}
+                tip={traitTip(t, c)}
+              >
                 {TRAITS[t].name}
               </Chip>
             ))}

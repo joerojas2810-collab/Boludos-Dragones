@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/Icon";
 import { useState } from "react";
 import { Panel } from "@/components/Panel";
 import { DailyStreak } from "@/components/DailyStreak";
@@ -130,6 +131,7 @@ export default function GachaPage() {
               className="border-2 border-[var(--edge)] px-0.5 py-1"
               style={{ color: RARITIES[id].color }}
             >
+              <Icon name={`rank_${id}`} className="h-6" />
               <div className="break-words text-[10px] font-semibold leading-tight sm:text-sm">
                 {RARITIES[id].label}
               </div>

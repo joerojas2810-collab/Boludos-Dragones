@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Icon } from "@/components/Icon";
 import { Tooltip } from "@/components/Tooltip";
 import type { Tip } from "@/lib/game/explain";
 
@@ -15,17 +16,22 @@ const TONE = {
 export function Chip({
   tip,
   tone,
+  icon,
   className = "",
   children,
 }: {
   tip: Tip | null;
   tone: keyof typeof TONE;
+  icon?: string; // painted icon name, see iconFor()
   className?: string;
   children: ReactNode;
 }) {
   return (
     <Tooltip tip={tip}>
-      <span className={`chip ${TONE[tone]} ${className}`}>{children}</span>
+      <span className={`chip ${TONE[tone]} ${className}`}>
+        {icon && <Icon name={icon} className="h-4" />}
+        {children}
+      </span>
     </Tooltip>
   );
 }
