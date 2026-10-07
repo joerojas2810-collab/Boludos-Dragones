@@ -1,7 +1,6 @@
-import { RELICS, type RelicId } from "@/lib/game/relics";
 import ids from "./artIds.json";
 import type { Element } from "@/lib/game/elements";
-import type { DoorKind } from "@/lib/game/run";
+import type { DoorKind } from "@/lib/game/room";
 import type { ClassId } from "@/lib/game/characters";
 import type { GearType, HandType } from "@/lib/game/weapons";
 
@@ -62,18 +61,3 @@ export const HAND_ART: Record<HandType, string> = {
 };
 export const handIconSrc = (t: HandType, e: Element) =>
   `/art/weapons/icon_weapon_${HAND_ART[t]}_${ELEMENT_ART[e]}.webp`;
-
-const RELIC_RARITY_ART = {
-  comun: "common",
-  rara: "rare",
-  legendaria: "legendary",
-} as const;
-// Relic icon with its rarity badge baked in (falls back to the plain icon).
-export const relicIcon = (id: RelicId) => {
-  const base = iconFor("relic", id);
-  return base
-    ? base.replace("relic_", "relic_variant_") +
-        "_" +
-        RELIC_RARITY_ART[RELICS[id].rarity]
-    : "system_chest";
-};

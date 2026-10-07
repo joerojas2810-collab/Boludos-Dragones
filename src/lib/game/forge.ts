@@ -12,7 +12,9 @@ import {
   partLabel,
   type Parts,
 } from "./parts";
+import { rollPiece } from "./gear";
 import { grantPiece, type Profile } from "./profile";
+import { createRng, hashSeed, type Rng } from "./rng";
 import type { RunPiece } from "./loot";
 import { MAX_STARS, RARITIES, RARITY_IDS, type RarityId } from "./rarity";
 import { WEAPON_TYPE_DATA, weaponKey, type WeaponType } from "./weapons";
@@ -60,6 +62,19 @@ export type ForgeResult =
   | { ok: true; profile: Profile; diff: ForgeDiff; text: string }
   | { ok: false; error: string };
 
+// Randomness for new pieces' rolls. The caller (server) should pass a real rng; without one
+// it is derived from the profile state, so the same input always gives the same piece.
+const stateRng = (p: Profile, tag: number): Rng =>
+  createRng(
+    hashSeed(
+      tag,
+      p.coins,
+      p.runsPlayed,
+      p.weapons.length,
+      Object.values(p.parts).reduce((a, b) => a + b, 0),
+    ),
+  );
+
 const fail = (error: string): ForgeResult => ({ ok: false, error });
 
 const pieceName = (type: WeaponType, element: Element) =>
@@ -100,6 +115,7 @@ const owned = (
 export function craft(
   p: Profile,
   a: { type: WeaponType; element: Element; rank: RarityId },
+  rng: Rng = stateRng(p, 1),
 ): ForgeResult {
   const have = owned(p, a.type, a.element, a.rank);
   if (have && have.stars >= MAX_STARS)
@@ -114,6 +130,7 @@ export function craft(
         element: a.element,
         rarity: a.rank,
         name: pieceName(a.type, a.element),
+        ...rollPiece(rng, a.type, a.rank),
       },
     ],
     remove: [],
@@ -152,6 +169,7 @@ export function combineParts(
 export function combinePieces(
   p: Profile,
   a: { ids: string[]; element: Element },
+  rng: Rng = stateRng(p, 2),
 ): ForgeResult {
   const ids = Array.from(new Set(a.ids));
   const items = ids.map((id) => p.weapons.find((w) => w.id === id));
@@ -187,6 +205,7 @@ export function combinePieces(
         element: a.element,
         rarity: next,
         name: pieceName(first.type, a.element),
+        ...rollPiece(rng, first.type, next),
       },
     ],
     remove: ws.map((w) => w.id),
@@ -396,9 +415,11 @@ export function dismantleLow(
 export function craftMax(
   p: Profile,
   a: { type: WeaponType; element: Element; rank: RarityId },
+  rng?: Rng,
 ): ForgeResult {
   const acc = startAcc(p);
-  for (let i = 0; i <= MAX_STARS; i++) if (!step(acc, craft(acc.p, a))) break;
+  for (let i = 0; i <= MAX_STARS; i++)
+    if (!step(acc, craft(acc.p, a, rng))) break;
   return finishBulk(p, acc, "forjar");
 }
 
@@ -459,14 +480,14 @@ export type ForgeOp =
   | ({ op: "dismantleLow" } & Parameters<typeof dismantleLow>[1])
   | ({ op: "craftMax" } & Parameters<typeof craftMax>[1]);
 
-export function applyForge(p: Profile, o: ForgeOp): ForgeResult {
+export function applyForge(p: Profile, o: ForgeOp, rng?: Rng): ForgeResult {
   switch (o.op) {
     case "craft":
-      return craft(p, o);
+      return craft(p, o, rng);
     case "combineParts":
       return combineParts(p, o);
     case "combinePieces":
-      return combinePieces(p, o);
+      return combinePieces(p, o, rng);
     case "refine":
       return refine(p, o);
     case "dismantle":
@@ -480,6 +501,6 @@ export function applyForge(p: Profile, o: ForgeOp): ForgeResult {
     case "dismantleLow":
       return dismantleLow(p, o);
     case "craftMax":
-      return craftMax(p, o);
+      return craftMax(p, o, rng);
   }
 }

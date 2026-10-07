@@ -15,6 +15,7 @@ import {
   type ClassId,
   type Stats,
 } from "@/lib/game/characters";
+import { burnValue } from "@/lib/game/burn";
 import { ELEMENT_LABEL } from "@/lib/game/elements";
 import {
   previewCombatant,
@@ -60,6 +61,32 @@ const fmt = (k: keyof Stats, v: number) =>
 
 const selectCls =
   "px-2 py-1.5 text-base";
+
+// Destructive: asks for confirmation first. The coins are far below the gacha price.
+function BurnButton({
+  label,
+  what,
+  disabled,
+  run,
+}: {
+  label: string;
+  what: string;
+  disabled?: boolean;
+  run: () => void;
+}) {
+  return (
+    <button
+      className="btn btn-gray w-full text-center text-sm"
+      disabled={disabled}
+      title="Se pierde para siempre"
+      onClick={() => {
+        if (window.confirm(`¿Quemar ${what}? No se puede deshacer.`)) run();
+      }}
+    >
+      {label}
+    </button>
+  );
+}
 
 function Detail({
   c,
@@ -153,6 +180,12 @@ function Detail({
         </div>
         {reason && <p className="mt-1 text-sm text-red-300">{reason}</p>}
       </div>
+      <BurnButton
+        label={`Quemar héroe (+${burnValue(c.rarity, c.legacy)} monedas)`}
+        what={`a ${c.name} (${RARITIES[c.rarity].label}, ${c.stars}★)`}
+        disabled={profile.characters.length <= 1}
+        run={() => act(async () => void (await repo.burn("hero", c.id)))}
+      />
     </Panel>
   );
 }
@@ -357,9 +390,10 @@ export default function CollectionPage() {
                 )
                 .map((w) => {
                   const o = owner(w.id);
+                  const worn = Object.values(profile.equipped).includes(w.id);
                   return (
+                    <div key={w.id} className="flex w-full flex-col gap-1">
                     <ItemCard
-                      key={w.id}
                       item={weaponView(w, {
                         lines: [
                           weaponEffect(w),
@@ -369,6 +403,13 @@ export default function CollectionPage() {
                       size={96}
                       className="!w-full"
                     />
+                    <BurnButton
+                      label={`Quemar (+${burnValue(w.rarity, w.legacy)})`}
+                      what={`${w.name} (${RARITIES[w.rarity].label})`}
+                      disabled={worn}
+                      run={() => act(async () => void (await repo.burn("piece", w.id)))}
+                    />
+                    </div>
                   );
                 })}
             </div>

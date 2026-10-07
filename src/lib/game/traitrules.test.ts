@@ -9,9 +9,9 @@ import {
   step,
   withRound,
   type Battle,
+  TRAIT_CAPS,
 } from "./combat";
 import { createRng } from "./rng";
-import { RELIC_CAPS } from "./relics";
 import {
   RULE_TRAIT_IDS,
   rollRuleTrait,
@@ -113,9 +113,9 @@ describe("trait rules: combat", () => {
       critMultiplier(b0.player) + 0.5,
     );
     const b2 = open(hero(["filoAzar"]), foe(), {
-      perks: { critDamage: RELIC_CAPS.critDamage },
+      perks: { critDamage: TRAIT_CAPS.critDamage },
     });
-    expect(critMultiplier(b2.player)).toBeCloseTo(1.5 + RELIC_CAPS.critDamage);
+    expect(critMultiplier(b2.player)).toBeCloseTo(1.5 + TRAIT_CAPS.critDamage);
   });
 
   it("Último aliento: reduction grows as hp drops, stacks with relics under the cap, heals halved", () => {
@@ -126,7 +126,7 @@ describe("trait rules: combat", () => {
       perks: { dmgReduction: 0.3 },
     });
     expect(dmgReductionOf({ ...r.player, hp: 10 })).toBe(
-      RELIC_CAPS.dmgReduction,
+      TRAIT_CAPS.dmgReduction,
     );
     // lifesteal 40% with a guaranteed hit: heals half of 40% of the damage
     const s = open(hero(["ultimoAliento"]), foe(), {

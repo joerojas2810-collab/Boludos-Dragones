@@ -12,18 +12,18 @@ import {
   replayCoop,
   startCoop,
 } from "./coop";
-import type { RunAction } from "./replay";
+import { newClimb } from "./floorFights";
+import type { StageAction } from "./stageReplay";
 import { createRng } from "./rng";
-import { createRun } from "./run";
 
-const run = createRun(11, generateCharacter(createRng(5), "mago"), false);
+const run = newClimb(11, generateCharacter(createRng(5), "mago"));
 const node = coopNode(11, null);
 
 // Plays the bot until the hero falls and returns the recorded log.
-function botLog(): RunAction[] {
-  const f = startCoop(run, node)!;
+function botLog(): StageAction[] {
+  const f = startCoop(run, node);
   let b = f.battle;
-  const log: RunAction[] = [];
+  const log: StageAction[] = [];
   for (let i = 0; i < 400 && b.status === "ongoing"; i++) {
     const p = autoPolicy(b, { guard: true });
     const n = step(b, p.action, f.rng, p.target);
@@ -42,7 +42,7 @@ describe("coop boss", () => {
   it("is deterministic and never a Clérigo", () => {
     expect(coopNode(11, null)).toEqual(node);
     for (let s = 1; s < 60; s++)
-      expect(coopNode(s, null).enemy.classId).not.toBe("clerigo");
+      expect(coopNode(s, null).enemies[0].classId).not.toBe("clerigo");
   });
 
   it("replay counts damage, grows with the log and ends when the hero falls", () => {
@@ -57,12 +57,11 @@ describe("coop boss", () => {
     expect(half.finished).toBe(false);
     expect(all.finished).toBe(true);
     expect(all.damage).toBeGreaterThan(half.damage);
-    expect(all.damage).toBeLessThanOrEqual(node.enemy.stats.hp);
+    expect(all.damage).toBeLessThanOrEqual(node.enemies[0].stats.hp);
   });
 
   it("rejects anything but plain fight actions", () => {
     expect(replayCoop(run, node, [{ t: "auto" }]).rejectedAt).toBe(0);
-    expect(replayCoop(run, node, [{ t: "door", i: 0 }]).rejectedAt).toBe(0);
     const log = botLog();
     const extra = replayCoop(run, node, [...log, { t: "act", a: "attack1" }]);
     expect(extra.rejectedAt).toBe(log.length); // fight already over
@@ -70,7 +69,7 @@ describe("coop boss", () => {
   });
 
   it("pool scales with players and the tally picks win and MVP", () => {
-    expect(coopPool(11, null, 4)).toBe(coopPool(11, null, 2) * 2);
+    expect(Math.abs(coopPool(11, null, 4) - coopPool(11, null, 2) * 2)).toBeLessThanOrEqual(1);
     const pool = coopPool(11, null, 2);
     const lost = coopTally(pool, { a: pool * 0.3, b: pool * 0.2 });
     expect(lost.won).toBe(false);

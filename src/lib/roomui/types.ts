@@ -5,8 +5,9 @@ import type { AwardResult } from "../game/awards";
 import type { ClassId } from "../game/characters";
 import type { Element } from "../game/elements";
 import type { RarityId } from "../game/rarity";
-import type { RunAction } from "../game/replay";
-import type { FightNode, Run } from "../game/run";
+import type { Climb } from "../game/floorFights";
+import type { FightSpec } from "../game/stage";
+import type { StageAction } from "../game/stageReplay";
 import type { CoopView } from "../rooms/api";
 import type { TraitId } from "../game/traits";
 import type {
@@ -123,7 +124,7 @@ export type Res<T extends object = object> =
 
 /** Authoritative Run at the start of the current floor (GET /run). */
 export interface FloorRun {
-  run: Run;
+  run: Climb;
   floor: number;
   seed: number;
   door: DoorKind | null;
@@ -147,7 +148,7 @@ export interface RoomClient {
   // The server replays `actions` from the floor-start Run and decides the outcome.
   submit(
     floor: number,
-    actions: RunAction[],
+    actions: StageAction[],
   ): Promise<Res<{ outcome: FightOutcome | null; eliminated: boolean }>>;
   bet(fighter: string, prediction: BetPrediction, stake: number): Promise<Res>;
   interfere(fighter: string, kind: InterfereKind): Promise<Res>;
@@ -157,10 +158,10 @@ export interface RoomClient {
   endNight(): Promise<Res>;
   startCoop(): Promise<Res>;
   /** Coop boss: your fresh hero Run and the boss fight to play. */
-  getCoop(): Promise<Res<{ run: Run; node: FightNode }>>;
+  getCoop(): Promise<Res<{ run: Climb; node: FightSpec }>>;
   /** The fight so far; the server replays it and keeps the damage. */
   coopSubmit(
-    actions: RunAction[],
+    actions: StageAction[],
   ): Promise<Res<{ damage: number; finished: boolean }>>;
   close(): Promise<Res>;
   leave(): Promise<Res>;

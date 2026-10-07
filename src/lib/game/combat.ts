@@ -13,7 +13,6 @@ import {
   elementMultiplier,
   ELEMENT_LABEL,
 } from "./elements";
-import { RELIC_CAPS } from "./relics";
 import type { Rng } from "./rng";
 import {
   COUNTER_REFLECT,
@@ -68,7 +67,10 @@ export const SHIELD_FRACTION = 0.3; // of max hp, absorbs damage first
 export const DOUBLE_ATTACK_FACTOR = 0.5; // damage of the extra attack
 export const ELEMENT_SHIFT_EVERY = 2; // rounds
 
-// Relic-driven combat perks (player only).
+// Ceilings for trait rules (they used to be shared with relics).
+export const TRAIT_CAPS = { dmgReduction: 0.35, critDamage: 1.2 } as const;
+
+// Optional combat perks (player only; no relics feed them any more).
 export interface Perks {
   lifesteal?: number; // fraction of damage dealt healed
   critDamage?: number; // added to CRIT_MULTIPLIER
@@ -140,13 +142,13 @@ const clamp = (v: number, min: number, max: number) =>
 const rulesOf = (c: Combatant) => traitTotals(c.char.traits);
 
 // Fraction of incoming damage ignored: relic perk + Último aliento (grows as hp
-// drops), capped at RELIC_CAPS.dmgReduction.
+// drops), capped at TRAIT_CAPS.dmgReduction.
 export const dmgReductionOf = (c: Combatant): number => {
   const low = rulesOf(c).lowHpReduction;
   const missing = 1 - clamp(c.hp / c.char.stats.hp, 0, 1);
   const perk = c.perks?.dmgReduction ?? 0;
   return Math.min(
-    Math.max(perk, RELIC_CAPS.dmgReduction),
+    Math.max(perk, TRAIT_CAPS.dmgReduction),
     perk + low * missing,
   );
 };
@@ -494,7 +496,7 @@ export function estimateDamage(
 export const critMultiplier = (c: Combatant): number =>
   c.char.stats.critDmg +
   Math.min(
-    Math.max(c.perks?.critDamage ?? 0, RELIC_CAPS.critDamage),
+    Math.max(c.perks?.critDamage ?? 0, TRAIT_CAPS.critDamage),
     (c.perks?.critDamage ?? 0) + rulesOf(c).critDamage,
   );
 

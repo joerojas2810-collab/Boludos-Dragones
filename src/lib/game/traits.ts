@@ -15,7 +15,7 @@ export interface TraitMods {
 // "Run rules": behavior effects that the combat engine reads (engine v3). All
 // are additive across a character's traits and read through traitTotals.
 export interface TraitRules {
-  critDamage?: number; // added to the crit multiplier (shares RELIC_CAPS.critDamage)
+  critDamage?: number; // added to the crit multiplier (shares TRAIT_CAPS.critDamage)
   nonCritPenalty?: number; // fraction of damage lost on NON-critical hits
   lowHpReduction?: number; // extra damage reduction at 0 hp, scaled by missing hp
   healPenalty?: number; // fraction lost on every heal / regen / lifesteal

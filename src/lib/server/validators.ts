@@ -2,9 +2,6 @@ import { z } from "zod";
 import { isFairTrade, isPieceKey } from "../game/market";
 import { RARITY_IDS } from "../game/rarity";
 import { SLOTS, WEAPON_TYPES } from "../game/weapons";
-import { UPGRADES, type UpgradeId } from "../game/progression";
-import { SKILL_IDS, type SkillId } from "../game/skills";
-import { RELIC_IDS } from "../game/relics";
 
 // ---- name / PIN ----
 export const NAME_MIN = 3;
@@ -65,45 +62,19 @@ export const runStartBody = z.strictObject({
   tower: z.enum(["nivelado", "coleccion"]).optional(),
 });
 
-const id = (max: number) => z.string().min(1).max(max);
 export const runActionSchema = z.discriminatedUnion("t", [
-  z.strictObject({ t: z.literal("door"), i: z.number().int().min(0).max(2) }),
   z.strictObject({
     t: z.literal("act"),
     a: z.enum(["attack1", "attack2", "attack3", "defend"]),
     target: z.number().int().min(0).max(2).optional(),
   }),
   z.strictObject({ t: z.literal("auto") }),
-  z.strictObject({
-    t: z.literal("skill"),
-    id: z.enum(SKILL_IDS as [SkillId, ...SkillId[]]),
-  }),
   z.strictObject({ t: z.literal("fin") }),
-  z.strictObject({
-    t: z.literal("pick"),
-    id: z.enum(Object.keys(UPGRADES) as [UpgradeId, ...UpgradeId[]]),
-  }),
-  z.strictObject({
-    t: z.literal("relic"),
-    id: z.enum(
-      RELIC_IDS as [
-        (typeof RELIC_IDS)[number],
-        ...(typeof RELIC_IDS)[number][],
-      ],
-    ),
-  }),
-  z.strictObject({
-    t: z.literal("loot"),
-    i: z.number().int().min(-1).max(3),
-    w: z.literal(false).optional(),
-  }),
-  z.strictObject({ t: z.literal("buy"), id: id(20) }),
-  z.strictObject({ t: z.literal("event"), i: z.number().int().min(0).max(5) }),
-  z.strictObject({ t: z.literal("leave") }),
+  z.strictObject({ t: z.literal("quit") }),
 ]);
 export const runSubmitBody = z.strictObject({
   runId: uuidSchema,
-  actions: z.array(runActionSchema).max(6000),
+  actions: z.array(runActionSchema).max(8000),
   claimed: z
     .strictObject({
       coins: z.number().int().min(0).max(1e9),

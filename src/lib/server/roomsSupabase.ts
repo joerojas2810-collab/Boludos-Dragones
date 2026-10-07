@@ -11,7 +11,7 @@ import {
   type RoomMode,
   type RoomPlayer,
 } from "../game/room";
-import type { Run } from "../game/run";
+import type { Climb } from "../game/floorFights";
 import type { SummaryRes } from "../rooms/api";
 import { env } from "./env";
 import { audit, call, limit, RpcError } from "./rpc";
@@ -61,7 +61,7 @@ interface FloorDb {
   status: FloorRow["status"];
   outcome: FightOutcome | null;
   actions?: unknown;
-  run_after?: Run | null;
+  run_after?: Climb | null;
 }
 interface BattleDb {
   battle_key: string;

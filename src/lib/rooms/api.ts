@@ -2,7 +2,8 @@
 // Requests reuse messages.ts (clientMsg / createRoomMsg / joinRoomMsg).
 // Both sides import this file: keep it stable (see docs/API_SALAS.md).
 import { z } from "zod";
-import type { FightNode, Run } from "../game/run";
+import type { Climb } from "../game/floorFights";
+import type { FightSpec } from "../game/stage";
 import type { Phase } from "../game/room";
 import {
   doorKindEnum,
@@ -228,7 +229,7 @@ export type SubmitRes = z.infer<typeof submitRes>;
  * `enemyBoost` is only sent to the fighter during `fighting`.
  */
 export interface RunView {
-  run: Run;
+  run: Climb;
   floor: number;
   seed: number; // round seed (= run.seed)
   doors: { kind: z.infer<typeof doorKindEnum> }[];
@@ -236,7 +237,7 @@ export interface RunView {
   enemyBoost: z.infer<typeof interfereKindEnum> | null;
   engineVersion: number;
   /** Only during coop_boss: your fresh hero Run and the boss fight to play. */
-  coop?: { node: FightNode };
+  coop?: { node: FightSpec };
 }
 
 export const summaryRes = z.object({

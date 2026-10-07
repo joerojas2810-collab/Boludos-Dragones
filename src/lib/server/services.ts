@@ -1,10 +1,5 @@
+import type { Character, ClassId } from "../game/characters";
 import {
-  generateCharacter,
-  type Character,
-  type ClassId,
-} from "../game/characters";
-import {
-  heroFromOwned,
   migrate,
   pullCharacter,
   pullCost,
@@ -13,18 +8,16 @@ import {
   type PullResult,
   type Profile,
 } from "../game/profile";
-import { isTowerMode, towerHero, type TowerMode } from "../game/tower";
 import {
-  isDungeonRank,
-  victoryCoins,
-} from "../game/dungeons";
-import { isRankUnlocked, maxAscension } from "../game/dungeonProgress";
+  isTowerMode,
+  replayTower,
+  towerHero,
+  type TowerMode,
+} from "../game/tower";
 import { applyForge, type ForgeOp } from "../game/forge";
-import { dayPayMult } from "../game/economy";
 import type { RarityId } from "../game/rarity";
-import { ENGINE_VERSION, replayRun, type RunAction } from "../game/replay";
-import { isVictory } from "../game/run";
 import { createRng } from "../game/rng";
+import { ENGINE_VERSION, type StageAction } from "../game/stageReplay";
 import { isDayKey, type DailyState } from "../game/streak";
 import { ApiError } from "./http";
 import { trackMissions } from "./missions";
@@ -238,13 +231,15 @@ export async function doPull(
 }
 
 // ---- runs ----
+// Only the weekly tower runs through a server-verified log today. Dungeon levels
+// (stage engine) are verified by the level services of the server phase.
 
 export interface RunStartBody {
   classId: ClassId;
   characterId: string | null;
   rank?: RarityId;
   ascension?: number;
-  tower?: TowerMode; // weekly tower (no dungeon): the week's seed, no payout
+  tower?: TowerMode; // weekly tower: the week's seed, no payout
 }
 
 // Opens the run row; a stale open run (page reloaded mid-run) is closed unpaid first.
@@ -281,95 +276,43 @@ export async function startRunService(
   await limit(d.rpc, `runstart:${playerId}`, 10, 60);
   await limit(d.rpc, `runstarth:${playerId}`, 20, 3600);
   const me = await loadMe(d.rpc, playerId);
-  if (body.tower) {
-    // Weekly tower: everybody gets the week's seed (first request of the week fixes it).
-    const ws = await call<{ seed: number }>(d.rpc, "get_weekly_seed", {
-      p_seed: d.randomSeed(),
-    });
-    const seed = Number(ws.seed);
-    const hero = towerHero(
-      me.profile,
-      body.tower,
-      body.characterId,
-      body.classId,
-      seed,
-      playerId,
-    );
-    if (!hero)
-      throw new ApiError(
-        404,
-        "character_not_found",
-        "Personaje no encontrado.",
-      );
-    try {
-      const r = await openRunRow(d, playerId, {
-        p_player: playerId,
-        p_character_id: body.characterId,
-        p_seed: seed,
-        p_hero: { ...hero, engineVersion: ENGINE_VERSION, tower: body.tower },
-      });
-      return {
-        runId: r.run_id,
-        seed,
-        hero,
-        rank: null,
-        tower: body.tower,
-        engineVersion: ENGINE_VERSION,
-      };
-    } catch (e) {
-      return mapRpcError(e);
-    }
-  }
-  const rank = body.rank ?? "f";
-  if (!isRankUnlocked(me.profile.dungeons, rank))
+  // ponytail: dungeon levels are verified by the stage-engine services of phase 4.
+  if (!body.tower)
     throw new ApiError(
-      403,
-      "dungeon_locked",
-      "Ese dungeon todavía está bloqueado.",
+      501,
+      "levels_not_supported",
+      "Los niveles de dungeon todavía no se verifican en el servidor.",
     );
-  const ascension = body.ascension ?? 0;
-  if (
-    ascension > maxAscension(me.profile.dungeons, rank)
-  )
-    throw new ApiError(
-      403,
-      "ascension_locked",
-      "Esa ascensión todavía está bloqueada.",
-    );
-  const seed = d.randomSeed();
-  let hero: Character;
-  if (body.characterId) {
-    const owned = me.profile.characters.find((c) => c.id === body.characterId);
-    const h = owned && heroFromOwned(me.profile, owned.id);
-    if (!owned || !h || owned.classId !== body.classId)
-      throw new ApiError(
-        404,
-        "character_not_found",
-        "Personaje no encontrado.",
-      );
-    hero = h;
-  } else hero = generateCharacter(createRng(seed), body.classId);
-  const args = {
-    p_player: playerId,
-    p_character_id: body.characterId,
-    p_seed: seed,
-    // The engine version rides inside the hero json (no schema change): a log
-    // is only replayable by the engine that recorded it.
-    p_hero: {
-      ...hero,
-      engineVersion: ENGINE_VERSION,
-      dungeon: rank,
-      ascension,
-    },
-  };
+  // Weekly tower: everybody gets the week's seed (first request of the week fixes it).
+  const ws = await call<{ seed: number }>(d.rpc, "get_weekly_seed", {
+    p_seed: d.randomSeed(),
+  });
+  const seed = Number(ws.seed);
+  const hero = towerHero(
+    me.profile,
+    body.tower,
+    body.characterId,
+    body.classId,
+    seed,
+    playerId,
+  );
+  if (!hero)
+    throw new ApiError(404, "character_not_found", "Personaje no encontrado.");
   try {
-    const r = await openRunRow(d, playerId, args);
+    const r = await openRunRow(d, playerId, {
+      p_player: playerId,
+      p_character_id: body.characterId,
+      p_seed: seed,
+      // The engine version rides inside the hero json (no schema change): a log
+      // is only replayable by the engine that recorded it.
+      p_hero: { ...hero, engineVersion: ENGINE_VERSION, tower: body.tower },
+    });
     return {
       runId: r.run_id,
       seed,
       hero,
-      rank,
-      ascension,
+      rank: null,
+      tower: body.tower,
       engineVersion: ENGINE_VERSION,
     };
   } catch (e) {
@@ -377,27 +320,14 @@ export async function startRunService(
   }
 }
 
-// Stored ascension from the hero json: anything unexpected counts as level 0.
-const rank0 = (v: unknown) =>
-  typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 5 ? v : 0;
-
-// Same bound as SQL (game_constants): coins <= floors*120 + 15*floors*(floors+1)/2.
-export const runCoinCap = (floors: number, victoryBonus = 0) =>
-  floors * 120 + (15 * floors * (floors + 1)) / 2 + victoryBonus;
-
 // Anti-farming (a script can replay the deterministic engine at CPU speed):
-// a run cannot be faster than a person clicking, run pay decays with the runs of the day, and starts / banked runs are rate limited.
+// a log cannot be faster than a person clicking.
 export const MIN_ACTION_MS = 400; // fastest believable pace per logged action
-// High-stakes dungeons (unlocks, big payouts): below the floor = unpaid; between the
-// floor and the doubt line = paid, but audited ("run_slow_pace") with its log kept.
-export const MIN_ACTION_MS_HIGH = 700;
-export const DOUBT_ACTION_MS_HIGH = 1_000;
-export const HIGH_RANKS: readonly RarityId[] = ["s", "ss", "ssr"];
 export const MIN_ACTION_GRACE_MS = 3_000; // clock skew between app and database
 
 export interface RunSubmitBody {
   runId: string;
-  actions: RunAction[];
+  actions: StageAction[];
   claimed?: { coins: number; maxFloor: number };
   engineVersion?: number; // engine the client played with
 }
@@ -423,26 +353,21 @@ export async function submitRunService(
     throw new ApiError(409, "duplicate_run", "Esta run ya fue entregada.");
   const {
     engineVersion: stored = 1,
-    dungeon,
-    ascension: storedAsc,
     tower: storedTower,
     ...hero
-  } = row.hero as Character & {
-    engineVersion?: number;
-    dungeon?: RarityId;
-    ascension?: number;
-    tower?: string;
-  };
+  } = row.hero as Character & { engineVersion?: number; tower?: string };
   const tower = isTowerMode(storedTower) ? storedTower : null;
-  const ascension = rank0(storedAsc);
-  const rank = isDungeonRank(dungeon) ? dungeon : null;
+  if (!tower)
+    throw new ApiError(
+      501,
+      "levels_not_supported",
+      "Los niveles de dungeon todavía no se verifican en el servidor.",
+    );
   // Impossibly fast log: close the run unpaid (nothing is credited) and say why.
-  const minMs =
-    rank && HIGH_RANKS.includes(rank) ? MIN_ACTION_MS_HIGH : MIN_ACTION_MS;
   const elapsed = row.startedAt ? Date.now() - row.startedAt : null;
   if (
     elapsed !== null &&
-    elapsed + MIN_ACTION_GRACE_MS < body.actions.length * minMs
+    elapsed + MIN_ACTION_GRACE_MS < body.actions.length * MIN_ACTION_MS
   ) {
     try {
       await call(d.rpc, "bank_run", {
@@ -461,12 +386,11 @@ export async function submitRunService(
       runId: body.runId,
       elapsed,
       n: body.actions.length,
-      rank,
     });
     throw new ApiError(
       429,
       "too_fast",
-      "Esa run se jugó demasiado rápido para ser real y no se pagó.",
+      "Ese intento se jugó demasiado rápido para ser real y no se registró.",
     );
   }
   if (body.engineVersion !== undefined && body.engineVersion !== stored)
@@ -475,49 +399,25 @@ export async function submitRunService(
       "engine_outdated",
       "La run se jugó con otra versión del juego. Recarga la página y empieza una nueva.",
     );
-  const rep = replayRun(row.seed, hero, body.actions, stored, rank, ascension);
+  const rep = replayTower(row.seed, hero, body.actions, stored);
   if (rep.error)
     throw new ApiError(
       409,
       "engine_outdated",
       "Esta run es de una versión anterior del juego y ya no se puede verificar.",
     );
-  const floors = rep.run.maxFloor;
-  // A verified dungeon clear may exceed the per-floor cap by its victory bonus.
-  const clearBonus =
-    rank && isVictory(rep.run) && rep.rejectedAt === null
-      ? victoryCoins(rank, ascension)
-      : 0;
-  // Runs pay less the more you bank in a day (economy.ts), never a hard stop.
-  const dayMult = dayPayMult((await d.runsToday(playerId)) + 1);
-  // The tower pays nothing per run (no coins, loot or parts): only the weekly prizes.
-  const coins = tower
-    ? 0
-    : Math.floor(
-        Math.min(rep.run.coins, runCoinCap(floors, clearBonus)) * dayMult,
-      );
+  const floors = rep.floors;
   let verdict: Verdict = "accepted";
   let reason: string | null = null;
-  // Keep the action log of every S+ clear so its pace can be reviewed later.
-  const highRank = rank !== null && HIGH_RANKS.includes(rank);
-  const doubtful =
-    highRank &&
-    elapsed !== null &&
-    elapsed + MIN_ACTION_GRACE_MS < body.actions.length * DOUBT_ACTION_MS_HIGH;
-  const keepLog =
-    highRank && (isVictory(rep.run) || doubtful) && body.actions.length <= 2000;
   if (rep.rejectedAt !== null) {
     verdict = "truncated";
     reason = `illegal action at ${rep.rejectedAt}`;
-  } else if (
-    body.claimed &&
-    (body.claimed.coins !== rep.run.coins ||
-      body.claimed.maxFloor !== rep.run.maxFloor)
-  ) {
+  } else if (body.claimed && body.claimed.maxFloor !== floors) {
     verdict = "mismatch";
-    reason = `claimed ${body.claimed.coins}/${body.claimed.maxFloor} replay ${rep.run.coins}/${rep.run.maxFloor}`;
+    reason = `claimed floor ${body.claimed.maxFloor} replay ${floors}`;
   }
   try {
+    // The tower pays nothing per run (no coins, loot or parts): only the weekly prizes.
     const r = await call<{
       coinsAdded: number;
       coins: number;
@@ -526,51 +426,24 @@ export async function submitRunService(
     }>(d.rpc, "bank_run", {
       p_player: playerId,
       p_run_id: body.runId,
-      p_coins: coins,
+      p_coins: 0,
       p_max_floor: floors,
-      p_log: verdict === "accepted" && !keepLog ? null : body.actions,
+      p_log: verdict === "accepted" ? null : body.actions,
       p_verdict: SQL_VERDICT[verdict],
       p_reason: reason,
-      // First clear / better clear of the dungeon, as the replay says.
-      p_parts: tower ? {} : rep.run.partSecured,
-      p_clear:
-        rank && isVictory(rep.run) && rep.rejectedAt === null
-          ? { rank, lives: rep.run.lives, asc: ascension }
-          : null,
-      // Pieces locked in by defeated bosses, as the REPLAY says (never the client).
-      p_loot: (tower ? [] : rep.run.secured).slice(0, 80).map((p) => ({
-        type: p.type,
-        element: p.element,
-        rarity: p.rarity,
-        name: p.name,
-      })),
+      p_parts: {},
+      p_clear: null,
+      p_loot: [],
     });
     // Tower ranking: only a fully verified log counts; the best floor of the week stays.
-    if (tower && verdict === "accepted")
+    // ponytail: the tiebreak (rep.rounds, fewer is better) needs a tower_scores column (SQL phase).
+    if (verdict === "accepted")
       await call(d.rpc, "tower_record", {
         p_player: playerId,
         p_mode: tower,
         p_floor: floors,
       });
-    // Missions count only what the verified replay says, never the client.
-    if (verdict === "accepted" && !tower) {
-      const wins = rep.run.wins ?? 0;
-      await trackMissions(d.rpc, playerId, {
-        fight_win: wins,
-        [`element_win:${hero.element}`]: wins,
-        boss_win: rep.run.bossWins ?? 0,
-        floors,
-        dungeon_clear: rank && isVictory(rep.run) ? 1 : 0,
-      });
-    }
-    if (doubtful)
-      await audit(d.rpc, playerId, "run_slow_pace", {
-        runId: body.runId,
-        elapsed,
-        n: body.actions.length,
-        rank,
-      });
-    if (verdict !== "accepted" || r.capped || (!tower && coins < rep.run.coins))
+    if (verdict !== "accepted" || r.capped)
       await audit(d.rpc, playerId, "run_" + verdict, {
         runId: body.runId,
         reason,

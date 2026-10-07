@@ -11,6 +11,7 @@ import {
   forgeReceipt,
   refine,
 } from "./forge";
+import { rollQuality } from "./gear";
 import { coreKey, partKey } from "./parts";
 import {
   createProfile,
@@ -329,5 +330,27 @@ describe("forge receipt", () => {
     const owned = grantPiece(before, piece);
     const again = forgeReceipt(owned, diff);
     expect(again.got[0]).toContain("ya la tenías, ahora 1★");
+  });
+});
+
+describe("forge rolls", () => {
+  it("crafted pieces get a roll (deterministic by state or by rng), duplicates keep the better", () => {
+    const p = rich({ [partKey("casco", "c")]: 99, [coreKey("agua")]: 99 });
+    const a = { type: "casco" as const, element: "agua" as const, rank: "c" as const };
+    const r1 = craft(p, a);
+    const r2 = craft(p, a);
+    if (!r1.ok || !r2.ok) throw new Error("fail");
+    expect(r1.diff.grant[0].roll).toBe(r2.diff.grant[0].roll);
+    expect(r1.diff.grant[0].lines).toHaveLength(1);
+    const forced = applyForge(p, { op: "craft", ...a }, createRng(77));
+    if (!forced.ok) throw new Error("fail");
+    expect(forced.profile.weapons[0].roll).toBe(forced.diff.grant[0].roll);
+    const again = craft(forced.profile, a, createRng(5));
+    if (!again.ok) throw new Error("fail");
+    const q = (x: object) => rollQuality(x);
+    expect(q(again.profile.weapons[0])).toBe(
+      Math.max(q(forced.diff.grant[0]), q(again.diff.grant[0])),
+    );
+    expect(again.profile.weapons[0].stars).toBe(1);
   });
 });

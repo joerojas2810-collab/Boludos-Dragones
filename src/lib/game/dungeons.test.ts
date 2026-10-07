@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { generateCharacter } from "./characters";
 import {
   DUNGEONS,
   isDungeonRank,
@@ -10,21 +9,12 @@ import {
   powerVerdict,
   recommendedPower,
 } from "./dungeons";
-import { dropRank, FINAL_UP_CHANCE, UP_CHANCE } from "./loot";
+import { dropRank, UP_CHANCE } from "./loot";
+import { levelsOf } from "./levels";
 import { RARITY_IDS } from "./rarity";
 import { createRng } from "./rng";
-import {
-  createRun,
-  depthOf,
-  doorsFor,
-  enemyFor,
-  isBossFloor,
-  isVictory,
-  nextFloor,
-  topFloor,
-} from "./run";
+import { levelFights } from "./stage";
 
-const hero = generateCharacter(createRng(3), "caballero");
 
 describe("dungeon table", () => {
   it("matches the design: floors, boss floors and final boss", () => {
@@ -78,53 +68,7 @@ describe("unlocking", () => {
 });
 
 describe("dungeon runs", () => {
-  it("bosses follow the table and the floor before each boss has a campfire", () => {
-    for (const r of RARITY_IDS) {
-      const d = DUNGEONS[r];
-      for (let f = 1; f <= d.floors; f++) {
-        expect(isBossFloor(f, r)).toBe(d.bosses.includes(f));
-        const doors = doorsFor(11, f, r);
-        if (d.bosses.includes(f)) expect(doors).toEqual([{ kind: "boss" }]);
-        else if (d.bosses.includes(f + 1))
-          expect(
-            doors.some((x) => x.kind === "rest"),
-            `${r}:${f}`,
-          ).toBe(true);
-      }
-    }
-  });
-
-  it("enemies follow the difficulty floor and the final boss hits harder", () => {
-    const mean = (rank: "f" | "ssr") => {
-      let t = 0;
-      for (let seed = 1; seed <= 40; seed++)
-        t += enemyFor(seed, 4, "hard", rank).enemy.stats.atk;
-      return t / 40;
-    };
-    expect(mean("ssr")).toBeGreaterThan(mean("f") * 1.5);
-    expect(depthOf(4, "ssr")).toBe(4 + DUNGEONS.ssr.offset);
-    const last = DUNGEONS.f.floors;
-    const normal = enemyFor(5, last - 4, "boss", "f").enemy.stats.hp;
-    const final = enemyFor(5, last, "boss", "f").enemy.stats.hp;
-    expect(final).toBeGreaterThan(normal);
-  });
-
-  it("clearing the last floor is a victory; legacy runs keep the 100-floor cap", () => {
-    const r = {
-      ...createRun(1, hero, true, "f"),
-      floor: DUNGEONS.f.floors,
-      maxFloor: DUNGEONS.f.floors,
-      floorCleared: true,
-    };
-    expect(topFloor(r)).toBe(8);
-    const won = nextFloor(r);
-    expect(won.status).toBe("over");
-    expect(isVictory(won)).toBe(true);
-    expect(won.coins).toBe(victoryCoins("f"));
-    expect(topFloor(createRun(1, hero))).toBe(100);
-  });
-
-  it("loot rank: the dungeon's rank or lower, rarely one above (more at the final boss)", () => {
+  it("loot rank: the dungeon's rank or lower, rarely one above ", () => {
     const count = (up: number) => {
       const rng = createRng(7);
       const n: Record<string, number> = {};
@@ -141,32 +85,12 @@ describe("dungeon runs", () => {
     expect(n.e).toBeGreaterThan(n.f);
     expect(n.b / 6000).toBeGreaterThan(0.06);
     expect(n.b / 6000).toBeLessThan(0.14);
-    expect(count(FINAL_UP_CHANCE).b).toBeGreaterThan(n.b * 1.8);
     // SSR cannot go above itself; F cannot go below itself
     const rng = createRng(1);
     for (let i = 0; i < 500; i++) {
       expect(dropRank(rng, "ssr", 0.5)).toMatch(/^(f|e|d|c|b|a|s|ss|ssr)$/);
       expect(dropRank(rng, "f", 0)).toBe("f");
     }
-  });
-
-  it("room difficulty (rank) shifts enemies but keeps the room layout", () => {
-    // layout: bosses stay every 5 floors, doors identical for the same depth-free floors
-    expect(isBossFloor(5, null)).toBe(true);
-    expect(isBossFloor(10, null)).toBe(true);
-    const mean = (difficulty: "f" | "ssr") => {
-      let t = 0;
-      for (let seed = 1; seed <= 40; seed++)
-        t += enemyFor(seed, 4, "hard", null, difficulty).enemy.stats.atk;
-      return t / 40;
-    };
-    expect(mean("ssr")).toBeGreaterThan(mean("f") * 1.5);
-    const run = createRun(1, hero, false, null, "ssr");
-    expect(run.rank).toBeNull();
-    expect(run.difficulty).toBe("ssr");
-    expect(topFloor(run)).toBe(100); // rooms keep the endless-style layout
-    expect(depthOf(4, null, "ssr")).toBe(4 + DUNGEONS.ssr.offset);
-    expect(depthOf(4, "f", "ssr")).toBe(4); // a dungeon rank wins over the room rank
   });
 });
 
@@ -196,24 +120,16 @@ describe("ascension", () => {
   });
 
   it("each level stacks its rule and pays more", () => {
-    const base = enemyFor(7, 3, "hard", "f", null, 0);
-    const a1 = enemyFor(7, 3, "hard", "f", null, 1);
-    expect(a1.enemies[0].stats.hp).toBeGreaterThan(base.enemies[0].stats.hp);
-    expect(enemyFor(7, 3, "hard", "f", null, 3).enemies.length).toBe(
-      Math.min(3, base.enemies.length + 1),
+    const spec = levelsOf("f")[1];
+    const base = levelFights(spec, 0);
+    const a1 = levelFights(spec, 1);
+    expect(a1[0].enemies[0].stats.hp).toBeGreaterThan(base[0].enemies[0].stats.hp);
+    expect(levelFights(spec, 3)[0].enemies.length).toBe(
+      Math.min(3, base[0].enemies.length + 1),
     );
-    const boss = DUNGEONS.f.bosses[0];
-    expect(enemyFor(7, boss, "boss", "f", null, 3).mods).not.toContain(
-      "dobleAtaque",
-    );
-    expect(enemyFor(7, boss, "boss", "f", null, 4).mods).toContain(
-      "dobleAtaque",
-    );
-    expect(createRun(1, hero, true, "f", null, 4).lives).toBe(3);
-    expect(createRun(1, hero, true, "f", null, 5).lives).toBe(2);
-    expect(createRun(1, hero, true, "f", null, 5).lootPool).toBeGreaterThan(
-      createRun(1, hero, true, "f").lootPool,
-    );
+    const last = (asc: number) => levelFights(spec, asc).at(-1)!;
+    expect(last(3).mods).not.toContain("dobleAtaque");
+    expect(last(4).mods).toContain("dobleAtaque");
     expect(victoryCoins("f", 5)).toBe(victoryCoins("f") * 2);
   });
 });

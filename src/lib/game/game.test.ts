@@ -4,14 +4,6 @@ import { ELEMENTS, elementMultiplier } from "./elements";
 import { generateCharacter, CLASSES } from "./characters";
 import { ENRAGE_AFTER_TURN, startBattle, step, withRound } from "./combat";
 import { TRAIT_IDS, TRAITS } from "./traits";
-import {
-  applyUpgrade,
-  gainXp,
-  rollUpgrades,
-  scaleForLevel,
-  xpToNext,
-  XP_PER_WIN,
-} from "./progression";
 
 describe("rng", () => {
   it("is deterministic per seed", () => {
@@ -80,33 +72,6 @@ describe("traits", () => {
   });
   it("has 20 classic traits plus 4 rule traits", () => {
     expect(TRAIT_IDS).toHaveLength(24);
-  });
-});
-
-describe("progression", () => {
-  it("levels up when xp passes the threshold and carries the remainder", () => {
-    const c = generateCharacter(createRng(9));
-    const r = gainXp(c, xpToNext(1) + 5);
-    expect(r.levelsGained).toBe(1);
-    expect(r.char.level).toBe(2);
-    expect(r.char.xp).toBe(5);
-    expect(gainXp(c, XP_PER_WIN).levelsGained).toBe(0);
-  });
-  it("can gain several levels at once", () => {
-    const c = generateCharacter(createRng(9));
-    expect(gainXp(c, xpToNext(1) + xpToNext(2)).levelsGained).toBe(2);
-  });
-  it("offers 3 distinct upgrades and applies them", () => {
-    const rng = createRng(2);
-    const picks = rollUpgrades(rng);
-    expect(new Set(picks).size).toBe(3);
-    const c = generateCharacter(rng);
-    expect(applyUpgrade(c, "vida").stats.hp).toBeGreaterThan(c.stats.hp);
-  });
-  it("scales enemies 12% per level", () => {
-    const c = generateCharacter(createRng(4));
-    expect(scaleForLevel(c, 1).stats.hp).toBe(c.stats.hp);
-    expect(scaleForLevel(c, 6).stats.hp).toBeGreaterThan(c.stats.hp * 1.7);
   });
 });
 

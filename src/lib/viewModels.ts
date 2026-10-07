@@ -27,8 +27,29 @@ export function characterView(
   };
 }
 
+// Average of a piece's rolls as a percent (100% = neutral); null for pieces saved before rolls.
+export const rollPct = (w: OwnedWeapon): number | null =>
+  w.roll === undefined
+    ? null
+    : Math.round(
+        ((w.roll + (w.lines ?? []).reduce((s, l) => s + l.roll, 0)) /
+          (1 + (w.lines?.length ?? 0))) *
+          100,
+      );
+
 export const pieceLine = (w: OwnedWeapon) =>
-  isGearType(w.type) ? gearLine(w) : `ATQ +${w.atkBonus}`;
+  (isGearType(w.type) ? gearLine(w) : `ATQ +${w.atkBonus}`) +
+  (rollPct(w) === null ? "" : ` · tirada ${rollPct(w)}%`);
+
+// Extra lines of a piece with their value, e.g. "+1.9% crítico".
+export function extraLinesText(w: OwnedWeapon): string[] {
+  if (!isGearType(w.type)) return [];
+  const bare = gearBonus([{ ...w, lines: [] }]);
+  return (w.lines ?? []).map((l) => {
+    const v = gearBonus([{ ...w, lines: [l] }])[l.stat] - bare[l.stat];
+    return `+${Math.round(v * 1000) / 10}% ${DIFF_LABEL[l.stat]}`;
+  });
+}
 
 // How a candidate piece differs from the one worn in the same slot (what you gain or
 // lose by swapping). Empty when the slot is empty; "same" when every bonus matches.

@@ -11,6 +11,11 @@ import { WeaponSprite } from "@/components/WeaponSprite";
 import { CLASSES } from "@/lib/game/characters";
 import {
   activeSets,
+  BUILD_LABEL,
+  buildLabel,
+  resonanceLine,
+  resonances,
+  SKILL_STYLE_GROUP,
   SET_AFFINITY,
   SET_BONUS,
   SET_TIERS,
@@ -19,7 +24,9 @@ import {
 } from "@/lib/game/gear";
 import {
   autoEquipPlan,
+  heroFromOwned,
   slotKey,
+  type AutoMode,
   type OwnedCharacter,
   type Profile,
 } from "@/lib/game/profile";
@@ -33,6 +40,7 @@ import {
 } from "@/lib/game/weapons";
 import { repo } from "@/lib/useProfile";
 import {
+  extraLinesText,
   pieceDelta,
   pieceLine,
   weaponEffect,
@@ -116,6 +124,11 @@ function GearCard({
             ))}
           </div>
         )}
+        {extraLinesText(w).length > 0 && (
+          <div className="text-xs text-cyan-200">
+            Líneas extra: {extraLinesText(w).join(" · ")}
+          </div>
+        )}
         <div className="text-xs text-[#d9d2ca]">{weaponEffect(w)}</div>
       </div>
       {action}
@@ -141,6 +154,9 @@ export function EquipmentEditor({
   act: (job: () => Promise<void>) => void;
 }) {
   const [sel, setSel] = useState<Slot>("arma");
+  const [mode, setMode] = useState<AutoMode>("poder");
+  const [steal, setSteal] = useState(false);
+  const [preview, setPreview] = useState(false);
   const wornElements = (
     ["arma", "casco", "peto", "piernas", "zapatos", "collar"] as const
   ).flatMap((sl) => {
@@ -150,7 +166,17 @@ export function EquipmentEditor({
     return w ? [w.element] : [];
   });
   const sets = activeSets(wornElements, c.element);
-  const plan = autoEquipPlan(profile, c.id);
+  const plan = autoEquipPlan(profile, c.id, mode, { takeFromOthers: steal });
+  const wornPieces = DOLL_SLOTS.flatMap((sl) => {
+    const w = profile.weapons.find(
+      (x) => x.id === profile.equipped[slotKey(c.id, sl)],
+    );
+    return w ? [w] : [];
+  });
+  const skill = heroFromOwned(profile, c.id)?.skill;
+  const styleGroup = skill ? SKILL_STYLE_GROUP[skill] : undefined;
+  const build = buildLabel(wornPieces);
+  const res = resonances(wornPieces, styleGroup);
   const wornSlots = DOLL_SLOTS.filter(
     (sl) => profile.equipped[slotKey(c.id, sl)],
   );
@@ -159,21 +185,84 @@ export function EquipmentEditor({
     .join(" · ");
   return (
     <>
-      <button
-        className="btn w-full text-center"
-        disabled={plan.length === 0}
-        title="Equipa la mejor pieza libre en cada casilla (cuenta los sets de elemento)"
-        onClick={() =>
-          act(async () => {
-            for (const { slot, weaponId } of plan)
-              await repo.equip(c.id, weaponId, slot);
-          })
-        }
-      >
-        {plan.length === 0
-          ? "Equipo ya óptimo"
-          : `Autoequipar (${plan.length} ${plan.length === 1 ? "cambio" : "cambios"})`}
-      </button>
+      <div className="space-y-1">
+        <div className="flex flex-wrap items-center gap-1 text-sm">
+          <span className="text-[#d9d2ca]">Autoequipar:</span>
+          {(
+            [
+              ["poder", "Poder", "Mayor poder total (cuenta sets)"],
+              ["set", "Set", "Prefiere piezas de tu elemento para completar sets"],
+              [
+                "estilo",
+                "Estilo",
+                styleGroup
+                  ? `Prefiere piezas de tu estilo (${BUILD_LABEL[styleGroup]})`
+                  : "Necesita una tercera habilidad elegida",
+              ],
+            ] as const
+          ).map(([m, label, tip]) => (
+            <button
+              key={m}
+              title={tip}
+              aria-pressed={mode === m}
+              className={`btn text-center ${mode === m ? "" : "btn-gray"}`}
+              onClick={() => {
+                setMode(m);
+                setPreview(false);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+          <label className="ml-1 flex items-center gap-1 text-xs">
+            <input
+              type="checkbox"
+              checked={steal}
+              onChange={(e) => {
+                setSteal(e.target.checked);
+                setPreview(false);
+              }}
+            />
+            Tomar de otros héroes
+          </label>
+        </div>
+        {preview && plan.length > 0 && (
+          <ul className="space-y-0.5 text-xs" aria-label="Cambios propuestos">
+            {plan.map((x) => {
+              const w = profile.weapons.find((y) => y.id === x.weaponId);
+              const from = profile.characters.find((h) => h.id === x.fromHeroId);
+              return (
+                <li key={x.slot}>
+                  <span className="capitalize">{x.slot}</span>: {w?.name}{" "}
+                  {w && RARITIES[w.rarity].label}
+                  {from && (
+                    <span className="text-orange-300"> (se la quitas a {from.name})</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <button
+          className="btn w-full text-center"
+          disabled={plan.length === 0}
+          title="Equipa la mejor pieza en cada casilla según el modo elegido"
+          onClick={() => {
+            if (!preview) return setPreview(true);
+            setPreview(false);
+            act(async () => {
+              for (const { slot, weaponId } of plan)
+                await repo.equip(c.id, weaponId, slot);
+            });
+          }}
+        >
+          {plan.length === 0
+            ? "Equipo ya óptimo"
+            : preview
+              ? `Confirmar (${plan.length} ${plan.length === 1 ? "cambio" : "cambios"})`
+              : `Ver cambios (${plan.length})`}
+        </button>
+      </div>
       <button
         className="btn btn-gray w-full text-center"
         disabled={wornSlots.length === 0}
@@ -236,6 +325,19 @@ export function EquipmentEditor({
       </div>
 
       <div className="text-sm text-[#d9d2ca]">
+        {build && (
+          <div>
+            Build: <span className="text-yellow-300">{BUILD_LABEL[build]}</span>
+            {styleGroup && (
+              <span className="text-xs"> · tu estilo: {BUILD_LABEL[styleGroup]}</span>
+            )}
+          </div>
+        )}
+        {res.map((r) => (
+          <div key={r.group} className="text-cyan-300">
+            {resonanceLine(r)}
+          </div>
+        ))}
         {sets.length === 0 ? (
           <div>Sets: piezas del mismo elemento dan bonos a 2, 4 y 6.</div>
         ) : (

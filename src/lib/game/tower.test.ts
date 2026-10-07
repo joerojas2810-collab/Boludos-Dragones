@@ -1,6 +1,36 @@
 import { describe, expect, it } from "vitest";
+import { autoPolicy } from "./auto";
+import { generateCharacter } from "./characters";
 import { createProfile } from "./profile";
-import { localWeekSeed, towerHero } from "./tower";
+import { createRng } from "./rng";
+import type { StageAction } from "./stageReplay";
+import {
+  applyTowerAction,
+  localWeekSeed,
+  replayTower,
+  startTower,
+  towerHero,
+} from "./tower";
+
+// Plays the tower with the quick-play policy; returns the log and the final state.
+function play(seed: number, maxFloors: number) {
+  const hero = generateCharacter(createRng(seed), "caballero");
+  let s = startTower(seed, hero);
+  const log: StageAction[] = [];
+  for (let k = 0; k < 5000 && s.climb.status === "active"; k++) {
+    if (s.climb.floor > maxFloors) break;
+    let a: StageAction = { t: "fin" };
+    if (!s.rs.settled) {
+      const p = autoPolicy(s.rs.battle!);
+      a = { t: "act", a: p.action, target: p.target };
+    }
+    const n = applyTowerAction(s, a);
+    if (!n) break;
+    s = n;
+    log.push(a);
+  }
+  return { hero, s, log };
+}
 
 describe("tower", () => {
   const p = createProfile();
@@ -23,5 +53,38 @@ describe("tower", () => {
     const next = new Date(Date.UTC(2026, 9, 12, 1)); // next Monday
     expect(localWeekSeed(mon)).toBe(localWeekSeed(sun));
     expect(localWeekSeed(next)).not.toBe(localWeekSeed(mon));
+  });
+
+  it("replay repeats the client's climb exactly (floors, rounds, hp)", () => {
+    const { hero, s, log } = play(11, 6);
+    const r = replayTower(11, hero, log);
+    expect(r.rejectedAt).toBeNull();
+    expect(r.climb).toEqual(s.climb);
+    expect(r.floors).toBeGreaterThan(0);
+  });
+  it("an illegal action stops the replay where it happens; nothing after counts", () => {
+    const { hero, log } = play(11, 3);
+    const bad: StageAction[] = [...log, { t: "fin" }, { t: "fin" }];
+    const r = replayTower(11, hero, bad);
+    expect(r.rejectedAt).not.toBeNull();
+    expect(r.applied).toBeLessThan(bad.length);
+  });
+  it("one life: a lost fight ends the climb, and quitting too", () => {
+    const hero = generateCharacter(createRng(3), "mago");
+    const r = replayTower(3, hero, [{ t: "quit" }]);
+    expect(r.climb.status).toBe("over");
+    expect(r.floors).toBe(0);
+    const weak = { ...hero, stats: { ...hero.stats, hp: 1, def: 0 } };
+    let s = startTower(9, weak);
+    for (let k = 0; k < 200 && s.climb.status === "active"; k++) {
+      const n = applyTowerAction(s, { t: "act", a: "defend" });
+      if (!n) break;
+      s = n;
+    }
+    expect(s.climb.status).toBe("over");
+  });
+  it("logs from another engine version are refused", () => {
+    const hero = generateCharacter(createRng(1), "mago");
+    expect(replayTower(1, hero, [], 3).error).toBe("engine_version");
   });
 });

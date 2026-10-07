@@ -14,7 +14,7 @@ import { normalizeHero } from "../src/lib/game/nivelado";
 import type { RarityId } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
 import { step } from "../src/lib/game/combat";
-import { createRun } from "../src/lib/game/run";
+import { newClimb } from "../src/lib/game/floorFights";
 
 const ROOMS = Number(process.argv[2] ?? 200);
 const RANK = (
@@ -29,8 +29,8 @@ function fight(seed: number, who: number): number {
     generateCharacter(createRng(hashSeed(seed, who))),
     "nivelado",
   );
-  const run = createRun(seed, hero, false, null, RANK ?? "f");
-  const f = startCoop(run, coopNode(seed, RANK))!;
+  const run = newClimb(seed, hero, RANK);
+  const f = startCoop(run, coopNode(seed, RANK));
   let b = f.battle;
   for (let i = 0; i < 400 && b.status === "ongoing"; i++) {
     const p = autoPolicy(b, { guard: true });
@@ -67,7 +67,7 @@ if (process.env.DIST) {
     const seed = 1000 + r;
     const u = bossUnit(seed, RANK);
     out.push(
-      `${seed} ${coopNode(seed, RANK).enemy.classId}/${coopNode(seed, RANK).enemy.element}: ` +
+      `${seed} ${coopNode(seed, RANK).enemies[0].classId}/${coopNode(seed, RANK).enemies[0].element}: ` +
         Array.from({ length: 6 }, (_, i) =>
           (fight(seed, i) / u).toFixed(1),
         ).join(" "),

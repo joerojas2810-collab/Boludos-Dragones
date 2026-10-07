@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TowerRun } from "./TowerRun";
+import { TowerMode } from "./TowerMode";
 import { ProgressMode } from "./ProgressMode";
 
-// /run = Modo Progreso (dungeon levels). `?torre=` still opens the weekly tower on
-// the classic engine until the tower moves to the stage engine.
+// /run = Modo Progreso (dungeon levels); `?torre=` opens the weekly tower.
 export default function RunPage() {
   const [tower, setTower] = useState<boolean | null>(null);
   useEffect(() => {
@@ -13,5 +12,5 @@ export default function RunPage() {
     setTower(new URLSearchParams(location.search).has("torre"));
   }, []);
   if (tower === null) return null;
-  return tower ? <TowerRun /> : <ProgressMode />;
+  return tower ? <TowerMode /> : <ProgressMode />;
 }

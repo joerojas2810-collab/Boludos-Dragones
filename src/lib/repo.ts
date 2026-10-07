@@ -23,12 +23,13 @@ import {
 import { isRankUnlocked, maxAscension } from "./game/dungeonProgress";
 import { dayPayMult } from "./game/economy";
 import { localWeekSeed, towerHero, type TowerMode } from "./game/tower";
+import { burn as burnItem } from "./game/burn";
 import { applyForge, type ForgeOp } from "./game/forge";
 import type { RunPiece } from "./game/loot";
 import type { Parts } from "./game/parts";
 import type { RarityId } from "./game/rarity";
 import type { Slot } from "./game/weapons";
-import { ENGINE_VERSION, type RunAction } from "./game/replay";
+import { ENGINE_VERSION, type StageAction } from "./game/stageReplay";
 import { createRng } from "./game/rng";
 import { claimDaily, dayKey } from "./game/streak";
 
@@ -75,6 +76,7 @@ export interface ProfileRepo {
     slot?: Slot,
   ): Promise<void>;
   spendFragments(characterId: string): Promise<void>;
+  burn(kind: "hero" | "piece", id: string): Promise<{ coins: number }>; // local mode only for now
   forge(op: ForgeOp): Promise<{ text: string }>;
   startRun(
     classId: ClassId,
@@ -86,7 +88,7 @@ export interface ProfileRepo {
   ): Promise<RunStartInfo>;
   submitRun(
     runId: string,
-    actions: RunAction[],
+    actions: StageAction[],
     claimed: {
       coins: number;
       maxFloor: number;
@@ -161,6 +163,12 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
         w ? equipWeapon(p, c, w) : unequipWeapon(p, c, slot),
       ),
     spendFragments: async (c) => store.update((p) => spendFragments(p, c) ?? p),
+    burn: async (kind, id) => {
+      const r = burnItem(store.get(), { kind, id });
+      if (!r) throw new RepoError("burn_invalid", "No se puede quemar (¿está equipado o es tu único héroe?).");
+      store.replace(r.profile);
+      return { coins: r.coins };
+    },
     forge: async (op) => {
       const r = applyForge(store.get(), op);
       if (!r.ok) throw new RepoError("forge_invalid", r.error);
@@ -307,6 +315,9 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       }),
     spendFragments: (characterId) =>
       withProfile("/api/collection/spend-fragments", { characterId }),
+    burn: async () => {
+      throw new RepoError("burn_unavailable", "Quemar aún no está disponible en línea.");
+    },
     forge: async (op) => {
       const r = await api<{ text: string; profile: Profile }>("/api/forge", op);
       store.replace(r.profile);

@@ -13,8 +13,8 @@ import {
 } from "../game/coop";
 import { isRankUnlocked } from "../game/dungeonProgress";
 import type { RarityId } from "../game/rarity";
-import { enemyFor, doorsFor, type Run } from "../game/run";
-import { ENGINE_VERSION } from "../game/replay";
+import { floorFight, roomDoors, type Climb, type FloorKind } from "../game/floorFights";
+import { ENGINE_VERSION } from "../game/stage";
 import {
   advance as modelAdvance,
   battleKey,
@@ -295,7 +295,7 @@ async function coopViewOf(
   return {
     ...t,
     prizes,
-    bossName: coopNode(s.roundSeed, rank).enemy.name,
+    bossName: coopNode(s.roundSeed, rank).enemies[0].name,
     players: rows.map((r) => ({
       id: r.playerId,
       damage: r.damage,
@@ -516,17 +516,17 @@ async function runAtFloorStart(
   room: string,
   player: string,
   rows: FloorRow[],
-): Promise<Run> {
+): Promise<Climb> {
   if (s.roundSeed === null || s.round < 1 || s.floor < 1)
     return fail("wrong_phase");
   const prior = rows
     .filter((r) => r.floor < s.floor && r.runAfter)
     .sort((a, b) => b.floor - a.floor)[0];
-  let base: Run | undefined = prior?.runAfter ?? undefined;
+  let base: Climb | undefined = prior?.runAfter ?? undefined;
   if (!base) {
     const saved = rows
-      .map((r) => (r.actions as { base?: Run } | null)?.base)
-      .find((b): b is Run => !!b);
+      .map((r) => (r.actions as { base?: Climb } | null)?.base)
+      .find((b): b is Climb => !!b);
     base = saved;
   }
   if (!base) {
@@ -574,7 +574,7 @@ export async function runViewService(
       run,
       floor: s.floor,
       seed: run.seed,
-      doors: doorsFor(run.seed, s.floor, null, s.rank),
+      doors: roomDoors(s.floor),
       door: thisFloorRow(rows, s.floor)?.doorKind ?? null,
       enemyBoost: boost,
       engineVersion: ENGINE_VERSION,
@@ -758,13 +758,10 @@ export async function advanceService(
               return {
                 player: b.fighter,
                 door_kind: kind,
-                fight_seed: enemyFor(
-                  seedNow,
-                  n.floor,
-                  kind as "easy",
-                  null,
-                  n.rank,
-                ).battleSeed,
+                fight_seed: floorFight(seedNow, n.floor, {
+                  kind: kind as FloorKind,
+                  rank: n.rank,
+                }).battleSeed,
               };
             })
           : null,
@@ -853,9 +850,7 @@ export async function roomAction(
         if (s.roundSeed === null || msg.floor !== s.floor)
           return fail("wrong_floor");
         if (
-          !doorsFor(s.roundSeed, s.floor, null, s.rank).some(
-            (x) => x.kind === msg.door,
-          )
+          !roomDoors(s.floor).some((x) => x.kind === msg.door)
         )
           return fail("invalid_door");
         const r = await st.chooseDoor(player, room, msg.floor, msg.door);

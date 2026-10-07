@@ -11,7 +11,7 @@ import type {
   RoomState,
 } from "../game/room";
 import type { RarityId } from "../game/rarity";
-import type { Run } from "../game/run";
+import type { Climb } from "../game/floorFights";
 import type { Profile } from "../game/profile";
 import type { SummaryRes } from "../rooms/api";
 
@@ -22,8 +22,8 @@ export interface FloorRow {
   doorKind: DoorKind | null;
   status: "picked" | "fought" | "skipped" | "timeout";
   outcome: FightOutcome | null;
-  actions: unknown; // server-side only; `{ base: Run }` before a submit
-  runAfter: Run | null;
+  actions: unknown; // server-side only; `{ base: Climb }` before a submit
+  runAfter: Climb | null;
 }
 
 export interface CoopRow {
@@ -99,7 +99,7 @@ export interface RoomStore {
     floor: number;
     outcome: FightOutcome;
     actions: unknown;
-    runAfter: Run;
+    runAfter: Climb;
     eliminated: boolean;
   }): Promise<{ outcome: FightOutcome; replayed: boolean }>;
   placeBet(
@@ -151,7 +151,7 @@ export interface RoomStore {
     round: number,
     floor: number,
     player: string,
-    patch: { actions?: unknown; runAfter?: Run },
+    patch: { actions?: unknown; runAfter?: Climb },
   ): Promise<void>;
   interferenceOn(
     room: string,

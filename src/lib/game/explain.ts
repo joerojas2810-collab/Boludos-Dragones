@@ -38,12 +38,10 @@ import {
   type EnemyMod,
   type Intent,
   type MoveKey,
+  TRAIT_CAPS,
 } from "./combat";
 import { AUTO_STOP_HP } from "./auto";
-import { DUNGEONS } from "./dungeons";
-import { RARITIES } from "./rarity";
-import { pieceSummary } from "./loot";
-import { COUNTER_TAKEN, SKILL_LEVEL } from "./skills";
+import { COUNTER_TAKEN, SKILL_UNLOCK_STARS } from "./skills";
 import {
   ADVANTAGE_BONUS,
   ELEMENTS,
@@ -51,54 +49,9 @@ import {
   elementMultiplier,
   type Element,
 } from "./elements";
-import {
-  upgradeStats,
-  FLOOR_SCALE,
-  UPGRADE_STACK_CAP,
-  UPGRADE_STACK_STEP,
-  UPGRADES,
-  upgradeLabel,
-  XP_PER_WIN,
-  xpToNext,
-  type UpgradeId,
-} from "./progression";
-import {
-  RELIC_CAPS,
-  RELICS,
-  SYNERGIES,
-  relicTotals,
-  type Relic,
-  type RelicId,
-  type RelicRarity,
-} from "./relics";
-import {
-  BOSS_EVERY,
-  CHEST_COINS,
-  COIN_FLOOR_SCALE,
-  eventCost,
-  FIGHT_COINS,
-  FIGHT_HEAL,
-  FIGHT_XP_MULT,
-  GAFE_LOSS_XP,
-  LEVEL_UP_HEAL,
-  LIFE_LOSS_HEAL,
-  MAX_LIVES,
-  maxHp,
-  modsAtFloor,
-  MODIFIER_FLOORS,
-  POTION_HEAL,
-  REST_HEAL,
-  RELIC_EVERY,
-  SEDIENTO_HEAL,
-  START_LIVES,
-  XP_FLOOR_SCALE,
-  type DoorKind,
-  type FightKind,
-  type Run,
-  type ShopItem,
-} from "./run";
+import { MODIFIER_FLOORS } from "./floorFights";
+import { GAFE_LOSS_XP, SEDIENTO_HEAL } from "./stage";
 import { TRAITS, type TraitId, type TraitMods } from "./traits";
-import { FLOORS_PER_WORLD, WORLD_ELEMENT_BIAS, worldOf } from "./worlds";
 
 export type TipKind =
   | "passive"
@@ -149,17 +102,6 @@ export const MOD_LABEL: Record<EnemyMod, string> = {
   escudo: "Escudo",
   dobleAtaque: "Doble ataque",
   elementoCambiante: "Elemento cambiante",
-};
-
-export const RELIC_RARITY_LABEL: Record<RelicRarity, string> = {
-  comun: "Común",
-  rara: "Rara",
-  legendaria: "Legendaria",
-};
-export const RELIC_RARITY_COLOR: Record<RelicRarity, string> = {
-  comun: "#d1d5db",
-  rara: "#7dd3fc",
-  legendaria: "#fde047",
 };
 
 // ---------- helpers ----------
@@ -349,7 +291,7 @@ export function traitTip(id: TraitId, owner?: Character): Tip {
   const r = "rules" in t ? t.rules : undefined;
   if (r && "critDamage" in r)
     tags.push(
-      `Tus críticos pegan +${n1(r.critDamage)} más (suma con reliquias, tope +${n1(RELIC_CAPS.critDamage)}).`,
+      `Tus críticos pegan +${n1(r.critDamage)} más (tope +${n1(TRAIT_CAPS.critDamage)}).`,
     );
   if (r && "nonCritPenalty" in r)
     tags.push(
@@ -357,7 +299,7 @@ export function traitTip(id: TraitId, owner?: Character): Tip {
     );
   if (r && "lowHpReduction" in r)
     tags.push(
-      `Cuanta menos vida tienes, menos daño recibes: hasta −${pct(r.lowHpReduction)} con 0 de vida (suma con reliquias, tope ${pct(RELIC_CAPS.dmgReduction)}).`,
+      `Cuanta menos vida tienes, menos daño recibes: hasta −${pct(r.lowHpReduction)} con 0 de vida (tope ${pct(TRAIT_CAPS.dmgReduction)}).`,
     );
   if (r && "healPenalty" in r)
     tags.push(
@@ -416,7 +358,7 @@ export function statTip(
         `${you ? "Tu vida" : `Vida de ${c.char.name}`}: ${Math.round(c.hp)} de ${Math.round(st.hp)} máximo.`,
         you
           ? inRun
-            ? `Si llegan a 0 pierdes 1 vida (de ${START_LIVES}) y vuelves con ${pct(LIFE_LOSS_HEAL)} de vida.`
+            ? "Si llegan a 0 caes y el intento termina (una sola vida)."
             : "Si llegan a 0 pierdes la pelea."
           : "Si llegan a 0, cae y ganas la pelea.",
       );
@@ -560,7 +502,7 @@ export function skillTip(c: Combatant, foe?: Combatant): Tip {
       title: "Ataque 3",
       kind: "info",
       lines: [
-        `Se desbloquea al nivel ${SKILL_LEVEL}: elegirás 1 de 2 habilidades de tu clase.`,
+        `Se desbloquea con rango C o ${SKILL_UNLOCK_STARS} estrellas: elegirás 1 de 2 habilidades de tu clase.`,
       ],
     };
   const lines = [sk.description];
@@ -865,456 +807,6 @@ export function freeHitsTip(c: Combatant): Tip {
     ],
     source: "Efecto de reliquia",
   };
-}
-
-// ---------- relics ----------
-
-const RELIC_CAP_ROWS: {
-  key: keyof Relic;
-  total: keyof ReturnType<typeof relicTotals>;
-  cap: number;
-  label: string;
-  fmt: (v: number) => string;
-}[] = [
-  {
-    key: "healAfterFight",
-    total: "healAfterFight",
-    cap: RELIC_CAPS.healAfterFight,
-    label: "cura tras pelear",
-    fmt: pct,
-  },
-  {
-    key: "coinBonus",
-    total: "coinBonus",
-    cap: RELIC_CAPS.coinBonus,
-    label: "monedas extra",
-    fmt: pct,
-  },
-  {
-    key: "xpBonus",
-    total: "xpBonus",
-    cap: RELIC_CAPS.xpBonus,
-    label: "XP extra",
-    fmt: pct,
-  },
-  {
-    key: "startShield",
-    total: "startShield",
-    cap: RELIC_CAPS.startShield,
-    label: "escudo inicial",
-    fmt: pct,
-  },
-  {
-    key: "freeHits",
-    total: "freeHits",
-    cap: RELIC_CAPS.freeHits,
-    label: "golpes esquivados",
-    fmt: String,
-  },
-  {
-    key: "lifesteal",
-    total: "lifesteal",
-    cap: RELIC_CAPS.lifesteal,
-    label: "robo de vida",
-    fmt: pct,
-  },
-  {
-    key: "critDamage",
-    total: "critDamage",
-    cap: RELIC_CAPS.critDamage,
-    label: "daño crítico extra",
-    fmt: n1,
-  },
-  {
-    key: "regen",
-    total: "regen",
-    cap: RELIC_CAPS.regen,
-    label: "regeneración por turno",
-    fmt: pct,
-  },
-  {
-    key: "dmgReduction",
-    total: "dmgReduction",
-    cap: RELIC_CAPS.dmgReduction,
-    label: "daño recibido reducido",
-    fmt: pct,
-  },
-  {
-    key: "dmgMult",
-    total: "dmgMult",
-    cap: RELIC_CAPS.dmgMult,
-    label: "multiplicador de daño",
-    fmt: (v) => `x${n1(v)}`,
-  },
-];
-
-export function relicTip(
-  id: RelicId,
-  owned: readonly RelicId[] = [],
-  hero?: Character,
-): Tip {
-  const r: Relic = RELICS[id];
-  const lines = [`${r.description}.`];
-  // concrete before/after on the hero's base stats, one relic alone
-  if (hero && r.mods) {
-    const base = hero.stats;
-    const solo = applyRelicStatsSolo(base, r);
-    const changes = (Object.keys(r.mods) as (keyof Stats)[])
-      .map(
-        (k) =>
-          `${STAT_NAME[k]} ${fmtStat(k, base[k])} → ${fmtStat(k, solo[k])}`,
-      )
-      .join(" · ");
-    lines.push(`En tu personaje: ${changes}.`);
-  }
-  const caps = RELIC_CAP_ROWS.filter((row) => {
-    const v = r[row.key];
-    return typeof v === "number";
-  }).map(
-    (row) =>
-      `Tope entre todas las reliquias: ${row.label} máx. ${row.fmt(row.cap)}.`,
-  );
-  if (
-    r.mods &&
-    Object.keys(r.mods).some((k) => k === "hp" || k === "atk" || k === "def")
-  )
-    caps.push(
-      `Tope de bonos de vida/ATQ/DEF: +${pct(RELIC_CAPS.statFraction)}.`,
-    );
-  lines.push(...caps);
-  const syn = SYNERGIES.filter((s) => s.needs.includes(id));
-  for (const s of syn) {
-    const others = s.needs.filter((n) => n !== id);
-    const missing = others.filter((n) => !owned.includes(n));
-    lines.push(
-      `Sinergia «${s.name}»${missing.length === 0 ? " (ACTIVA)" : ""}: con ${others.map((n) => RELICS[n].name).join(" y ")} da ${s.bonus.description}.`,
-    );
-  }
-  lines.push("Dura solo esta run. Cada reliquia aparece una vez.");
-  return {
-    title: r.name,
-    kind: "relic",
-    color: RELIC_RARITY_COLOR[r.rarity],
-    lines,
-    source: `Reliquia ${RELIC_RARITY_LABEL[r.rarity].toLowerCase()}`,
-  };
-}
-
-function applyRelicStatsSolo(stats: Stats, r: Relic): Stats {
-  const m = r.mods ?? {};
-  const f = (k: keyof typeof m) => 1 + (m[k] ?? 0);
-  return {
-    ...stats,
-    hp: Math.round(stats.hp * f("hp")),
-    atk: Math.round(stats.atk * f("atk") * 10) / 10,
-    def: Math.round(stats.def * f("def") * 10) / 10,
-    speed: Math.round(stats.speed * f("speed") * 10) / 10,
-    crit: Math.min(0.6, stats.crit + (m.crit ?? 0)),
-    dodge: Math.min(0.6, stats.dodge + (m.dodge ?? 0)),
-    accuracy: stats.accuracy + (m.accuracy ?? 0),
-    critDmg: stats.critDmg,
-    regen: stats.regen,
-    lifesteal: stats.lifesteal,
-  };
-}
-
-const fmtStat = (k: keyof Stats, v: number) =>
-  FRACTION_STATS.includes(k) ? n1(v) : pct(v);
-
-// ---------- upgrades (level-up cards and shop training) ----------
-
-export function upgradeTip(
-  id: UpgradeId,
-  run: Pick<Run, "hero" | "ups" | "upBase">,
-): Tip {
-  const u = UPGRADES[id];
-  const hero = run.hero;
-  const stacks = run.ups[id] ?? 0;
-  const after = {
-    stats: upgradeStats(hero.stats, run.upBase, run.ups, id),
-  };
-  const lines = [`Efecto ahora: ${upgradeLabel(id, stacks)}.`];
-  const changes = u.fx
-    .map(
-      ({ k }) =>
-        `${STAT_NAME[k]} ${fmtStat(k, hero.stats[k])} → ${fmtStat(k, after.stats[k])}`,
-    )
-    .join(" · ");
-  lines.push(`En tu personaje: ${changes}.`);
-  lines.push(
-    stacks > 0
-      ? `Ya la tienes ${stacks} ${stacks === 1 ? "vez" : "veces"}: cada repetición suma +${pct(UPGRADE_STACK_STEP)} a los bonos positivos (tope x${UPGRADE_STACK_CAP}).`
-      : `Si la repites, cada vez suma +${pct(UPGRADE_STACK_STEP)} a los bonos positivos (tope x${UPGRADE_STACK_CAP}).`,
-  );
-  lines.push(
-    "Las mejoras se SUMAN sobre tu valor inicial (no se multiplican entre sí) y cada stat tiene un tope total.",
-  );
-  if (u.tier === 2)
-    lines.push("Mejora de nivel 2: solo aparece desde nivel 5.");
-  return {
-    title: u.name,
-    kind: "stat",
-    lines,
-    source: "Mejora permanente de esta run",
-  };
-}
-
-// ---------- run HUD ----------
-
-export function floorTip(run: Run): Tip {
-  if (run.rank) {
-    const d = DUNGEONS[run.rank];
-    const next = d.bosses.find((b) => b >= run.floor) ?? d.floors;
-    return {
-      title: `Piso ${run.floor} de ${d.floors} · ${d.name}`,
-      kind: "gold",
-      lines: [
-        `Dungeon de rango ${RARITIES[run.rank].label}: vence al jefe final (piso ${d.floors}) para limpiarlo.`,
-        `Jefes en los pisos ${d.bosses.join(", ")} (siguiente: ${next}). Cada jefe asegura el botín que llevas.`,
-        `Los enemigos tienen la fuerza de un piso ${run.floor + d.offset} de la run clásica.`,
-        `Reliquia cada ${RELIC_EVERY} pisos.`,
-      ],
-      source: "Dungeon",
-    };
-  }
-  const w = worldOf(run.floor);
-  const nextBoss = Math.ceil(run.floor / BOSS_EVERY) * BOSS_EVERY;
-  const nextRelic = Math.ceil(run.floor / RELIC_EVERY) * RELIC_EVERY;
-  return {
-    title: `Piso ${run.floor} · ${w.name}`,
-    kind: "gold",
-    lines: [
-      `Tu puntaje es el piso más profundo que alcances (ahora ${run.maxFloor}).`,
-      `Cada piso, los enemigos son x${FLOOR_SCALE} más fuertes que en el anterior.`,
-      `El mundo cambia cada ${FLOORS_PER_WORLD} pisos. Aquí: elemento ${ELEMENT_LABEL[w.element]} (${pct(WORLD_ELEMENT_BIAS)} de sus enemigos lo usan).`,
-      `Jefe cada ${BOSS_EVERY} pisos (siguiente: piso ${nextBoss}). Reliquia cada ${RELIC_EVERY} pisos (siguiente: al terminar el piso ${nextRelic}).`,
-    ],
-    source: "Run infinita",
-  };
-}
-
-export function livesTip(run: Run): Tip {
-  return {
-    title: `Vidas ${run.lives} de ${Math.max(START_LIVES, run.lives)}`,
-    kind: "danger",
-    lines: [
-      `Empiezas con ${START_LIVES}. Pierdes 1 cada vez que caes en una pelea y vuelves con ${pct(LIFE_LOSS_HEAL)} de vida.`,
-      `Con 0 vidas la run termina y tu puntaje es el piso máximo (${run.maxFloor}).`,
-      `Máximo ${MAX_LIVES} vidas. Se compran con monedas en el mercader (a veces) o se ganan en eventos.`,
-      "Huir no cuesta vidas.",
-    ],
-    source: "Run infinita",
-  };
-}
-
-export function coinsTip(run: Run): Tip {
-  return {
-    title: `${run.coins} monedas`,
-    kind: "gold",
-    lines: [
-      "Se ganan al vencer peleas y abrir cofres.",
-      "Se gastan en el mercader y en algunos eventos.",
-    ],
-    source: "Se pierden si la run termina",
-  };
-}
-
-export function runHpTip(run: Run): Tip {
-  return {
-    title: `PV ${Math.round(run.hp)} de ${maxHp(run)}`,
-    kind: "heal",
-    lines: [
-      "Tu vida se arrastra de pelea en pelea: no se recupera sola.",
-      `Vencer cura ${pct(FIGHT_HEAL.easy)} (fácil), ${pct(FIGHT_HEAL.hard)} (difícil) o ${pct(FIGHT_HEAL.boss)} (jefe) de tu vida máxima.`,
-      `Descanso: ${pct(REST_HEAL)}. Poción: ${pct(POTION_HEAL)}. Subir de nivel: ${pct(LEVEL_UP_HEAL)} por nivel.`,
-    ],
-    source: "Run infinita",
-  };
-}
-
-export function levelTip(run: Run): Tip {
-  const h = run.hero;
-  return {
-    title: `Nivel ${h.level} · XP ${h.xp} de ${xpToNext(h.level)}`,
-    kind: "stat",
-    lines: [
-      `Faltan ${xpToNext(h.level) - h.xp} XP para el nivel ${h.level + 1}.`,
-      `Al subir eliges 1 mejora entre 3 y recuperas ${pct(LEVEL_UP_HEAL)} de vida.`,
-      `La XP por pelea sube con el piso (+${pct(XP_FLOOR_SCALE)} por piso).`,
-    ],
-    source: "Progreso de esta run",
-  };
-}
-
-// ---------- doors, rewards, shop ----------
-
-const scaled = (base: number, floor: number) =>
-  Math.round(base * (1 + COIN_FLOOR_SCALE * floor));
-
-export function fightReward(kind: FightKind, run: Run) {
-  const t = relicTotals(run.relics);
-  return {
-    coins: Math.round(scaled(FIGHT_COINS[kind], run.floor) * (1 + t.coinBonus)),
-    xp: Math.round(
-      XP_PER_WIN *
-        FIGHT_XP_MULT[kind] *
-        (1 + XP_FLOOR_SCALE * run.floor) *
-        (1 + t.xpBonus),
-    ),
-    healFrac: FIGHT_HEAL[kind],
-  };
-}
-
-export const DOOR_LABEL: Record<DoorKind, string> = {
-  easy: "Pelea fácil",
-  hard: "Pelea difícil",
-  boss: "¡Jefe!",
-  chest: "Cofre",
-  merchant: "Mercader",
-  rest: "Descanso",
-  event: "Evento",
-};
-
-export function doorHint(kind: DoorKind, run: Run): string {
-  switch (kind) {
-    case "easy":
-      return "Poca recompensa, poco riesgo · botín modesto";
-    case "hard":
-      return "Más recompensa, más riesgo · mejor botín";
-    case "boss":
-      return "Enemigo temible · gran premio";
-    case "chest":
-      return `+${chestCoins(run)} monedas seguras`;
-    case "merchant":
-      return "Compra mejoras";
-    case "rest":
-      return `Recupera ${pct(REST_HEAL)} de vida`;
-    case "event":
-      return "Algo inesperado";
-  }
-}
-
-const chestCoins = (run: Run) =>
-  Math.round(
-    scaled(CHEST_COINS, run.floor) * (1 + relicTotals(run.relics).coinBonus),
-  );
-
-export function doorTip(kind: DoorKind, run: Run): Tip {
-  const lines: string[] = [];
-  let tipKind: TipKind = "info";
-  if (kind === "easy" || kind === "hard" || kind === "boss") {
-    const r = fightReward(kind, run);
-    tipKind = kind === "easy" ? "info" : "danger";
-    lines.push(
-      kind === "boss"
-        ? `Jefe del piso ${run.floor}: el rival más duro de esta tanda.`
-        : kind === "hard"
-          ? "Rival más fuerte que en la pelea fácil."
-          : "Rival más suave que en la pelea difícil.",
-      `Premio al ganar: ${r.coins} monedas y ${r.xp} XP, y te cura ${pct(r.healFrac)} de tu vida máxima.`,
-      `Si caes pierdes 1 vida (te quedan ${run.lives}).`,
-    );
-    if (run.rank && run.lootEnabled)
-      lines.push(
-        kind === "boss"
-          ? "Botín: partes, núcleos y piezas para elegir; lo que lleves queda asegurado."
-          : kind === "hard"
-            ? "Botín extra: más partes y más chance de rango alto que en la pelea fácil (los grupos grandes, más todavía)."
-            : "Botín: pocas partes y poca chance de rango alto.",
-      );
-    const mods = modsAtFloor(run.floor);
-    if (mods.length)
-      lines.push(
-        `Modificadores en este piso: ${mods.map((m) => MOD_LABEL[m]).join(", ")}.`,
-      );
-  } else if (kind === "chest") {
-    tipKind = "gold";
-    lines.push(
-      `Te da ${chestCoins(run)} monedas, sin pelea ni riesgo.`,
-      "El monto crece con el piso.",
-      ...(run.rank && run.lootEnabled
-        ? ["Siempre trae algo de botín, a veces una pieza para elegir."]
-        : []),
-    );
-  } else if (kind === "rest") {
-    tipKind = "heal";
-    const gain = Math.min(
-      Math.round(maxHp(run) * REST_HEAL),
-      maxHp(run) - Math.round(run.hp),
-    );
-    lines.push(
-      `Recuperas ${pct(REST_HEAL)} de tu vida máxima (≈${Math.max(0, gain)} PV ahora; tienes ${Math.round(run.hp)} de ${maxHp(run)}).`,
-    );
-  } else if (kind === "merchant") {
-    tipKind = "gold";
-    lines.push(
-      `Vende: poción (+${pct(POTION_HEAL)} de vida), entrenamientos que mejoran tus stats y, a veces, una vida extra.`,
-      `Tienes ${run.coins} monedas.`,
-    );
-  } else {
-    lines.push(
-      "Una situación con elecciones. Algunas cuestan monedas o vida (se avisa antes de elegir) y el resultado puede depender del azar.",
-    );
-  }
-  return {
-    title: DOOR_LABEL[kind],
-    kind: tipKind,
-    lines,
-    source: `Puerta del piso ${run.floor}`,
-  };
-}
-
-export function shopItemTip(item: ShopItem, run: Run): Tip {
-  const lines: string[] = [];
-  let kind: TipKind = "gold";
-  const hp = maxHp(run);
-  switch (item.kind) {
-    case "heal":
-      kind = "heal";
-      lines.push(
-        `Cura ${pct(POTION_HEAL)} de tu vida máxima (≈${Math.round(hp * POTION_HEAL)} PV). Tienes ${Math.round(run.hp)} de ${hp}.`,
-      );
-      break;
-    case "life":
-      kind = "danger";
-      lines.push(`Suma 1 vida (tienes ${run.lives}, máximo ${MAX_LIVES}).`);
-      break;
-    case "gear":
-      lines.push(
-        pieceSummary(item.piece),
-        "La llevas puesta en la run y reemplaza lo que lleves en esa casilla. Pasa a tu colección cuando un jefe la asegure.",
-      );
-      break;
-    case "reroll":
-      lines.push(
-        "Cambia las reliquias que te ofrecerán al salir de esta tienda (solo una vez por piso).",
-      );
-      break;
-    case "stat":
-      return {
-        ...upgradeTip(item.stat, run),
-        source: `Entrenamiento del mercader · cuesta ${item.price} monedas`,
-      };
-  }
-  lines.push(`Precio: ${item.price} monedas (tienes ${run.coins}).`);
-  return { title: item.label, kind, lines, source: "Mercader" };
-}
-
-export function eventChoiceTip(
-  run: Run,
-  choice: Parameters<typeof eventCost>[1],
-): Tip {
-  const cost = eventCost(run, choice);
-  const lines = [
-    cost.coins || cost.hp
-      ? `Cuesta ${[cost.coins ? `${cost.coins} monedas` : "", cost.hp ? `${cost.hp} de vida` : ""].filter(Boolean).join(" y ")}.`
-      : "No cuesta nada.",
-    choice.outcomes.length > 1
-      ? "El resultado depende del azar."
-      : "El resultado es seguro.",
-  ];
-  if (!cost.affordable) lines.push("No te alcanza para pagarlo.");
-  return { title: choice.label, kind: "info", lines, source: "Evento" };
 }
 
 // ---------- classes ----------

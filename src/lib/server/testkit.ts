@@ -1,7 +1,6 @@
-import type { RarityId } from "../game/rarity";
 // Test helpers: in-memory fake of the Supabase RPC surface (no real backend).
-import { applyRunAction, initialReplay, type RunAction } from "../game/replay";
-import { skillOffer, upgradeOffer } from "../game/run";
+import type { StageAction } from "../game/stageReplay";
+import { applyTowerAction, startTower } from "../game/tower";
 import type { Character } from "../game/characters";
 import { RpcError, type Deps, type RpcResult } from "./rpc";
 
@@ -175,43 +174,25 @@ export class FakeDb {
   }
 }
 
-// Plays a simple deterministic bot through the engine and returns its log.
+// Plays a simple deterministic bot through the tower engine and returns its log.
 export function playBot(
   seed: number,
   hero: Character,
   maxActions = 400,
-  rank: RarityId | null = null,
-): RunAction[] {
-  let s = initialReplay(seed, hero, rank);
-  const log: RunAction[] = [];
-  const push = (a: RunAction): boolean => {
-    const n = applyRunAction(s, a);
+): StageAction[] {
+  let s = startTower(seed, hero);
+  const log: StageAction[] = [];
+  const push = (a: StageAction): boolean => {
+    const n = applyTowerAction(s, a);
     if (!n) return false;
     s = n;
     log.push(a);
     return true;
   };
-  while (log.length < maxActions && s.run.status === "active") {
-    const r = s.run;
-    let done = false;
-    if (s.fight) {
-      done = s.fight.result
-        ? push({ t: "fin" })
-        : push({ t: "act", a: "attack1" }) || push({ t: "act", a: "defend" });
-    } else if (s.picks)
-      done = r.pendingSkill
-        ? push({ t: "skill", id: skillOffer(r)[0] })
-        : push({ t: "pick", id: upgradeOffer(r)[0] });
-    else if (r.pendingLoot) done = push({ t: "loot", i: 0 });
-    else if (r.pendingRelic) done = push({ t: "relic", id: r.pendingRelic[0] });
-    else if (r.node?.type === "event") {
-      for (let i = 0; i < 4 && !done; i++) done = push({ t: "event", i });
-      if (!done) break;
-    } else if (r.node?.type === "shop" && !s.fight) {
-      for (const it of r.node.items) push({ t: "buy", id: it.id }); // may be refused
-      done = push({ t: "leave" });
-    } else if (r.node || r.floorCleared) done = push({ t: "leave" });
-    else done = push({ t: "door", i: 0 });
+  while (log.length < maxActions && s.climb.status === "active") {
+    const done = s.rs.settled
+      ? push({ t: "fin" })
+      : push({ t: "act", a: "attack1" }) || push({ t: "act", a: "defend" });
     if (!done) break;
   }
   return log;

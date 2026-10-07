@@ -10,26 +10,15 @@ import type { Element } from "./elements";
 import {
   attackDisabledReason,
   attackTip,
-  doorTip,
   elementTip,
-  fightReward,
   intentTip,
   modTip,
   passiveTip,
-  relicTip,
   statTip,
   traitTip,
   type Tip,
 } from "./explain";
 import { createRng } from "./rng";
-import {
-  applyBattleResult,
-  chooseDoor,
-  doorsFor,
-  createRun,
-  type FightNode,
-} from "./run";
-import { RELICS } from "./relics";
 import { TRAIT_IDS } from "./traits";
 
 const text = (t: Tip) => [t.title, ...t.lines, t.source ?? ""].join("\n");
@@ -166,33 +155,5 @@ describe("explain: elements, traits, actions", () => {
     expect(text(modTip("escudo"))).toContain("30%");
     expect(text(modTip("dobleAtaque"))).toContain("50%");
     expect(text(modTip("elementoCambiante"))).toContain("2 rondas");
-  });
-});
-
-describe("explain: run", () => {
-  it("relic tip includes description, rarity and synergy", () => {
-    const t = text(relicTip("lente", ["lente"], hero("picaro", "agua")));
-    expect(t).toContain(RELICS.lente.description);
-    expect(t).toContain("Cazador implacable");
-  });
-
-  it("fight reward equals what applyBattleResult pays", () => {
-    const run = createRun(7, hero("caballero", "agua"));
-    const i = doorsFor(run.seed, run.floor).findIndex(
-      (d) => d.kind === "easy" || d.kind === "hard",
-    );
-    const opened = chooseDoor(run, i);
-    if (!opened || opened.node.type !== "fight") throw new Error("no fight");
-    const node: FightNode = opened.node;
-    const b = startBattle(run.hero, node.enemies, createRng(1));
-    const won = applyBattleResult(
-      opened.run,
-      { ...b, status: "won", player: { ...b.player, hp: run.hp } },
-      node,
-    );
-    expect(won.coins - run.coins).toBe(fightReward(node.kind, run).coins);
-    expect(text(doorTip(node.kind, run))).toContain(
-      `${fightReward(node.kind, run).coins} monedas`,
-    );
   });
 });

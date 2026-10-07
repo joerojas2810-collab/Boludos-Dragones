@@ -190,7 +190,7 @@ describe("pulls", () => {
     }
     expect(sawStar && sawRefund).toBe(true);
     for (const w of p.weapons)
-      expect(w.atkBonus).toBe(weaponAtk(w.rarity, w.stars, w.type));
+      expect(w.atkBonus).toBe(weaponAtk(w.rarity, w.stars, w.type, w.roll));
   });
   it("character duplicate keeps traits/stats and uses class+element+rarity key", () => {
     let p = rich();

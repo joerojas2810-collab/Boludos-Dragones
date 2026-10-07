@@ -16,6 +16,7 @@ import {
   type LevelSpec,
 } from "./levels";
 import { RARITIES, RARITY_IDS, type RarityId } from "./rarity";
+import { TRAITS, type Trait } from "./traits";
 import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
@@ -51,6 +52,15 @@ export const FIGHT_XP: Record<FightRole, number> = {
   final: 500,
 };
 export const CLEAR_XP_BONUS = 0.25;
+export const SEDIENTO_HEAL = 0.1; // trait healOnWin: extra heal after a won fight
+export const GAFE_LOSS_XP = 15; // trait xpOnLoss: EXP kept when the fight is lost
+
+const hasTag = (hero: Character, tag: NonNullable<Trait["tag"]>) =>
+  hero.traits.some((id) => (TRAITS[id] as Trait).tag === tag);
+
+/** Share of max hp restored after a won fight (ascension rule + Sediento). */
+export const winHeal = (hero: Character, asc = 0) =>
+  healBetween(asc) + (hasTag(hero, "healOnWin") ? SEDIENTO_HEAL : 0);
 
 const rankIdx = (r: RarityId) => RARITY_IDS.indexOf(r);
 
@@ -247,13 +257,18 @@ export function finishFight(st: Stage, battle: Battle): Stage {
   if (st.status !== "playing" || battle.status === "ongoing") return st;
   const f = st.fights[st.index];
   if (battle.status === "lost")
-    return { ...st, status: "lost", hp: 0 };
+    return {
+      ...st,
+      status: "lost",
+      hp: 0,
+      xp: st.xp + (hasTag(st.hero, "xpOnLoss") ? GAFE_LOSS_XP : 0),
+    };
   const won = { ...st.won, [f.role]: st.won[f.role] + 1 };
   let xp = st.xp + FIGHT_XP[f.role];
   const max = st.hero.stats.hp;
   const hp = Math.min(
     max,
-    battle.player.hp + Math.round(max * healBetween(st.asc)),
+    battle.player.hp + Math.round(max * winHeal(st.hero, st.asc)),
   );
   if (st.index + 1 >= st.fights.length) {
     xp = Math.round(xp * (1 + CLEAR_XP_BONUS));

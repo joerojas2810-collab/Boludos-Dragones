@@ -97,6 +97,47 @@ export function rollGear(
   }));
   return { roll, lines };
 }
+// Roll for any piece: hand weapons only get the main roll, armour also gets lines.
+export const rollPiece = (
+  rng: Rng,
+  type: WeaponType,
+  rarity: RarityId,
+): { roll: number; lines?: GearLine[] } =>
+  isGearType(type)
+    ? rollGear(rng, type, rarity)
+    : { roll: rollGear(rng, "casco", "f").roll };
+
+// Validates untrusted roll data of a saved piece. Both absent = legacy piece.
+export function parseRoll(
+  type: WeaponType,
+  rarity: RarityId,
+  roll: unknown,
+  lines: unknown,
+): { roll?: number; lines?: GearLine[] } {
+  if (typeof roll !== "number" || !Number.isFinite(roll)) return {};
+  const clamp = (n: number) =>
+    Math.round(Math.min(1 + ROLL_SPREAD, Math.max(1 - ROLL_SPREAD, n)) * 1000) / 1000;
+  if (!isGearType(type)) return { roll: clamp(roll) };
+  const seen = new Set<string>();
+  const out: GearLine[] = [];
+  for (const l of Array.isArray(lines) ? lines : []) {
+    const stat = (l as GearLine | null)?.stat;
+    const r = (l as GearLine | null)?.roll;
+    if (
+      stat === undefined ||
+      out.length >= extraLines(rarity) ||
+      !(LINE_POOL[type] as readonly string[]).includes(stat) ||
+      seen.has(stat) ||
+      typeof r !== "number" ||
+      !Number.isFinite(r)
+    )
+      continue;
+    seen.add(stat);
+    out.push({ stat, roll: clamp(r) });
+  }
+  return { roll: clamp(roll), lines: out };
+}
+
 // Overall quality of a roll set (to keep the best of two duplicates).
 export const rollQuality = (r: { roll?: number; lines?: GearLine[] }): number =>
   (r.roll ?? 1) + (r.lines ?? []).reduce((s, l) => s + l.roll, 0);
@@ -426,3 +467,7 @@ export const SKILL_STYLE_GROUP: Record<string, BuildGroup> = {
   santuario: "sosten",
   castigo: "sosten",
 };
+
+// "Resonancia Tanque II: -8% daño recibido (estilo ×1.5)"
+export const resonanceLine = (r: Resonance): string =>
+  `Resonancia ${BUILD_LABEL[r.group]} ${r.tier === 2 ? "II" : "I"}: ${bonusText(r.bonus)}${r.styled ? ` (estilo ×${RESONANCE_STYLE_MULT})` : ""}`;

@@ -1,5 +1,5 @@
 import { icon } from "@/lib/art";
-import type { DoorKind } from "@/lib/game/run";
+import type { DoorKind } from "@/lib/game/room";
 
 // The door-frame art is not used: each room kind shows its own painted symbol, larger and evenly sized.
 const DOOR_SYMBOL: Record<DoorKind, string> = {

@@ -1,0 +1,142 @@
+import { describe, expect, it } from "vitest";
+import { burn, burnValue, BURN_RATE, LEGACY_BURN_RATE } from "./burn";
+import type { Element } from "./elements";
+import { extraLines, rollQuality } from "./gear";
+import { TRADE_VALUE } from "./market";
+import {
+  autoEquipPlan,
+  createProfile,
+  equipWeapon,
+  grantPiece,
+  heroFromOwned,
+  migrate,
+  pullCharacter,
+  pullWeapon,
+  MULTI_PULL,
+  PULL_COST_CHARACTER,
+  pullCost,
+  type Profile,
+} from "./profile";
+import { RARITIES, RARITY_IDS } from "./rarity";
+import { createRng } from "./rng";
+import { weaponKey } from "./weapons";
+
+const rich = (): Profile => ({ ...createProfile(), coins: 1e9 });
+const mk = (
+  type: "casco" | "peto" | "espada",
+  rarity: "f" | "ssr" | "c",
+  element: Element = "fuego",
+  extra: object = {},
+) => ({ type, element, rarity, name: "x", ...extra });
+
+describe("piece rolls", () => {
+  it("every gacha piece gets its own roll and lines by rank", () => {
+    const { profile } = pullWeapon(rich(), createRng(5), 40)!;
+    for (const w of profile.weapons) {
+      expect(w.roll).toBeGreaterThanOrEqual(0.85);
+      expect(w.roll).toBeLessThanOrEqual(1.15);
+      const n = ["espada", "hacha", "lanza", "arco", "baston", "daga", "maza", "varita", "libro"].includes(w.type)
+        ? 0
+        : extraLines(w.rarity);
+      expect(w.lines?.length ?? 0).toBe(n);
+    }
+  });
+  it("a duplicate keeps the better roll and recomputes atkBonus", () => {
+    const base = { ...mk("espada", "c"), roll: 0.9 };
+    let p = grantPiece(rich(), base);
+    p = grantPiece(p, { ...base, roll: 1.1 });
+    const w = p.weapons[0];
+    expect(w.stars).toBe(1);
+    expect(w.roll).toBe(1.1);
+    p = grantPiece(p, { ...base, roll: 0.86 });
+    expect(p.weapons[0].roll).toBe(1.1);
+    expect(p.weapons[0].atkBonus).toBeGreaterThan(0);
+  });
+  it("migrate validates rolls and lines, never trusts atkBonus, keeps legacy pieces", () => {
+    const good = {
+      id: "x", name: "c", type: "casco", element: "fuego", rarity: "c", stars: 0, atkBonus: 9999,
+      roll: 5, lines: [{ stat: "crit", roll: 9 }, { stat: "atk", roll: 1 }, { stat: "crit", roll: 1 }, { stat: "dodge", roll: 1.1 }],
+    };
+    const old = { id: "y", name: "e", type: "espada", element: "agua", rarity: "f", stars: 0, atkBonus: 1 };
+    const q = migrate({ version: 5, weapons: [good, old] });
+    const c = q.weapons.find((w) => w.type === "casco")!;
+    expect(c.roll).toBe(1.15);
+    expect(c.lines).toEqual([{ stat: "crit", roll: 1.15 }]); // atk invalid, dup dropped, rank C = 1 line
+    expect(q.weapons.find((w) => w.type === "espada")!.roll).toBeUndefined();
+    expect(q.weapons.every((w) => w.legacy === undefined)).toBe(true);
+    expect(migrate({ version: 4, weapons: [old] }).weapons[0].legacy).toBe(true);
+  });
+});
+
+describe("resonance in heroFromOwned", () => {
+  it("adds resonance bonus on top of the gear lines", () => {
+    let p = pullCharacter(rich(), createRng(3))!.profile;
+    const c = p.characters[0];
+    p = grantPiece(p, mk("casco", "ssr", "agua", { roll: 1, lines: [{ stat: "def", roll: 1 }] }));
+    p = grantPiece(p, mk("peto", "ssr", "fuego", { roll: 1, lines: [{ stat: "hp", roll: 1 }] }));
+    for (const w of p.weapons) p = equipWeapon(p, c.id, w.id);
+    expect(heroFromOwned(p, c.id)!.gear!.dmgTaken).toBeGreaterThan(0);
+  });
+});
+
+describe("autoEquipPlan modes", () => {
+  const setup = () => {
+    let p = pullCharacter(rich(), createRng(3), 2)!.profile;
+    const [a, b] = p.characters;
+    const own = mk("casco", "c", a.element);
+    const other = mk("casco", "ssr", a.element === "agua" ? "fuego" : "agua");
+    p = grantPiece(grantPiece(p, own), other);
+    return { p, a, b, own: weaponKey("casco", a.element, "c"), other: weaponKey("casco", other.element, "ssr") };
+  };
+  it("set prefers the hero's element even if weaker; poder takes the strongest", () => {
+    const { p, a, own, other } = setup();
+    expect(autoEquipPlan(p, a.id, "set")).toContainEqual({ slot: "casco", weaponId: own });
+    expect(autoEquipPlan(p, a.id, "poder")).toContainEqual({ slot: "casco", weaponId: other });
+  });
+  it("takeFromOthers lists the holder; default never takes", () => {
+    const { p, a, b, other } = setup();
+    const q = equipWeapon(p, b.id, other);
+    expect(autoEquipPlan(q, a.id, "poder").some((x) => x.weaponId === other)).toBe(false);
+    const plan = autoEquipPlan(q, a.id, "poder", { takeFromOthers: true });
+    expect(plan).toContainEqual({ slot: "casco", weaponId: other, fromHeroId: b.id });
+  });
+  it("estilo picks the piece richest in the style group", () => {
+    let p = pullCharacter(rich(), createRng(3))!.profile;
+    const c = { ...p.characters[0], rarity: "c" as const, stars: 0, skill: "contraataque" as const, classId: "caballero" as const };
+    p = { ...p, characters: [c] };
+    const tank = mk("casco", "c", "agua", { roll: 1, lines: [{ stat: "def", roll: 1.15 }] });
+    const crit = mk("casco", "c", "fuego", { roll: 1, lines: [{ stat: "crit", roll: 1.15 }] });
+    p = grantPiece(grantPiece(p, crit), tank);
+    expect(autoEquipPlan(p, c.id, "estilo")).toContainEqual({ slot: "casco", weaponId: weaponKey("casco", "agua", "c") });
+  });
+});
+
+describe("burn", () => {
+  it("values: 8% of the trade value, 50% for legacy", () => {
+    expect(burnValue("f")).toBe(Math.floor(TRADE_VALUE.f * BURN_RATE));
+    expect(burnValue("s", true)).toBe(Math.floor(TRADE_VALUE.s * LEGACY_BURN_RATE));
+  });
+  it("burning back pulled items never profits (expected value of a pull < its cost)", () => {
+    const ev = RARITY_IDS.reduce((s, r) => s + RARITIES[r].probability * burnValue(r), 0);
+    const tenPullPerItem = pullCost("character", MULTI_PULL) / MULTI_PULL;
+    expect(ev).toBeLessThan(tenPullPerItem * 0.9);
+    expect(ev).toBeLessThan(PULL_COST_CHARACTER);
+  });
+  it("refuses equipped pieces and the only hero; burning a hero unequips its gear", () => {
+    let p = pullCharacter(rich(), createRng(3), 2)!.profile;
+    const [a] = p.characters;
+    p = grantPiece(p, mk("casco", "f"));
+    const id = p.weapons[0].id;
+    p = equipWeapon(p, a.id, id);
+    expect(burn(p, { kind: "piece", id })).toBeNull();
+    const r = burn(p, { kind: "hero", id: a.id })!;
+    expect(r.profile.characters).toHaveLength(1);
+    expect(Object.keys(r.profile.equipped)).toHaveLength(0);
+    expect(r.profile.coins).toBe(p.coins + r.coins);
+    expect(burn(r.profile, { kind: "hero", id: r.profile.characters[0].id })).toBeNull();
+    expect(burn(r.profile, { kind: "piece", id })!.profile.weapons).toHaveLength(0);
+  });
+  it("rollQuality exists for ordering", () => {
+    expect(rollQuality({ roll: 1.1 })).toBeGreaterThan(rollQuality({ roll: 0.9 }));
+  });
+});

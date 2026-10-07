@@ -6,16 +6,17 @@
 // the number of players (2 to 7).
 import { step, type Battle } from "./combat";
 import { ELEMENTS, type Element } from "./elements";
+import { floorFight, type Climb } from "./floorFights";
 import type { RarityId } from "./rarity";
-import type { RunAction } from "./replay";
 import type { RoomMode } from "./room";
-import { enemyFor, startFight, type FightNode, type Run } from "./run";
 import { hashSeed, type Rng } from "./rng";
+import { createStage, startFight, type FightSpec } from "./stage";
+import type { StageAction } from "./stageReplay";
 
 export const COOP_K = {
-  bossFloor: 7, // [K] strength of a floor-10 boss at the room's rank
+  bossFloor: 11, // [K] strength of a floor-10 boss at the room's rank
   bossHpMult: 12, // [K] hp of the boss each player fights (keeps it unkillable alone)
-  poolPerPlayer: 1.6, // [K] shared bar = this many normal-boss hp per player present
+  poolPerPlayer: 1.3, // [K] shared bar = this many normal-boss hp per player present
   maxActions: 400,
 } as const;
 
@@ -23,13 +24,11 @@ export const COOP_K = {
 // could ever hurt it, so those seeds are skipped (deterministically).
 function pickBoss(seed: number, rank: RarityId | null) {
   for (let k = 0; ; k++) {
-    const f = enemyFor(
-      k === 0 ? seed : hashSeed(seed, k),
-      COOP_K.bossFloor,
-      "boss",
-      null,
+    const f = floorFight(k === 0 ? seed : hashSeed(seed, k), COOP_K.bossFloor, {
+      kind: "boss",
       rank,
-    );
+      power: 1, // fixed design: the room rank only shifts the depth
+    });
     if (f.enemies[0].classId !== "clerigo" || k >= 12) return f;
   }
 }
@@ -43,7 +42,7 @@ export const coopRank = (mode: RoomMode, rank: RarityId): RarityId | null =>
   mode === "nivelado" ? null : rank;
 
 /** Fight node of the coop boss: one enemy, same stream for everybody. */
-export function coopNode(seed: number, rank: RarityId | null): FightNode {
+export function coopNode(seed: number, rank: RarityId | null): FightSpec {
   const f = pickBoss(seed, rank);
   const boss = {
     ...f.enemies[0],
@@ -53,14 +52,7 @@ export function coopNode(seed: number, rank: RarityId | null): FightNode {
       hp: Math.round(f.enemies[0].stats.hp * COOP_K.bossHpMult),
     },
   };
-  return {
-    type: "fight",
-    kind: "boss",
-    enemy: boss,
-    enemies: [boss],
-    mods: f.mods,
-    battleSeed: f.battleSeed,
-  };
+  return { role: "elite", enemies: [boss], mods: f.mods, battleSeed: f.battleSeed };
 }
 
 /** Hp of a normal boss at this seed/rank: the unit the shared bar is measured in. */
@@ -79,11 +71,13 @@ export const coopPool = (
 
 /** Opens the fight of `run` (its hero at full hp) against `node`. */
 export function startCoop(
-  run: Run,
-  node: FightNode,
-): { battle: Battle; rng: Rng } | null {
-  const f = startFight({ ...run, node });
-  return f && { battle: f.battle, rng: f.rng };
+  run: Climb,
+  node: FightSpec,
+): { battle: Battle; rng: Rng } {
+  const f = startFight(
+    createStage(hashSeed(run.seed, 2), run.hero, [node]),
+  );
+  return { battle: f.battle, rng: f.rng };
 }
 
 /** Hp the boss has lost in this battle. */
@@ -97,14 +91,13 @@ export interface CoopReplay {
   rejectedAt: number | null; // first illegal action
 }
 
-/** Server replay: only plain `act` actions are legal (no quick resolve, no doors). */
+/** Server replay: only plain `act` actions are legal (no quick resolve). */
 export function replayCoop(
-  start: Run,
-  node: FightNode,
-  actions: readonly RunAction[],
+  start: Climb,
+  node: FightSpec,
+  actions: readonly StageAction[],
 ): CoopReplay {
   const f = startCoop(start, node);
-  if (!f) return { damage: 0, finished: false, actions: 0, rejectedAt: 0 };
   let b = f.battle;
   for (let i = 0; i < actions.length; i++) {
     const a = actions[i];

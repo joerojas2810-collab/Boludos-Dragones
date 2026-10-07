@@ -1,19 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { makePow } from "./powTable";
-import {
-  FLOOR_SCALE,
-  SCALE_PER_LEVEL,
-  XP_BASE,
-  XP_GROWTH,
-  xpToNext,
-} from "./progression";
+const FLOOR_SCALE = 1.21;
+const SCALE_PER_LEVEL = 1.12;
+const XP_GROWTH = 1.2;
+const CLIMB_SCALE = 1.12;
 
 const BASES = [3.5, 7, 12.3, 18, 27.7, 40, 55, 72, 96.4, 120, 150];
 const near = (v: number) => Math.abs(v - Math.floor(v) - 0.5) < 1e-9 * v;
 
 describe("makePow", () => {
   it("matches ** to 1e-12 relative for 0..200", () => {
-    for (const b of [FLOOR_SCALE, SCALE_PER_LEVEL, XP_GROWTH]) {
+    for (const b of [FLOOR_SCALE, SCALE_PER_LEVEL, XP_GROWTH, CLIMB_SCALE]) {
       const pw = makePow(b);
       for (let n = 0; n <= 200; n++)
         expect(Math.abs(pw(n) / b ** n - 1)).toBeLessThan(1e-12);
@@ -24,12 +21,6 @@ describe("makePow", () => {
     expect(a(37)).toBe(makePow(1.21)(37));
     expect(a(0)).toBe(1);
     expect(a(-3)).toBe(1);
-  });
-  it("xpToNext equals the old formula for levels 1..200", () => {
-    for (let l = 1; l <= 200; l++) {
-      const old = XP_BASE * XP_GROWTH ** (l - 1);
-      if (!near(old)) expect(xpToNext(l)).toBe(Math.round(old));
-    }
   });
   it("floor / level scaling rounds the same as the old formula, floors 1..200", () => {
     const fp = makePow(FLOOR_SCALE);

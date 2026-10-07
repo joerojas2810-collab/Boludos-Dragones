@@ -5,10 +5,10 @@
 // Fight HP and emotes ride on the snapshot (server keeps them in memory).
 import { computeAwards } from "../game/awards";
 import { interfereCostFor } from "../game/room";
-import { doorsFor, type FightNode, type Run } from "../game/run";
-import { ENGINE_VERSION } from "../game/replay";
+import type { Climb } from "../game/floorFights";
 import type { RarityId } from "../game/rarity";
-import type { RunAction } from "../game/replay";
+import { ENGINE_VERSION, type FightSpec } from "../game/stage";
+import type { StageAction } from "../game/stageReplay";
 import type {
   BetPrediction,
   DoorKind,
@@ -330,7 +330,7 @@ export class RemoteRoomClient implements RoomClient {
     };
   }
 
-  async getCoop(): Promise<Res<{ run: Run; node: FightNode }>> {
+  async getCoop(): Promise<Res<{ run: Climb; node: FightSpec }>> {
     const r = await call<RunView>("GET", `/api/rooms/${this.o.roomId}/run`);
     if (!r.ok) return r;
     if (!r.data.coop) return { ok: false, error: "wrong_phase" };
@@ -338,7 +338,7 @@ export class RemoteRoomClient implements RoomClient {
   }
 
   async coopSubmit(
-    actions: RunAction[],
+    actions: StageAction[],
   ): Promise<Res<{ damage: number; finished: boolean }>> {
     const r = await call<{ damage: number; finished: boolean }>(
       "POST",
@@ -359,7 +359,7 @@ export class RemoteRoomClient implements RoomClient {
 
   async submit(
     floor: number,
-    actions: RunAction[],
+    actions: StageAction[],
   ): Promise<Res<{ outcome: FightOutcome | null; eliminated: boolean }>> {
     const r = await call<{ outcome: FightOutcome | null; eliminated: boolean }>(
       "POST",
@@ -413,11 +413,3 @@ function toAwards(s: SummaryRes): Award[] {
     })),
   );
 }
-
-/** Door index inside the floor's door list (what the floor log's `door` action needs). */
-export const doorIndex = (
-  seed: number,
-  floor: number,
-  kind: DoorKind,
-  difficulty: RarityId | null = null,
-) => doorsFor(seed, floor, null, difficulty).findIndex((d) => d.kind === kind);

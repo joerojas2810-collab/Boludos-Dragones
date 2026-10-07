@@ -71,7 +71,7 @@ describe("selectRepo", () => {
     const repo = selectRepo("https://abc.supabase.co", store, f);
     await repo.submitRun(
       "11111111-1111-4111-8111-111111111111",
-      [{ t: "leave" }],
+      [{ t: "fin" }],
       {
         coins: 5,
         maxFloor: 2,

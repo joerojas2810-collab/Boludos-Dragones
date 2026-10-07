@@ -198,6 +198,7 @@ export interface Weapon {
   // Per-piece roll (+-15%) and extra lines, see gear.ts. Absent on pieces saved before Run v2.
   roll?: number;
   lines?: GearLine[];
+  legacy?: boolean; // existed before profile v5 (burns at the legacy rate)
 }
 
 const ADJECTIVES = [

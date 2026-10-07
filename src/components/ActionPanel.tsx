@@ -24,7 +24,7 @@ import {
   skillTip,
   type Tip,
 } from "@/lib/game/explain";
-import { SKILL_LEVEL } from "@/lib/game/skills";
+import { SKILL_UNLOCK_STARS } from "@/lib/game/skills";
 
 type Props = {
   b: Battle;
@@ -124,7 +124,7 @@ export function ActionPanel({
           disabled
           onClick={() => undefined}
           title="Ataque 3"
-          sub={`Se desbloquea al nivel ${SKILL_LEVEL}`}
+          sub={`Rango C o ${SKILL_UNLOCK_STARS}★`}
         />
       );
     const name = a?.name ?? skill?.name ?? "Ataque 3";

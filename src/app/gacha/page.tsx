@@ -20,7 +20,6 @@ import {
 } from "@/lib/game/profile";
 import {
   PITY_SSR_THRESHOLD,
-  PITY_THRESHOLD,
   RARITIES,
   RARITY_IDS,
 } from "@/lib/game/rarity";
@@ -29,25 +28,14 @@ import { WEAPON_TYPES } from "@/lib/game/weapons";
 import { repo, useProfile } from "@/lib/useProfile";
 import { resultView, summarizePull } from "@/lib/viewModels";
 
-// Views of a pull, marking the pity-guaranteed ones by replaying the counters
-// (SS pity at PITY_THRESHOLD, SSR pity at PITY_SSR_THRESHOLD; both reset on a hit).
-function pullViews(
-  rs: PullResult[],
-  pity: number,
-  pitySsr: number,
-): ItemView[] {
-  let ss = pity;
+// Views of a pull, marking the pity-guaranteed ones by replaying the SSR counter
+// (guaranteed at PITY_SSR_THRESHOLD, reset on a hit).
+function pullViews(rs: PullResult[], pitySsr: number): ItemView[] {
   let ssr = pitySsr;
   return rs.flatMap((r) => {
     const v = resultView(r);
     const mark =
-      r.rarity === "ssr" && ssr >= PITY_SSR_THRESHOLD
-        ? "ssr"
-        : r.rarity === "ss" && ss >= PITY_THRESHOLD
-          ? "ss"
-          : undefined;
-    if (RARITY_IDS.indexOf(r.rarity) >= RARITY_IDS.indexOf("ss")) ss = 0;
-    else ss++;
+      r.rarity === "ssr" && ssr >= PITY_SSR_THRESHOLD ? "ssr" : undefined;
     if (r.rarity === "ssr") ssr = 0;
     else ssr++;
     return v ? [mark ? { ...v, pity: mark } : v] : [];
@@ -80,7 +68,6 @@ export default function GachaPage() {
 
   if (!ready || !profile) return null;
   const b = BANNERS[banner];
-  const pity = profile.pity[banner];
 
   const run = async (job: () => Promise<{ results: PullResult[] | null }>) => {
     if (busy) return;
@@ -90,7 +77,7 @@ export default function GachaPage() {
       const { results } = await job();
       if (results)
         setReveal({
-          items: pullViews(results, pity, profile.pitySsr[banner]),
+          items: pullViews(results, profile.pitySsr[banner]),
           summary: summarizePull(results),
         });
       else setSummary("Esa tirada ya estaba registrada.");
@@ -173,40 +160,30 @@ export default function GachaPage() {
               title: "Garantía (pity)",
               kind: "info",
               lines: [
-                `Cuenta las tiradas de este banner desde tu último SS o mejor.`,
-                `Al llegar a ${PITY_THRESHOLD}, la siguiente tirada es SS o mejor. A las ${PITY_SSR_THRESHOLD} sin SSR, la siguiente es SSR seguro.`,
+                `Cuenta las tiradas de este banner desde tu último SSR.`,
+                `A las ${PITY_SSR_THRESHOLD} sin SSR, la siguiente tirada es SSR seguro.`,
                 `Cada banner lleva su propio contador.`,
               ],
             }}
           >
             <span className="cursor-help block space-y-1 text-sm">
-              {(
-                [
-                  ["SS", pity, PITY_THRESHOLD, RARITIES.ss.color],
-                  [
-                    "SSR",
-                    profile.pitySsr[banner],
-                    PITY_SSR_THRESHOLD,
-                    RARITIES.ssr.color,
-                  ],
-                ] as const
-              ).map(([label, n, max, color]) => (
-                <span key={label} className="flex items-center gap-2">
-                  <span className="w-10 text-right" style={{ color }}>
-                    {label}
-                  </span>
-                  <span className="pity-bar">
-                    <i
-                      className="bar-fill"
-                      data-fill={label === "SS" ? "pity_ss" : "pity_ssr"}
-                      style={{ width: `${Math.min(100, (n / max) * 100)}%` }}
-                    />
-                  </span>
-                  <span className="w-16 text-left">
-                    {n}/{max}
-                  </span>
+              <span className="flex items-center gap-2">
+                <span className="w-10 text-right" style={{ color: RARITIES.ssr.color }}>
+                  SSR
                 </span>
-              ))}
+                <span className="pity-bar">
+                  <i
+                    className="bar-fill"
+                    data-fill="pity_ssr"
+                    style={{
+                      width: `${Math.min(100, (profile.pitySsr[banner] / PITY_SSR_THRESHOLD) * 100)}%`,
+                    }}
+                  />
+                </span>
+                <span className="w-16 text-left">
+                  {profile.pitySsr[banner]}/{PITY_SSR_THRESHOLD}
+                </span>
+              </span>
             </span>
           </Tooltip>
         </div>

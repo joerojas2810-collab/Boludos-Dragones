@@ -10,11 +10,10 @@ import { HealthBar } from "@/components/HealthBar";
 import { Panel } from "@/components/Panel";
 import { useTargeting } from "@/components/useTargeting";
 import { step, type Action, type Battle } from "@/lib/game/combat";
-import { COOP_K, damageDealt, startCoop } from "@/lib/game/coop";
+import { damageDealt, startCoop } from "@/lib/game/coop";
 import { ELEMENT_LABEL } from "@/lib/game/elements";
-import type { RunAction } from "@/lib/game/replay";
+import type { StageAction } from "@/lib/game/stageReplay";
 import type { Rng } from "@/lib/game/rng";
-import { worldOf } from "@/lib/game/worlds";
 import type { RoomClient, RoomView } from "@/lib/roomui/types";
 import { errorText } from "@/lib/roomui/viewModels";
 import { playEvents } from "@/lib/sfx";
@@ -112,7 +111,7 @@ interface Fight {
 export function CoopFight({ client }: { client: RoomClient }) {
   const [fight, setFight] = useState<Fight | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-  const log = useRef<RunAction[]>([]);
+  const log = useRef<StageAction[]>([]);
   const sentN = useRef(0);
   const sending = useRef(false);
   const [heroLevel, setHeroLevel] = useState(1);
@@ -129,7 +128,6 @@ export function CoopFight({ client }: { client: RoomClient }) {
       if (!alive) return;
       if (!r.ok) return setMsg(errorText(String(r.error)));
       const f = startCoop(r.run, r.node);
-      if (!f) return setMsg("No se pudo abrir el combate.");
       setHeroLevel(r.run.hero.level);
       setFight(f);
     });
@@ -215,7 +213,7 @@ export function CoopFight({ client }: { client: RoomClient }) {
         playerExtra={`Nv ${heroLevel}`}
         enemyArt={(_i, c) => (
           <EnemySprite
-            family={worldOf(COOP_K.bossFloor).family}
+            family={c.char.family ?? "limo"}
             element={c.char.element}
             boss
           />

@@ -19,7 +19,7 @@ import {
   type InterfereKind,
   type RoomMode,
 } from "@/lib/game/room";
-import { doorsFor } from "@/lib/game/run";
+import { roomDoors } from "@/lib/game/floorFights";
 import { RARITIES, RARITY_IDS, type RarityId } from "@/lib/game/rarity";
 import { useProfile } from "@/lib/useProfile";
 import { useNow, useRoom, type LiveFight } from "@/lib/useRoom";
@@ -223,7 +223,7 @@ export function RoomScreen({
       const doors =
         view.seed === null
           ? []
-          : doorsFor(view.seed, view.floor, null, view.rank);
+          : roomDoors(view.floor);
       main = (
         <Panel title="Elige una puerta">
           {!canPlay ? (

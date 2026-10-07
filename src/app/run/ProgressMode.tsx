@@ -45,6 +45,7 @@ import {
   bankLevel,
   chooseHeroSkill,
   heroFromOwned,
+  bestAutoMode,
   heroPower,
   lootOptions,
   type LevelBank,
@@ -73,7 +74,7 @@ import {
   type SkillId,
 } from "@/lib/game/skills";
 import { SLOTS, WEAPON_TYPE_DATA, type Slot } from "@/lib/game/weapons";
-import { updateProfile, useProfile } from "@/lib/useProfile";
+import { repo, updateProfile, useProfile } from "@/lib/useProfile";
 import { slotKey } from "@/lib/game/profile";
 import { playEvents } from "@/lib/sfx";
 import { characterView } from "@/lib/viewModels";
@@ -679,6 +680,7 @@ function Prep({
     );
   const sel = hero ?? owned[0]?.c ?? null;
   const act = (job: () => Promise<void>) => void job();
+  const auto = sel ? bestAutoMode(profile, sel.id) : null;
 
   if (editing && sel)
     return (
@@ -837,6 +839,26 @@ function Prep({
             }}
           >
             Entrar al nivel
+          </button>
+          <button
+            className="btn btn-gray text-center"
+            disabled={!auto || auto.plan.length === 0}
+            title={
+              auto
+                ? `Modo ${auto.mode}: ${auto.plan.length} cambio(s). Detalle en Equipamiento.`
+                : undefined
+            }
+            onClick={() => {
+              if (sel && auto) {
+                setHeroId(sel.id);
+                act(async () => {
+                  for (const { slot, weaponId } of auto.plan)
+                    await repo.equip(sel.id, weaponId, slot);
+                });
+              }
+            }}
+          >
+            Autoequipar
           </button>
           <button
             className="btn btn-gray text-center"

@@ -5,7 +5,7 @@ import { generateCharacter, type Character } from "../game/characters";
 import { computeAwards } from "../game/awards";
 import { createRng, hashSeed, type Rng } from "../game/rng";
 import { RARITY_IDS } from "../game/rarity";
-import type { RunAction } from "../game/replay";
+import type { StageAction } from "../game/stageReplay";
 import {
   advance,
   chooseDoor,
@@ -48,10 +48,11 @@ import {
   coopTally,
   replayCoop,
 } from "../game/coop";
-import { createRun, doorsFor, type FightNode, type Run } from "../game/run";
+import { alignClimb, newClimb, roomDoors, type Climb } from "../game/floorFights";
+import type { FightSpec } from "../game/stage";
 import type { RarityId } from "../game/rarity";
 import type { CoopView } from "../rooms/api";
-import { autoResolvePicks, replayFloor } from "./play";
+import { replayFloor } from "./play";
 import type {
   Award,
   BattleView,
@@ -105,7 +106,7 @@ export class FakeRoomClient implements RoomClient {
   private tasks: { at: number; fn: () => void }[] = [];
   private lastSeq = -1;
   private rng: Rng = createRng(Date.now());
-  private myRun: Run | null = null;
+  private myRun: Climb | null = null;
   private myRunRound = 0;
   private submitted = new Set<string>();
   private stats = new Map<
@@ -295,16 +296,16 @@ export class FakeRoomClient implements RoomClient {
     return {
       ...t,
       prizes: coopPrizes(s.roundSeed, t, damage),
-      bossName: coopNode(s.roundSeed, rank).enemy.name,
+      bossName: coopNode(s.roundSeed, rank).enemies[0].name,
       players: [...this.coopDmg].map(([id, c]) => ({ id, ...c })),
     };
   }
-  private coopHero(): Run | null {
+  private coopHero(): Climb | null {
     const s = this.st;
     if (s.roundSeed === null) return null;
     const p = s.players.find((x) => x.id === ME);
     const hero = this.opts.makeHero(p?.heroId ?? null, s.mode, s.roundSeed);
-    return createRun(s.roundSeed, hero, false, null, s.rank);
+    return newClimb(s.roundSeed, hero, s.rank);
   }
   private botCoop(id: string) {
     const s = this.st;
@@ -457,9 +458,7 @@ export class FakeRoomClient implements RoomClient {
     if (s.phase !== "doors") return;
     const p = s.players.find((x) => x.id === id);
     if (!p || !p.present || p.door !== null) return;
-    const kinds = doorsFor(s.roundSeed ?? 0, s.floor, null, s.rank).map(
-      (d) => d.kind,
-    );
+    const kinds = roomDoors(s.floor).map((d) => d.kind);
     const fights = kinds.filter(
       (k) => k === "easy" || k === "hard" || k === "boss",
     );
@@ -648,7 +647,7 @@ export class FakeRoomClient implements RoomClient {
   async startCoop() {
     return this.apply(startCoop(this.st, ME, this.vnow()));
   }
-  async getCoop(): Promise<Res<{ run: Run; node: FightNode }>> {
+  async getCoop(): Promise<Res<{ run: Climb; node: FightSpec }>> {
     const run = this.coopHero();
     if (!run || this.st.phase !== "coop_boss") return err("wrong_phase");
     return {
@@ -657,7 +656,7 @@ export class FakeRoomClient implements RoomClient {
       node: coopNode(run.seed, coopRank(this.st.mode, this.st.rank)),
     };
   }
-  async coopSubmit(actions: RunAction[]) {
+  async coopSubmit(actions: StageAction[]) {
     const run = this.coopHero();
     if (!run || this.st.phase !== "coop_boss") return err("wrong_phase");
     const rep = replayCoop(
@@ -686,19 +685,10 @@ export class FakeRoomClient implements RoomClient {
     if (!this.myRun || this.myRunRound !== s.round) {
       const p = s.players.find((x) => x.id === ME);
       const hero = this.opts.makeHero(p?.heroId ?? null, s.mode, s.roundSeed);
-      this.myRun = createRun(s.roundSeed, hero, false, null, s.rank);
+      this.myRun = newClimb(s.roundSeed, hero, s.rank);
       this.myRunRound = s.round;
     }
-    let run = this.myRun;
-    if (run.floor < s.floor)
-      run = {
-        ...run,
-        floor: s.floor,
-        node: null,
-        floorCleared: false,
-        bought: [],
-        rerolls: 0,
-      };
+    const run = alignClimb(this.myRun, s.floor);
     const b = s.battles[ME];
     return {
       ok: true,
@@ -712,7 +702,7 @@ export class FakeRoomClient implements RoomClient {
       },
     };
   }
-  async submit(floor: number, actions: RunAction[]) {
+  async submit(floor: number, actions: StageAction[]) {
     const s = this.st;
     const key = `${s.round}:${floor}`;
     if (floor !== s.floor) return err("wrong_floor");
@@ -723,15 +713,18 @@ export class FakeRoomClient implements RoomClient {
     if (!got.ok) return got;
     this.submitted.add(key);
     const boost = s.battles[ME]?.interference?.kind ?? null;
-    const rep = replayFloor(got.floorRun.run, actions, boost);
-    const after = autoResolvePicks(rep.state);
-    this.myRun = after.run;
+    const kind = s.players.find((x) => x.id === ME)?.door ?? "easy";
+    const rep = replayFloor(got.floorRun.run, actions, {
+      kind: kind === "hard" || kind === "boss" ? kind : "easy",
+      boost,
+    });
+    this.myRun = rep.run;
     if (rep.outcome && s.battles[ME] && s.phase === "fighting")
       this.apply(reportOutcome(this.st, ME, rep.outcome));
     return {
       ok: true as const,
       outcome: rep.outcome as FightOutcome | null,
-      eliminated: after.run.status === "over",
+      eliminated: rep.run.status === "over",
     };
   }
   async bet(fighter: string, prediction: BetPrediction, stake: number) {

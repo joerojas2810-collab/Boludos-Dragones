@@ -1,10 +1,16 @@
 // Interference (rooms): pure, shared by client and server replay.
 import type { Character } from "./characters";
-import { ELEMENTS, elementMultiplier } from "./elements";
-import { applyRunAction, type ReplayState, type RunAction } from "./replay";
 import type { Battle } from "./combat";
-import { chooseDoor, maxHp, startFight, type FightNode, type Run } from "./run";
+import { ELEMENTS, elementMultiplier } from "./elements";
+import {
+  floorFight,
+  floorStage,
+  type Climb,
+  type FloorKind,
+} from "./floorFights";
 import { isAid, type InterfereKind } from "./room";
+import { startFight, type FightSpec } from "./stage";
+import type { StageReplayState } from "./stageReplay";
 
 export const STRONGER_ENEMY_MULT = 1.2; // [K] +20% hp/atk/def
 export const HEAL_FRACTION = 0.4; // [K] aid "heal": hp restored before the fight (of max hp)
@@ -24,24 +30,19 @@ const boostEnemy = (e: Character): Character => ({
 export const adverseElementFor = (el: Character["element"]) =>
   ELEMENTS.find((x) => elementMultiplier(x, el) > 1) ?? el;
 
-/** Applies the interference to every enemy of a fight node. */
+/** Applies the interference to every enemy of a fight. */
 export function applyEnemyBoost(
-  node: FightNode,
+  spec: FightSpec,
   kind: InterfereKind,
   hero: Pick<Character, "element">,
-): FightNode {
-  const enemies = node.enemies.map((e) =>
+): FightSpec {
+  const enemies = spec.enemies.map((e) =>
     kind === "stronger_enemy"
       ? boostEnemy(e)
       : { ...e, element: adverseElementFor(hero.element) },
   );
-  return { ...node, enemies, enemy: enemies[0] };
+  return { ...spec, enemies };
 }
-
-const healRun = (r: Run): Run => ({
-  ...r,
-  hp: Math.min(maxHp(r), r.hp + Math.round(maxHp(r) * HEAL_FRACTION)),
-});
 
 const wardBattle = (b: Battle): Battle => ({
   ...b,
@@ -59,37 +60,28 @@ const wardBattle = (b: Battle): Battle => ({
 });
 
 /**
- * `applyRunAction` + interference: the `door` that opens a fight node gets the
- * boosted enemies. Client (playing) and server (replaying) both use this, so
- * the logs match. Without a boost it is exactly `applyRunAction`.
+ * Opens the fight of a room floor (the door `kind` the player took) with the
+ * interference somebody paid for. Client (playing) and server (replaying) both use
+ * this, so the logs match. Without a boost it is the plain floor fight.
  */
-export function applyRoomAction(
-  s: ReplayState,
-  a: RunAction,
+export function startRoomFloor(
+  c: Climb,
+  kind: FloorKind,
   boost: InterfereKind | null,
-): ReplayState | null {
-  if (!boost || a.t !== "door") return applyRunAction(s, a);
-  const { run } = s;
-  if (s.fight || s.picks || run.pendingRelic) return null;
-  if (run.pendingPicks > 0 || run.pendingSkill) return null;
-  const r = chooseDoor(run, a.i);
-  if (!r) return null;
-  if (r.node.type !== "fight") return applyRunAction(s, a);
-  const aid = isAid(boost);
-  const node = aid ? r.node : applyEnemyBoost(r.node, boost, run.hero);
-  const f = startFight({
-    ...(boost === "heal" ? healRun(r.run) : r.run),
-    node,
-  });
-  if (!f) return null;
+): StageReplayState {
+  const max = c.hero.stats.hp;
+  const climb: Climb =
+    boost === "heal"
+      ? { ...c, hp: Math.min(max, c.hp + Math.round(max * HEAL_FRACTION)) }
+      : c;
+  let spec = floorFight(c.seed, c.floor, { rank: c.rank, kind });
+  if (boost && !isAid(boost)) spec = applyEnemyBoost(spec, boost, c.hero);
+  const stage = floorStage(climb, spec);
+  const f = startFight(stage);
   return {
-    ...s,
-    run: f.run,
-    fight: {
-      battle: boost === "ward" ? wardBattle(f.battle) : f.battle,
-      rng: f.rng,
-      node,
-      result: null,
-    },
+    stage,
+    battle: boost === "ward" ? wardBattle(f.battle) : f.battle,
+    rng: f.rng,
+    settled: null,
   };
 }

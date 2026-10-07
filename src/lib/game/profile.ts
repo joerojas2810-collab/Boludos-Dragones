@@ -24,9 +24,21 @@ import {
   activeSets,
   applyGear,
   combineGear,
+  GEAR_CAP,
   gearBonus,
+  LINE_BASE,
+  LINE_GROUP,
   NO_GEAR,
+  parseRoll,
+  resonanceBonus,
+  resonances,
+  rollPiece,
+  rollQuality,
   setBonus,
+  SKILL_STYLE_GROUP,
+  type BuildGroup,
+  type GearLine,
+  type WornPiece,
 } from "./gear";
 import {
   MAX_STARS,
@@ -66,7 +78,7 @@ import {
   type Weapon,
 } from "./weapons";
 
-export const PROFILE_VERSION = 4; // 4: dungeons = DungeonProgress (levels), no ascensions map
+export const PROFILE_VERSION = 5; // 5: pieces have roll/lines, pre-v5 items are marked legacy (burn rate)
 // Raised from 150: at ~11-22 pulls/day of income the old price made SSR pity reachable in
 // ~2 weeks (cheaper than the forge). Keep in sync with game_constants (0017).
 export const PULL_COST_CHARACTER = 250;
@@ -80,6 +92,7 @@ export type OwnedCharacter = Character & {
   id: string; // = characterKey
   rarity: RarityId;
   stars: number;
+  legacy?: boolean; // existed before PROFILE_VERSION 5 (burns at LEGACY_BURN_RATE)
 };
 export type OwnedWeapon = Weapon;
 
@@ -233,12 +246,17 @@ function pull(
         character: item,
       });
     } else {
-      const w = generateWeapon(rng, rarity);
+      const g = generateWeapon(rng, rarity);
+      const rolled = rollPiece(rng, g.type, rarity);
+      const w: OwnedWeapon = {
+        ...g,
+        ...rolled,
+        atkBonus: weaponAtk(rarity, 0, g.type, rolled.roll),
+      };
       const owned = p.weapons.find((x) => x.id === w.id);
       let item: OwnedWeapon = w;
       if (owned) {
-        const stars = Math.min(MAX_STARS, owned.stars + 1);
-        item = { ...owned, stars, atkBonus: weaponAtk(rarity, stars, w.type) };
+        item = withStars(owned, Math.min(MAX_STARS, owned.stars + 1), w);
         status = owned.stars >= MAX_STARS ? "refund" : "star";
         p = {
           ...p,
@@ -317,33 +335,66 @@ export function equipWeapon(
   };
 }
 
-// Best free piece for each slot of a hero, chosen greedily by the hero's resulting power
-// (so element sets count). Pieces worn by OTHER heroes are never taken. Returns only the
-// changes, in the order to apply them (two passes: a later piece can complete a set).
-// ponytail: greedy, not an exhaustive search of set combinations.
+export type AutoMode = "poder" | "set" | "estilo";
+export interface AutoPlanItem {
+  slot: Slot;
+  weaponId: string;
+  fromHeroId?: string; // piece currently worn by another hero (takeFromOthers)
+}
+
+// How much of the hero's style group (LINE_GROUP) a piece carries: its stats as a share
+// of the gear caps, so different stats are comparable. 0 for any piece without that stat.
+function styleScore(w: WornPiece, group: BuildGroup): number {
+  const b = gearBonus([w]);
+  let sum = 0;
+  for (const k of Object.keys(LINE_BASE) as (keyof typeof LINE_BASE)[])
+    if (LINE_GROUP[k] === group) sum += b[k] / GEAR_CAP[k];
+  return sum;
+}
+
+// Best piece for each slot of a hero. Modes: "poder" = greedy by the hero's resulting
+// power (element sets count; two passes so a later piece can complete a set); "set" = per
+// slot the piece of the hero's element, else the strongest; "estilo" = per slot the piece
+// richest in the hero's style group (its third skill), ties by power. Pieces worn by OTHER
+// heroes are only taken with takeFromOthers. Returns only the changes, in apply order.
+// ponytail: greedy per slot, not an exhaustive search of combinations.
 export function autoEquipPlan(
   p: Profile,
   heroId: string,
-): { slot: Slot; weaponId: string }[] {
+  mode: AutoMode = "poder",
+  opts: { takeFromOthers?: boolean } = {},
+): AutoPlanItem[] {
   const hero = p.characters.find((c) => c.id === heroId);
   if (!hero) return [];
-  const takenByOthers = new Set(
-    Object.entries(p.equipped)
-      .filter(([k]) => parseSlotKey(k)[0] !== heroId)
-      .map(([, id]) => id),
-  );
+  const group = SKILL_STYLE_GROUP[heroFromOwned(p, heroId)?.skill ?? ""];
+  const eff: AutoMode = mode === "estilo" && !group ? "poder" : mode;
+  const wornBy = (id: string) =>
+    Object.entries(p.equipped).find(([, w]) => w === id)?.[0];
+  const otherHolder = (id: string) => {
+    const k = wornBy(id);
+    return k && parseSlotKey(k)[0] !== heroId ? parseSlotKey(k)[0] : undefined;
+  };
   let cur = p;
-  for (let pass = 0; pass < 2; pass++)
+  for (let pass = 0; pass < (eff === "poder" ? 2 : 1); pass++)
     for (const slot of SLOTS) {
-      let best = heroPower(cur, heroId);
+      const score = (w: OwnedWeapon) => {
+        const power = heroPower(equipWeapon(cur, heroId, w.id), heroId);
+        if (eff === "set") return (w.element === hero.element ? 1e9 : 0) + power;
+        if (eff === "estilo" && group) return styleScore(w, group) * 1e9 + power;
+        return power;
+      };
+      const curW = p.weapons.find(
+        (w) => w.id === cur.equipped[slotKey(heroId, slot)],
+      );
+      let best = curW ? score(curW) : eff === "poder" ? heroPower(cur, heroId) : -1;
       let pick: string | null = null;
       for (const w of p.weapons) {
-        if (slotOf(w.type) !== slot || takenByOthers.has(w.id)) continue;
-        if (cur.equipped[slotKey(heroId, slot)] === w.id) continue;
+        if (slotOf(w.type) !== slot || w.id === curW?.id) continue;
         if (!canUseWeapon(hero.classId, w.type)) continue;
-        const power = heroPower(equipWeapon(cur, heroId, w.id), heroId);
-        if (power > best) {
-          best = power;
+        if (!opts.takeFromOthers && otherHolder(w.id)) continue;
+        const sc = score(w);
+        if (sc > best) {
+          best = sc;
           pick = w.id;
         }
       }
@@ -351,10 +402,32 @@ export function autoEquipPlan(
     }
   return SLOTS.flatMap((slot) => {
     const id = cur.equipped[slotKey(heroId, slot)];
-    return id && id !== p.equipped[slotKey(heroId, slot)]
-      ? [{ slot, weaponId: id }]
-      : [];
+    if (!id || id === p.equipped[slotKey(heroId, slot)]) return [];
+    const from = otherHolder(id);
+    return [{ slot, weaponId: id, ...(from ? { fromHeroId: from } : {}) }];
   });
+}
+
+export const applyAutoPlan = (
+  p: Profile,
+  heroId: string,
+  plan: readonly AutoPlanItem[],
+): Profile => plan.reduce((q, x) => equipWeapon(q, heroId, x.weaponId), p);
+
+// The mode whose plan leaves the hero strongest (ties favour "poder"). Never takes pieces
+// from other heroes.
+export function bestAutoMode(
+  p: Profile,
+  heroId: string,
+): { mode: AutoMode; plan: AutoPlanItem[] } {
+  let best = { mode: "poder" as AutoMode, plan: autoEquipPlan(p, heroId, "poder"), power: -1 };
+  best.power = heroPower(applyAutoPlan(p, heroId, best.plan), heroId);
+  for (const mode of ["set", "estilo"] as const) {
+    const plan = autoEquipPlan(p, heroId, mode);
+    const power = heroPower(applyAutoPlan(p, heroId, plan), heroId);
+    if (power > best.power) best = { mode, plan, power };
+  }
+  return { mode: best.mode, plan: best.plan };
 }
 
 export function unequipWeapon(
@@ -384,20 +457,32 @@ export function grantPiece(p: Profile, piece: RunPiece): Profile {
           element: piece.element,
           rarity: piece.rarity,
           stars: 0,
-          atkBonus: weaponAtk(piece.rarity, 0, piece.type),
+          atkBonus: weaponAtk(piece.rarity, 0, piece.type, piece.roll),
+          ...(piece.roll !== undefined ? { roll: piece.roll } : {}),
+          ...(piece.lines ? { lines: piece.lines } : {}),
         },
       ],
     };
   if (owned.stars >= MAX_STARS)
     return { ...p, coins: p.coins + refundAmount("weapon") };
-  const stars = owned.stars + 1;
+  const next = withStars(owned, owned.stars + 1, piece);
+  return { ...p, weapons: p.weapons.map((w) => (w.id === id ? next : w)) };
+}
+
+// Duplicate: +1 star and keep the better of the two rolls (automatic).
+function withStars(
+  owned: OwnedWeapon,
+  stars: number,
+  inc: { roll?: number; lines?: GearLine[] },
+): OwnedWeapon {
+  const better =
+    inc.roll !== undefined && rollQuality(inc) > rollQuality(owned) ? inc : owned;
   return {
-    ...p,
-    weapons: p.weapons.map((w) =>
-      w.id === id
-        ? { ...w, stars, atkBonus: weaponAtk(piece.rarity, stars, piece.type) }
-        : w,
-    ),
+    ...owned,
+    stars,
+    roll: better.roll,
+    lines: better.lines,
+    atkBonus: weaponAtk(owned.rarity, stars, owned.type, better.roll),
   };
 }
 
@@ -562,7 +647,10 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
   const usableWeapon =
     w && !isGearType(w.type) && canUseWeapon(c.classId, w.type) ? w : null;
   const gear = combineGear(
-    gearBonus(worn),
+    combineGear(
+      gearBonus(worn),
+      resonanceBonus(resonances(worn, skill ? SKILL_STYLE_GROUP[skill] : undefined)),
+    ),
     setBonus(
       activeSets(
         [...worn, ...(usableWeapon ? [usableWeapon] : [])].map(
@@ -665,7 +753,7 @@ function parseStats(v: unknown): Stats | null {
   return out as Stats;
 }
 
-function parseCharacter(v: unknown): OwnedCharacter | null {
+function parseCharacter(v: unknown, legacyAll: boolean): OwnedCharacter | null {
   if (!isObj(v)) return null;
   const classId = CLASS_IDS.find((c) => c === v.classId);
   const element = ELEMENTS.find((e) => e === v.element);
@@ -687,6 +775,7 @@ function parseCharacter(v: unknown): OwnedCharacter | null {
     xp: nat(v.xp),
     rarity,
     stars: nat(v.stars, MAX_STARS),
+    ...(legacyAll || v.legacy === true ? { legacy: true } : {}),
     ...(typeof v.skill === "string" &&
     isSkillId(v.skill) &&
     SKILLS_BY_CLASS[classId].includes(v.skill)
@@ -695,13 +784,14 @@ function parseCharacter(v: unknown): OwnedCharacter | null {
   };
 }
 
-function parseWeapon(v: unknown): OwnedWeapon | null {
+function parseWeapon(v: unknown, legacyAll: boolean): OwnedWeapon | null {
   if (!isObj(v)) return null;
   const element = ELEMENTS.find((e) => e === v.element);
   const rarity = toRank(v.rarity);
   if (!element || !rarity) return null;
   const type = isWeaponType(v.type) ? v.type : "espada"; // old saves: no type
   const stars = nat(v.stars, MAX_STARS);
+  const rolled = parseRoll(type, rarity, v.roll, v.lines);
   return {
     id: weaponKey(type, element, rarity),
     name: str(v.name, "Espada"),
@@ -709,7 +799,9 @@ function parseWeapon(v: unknown): OwnedWeapon | null {
     element,
     rarity,
     stars,
-    atkBonus: weaponAtk(rarity, stars, type), // never trusted
+    atkBonus: weaponAtk(rarity, stars, type, rolled.roll), // never trusted
+    ...rolled,
+    ...(legacyAll || v.legacy === true ? { legacy: true } : {}),
   };
 }
 
@@ -748,8 +840,10 @@ const parseParts = (v: unknown): Parts => {
 
 export function migrate(json: unknown): Profile {
   if (!isObj(json)) return createProfile();
+  // Anything saved before v5 is "legacy" (burns at a higher rate, see burn.ts).
+  const legacyAll = !(typeof json.version === "number" && json.version >= 5);
   const rawChars = Array.isArray(json.characters) ? json.characters : [];
-  const parsedChars = rawChars.map(parseCharacter);
+  const parsedChars = rawChars.map((c) => parseCharacter(c, legacyAll));
   const characters = uniqueById(parsedChars);
   // old id (legacy rarity) -> new id
   const charAlias = new Map<string, string>();
@@ -759,7 +853,7 @@ export function migrate(json: unknown): Profile {
       charAlias.set(raw.id, c.id);
   });
   const rawWeapons = Array.isArray(json.weapons) ? json.weapons : [];
-  const parsedWeapons = rawWeapons.map(parseWeapon);
+  const parsedWeapons = rawWeapons.map((w) => parseWeapon(w, legacyAll));
   const weapons = uniqueById(parsedWeapons);
   // old id (no type) -> new id, so saved `equipped` entries survive
   const alias = new Map<string, string>();
