@@ -280,7 +280,7 @@ export function BattleArena({
                   ▼
                 </span>
               )}
-              <div className="relative z-10 w-full">
+              <div className="relative z-30 w-full md:absolute md:inset-x-0 md:top-0">
                 <HudCard
                   c={c}
                   foe={b.player}
