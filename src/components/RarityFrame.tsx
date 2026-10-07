@@ -6,6 +6,7 @@ import { RARITIES, type RarityId } from "@/lib/game/rarity";
 type Props = {
   rarity: RarityId;
   size?: number;
+  painted?: boolean; // painted 3:4 card frame (public/art/frames/card_<rank>.webp); height = size × 4/3
   selected?: boolean;
   className?: string;
   children?: ReactNode;
@@ -21,6 +22,7 @@ const corners = [
 export function RarityFrame({
   rarity,
   size = 96,
+  painted = false,
   selected = false,
   className = "",
   children,
@@ -29,12 +31,12 @@ export function RarityFrame({
     <div
       data-rarity={rarity}
       data-selected={selected}
-      className={`rarity-frame flex items-center justify-center ${className}`}
+      className={`rarity-frame flex items-center justify-center ${painted ? "rarity-frame-art" : ""} ${className}`}
       style={
         {
           "--rc": RARITIES[rarity].color,
           width: size,
-          height: size,
+          height: painted ? Math.round((size * 4) / 3) : size,
         } as React.CSSProperties
       }
     >
@@ -42,6 +44,15 @@ export function RarityFrame({
         <span key={c} className={`rarity-notch ${c}`} />
       ))}
       {children}
+      {painted && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={`/art/frames/card_${rarity}.webp`}
+          alt=""
+          draggable={false}
+          className="pointer-events-none absolute inset-0 z-[15] h-full w-full"
+        />
+      )}
       {size >= 64 &&
         (rarity === "s" || rarity === "ss" || rarity === "ssr") && (
           <Vfx

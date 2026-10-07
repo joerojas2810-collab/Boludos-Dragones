@@ -168,6 +168,16 @@ textarea:focus-visible,
   outline: 3px solid #fff;
   outline-offset: 3px;
 }
+.rarity-frame.rarity-frame-art[data-rarity] {
+  border: 0;
+  border-radius: 6px;
+  box-shadow: none;
+  animation: none;
+}
+.rarity-frame.rarity-frame-art[data-rarity]::after,
+.rarity-frame-art .rarity-notch {
+  display: none;
+}
 .rarity-notch {
   position: absolute;
   width: 5px;

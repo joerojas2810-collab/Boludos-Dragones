@@ -1,7 +1,7 @@
 import { Icon } from "@/components/Icon";
 import { RARITIES, type RarityId } from "@/lib/game/rarity";
 
-// Painted rank icon. The letter baked into the art was erased at import (scripts/import-art.mjs);
+// Painted rank icon. Badges (scripts/import-art2.mjs) come with a blank plate; door icons had their baked letter erased (scripts/import-art.mjs);
 // when `letter` is set it is drawn here in the title font, scaled to the icon (container units).
 export function RankIcon({
   rank,
@@ -24,8 +24,8 @@ export function RankIcon({
         <span
           className="rank-icon-letter"
           style={{
-            top: door ? "73%" : "79%",
-            fontSize: door ? "19cqw" : "24cqw",
+            top: door ? "73%" : "50%",
+            fontSize: door ? "19cqw" : "26cqw",
           }}
         >
           {RARITIES[rank].label}

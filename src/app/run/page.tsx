@@ -1256,7 +1256,10 @@ function DungeonSelect({
                       ✔ Limpiado · mejor: {best}{" "}
                       <Icon name="system_heart_full" className="h-4" />
                       {(ascensions[rank] ?? 0) > 0 &&
-                        ` · Ascensión +${ascensions[rank]}${(ascensions[rank] ?? 0) >= MAX_ASCENSION ? " ★" : ""}`}
+                        ` · Ascensión +${ascensions[rank]}`}
+                      {(ascensions[rank] ?? 0) >= MAX_ASCENSION && (
+                        <Icon name="asc_max_star" className="ml-1 h-4" />
+                      )}
                     </span>
                   ) : (
                     <span className="block text-[#d9d2ca]">Sin limpiar</span>
@@ -1291,16 +1294,6 @@ function DungeonSelect({
     </main>
   );
 }
-
-// Stand-in icons (no ascension art in the pack): one per rule, level 0 = star.
-const ASC_ICONS = [
-  "system_star",
-  "stat_attack",
-  "event_abandoned_campfire",
-  "door_hard_fight",
-  "enemy_modifier_double_attack",
-  "system_heart_half",
-];
 
 // Over the (dimmed) dungeon list: the same dungeon with its ascension levels.
 // +N opens only after clearing +N-1 (level 0 = the normal dungeon).
@@ -1353,7 +1346,7 @@ function AscensionModal({
                   style={{ borderColor: color }}
                 >
                   <span className="relative shrink-0">
-                    <Icon name={ASC_ICONS[n]} className="h-14 w-14" />
+                    <Icon name={`asc_${n}`} className="h-14 w-14" />
                     {n > 0 && (
                       <span
                         className="absolute -bottom-1 -right-1 rounded px-1 text-xs font-bold"

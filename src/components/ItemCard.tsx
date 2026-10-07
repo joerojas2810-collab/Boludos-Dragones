@@ -45,10 +45,10 @@ export function ItemCard({
   return (
     <div
       className={`relative ${className}`}
-      style={{ width: S, height: S }}
+      style={{ width: S, height: Math.round((S * 4) / 3) }}
       title={title}
     >
-      <RarityFrame rarity={item.rarity} size={S} selected={selected}>
+      <RarityFrame rarity={item.rarity} size={S} selected={selected} painted>
         <div className="absolute inset-0">
           {item.kind === "character" ? (
             <HeroSprite
@@ -70,14 +70,14 @@ export function ItemCard({
             </div>
           )}
         </div>
-        <span className="absolute right-0.5 top-0.5 z-10 drop-shadow-[0_1px_0_#000]">
+        <span className="absolute right-[7%] top-[5%] z-10 drop-shadow-[0_1px_0_#000]">
           <ElementIcon
             element={item.element}
             className={big ? "h-6" : "h-4"}
             bare
           />
         </span>
-        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-px bg-gradient-to-t from-black/85 via-black/60 to-transparent px-1 pb-1 pt-4 text-center text-white [text-shadow:0_1px_0_#000,0_0_3px_#000]">
+        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-px bg-gradient-to-t from-black/85 via-black/60 to-transparent px-[9%] pb-[8%] pt-4 text-center text-white [text-shadow:0_1px_0_#000,0_0_3px_#000]">
           <div
             className={`w-full truncate font-bold ${big ? "text-xs" : "text-[10px]"}`}
           >
@@ -98,7 +98,7 @@ export function ItemCard({
               ))}
         </div>
         {item.badge && (
-          <span className="absolute left-1/2 top-0.5 z-20 -translate-x-1/2 border-2 border-[var(--edge)] bg-[var(--trim)] px-1 text-[10px] font-bold leading-4 text-white">
+          <span className="absolute left-1/2 top-[4%] z-20 -translate-x-1/2 border-2 border-[var(--edge)] bg-[var(--trim)] px-1 text-[10px] font-bold leading-4 text-white">
             {item.badge}
           </span>
         )}
