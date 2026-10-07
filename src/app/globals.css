@@ -469,7 +469,6 @@ a:focus-visible {
   border-image: url("/art/ui/panel_default.webp") 44 fill / 16px stretch;
   background: none;
   box-shadow: none;
-  padding: 0.5rem;
   color: var(--text);
 }
 .title-art {
