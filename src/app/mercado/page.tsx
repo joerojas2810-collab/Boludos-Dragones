@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Panel } from "@/components/Panel";
-import { CLASS_IDS, CLASSES } from "@/lib/game/characters";
+import { ItemCard } from "@/components/ItemCard";
+import { CLASS_IDS, CLASSES, type ClassId } from "@/lib/game/characters";
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "@/lib/game/elements";
 import {
   acceptBlock,
@@ -18,7 +19,7 @@ import {
   type MarketOffer,
   type PieceKind,
 } from "@/lib/game/market";
-import { WEAPON_TYPE_DATA, WEAPON_TYPES } from "@/lib/game/weapons";
+import { WEAPON_TYPE_DATA, WEAPON_TYPES, type WeaponType } from "@/lib/game/weapons";
 import { RARITIES, RARITY_IDS, type RarityId } from "@/lib/game/rarity";
 import {
   acceptOffer,
@@ -29,13 +30,39 @@ import {
 import { repo, useProfile } from "@/lib/useProfile";
 
 const selectCls =
-  "border-2 border-[var(--edge)] bg-[var(--panel)] px-2 py-1.5 text-base";
+  "px-2 py-1.5 text-base";
 
 function Piece({ k }: { k: string }) {
   const r = parsePieceKey(k);
   return (
-    <span style={{ color: r ? RARITIES[r.rarity].color : undefined }}>
-      {pieceLabel(k)}
+    <span className="inline-flex items-center gap-1 align-middle">
+      {r && (
+        <ItemCard
+          size={44}
+          item={
+            r.kind === "character"
+              ? {
+                  kind: "character",
+                  classId: r.base as ClassId,
+                  name: pieceLabel(k),
+                  rarity: r.rarity,
+                  stars: 0,
+                  element: r.element,
+                }
+              : {
+                  kind: "weapon",
+                  type: r.base as WeaponType,
+                  name: pieceLabel(k),
+                  rarity: r.rarity,
+                  stars: 0,
+                  element: r.element,
+                }
+          }
+        />
+      )}
+      <span style={{ color: r ? RARITIES[r.rarity].color : undefined }}>
+        {pieceLabel(k)}
+      </span>
     </span>
   );
 }
@@ -134,15 +161,15 @@ export default function MercadoPage() {
       )}
       <Panel title="Publicar oferta" className="space-y-3">
         <p className="text-sm opacity-80">
-          Solo piezas repetidas (con al menos 1 estrella): das una estrella y
-          conservas la pieza. El intercambio tiene que ser <b>equivalente</b>:
-          el valor de lo que pides más las monedas debe quedar a ±
-          {TRADE_TOLERANCE * 100}% del valor de lo que das. Una pieza vale lo
-          que cuesta conseguir una copia de su rango en el gacha. Así, un F se
-          cambia por otro F, y un E por un F más monedas. Hasta{" "}
-          {MARKET_MAX_OPEN} ofertas abiertas; caducan a los {MARKET_TTL_DAYS}{" "}
-          días.
+          Solo repetidas: das 1 estrella y conservas la pieza. Trueque{" "}
+          <b>equivalente</b> (±{TRADE_TOLERANCE * 100}% de valor). Máx.{" "}
+          {MARKET_MAX_OPEN} ofertas, caducan a los {MARKET_TTL_DAYS} días.
         </p>
+        {give && (
+          <div className="flex justify-center">
+            <Piece k={give} />
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           <select
             className={selectCls}
@@ -280,7 +307,7 @@ export default function MercadoPage() {
       <Panel title="Mis ofertas" className="space-y-2">
         {mine.length === 0 && <p className="text-sm opacity-80">Ninguna.</p>}
         {mine.map((o) => (
-          <div key={o.id} className="flex flex-wrap items-center gap-2">
+          <div key={o.id} className="tile-art flex flex-wrap items-center gap-2">
             <span className="min-w-0 flex-1">Das {offerText(o)}</span>
             <button
               className="btn btn-gray !min-h-9 !px-2 !py-1"
@@ -303,7 +330,7 @@ export default function MercadoPage() {
         {others.map((o) => {
           const block = acceptBlock(profile, o, false);
           return (
-            <div key={o.id} className="flex flex-wrap items-center gap-2">
+            <div key={o.id} className="tile-art flex flex-wrap items-center gap-2">
               <span className="min-w-0 flex-1">
                 <b>{o.seller}</b> da {offerText(o)}
                 {block && <em className="block text-sm opacity-70">{block}</em>}

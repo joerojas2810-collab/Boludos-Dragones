@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Icon } from "@/components/Icon";
 import { Panel } from "@/components/Panel";
 import { replaceProfile, repo, useProfile } from "@/lib/useProfile";
 
@@ -111,7 +112,7 @@ export default function MissionsPage() {
               {s.missions.map((m) => (
                 <li
                   key={m.slot}
-                  className="flex flex-wrap items-center gap-2 text-base"
+                  className="tile-art flex flex-wrap items-center gap-2 text-base"
                 >
                   <span className={m.done ? "text-green-300" : ""}>
                     {m.done ? "✔ " : ""}
@@ -144,16 +145,20 @@ export default function MissionsPage() {
                 {s.tiers.map((t, i) => (
                   <li
                     key={t.points}
-                    className={
+                    className={`tile-art flex flex-col items-center gap-1 ${
                       i < s.claimed
                         ? "opacity-50"
                         : i < reached
-                          ? "text-green-300"
+                          ? "tile-ready text-green-300"
                           : ""
-                    }
+                    }`}
                   >
-                    {i < s.claimed ? "✔ " : ""}
-                    {t.coins} monedas{t.cores ? ` + ${t.cores} núcleo` : ""}
+                    <Icon name="system_chest" className="h-10" />
+                    <span className="flex items-center gap-1">
+                      {i < s.claimed ? "✔ " : ""}
+                      {t.coins} <Icon name="system_coin" className="h-4" />
+                    </span>
+                    {t.cores > 0 && <span>+{t.cores} núcleo</span>}
                   </li>
                 ))}
               </ol>

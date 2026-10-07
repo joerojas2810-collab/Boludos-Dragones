@@ -17,6 +17,7 @@ type Base = {
   element: Element;
   lines?: string[]; // small stat lines, e.g. "VID 120 · ATQ 18"
   badge?: string; // "NUEVO", "+1 ★", "REEMBOLSO"
+  pity?: "ss" | "ssr"; // this pull was the pity guarantee
 };
 export type ItemView =
   | (Base & { kind: "character"; classId: ClassId; traits?: TraitId[] })

@@ -60,7 +60,7 @@ const fmt = (k: keyof Stats, v: number) =>
   FRACTION.includes(k) ? `${+v.toFixed(1)}` : `${Math.round(v * 100)}%`;
 
 const selectCls =
-  "border-2 border-[var(--edge)] bg-[var(--panel)] px-2 py-1.5 text-base";
+  "px-2 py-1.5 text-base";
 
 function Detail({
   c,

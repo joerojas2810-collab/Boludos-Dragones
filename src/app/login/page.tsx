@@ -85,7 +85,7 @@ export default function LoginPage() {
           <label className="text-sm">
             Nombre
             <input
-              className="mt-1 w-full border-2 border-[var(--edge)] bg-black/40 p-2 text-base"
+              className="mt-1 w-full text-base"
               value={name}
               maxLength={16}
               autoComplete="username"
@@ -96,7 +96,7 @@ export default function LoginPage() {
           <label className="text-sm">
             PIN (4 dígitos)
             <input
-              className="mt-1 w-full border-2 border-[var(--edge)] bg-black/40 p-2 text-center text-2xl tracking-[0.5em]"
+              className="mt-1 w-full text-center text-2xl tracking-[0.5em]"
               value={pin}
               type="password"
               inputMode="numeric"
@@ -114,7 +114,7 @@ export default function LoginPage() {
             <label className="text-sm">
               Código de la casa
               <input
-                className="mt-1 w-full border-2 border-[var(--edge)] bg-black/40 p-2 text-base"
+                className="mt-1 w-full text-base"
                 value={house}
                 maxLength={64}
                 autoCapitalize="none"

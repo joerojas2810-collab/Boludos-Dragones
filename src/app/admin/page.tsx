@@ -47,7 +47,7 @@ export default function AdminPage() {
     <main className="flex min-h-screen items-center justify-center p-4">
       <Panel title="Reiniciar PIN" className="w-full max-w-sm">
         <input
-          className="mb-3 w-full border-2 border-[var(--edge)] bg-black/40 p-2 text-base"
+          className="mb-3 w-full text-base"
           placeholder="Nombre del amigo"
           value={name}
           maxLength={16}

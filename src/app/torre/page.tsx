@@ -56,7 +56,7 @@ export default function TowerPage() {
           Sube lo más alto que puedas: misma torre para todos esta semana.
         </p>
         <div
-          className="mx-auto mt-3 flex max-w-xl flex-wrap items-center justify-center gap-x-4 gap-y-1 border-2 border-[var(--edge)] bg-black/30 px-3 py-2 text-sm"
+          className="mx-auto mt-3 flex max-w-xl flex-wrap items-center justify-center gap-x-4 gap-y-1 pixel-frame px-3 py-2 text-sm"
           title={`Los 3 primeros de cada modo (mínimo ${TOWER_MIN_FLOOR} pisos) cobran el lunes. La torre no da monedas ni botín por sí sola.`}
         >
           <span className="opacity-80">Premios del lunes</span>
@@ -81,7 +81,7 @@ export default function TowerPage() {
             <div className="flex flex-col items-center gap-2">
               <Icon
                 name={m === "nivelado" ? "dungeon_rank_d" : "dungeon_rank_s"}
-                className="h-24 w-24"
+                className="h-32 w-32"
               />
               <p className="text-center text-sm text-[#d9d2ca]">
                 {TOWER_BLURB[m]}
@@ -109,7 +109,7 @@ export default function TowerPage() {
                   {st.modes[m].top.map((r) => (
                     <li
                       key={r.place}
-                      className="flex justify-between border-2 border-[var(--edge)] bg-black/25 px-2 py-0.5"
+                      className="tile-art flex justify-between px-2 py-0.5"
                     >
                       <span>
                         {MEDAL[r.place - 1] ?? `${r.place}.`} {r.name}

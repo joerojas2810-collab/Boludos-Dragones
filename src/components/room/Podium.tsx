@@ -1,5 +1,6 @@
 import { Vfx } from "@/components/fx/Vfx";
 import { HeroSprite } from "@/components/HeroSprite";
+import { Icon } from "@/components/Icon";
 import type { PlayerView } from "@/lib/roomui/types";
 import "@/components/fx.css";
 
@@ -31,7 +32,7 @@ export function Podium({
         const p = top[i];
         const s = STEP[i];
         return (
-          <div key={p.id} className="flex w-24 flex-col items-center sm:w-28">
+          <div key={p.id} className="flex w-28 flex-col items-center sm:w-32">
             <div
               className="b-podium-who flex flex-col items-center text-center"
               style={{ animationDelay: `${s.delay + 0.5}s` }}
@@ -41,12 +42,12 @@ export function Podium({
                   classId={p.hero.classId}
                   element={p.hero.element}
                   traits={p.hero.traits}
-                  className="w-24"
+                  className="w-28 sm:w-32"
                   crop
                 />
               )}
               <b className="max-w-full truncate text-sm">{p.name}</b>
-              <span className="text-xs text-yellow-300">{p.chips} fichas</span>
+              <span className="flex items-center gap-1 text-sm text-yellow-300"><Icon name="system_token" className="h-5" />{p.chips}</span>
               {titles && (
                 <span className="text-[10px] leading-tight opacity-80">
                   {titles[p.id]}
@@ -54,7 +55,7 @@ export function Podium({
               )}
             </div>
             <div
-              className="b-podium-step flex w-full items-start justify-center border-2 border-[var(--edge)] pt-1 text-xl font-bold text-black"
+              className="b-podium-step flex w-full items-start justify-center rounded-t-md pt-1 text-2xl font-bold text-black shadow-[inset_0_0_0_3px_rgb(0_0_0/0.35),inset_0_8px_0_rgb(255_255_255/0.25)]"
               style={{
                 height: s.h,
                 background: s.bg,

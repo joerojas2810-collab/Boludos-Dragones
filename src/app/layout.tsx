@@ -18,6 +18,14 @@ const title = MedievalSharp({
 export const metadata: Metadata = {
   title: "Boludos & Dragones",
   description: "RPG por turnos para noches de juegos",
+  openGraph: {
+    title: "Boludos & Dragones",
+    description: "RPG por turnos para noches de juegos",
+    images: [{ url: "/og.png", width: 1200, height: 630 }],
+    locale: "es_AR",
+    type: "website",
+  },
+  twitter: { card: "summary_large_image", images: ["/og.png"] },
   icons: { icon: "/art/ui/favicon_64.webp", apple: "/art/ui/favicon_180.webp" },
 };
 

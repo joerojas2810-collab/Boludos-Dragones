@@ -7,6 +7,7 @@ import { FloorPlayer } from "@/components/room/FloorPlayer";
 import { Podium } from "@/components/room/Podium";
 import { HeroSprite } from "@/components/HeroSprite";
 import "@/components/fx.css";
+import { Icon } from "@/components/Icon";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
 import { CLASSES } from "@/lib/game/characters";
@@ -238,12 +239,12 @@ export function RoomScreen({
               {doors.map((d, i) => (
                 <button
                   key={i}
-                  className={`pixel-frame choice-card flex min-w-32 flex-col items-center gap-1 p-3 text-center ${
+                  className={`pixel-frame choice-card flex min-w-28 flex-1 flex-col items-center gap-1 p-3 text-center sm:max-w-48 ${
                     myDoor === d.kind ? "!border-green-400" : ""
                   } ${d.kind === "boss" ? "!border-red-700" : ""}`}
                   onClick={() => void run(client.door(view.floor, d.kind))}
                 >
-                  <DoorIcon kind={d.kind} className="h-10" />
+                  <DoorIcon kind={d.kind} className="h-20 sm:h-24" />
                   <span className="choice-title">{DOOR_NAME[d.kind]}</span>
                 </button>
               ))}
@@ -388,7 +389,7 @@ export function RoomScreen({
         {err && <div className="mt-2 text-sm text-red-400">{err}</div>}
         {toast && <div className="mt-2 text-sm text-green-300">{toast}</div>}
       </Panel>
-      <div className="flex flex-col gap-3 md:flex-row-reverse">
+      <div className="flex flex-col-reverse gap-3 md:flex-row-reverse">
         <Panel title={`Ranking · fichas`} className="md:w-72 md:shrink-0">
           <ol className="space-y-1">
             {rows.map((r) => {
@@ -405,11 +406,11 @@ export function RoomScreen({
                       classId={p.hero.classId}
                       element={p.hero.element}
                       traits={p.hero.traits}
-                      className="w-12 shrink-0"
+                      className="w-16 shrink-0"
                       crop
                     />
                   ) : (
-                    <span className="w-12 shrink-0" />
+                    <span className="w-16 shrink-0" />
                   )}
                   <span
                     className={`min-w-0 flex-1 truncate ${r.isMe ? "text-yellow-300" : ""}`}
@@ -433,7 +434,8 @@ export function RoomScreen({
                       {st.text}
                     </span>
                   </span>
-                  <span className="tabular-nums text-yellow-300">
+                  <span className="flex items-center gap-1 tabular-nums text-yellow-300">
+                    <Icon name="system_token" className="h-5" />
                     {r.chips}
                   </span>
                   <span className="w-8 text-right text-xs opacity-70">
@@ -571,7 +573,7 @@ function FightStrip({
       {list.length === 0 && (
         <p className="text-center text-sm">Nadie pelea este piso.</p>
       )}
-      <ul className="space-y-1">
+      <ul className="space-y-2">
         {list.map((p) => {
           const st = playerStatus(view, p, null);
           const b = view.battles[p.id];
@@ -583,11 +585,18 @@ function FightStrip({
           return (
             <li key={p.id} className="text-sm">
               <div className="flex items-center gap-2">
+                {p.hero && (
+                  <HeroSprite
+                    classId={p.hero.classId}
+                    element={p.hero.element}
+                    traits={p.hero.traits}
+                    className="w-14 shrink-0"
+                    crop
+                  />
+                )}
+                {p.door && <DoorIcon kind={p.door} className="h-8 shrink-0" />}
                 <span className="min-w-0 flex-1 truncate">
                   {p.name}
-                  {p.door && (
-                    <span className="opacity-70"> · {DOOR_NAME[p.door]}</span>
-                  )}
                   {b.interfered && (
                     <span
                       className={
@@ -731,6 +740,7 @@ function BetPanel({
             className={`btn !px-3 ${stake === s ? "" : "btn-gray"}`}
             onClick={() => setStake(s)}
           >
+            <Icon name="system_token" className="mr-1 h-4" />
             {s}
           </button>
         ))}
@@ -741,9 +751,18 @@ function BetPanel({
           return (
             <li
               key={p.id}
-              className="pixel-frame flex flex-wrap items-center gap-2 p-2 text-sm"
+              className="pixel-frame flex flex-wrap items-center gap-2 p-1 text-sm"
             >
-              <span className="min-w-0 flex-1">
+              {p.hero && (
+                <HeroSprite
+                  classId={p.hero.classId}
+                  element={p.hero.element}
+                  traits={p.hero.traits}
+                  className="w-20 shrink-0"
+                  crop
+                />
+              )}
+              <span className="min-w-0 flex-1 basis-32">
                 <b>{p.name}</b>
                 {p.hero &&
                   ` · ${p.hero.name} (${CLASSES[p.hero.classId].name})`}

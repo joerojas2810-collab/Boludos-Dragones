@@ -18,6 +18,7 @@ type Props = {
   className?: string;
   onDone?: () => void;
   last?: boolean; // start (and stay) on the final frame
+  shift?: readonly (readonly [number, number])[]; // per-frame offset in % of the cell
 };
 
 // Keyed by src so a new animation always restarts at frame 0.
@@ -25,7 +26,7 @@ export const AnimSheet = (props: Props) => (
   <Sheet key={props.anim.src} {...props} />
 );
 
-function Sheet({ anim, flip = false, className = "", onDone, last }: Props) {
+function Sheet({ anim, flip = false, className = "", onDone, last, shift }: Props) {
   const [frame, setFrame] = useState(last ? anim.frames - 1 : 0);
   const { frames, fps, loop } = anim;
   useEffect(() => {
@@ -58,6 +59,9 @@ function Sheet({ anim, flip = false, className = "", onDone, last }: Props) {
       className={`${flip ? "-scale-x-100" : ""} ${className}`}
       style={{
         aspectRatio: anim.aspect ?? 1,
+        transform: shift
+          ? `translate(${shift[Math.min(frame, shift.length - 1)][0]}%, ${shift[Math.min(frame, shift.length - 1)][1]}%)`
+          : undefined,
         backgroundImage: `url(${anim.src})`,
         backgroundRepeat: "no-repeat",
         backgroundSize: `${frames * 100}% 100%`,

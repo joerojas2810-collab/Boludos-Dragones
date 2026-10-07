@@ -153,8 +153,17 @@
   justify-content: center;
 }
 @media (min-width: 900px) {
+  .hub-title {
+    justify-content: flex-start;
+    padding-left: 0.5rem;
+  }
+  .hub-title .game-title {
+    max-width: 48rem;
+  }
+}
+@media (min-width: 900px) {
   .hub {
-    grid-template-areas: "stage title" "stage stats" "stage actions";
+    grid-template-areas: "title title" "stage stats" "stage actions";
     grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
     grid-template-rows: auto auto auto;
     column-gap: 2rem;
@@ -178,7 +187,7 @@
 }
 .hub-hero {
   position: relative;
-  width: min(88vw, 64vh, 34rem);
+  width: min(88vw, 54vh, 32rem);
   transform-origin: 50% 88%;
   scale: 1.2;
   animation: hub-bob 2.4s steps(6) infinite;

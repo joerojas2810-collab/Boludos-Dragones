@@ -60,15 +60,15 @@ function ActionButton({
   return (
     <Tooltip tip={tip} className="block" focusable={false}>
       <button
-        className={`btn h-full min-h-14 w-full md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1 ${hot ? "!border-yellow-300" : ""}`}
+        className={`btn h-full min-h-14 max-md:min-h-12 w-full md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1 ${hot ? "!border-yellow-300" : ""}`}
         disabled={disabled}
         onClick={onClick}
       >
         <div className="flex items-center justify-center gap-2">
           {icon && <Icon name={icon} className="h-8 shrink-0 max-md:h-6" />}
           <div>
-            <div className="text-base font-semibold leading-tight">{title}</div>
-            <div className="text-sm leading-snug">{sub}</div>
+            <div className="text-base font-semibold leading-tight max-md:text-sm">{title}</div>
+            <div className="text-sm leading-snug max-md:text-xs">{sub}</div>
           </div>
         </div>
       </button>

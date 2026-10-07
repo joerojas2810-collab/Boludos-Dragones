@@ -74,7 +74,7 @@ function Need({
 }
 
 const selectCls =
-  "border-2 border-[var(--edge)] bg-[var(--panel)] px-2 py-1.5 text-base";
+  "px-2 py-1.5 text-base";
 type Tab = "shortcuts" | "craft" | "merge" | "refine" | "dismantle";
 const TABS: [Tab, string][] = [
   ["craft", "Armar"],
@@ -825,7 +825,7 @@ export default function ForgePage() {
                 {refineParts.map(([k, n]) => (
                   <li
                     key={k}
-                    className="flex items-center gap-2 border-2 border-[var(--edge)] p-1 text-sm"
+                    className="tile-art flex items-center gap-2 text-sm"
                   >
                     <span className="min-w-0 flex-1">
                       {partLabel(k)}{" "}

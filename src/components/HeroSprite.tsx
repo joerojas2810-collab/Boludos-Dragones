@@ -6,6 +6,7 @@ import { CLASS_ART, ELEMENT_ART } from "@/lib/art";
 import {
   ACCESSORY_SHEETS,
   HERO_ACTIONS,
+  PAIR_SHIFTS,
   TRAIT_ASSET,
   type HeroAction,
 } from "@/lib/art/heroes";
@@ -33,6 +34,27 @@ const sheet = (src: string, action: HeroAction): SheetAnim => ({
   ...HERO_ACTIONS[action],
 });
 
+type Off = readonly [number, number];
+const FRAME = 768; // px of the source cell the pair layouts are measured in
+
+// Offsets (% of the cell, one per frame) for each accessory that must move to
+// stay readable next to another one (two-trait heroes), keyed by accessory asset.
+function pairShifts(cls: string, assets: string[], action: HeroAction): Map<string, Off[]> {
+  const out = new Map<string, Off[]>();
+  for (let i = 0; i < assets.length; i++) {
+    for (let j = i + 1; j < assets.length; j++) {
+      for (const [a, b] of [[assets[i], assets[j]], [assets[j], assets[i]]]) {
+        const e = PAIR_SHIFTS[`${cls}_${a}__${b}`];
+        if (!e) continue;
+        const per = typeof e[0] === "number" ? (e as Off) : (e as Record<string, Off | Off[]>)[action];
+        const list = (typeof per[0] === "number" ? Array(HERO_ACTIONS[action].frames).fill(per) : per) as Off[];
+        out.set(b, list.map(([x, y]) => [(x / FRAME) * 100, (y / FRAME) * 100] as const));
+      }
+    }
+  }
+  return out;
+}
+
 // Painted hero: base sheet + the transparent accessory layer of each trait.
 // Falls back to idle once a one-shot action ends (hold actions keep their last frame).
 export function HeroSprite({ action = "idle", ...p }: Props) {
@@ -54,20 +76,25 @@ function Hero({
   const [done, setDone] = useState(false);
   const a: HeroAction = animated && !done ? action : "idle";
   const cls = CLASS_ART[classId];
+  const assets = traits
+    .map((t) => TRAIT_ASSET[t])
+    .filter((t) => ACCESSORY_SHEETS.has(`${cls}_${t}_${a}`));
+  const shifts = pairShifts(cls, assets, a);
   const layers = [
     `/art/heroes/hero_${cls}_${ELEMENT_ART[element]}_${a}.webp`,
-    ...traits
-      .map((t) => `${cls}_${TRAIT_ASSET[t]}_${a}`)
-      .filter((k) => ACCESSORY_SHEETS.has(k))
-      .map((k) => `/art/heroes/acc/${k}.webp`),
+    ...assets.map((t) => `/art/heroes/acc/${cls}_${t}_${a}.webp`),
   ];
+  // Shift of layer i (0 = body): accessory i-1.
+  const shiftOf = (i: number) => (i ? shifts.get(assets[i - 1]) : undefined);
+  // Static frames use frame 0 of the idle shift.
+  const sh = (i: number) => {
+    const o = shiftOf(i)?.[0];
+    return o ? { transform: `translate(${o[0]}%, ${o[1]}%)` } : undefined;
+  };
   if (big) {
     const srcs = [
       `/art/heroes/big/${cls}_${ELEMENT_ART[element]}.webp`,
-      ...traits
-        .map((t) => `${cls}_${TRAIT_ASSET[t]}`)
-        .filter((k) => ACCESSORY_SHEETS.has(`${k}_idle`))
-        .map((k) => `/art/heroes/big/acc_${k}.webp`),
+      ...assets.map((t) => `/art/heroes/big/acc_${cls}_${t}.webp`),
     ];
     return (
       <div
@@ -83,6 +110,7 @@ function Hero({
             alt=""
             draggable={false}
             className={`h-full w-full ${i ? "absolute inset-0" : ""}`}
+            style={sh(i)}
           />
         ))}
       </div>
@@ -100,12 +128,13 @@ function Hero({
         aria-hidden="true"
         className={`${root} ${crop ? "overflow-hidden" : ""}`}
       >
-        {layers.map((src) => (
+        {layers.map((src, i) => (
           <div
             key={src}
             className="absolute inset-0"
             style={{
-              transform: crop ? "scale(1.22)" : undefined,
+              transform:
+                [sh(i)?.transform, crop && "scale(1.22)"].filter(Boolean).join(" ") || undefined,
               transformOrigin: "50% 94%",
               backgroundImage: `url(${src})`,
               backgroundSize: `${n * 100}% 100%`,
@@ -122,6 +151,7 @@ function Hero({
         <div key={src} className={i ? "absolute inset-0" : ""}>
           <AnimSheet
             anim={sheet(src, a)}
+            shift={shiftOf(i)}
             onDone={i === 0 && notHold ? () => setDone(true) : undefined}
           />
         </div>

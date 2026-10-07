@@ -152,7 +152,7 @@ export function BattleArena({
   const { fx, paused } = useBattleFx(b, boss);
   return (
     <div
-      className={`stage relative ${tall ? "h-[clamp(20rem,50vh,34rem)] flex-none" : "min-h-[clamp(17rem,36vh,30rem)] flex-1 max-md:flex-none"} max-md:h-[25rem] overflow-hidden border-4 border-[var(--edge)] ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
+      className={`stage relative ${tall ? "h-[clamp(20rem,50vh,34rem)] flex-none" : "min-h-[clamp(17rem,36vh,30rem)] flex-1 max-md:flex-none"} max-md:h-[27rem] overflow-hidden border-4 border-[var(--edge)] ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
       style={big?.style}
       data-hitstop={paused}
     >
@@ -208,6 +208,7 @@ export function BattleArena({
         role="radiogroup"
         aria-label="Objetivo del ataque"
         data-n={Math.min(n, 3)}
+        data-boss={boss ? "" : undefined}
         className="stage-foes absolute bottom-0 right-[1.5%] top-0 flex items-end justify-end gap-[1%]"
       >
         {b.enemies.map((c, i) => {
@@ -244,7 +245,7 @@ export function BattleArena({
               className={`stage-foe relative flex min-w-0 flex-col items-center justify-end rounded-sm outline-offset-2 ${multi && !dead ? "cursor-pointer" : ""} ${selected && multi ? "outline outline-[3px] outline-yellow-300" : ""} ${dead ? "opacity-50 grayscale" : ""}`}
             >
               <FxLayer t={fx?.enemies[i]} k={fx?.key ?? 0} />
-              <div className={`relative z-10 w-full ${isBoss ? "mb-[calc(var(--s)*0.25)]" : ""}`}>
+              <div className="relative z-10 w-full">
                 <HudCard
                   c={c}
                   foe={b.player}
@@ -259,13 +260,13 @@ export function BattleArena({
                     <div className="mt-1 flex min-h-6 flex-wrap items-center gap-1 text-[13px]">
                       {multi && selected && (
                         <Tooltip tip={targetTip(b, i)}>
-                          <span className="cursor-help font-semibold text-yellow-300">
+                          <span className="cursor-help font-semibold text-yellow-300 max-md:hidden">
                             ▶ Objetivo
                           </span>
                         </Tooltip>
                       )}
                       {intents.length > 0 && (
-                        <span className="font-semibold text-red-300">
+                        <span className={`font-semibold text-red-300 ${multi ? "max-md:hidden" : ""}`}>
                           Anuncia:
                         </span>
                       )}

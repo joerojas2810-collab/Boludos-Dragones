@@ -609,31 +609,6 @@ hr,
   background: center / 100% 100% no-repeat url("/art/ui/separator.webp");
 }
 
-/* Game logo */
-.game-plate {
-  max-width: 36rem;
-  border: 12px solid transparent;
-  border-image: url("/art/ui/panel_raised.webp") 33 fill / 12px stretch;
-  padding: 0.25rem 1rem;
-}
-.game-emblem {
-  width: 8.5rem;
-  height: auto;
-  margin: 0 auto;
-  filter: drop-shadow(0 3px 0 rgb(0 0 0 / 0.5));
-}
-.game-plate {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.game-logo {
-  width: 100%;
-  max-width: 32rem;
-  height: auto;
-  filter: drop-shadow(0 3px 0 rgb(0 0 0 / 0.6)) drop-shadow(0 0 8px rgb(0 0 0 / 0.55));
-}
-
 /* Painted selectable tiles (forge pickers) */
 .tile-art {
   border: 10px solid transparent;
@@ -660,4 +635,36 @@ hr,
 .pixel-frame.choice-card {
   border-width: 12px;
   box-shadow: none;
+}
+
+
+/* Game title: emblem left, wordmark + tagline right, no plate */
+.game-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 44rem;
+  filter: drop-shadow(0 0 3px rgb(10 14 20 / 0.95)) drop-shadow(0 0 9px rgb(10 14 20 / 0.7))
+    drop-shadow(0 3px 0 rgb(0 0 0 / 0.6));
+}
+.game-title-emblem {
+  width: clamp(5.5rem, 14vw, 9.5rem);
+  height: auto;
+}
+.game-title-text {
+  min-width: 0;
+  flex: 1;
+}
+.game-title-word {
+  width: 100%;
+  height: auto;
+}
+.game-title-tag {
+  margin-top: 0.25rem;
+  font-family: var(--font-title), serif;
+  font-size: clamp(1rem, 1.9vw, 1.6rem);
+  color: #f6ead6;
+  letter-spacing: 0.04em;
+  text-align: center;
 }

@@ -128,6 +128,12 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
                   className="pointer-events-none absolute left-1/2 top-1/2 w-[180%] max-w-none -translate-x-1/2 -translate-y-1/2"
                 />
               )}
+              {!legacy && i === shown && it.pity && (
+                <Vfx
+                  id={`gacha_pity_${it.pity}`}
+                  className="pointer-events-none absolute left-1/2 top-1/2 w-[220%] max-w-none -translate-x-1/2 -translate-y-1/2"
+                />
+              )}
               <div className="relative">
                 <ItemCard item={it} size={single ? 144 : 76} />
               </div>

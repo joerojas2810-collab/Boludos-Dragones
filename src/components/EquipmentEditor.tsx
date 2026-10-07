@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { ElementIcon } from "@/components/ElementIcon";
 import { HeroSprite } from "@/components/HeroSprite";
+import { Icon } from "@/components/Icon";
 import { StarRow } from "@/components/StarRow";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import { CLASSES } from "@/lib/game/characters";
@@ -65,13 +66,7 @@ function GearCard({
       </div>
       <div className="min-w-0 flex-1 space-y-1 text-sm">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span
-            className="grid h-6 min-w-8 place-items-center border-2 border-[var(--edge)] px-1 text-sm font-bold"
-            style={{ background: color, color: "#1d1714" }}
-            title={`Rango ${RARITIES[w.rarity].label}`}
-          >
-            {RARITIES[w.rarity].label}
-          </span>
+          <Icon name={`rank_${w.rarity}`} className="h-7" />
           <span className="truncate font-semibold">{w.name}</span>
           <ElementIcon element={w.element} className="h-4" />
           {worn && (

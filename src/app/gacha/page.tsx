@@ -26,7 +26,28 @@ import {
 import { claimedToday, dayKey } from "@/lib/game/streak";
 import { WEAPON_TYPES } from "@/lib/game/weapons";
 import { repo, useProfile } from "@/lib/useProfile";
-import { resultViews, summarizePull } from "@/lib/viewModels";
+import { resultView, summarizePull } from "@/lib/viewModels";
+
+// Views of a pull, marking the pity-guaranteed ones by replaying the counters
+// (SS pity at PITY_THRESHOLD, SSR pity at PITY_SSR_THRESHOLD; both reset on a hit).
+function pullViews(rs: PullResult[], pity: number, pitySsr: number): ItemView[] {
+  let ss = pity;
+  let ssr = pitySsr;
+  return rs.flatMap((r) => {
+    const v = resultView(r);
+    const mark =
+      r.rarity === "ssr" && ssr >= PITY_SSR_THRESHOLD
+        ? "ssr"
+        : r.rarity === "ss" && ss >= PITY_THRESHOLD
+          ? "ss"
+          : undefined;
+    if (RARITY_IDS.indexOf(r.rarity) >= RARITY_IDS.indexOf("ss")) ss = 0;
+    else ss++;
+    if (r.rarity === "ssr") ssr = 0;
+    else ssr++;
+    return v ? [mark ? { ...v, pity: mark } : v] : [];
+  });
+}
 
 const BANNERS: Record<Banner, { tab: string; title: string; text: string }> = {
   character: {
@@ -64,7 +85,7 @@ export default function GachaPage() {
       const { results } = await job();
       if (results)
         setReveal({
-          items: resultViews(results),
+          items: pullViews(results, pity, profile.pitySsr[banner]),
           summary: summarizePull(results),
         });
       else setSummary("Esa tirada ya estaba registrada.");

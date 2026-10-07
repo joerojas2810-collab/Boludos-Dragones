@@ -154,6 +154,8 @@
 .stage-foes[data-n="2"] { --es: 1.3; --s: min(58cqh, 27cqw, 100cqh - 8rem); }
 .stage-foes[data-n="3"] { --es: 1.15; --s: min(50cqh, 20cqw, 100cqh - 8rem); }
 
+/* Boss (x1.26 scale + taller card): smaller box so the crown stays under the card. */
+.stage-foes[data-boss][data-n="1"] { --es: 1.3; --s: min(56cqh, 38cqw, 100cqh - 12rem); }
 .stage-foe {
   width: max(var(--s), 11rem);
 }
@@ -163,17 +165,19 @@
   margin-bottom: 4cqh;
 }
 @media (max-width: 767px) {
-  .stage { --hs: min(40cqh, 34cqw); }
-  .stage-foes[data-n="1"] { --s: min(44cqh, 46cqw); }
-  .stage-foes[data-n="2"] { --s: min(38cqh, 30cqw); }
-  .stage-foes[data-n="3"] { --s: min(32cqh, 22cqw); }
+  .stage { --hs: min(46cqh, 44cqw); }
+  .stage-foes[data-n="1"] { --s: min(50cqh, 54cqw); }
+  .stage-foes[data-boss][data-n="1"] { --es: 1.15; --s: min(44cqh, 50cqw); }
+  .stage-foes[data-n="2"] { --s: min(44cqh, 38cqw); }
+  .stage-foes[data-n="3"] { --es: 1.1; --s: min(36cqh, 31cqw); }
   .stage-foe { width: max(var(--s), 7.5rem); }
   .stage-foes[data-n="3"] .stage-foe { width: max(var(--s), 6.6rem); }
   .stage:has(.stage-foes[data-n="3"]) { height: 31rem; }
   .stage:has(.stage-foes[data-n="3"]) .stage-hero {
     --hs: 30cqh;
     bottom: auto;
-    top: 23cqh;
+    top: 5cqh;
+    left: 40%;
   }
 }
 /* HP text must stay on one line inside the narrow floating cards. */

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ActionPanel } from "@/components/ActionPanel";
 import { BattleArena } from "@/components/BattleArena";
 import { EnemySprite } from "@/components/EnemySprite";
+import { HeroSprite } from "@/components/HeroSprite";
+import { Icon } from "@/components/Icon";
 import { HealthBar } from "@/components/HealthBar";
 import { Panel } from "@/components/Panel";
 import { useTargeting } from "@/components/useTargeting";
@@ -24,6 +26,7 @@ export function CoopBar({ view }: { view: RoomView }) {
   if (!c) return null;
   const name = (id: string) =>
     view.players.find((p) => p.id === id)?.name ?? "?";
+  const heroOf = (id: string) => view.players.find((p) => p.id === id)?.hero;
   const rows = [...c.players].sort((a, b) => b.damage - a.damage);
   return (
     <Panel title={c.bossName}>
@@ -36,11 +39,20 @@ export function CoopBar({ view }: { view: RoomView }) {
       <ul className="mt-2 space-y-1 text-sm">
         {rows.map((r) => (
           <li key={r.id} className="flex items-center gap-2">
+            {heroOf(r.id) && (
+              <HeroSprite
+                classId={heroOf(r.id)!.classId}
+                element={heroOf(r.id)!.element}
+                traits={heroOf(r.id)!.traits}
+                className="w-14 shrink-0"
+                crop
+              />
+            )}
             <span className="w-24 truncate">
               {r.id === c.mvp ? "★ " : ""}
               {name(r.id)}
             </span>
-            <span className="h-2 flex-1 bg-black/40">
+            <span className="h-3 flex-1 rounded bg-black/40">
               <span
                 className="bar-fill block h-full"
                 data-fill="xp"
@@ -68,13 +80,13 @@ function CoopPrize({ view }: { view: RoomView }) {
   const over = view.phase !== "coop_boss";
   const mvp = view.players.find((p) => p.id === c.mvp);
   return (
-    <div className="mt-2 border border-yellow-300/40 p-2 text-center text-sm">
+    <div className="tile-art mt-2 text-center text-sm">
       <div className="text-yellow-300">
         {over ? "Tu premio" : "Si termina así, tu premio"}
         {c.won ? " (¡ganaron!)" : " (consuelo)"}
       </div>
       <div>
-        {mine.coins} monedas
+        {mine.coins} <Icon name="system_coin" className="h-4" />
         {mine.cores.length > 0 &&
           ` · ${mine.cores.length} núcleo${mine.cores.length > 1 ? "s" : ""} (${mine.cores
             .map((e) => ELEMENT_LABEL[e as keyof typeof ELEMENT_LABEL] ?? e)
