@@ -5,6 +5,8 @@ import { generateCharacter } from "./characters";
 import {
   coopNode,
   coopPool,
+  coopPrizes,
+  COOP_REWARD,
   coopRank,
   coopTally,
   replayCoop,
@@ -79,5 +81,22 @@ describe("coop boss", () => {
     expect(coopTally(pool, {}).mvp).toBeNull();
     expect(coopRank("nivelado", "s")).toBeNull();
     expect(coopRank("completo", "s")).toBe("s");
+  });
+});
+
+describe("coop prizes", () => {
+  const pool = coopPool(11, null, 2);
+  it("everybody with damage is paid; a win pays more and the MVP gets an extra core", () => {
+    const dmg = { a: pool * 0.7, b: pool * 0.5, c: 0 };
+    const won = coopPrizes(11, coopTally(pool, dmg), dmg);
+    expect(won.map((p) => p.id)).toEqual(["a", "b"]); // c did nothing
+    expect(won[0]).toMatchObject({ coins: COOP_REWARD.winCoins, mvp: true });
+    expect(won[0].cores).toHaveLength(2);
+    expect(won[1].cores).toHaveLength(1);
+    expect(coopPrizes(11, coopTally(pool, dmg), dmg)).toEqual(won); // deterministic
+    const small = { a: pool * 0.1, b: pool * 0.1 };
+    const lost = coopPrizes(11, coopTally(pool, small), small);
+    expect(lost.every((p) => p.coins === COOP_REWARD.loseCoins)).toBe(true);
+    expect(lost.every((p) => p.cores.length === 0 && !p.mvp)).toBe(true);
   });
 });

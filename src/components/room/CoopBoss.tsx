@@ -9,6 +9,7 @@ import { Panel } from "@/components/Panel";
 import { useTargeting } from "@/components/useTargeting";
 import { step, type Action, type Battle } from "@/lib/game/combat";
 import { COOP_K, damageDealt, startCoop } from "@/lib/game/coop";
+import { ELEMENT_LABEL } from "@/lib/game/elements";
 import type { RunAction } from "@/lib/game/replay";
 import type { Rng } from "@/lib/game/rng";
 import { worldOf } from "@/lib/game/worlds";
@@ -31,6 +32,7 @@ export function CoopBar({ view }: { view: RoomView }) {
         {c.total.toLocaleString("es")} / {c.pool.toLocaleString("es")} de daño
         {c.won && <b className="ml-2 text-green-300">¡Jefe caído!</b>}
       </div>
+      <CoopPrize view={view} />
       <ul className="mt-2 space-y-1 text-sm">
         {rows.map((r) => (
           <li key={r.id} className="flex items-center gap-2">
@@ -54,6 +56,34 @@ export function CoopBar({ view }: { view: RoomView }) {
         ))}
       </ul>
     </Panel>
+  );
+}
+
+/** My prize (what I earn if it ends like this, or what I got once the boss phase is over). */
+function CoopPrize({ view }: { view: RoomView }) {
+  const c = view.coop;
+  const mine = c?.prizes.find((p) => p.id === view.me);
+  if (!c || !mine) return null;
+  const over = view.phase !== "coop_boss";
+  const mvp = view.players.find((p) => p.id === c.mvp);
+  return (
+    <div className="mt-2 border border-yellow-300/40 p-2 text-center text-sm">
+      <div className="text-yellow-300">
+        {over ? "Tu premio" : "Si termina así, tu premio"}
+        {c.won ? " (¡ganaron!)" : " (consuelo)"}
+      </div>
+      <div>
+        {mine.coins} monedas
+        {mine.cores.length > 0 &&
+          ` · ${mine.cores.length} núcleo${mine.cores.length > 1 ? "s" : ""} (${mine.cores
+            .map((e) => ELEMENT_LABEL[e as keyof typeof ELEMENT_LABEL] ?? e)
+            .join(", ")})`}
+        {` · +${mine.chips} fichas`}
+      </div>
+      {c.won && mvp && (
+        <div className="text-xs opacity-80">★ Matajefes: {mvp.name}</div>
+      )}
+    </div>
   );
 }
 

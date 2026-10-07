@@ -6,6 +6,7 @@ import type { z } from "zod";
 import {
   coopNode,
   coopPool,
+  coopPrizes,
   coopRank,
   coopTally,
   replayCoop,
@@ -286,12 +287,14 @@ async function coopViewOf(
     rank,
     s.players.filter((p) => !p.left).length,
   );
-  const t = coopTally(
-    pool,
-    Object.fromEntries(rows.map((r) => [r.playerId, r.damage])),
-  );
+  const damage = Object.fromEntries(rows.map((r) => [r.playerId, r.damage]));
+  const t = coopTally(pool, damage);
+  const prizes = coopPrizes(s.roundSeed, t, damage);
+  if (s.phase !== "coop_boss" && rows.some((r) => !r.paid))
+    await payCoop(d, room, prizes, rows);
   return {
     ...t,
+    prizes,
     bossName: coopNode(s.roundSeed, rank).enemy.name,
     players: rows.map((r) => ({
       id: r.playerId,
@@ -299,6 +302,29 @@ async function coopViewOf(
       finished: r.finished,
     })),
   };
+}
+
+/** Pays the prizes once (coop_pay is idempotent per player and enforces the daily account limit); a failure retries on the next poll. */
+async function payCoop(
+  d: RoomDeps,
+  room: string,
+  prizes: ReturnType<typeof coopPrizes>,
+  rows: { playerId: string; paid: boolean }[],
+) {
+  const unpaid = new Set(rows.filter((r) => !r.paid).map((r) => r.playerId));
+  const out = prizes
+    .filter((p) => unpaid.has(p.id))
+    .map((p) => ({
+      player: p.id,
+      coins: p.coins,
+      chips: p.chips,
+      cores: p.cores,
+    }));
+  try {
+    if (out.length) await d.store.payCoop(room, out);
+  } catch {
+    // keep the poll alive; unpaid rows are retried on the next snapshot
+  }
 }
 
 /** Everybody present has finished their fight: the boss can end early. */

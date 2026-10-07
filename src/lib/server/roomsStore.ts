@@ -30,6 +30,7 @@ export interface CoopRow {
   playerId: string;
   damage: number;
   finished: boolean;
+  paid: boolean;
 }
 
 export interface AdvanceArgs {
@@ -158,6 +159,16 @@ export interface RoomStore {
   ): Promise<InterfereKind | null>;
   /** Coop boss: best replayed damage per player (room_coop). */
   loadCoop(room: string): Promise<CoopRow[]>;
+  /** Pays the prizes once per player (coop_pay); only after the boss phase. */
+  payCoop(
+    room: string,
+    rows: {
+      player: string;
+      coins: number;
+      chips: number;
+      cores: string[];
+    }[],
+  ): Promise<void>;
   /** Keeps the better of the stored and the new damage. */
   saveCoop(
     room: string,

@@ -43,6 +43,7 @@ import {
   bossUnit,
   coopNode,
   coopPool,
+  coopPrizes,
   coopRank,
   coopTally,
   replayCoop,
@@ -287,12 +288,13 @@ export class FakeRoomClient implements RoomClient {
       rank,
       s.players.filter((p) => !p.left).length,
     );
-    const t = coopTally(
-      pool,
-      Object.fromEntries([...this.coopDmg].map(([id, c]) => [id, c.damage])),
+    const damage = Object.fromEntries(
+      [...this.coopDmg].map(([id, c]) => [id, c.damage]),
     );
+    const t = coopTally(pool, damage);
     return {
       ...t,
+      prizes: coopPrizes(s.roundSeed, t, damage),
       bossName: coopNode(s.roundSeed, rank).enemy.name,
       players: [...this.coopDmg].map(([id, c]) => ({ id, ...c })),
     };

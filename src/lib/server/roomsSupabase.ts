@@ -477,16 +477,26 @@ export function realRoomStore(): RoomStore {
     },
 
     async loadCoop(room) {
-      return rows<{ player_id: string; damage: number; finished: boolean }>(
+      return rows<{
+        player_id: string;
+        damage: number;
+        finished: boolean;
+        paid: boolean;
+      }>(
         await sb
           .from("room_coop")
-          .select("player_id, damage, finished")
+          .select("player_id, damage, finished, paid")
           .eq("room_id", room),
       ).map((r) => ({
         playerId: r.player_id,
         damage: r.damage,
         finished: r.finished,
+        paid: r.paid,
       }));
+    },
+
+    async payCoop(room, rows) {
+      await c("coop_pay", { p_room: room, p_rows: rows });
     },
 
     async saveCoop(room, player, row) {

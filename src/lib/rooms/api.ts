@@ -142,6 +142,16 @@ export const coopView = z.object({
   mvp: uuid.nullable(),
   bossName: z.string(),
   players: z.array(z.object({ id: uuid, damage: int, finished: z.boolean() })),
+  /** What each player with damage earns (paid once when the boss phase ends). */
+  prizes: z.array(
+    z.object({
+      id: uuid,
+      coins: int,
+      chips: int,
+      cores: z.array(z.string()),
+      mvp: z.boolean(),
+    }),
+  ),
 });
 export type CoopView = z.infer<typeof coopView>;
 
