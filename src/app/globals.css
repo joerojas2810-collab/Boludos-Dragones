@@ -173,9 +173,25 @@ textarea:focus-visible,
   border-radius: 6px;
   box-shadow: none;
   animation: none;
+  overflow: visible;
 }
-.rarity-frame.rarity-frame-art[data-rarity]::after,
 .rarity-frame-art .rarity-notch {
+  display: none;
+}
+/* S, SS, SSR: pulsing glow on the painted frame and a shine sweep inside its opening */
+.rarity-frame-art:is([data-rarity="s"], [data-rarity="ss"], [data-rarity="ssr"]) > img {
+  animation: frame-glow 1.6s ease-in-out infinite;
+}
+.rarity-frame.rarity-frame-art:is([data-rarity="s"], [data-rarity="ss"], [data-rarity="ssr"])::after {
+  inset: 6.5% 9%;
+  z-index: 14;
+}
+@keyframes frame-glow {
+  50% {
+    filter: drop-shadow(0 0 7px var(--rc));
+  }
+}
+.rarity-notch {
   display: none;
 }
 .rarity-notch {
@@ -324,6 +340,7 @@ textarea:focus-visible,
   .fx-bigshake-b,
   .rarity-frame:is([data-rarity="s"], [data-rarity="ss"], [data-rarity="ssr"]),
   .rarity-frame:is([data-rarity="s"], [data-rarity="ss"], [data-rarity="ssr"])::after,
+  .rarity-frame-art[data-rarity] > img,
   .fx-shake,
   .fx-flash,
   .fx-flip,
