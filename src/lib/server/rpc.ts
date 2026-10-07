@@ -68,6 +68,8 @@ const KNOWN: Record<string, [number, string]> = {
   ],
   insufficient_parts: [409, "No tienes suficientes partes."],
   equipped: [409, "Esa pieza está equipada."],
+  nothing_to_claim: [409, "No hay premios para reclamar."],
+  already_rerolled: [409, "Ya cambiaste una misión en este periodo."],
 };
 
 // Known contract codes -> friendly API error; unknown -> generic (rethrown).

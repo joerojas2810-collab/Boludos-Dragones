@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { isMuted, setMuted } from "@/lib/sfx";
 import { claimedToday, dayKey } from "@/lib/game/streak";
 import { logout, repo, useProfile } from "@/lib/useProfile";
 import "./shell.css";
 
-type TabId = "dungeons" | "tower" | "heroes" | "summon" | "forge" | "room";
+type TabId =
+  "dungeons" | "tower" | "heroes" | "summon" | "forge" | "missions" | "room";
 interface Tab {
   id: TabId;
   label: string;
@@ -33,6 +34,13 @@ const TABS: readonly Tab[] = [
   { id: "summon", label: "Invocar", href: "/gacha", match: ["/gacha"] },
   { id: "forge", label: "Forja", href: "/forja", match: ["/forja"] },
   {
+    id: "missions",
+    label: "Misiones",
+    href: "/misiones",
+    match: ["/misiones"],
+    remoteOnly: true,
+  },
+  {
     id: "room",
     label: "Sala",
     href: "/sala",
@@ -50,6 +58,7 @@ const SHELL_ROUTES = [
   "/forja",
   "/sala",
   "/torre",
+  "/misiones",
 ];
 
 // 16x16 pixel-style glyphs, drawn with the current text colour.
@@ -61,6 +70,7 @@ const ICONS: Record<TabId, ReactNode> = {
   ),
   summon: <path d="M8 1l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />,
   forge: <path d="M1 4h11v3H9v2h4v3H4V9h2V7H1zm11 0h3v2h-3z" />,
+  missions: <path d="M3 2h10v12H3zm2 2v2h6V4zm0 4v1h6V8zm0 3v1h4v-1z" />,
   room: (
     <path d="M5 2a2.5 2.5 0 110 5 2.5 2.5 0 010-5zm6 1a2 2 0 110 4 2 2 0 010-4zM1 14c0-3 2-5 4-5s4 2 4 5zm9 0c0-2 1-4 3-4s2 1 2 4z" />
   ),
@@ -97,14 +107,49 @@ function SoundToggle() {
   );
 }
 
+// True when some mission scope has reached tiers that are not claimed yet.
+function useMissionsPending(on: boolean, path: string) {
+  const [pending, setPending] = useState(false);
+  useEffect(() => {
+    if (!on) return;
+    let alive = true;
+    void fetch("/api/missions", { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(
+        (
+          d: {
+            scopes: {
+              points: number;
+              claimed: number;
+              tiers: { points: number }[];
+            }[];
+          } | null,
+        ) =>
+          alive &&
+          setPending(
+            !!d?.scopes.some(
+              (s) =>
+                s.tiers.filter((t) => t.points <= s.points).length > s.claimed,
+            ),
+          ),
+      )
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [on, path]);
+  return pending;
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const { profile, session } = useProfile();
   const visible = SHELL_ROUTES.some((r) =>
     r === "/" ? path === "/" : path === r || path === `${r}/`,
   );
-  if (!visible) return <>{children}</>;
   const remote = repo.mode === "remote" && session.status === "user";
+  const missionsPending = useMissionsPending(remote && visible, path);
+  if (!visible) return <>{children}</>;
   const dailyReady = !!profile && !claimedToday(profile.daily, dayKey());
   return (
     <>
@@ -134,7 +179,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       <nav className="shell-nav" aria-label="Secciones">
         {TABS.filter((t) => !t.remoteOnly || remote).map((t) => {
           const active = t.match.includes(path.replace(/\/$/, "") || "/");
-          const badge = t.id === "summon" && dailyReady;
+          const badge =
+            (t.id === "summon" && dailyReady) ||
+            (t.id === "missions" && missionsPending);
           const inner = (
             <>
               <TabIcon id={t.id} />
@@ -142,7 +189,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               {badge && (
                 <i
                   className="shell-badge"
-                  aria-label="Tirada diaria disponible"
+                  aria-label={
+                    t.id === "missions"
+                      ? "Premios de misiones por reclamar"
+                      : "Tirada diaria disponible"
+                  }
                 />
               )}
               {!t.href && <small>Pronto</small>}

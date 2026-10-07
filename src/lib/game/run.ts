@@ -218,6 +218,8 @@ export interface Run {
   partSecured: Parts; // parts locked in by defeated bosses: paid at the end
   lastDrops: Parts; // what the last node dropped (for the UI)
   lootPool: number; // dungeon loot budget left (points); see budget.ts
+  wins?: number; // fights won this run (missions); absent in old saves
+  bossWins?: number; // boss fights won this run (missions)
   engineVersion: number;
 }
 
@@ -559,6 +561,8 @@ export function createRun(
       rank && lootEnabled
         ? Math.round(dungeonBudget(rank) * (1 + ASC_LOOT_STEP * ascension))
         : 0,
+    wins: 0,
+    bossWins: 0,
     engineVersion: ENGINE_VERSION,
   };
 }
@@ -1056,7 +1060,7 @@ export const fleeCost = (run: Run) =>
 // Won: rewards + carry hp, floor cleared. Fled: pay fleeCost, keep hp.
 // Lost: -1 life, LIFE_LOSS_HEAL hp; 0 lives = over. Fled/lost close the node
 // but not the floor, so another door can be chosen. `node` must be the open one.
-export function applyBattleResult(
+function resolveBattle(
   run: Run,
   battle: Battle,
   node: FightNode,
@@ -1166,3 +1170,18 @@ export function applyBattleResult(
 }
 
 export const runScore = (run: Run) => run.maxFloor;
+
+// Same as resolveBattle plus the win counters the missions read from the verified replay.
+export function applyBattleResult(
+  run: Run,
+  battle: Battle,
+  node: FightNode,
+): Run {
+  const out = resolveBattle(run, battle, node);
+  if (out === run || battle.status !== "won") return out;
+  return {
+    ...out,
+    wins: (run.wins ?? 0) + 1,
+    bossWins: (run.bossWins ?? 0) + (node.kind === "boss" ? 1 : 0),
+  };
+}

@@ -20,6 +20,7 @@ export function GuidePanel({ tab }: { tab: keyof typeof GUIDE }) {
       localStorage.setItem(KEY, open ? "0" : "1");
     } catch {}
   };
+  const [tutorial, setTutorial] = useState(false);
   const g = GUIDE[tab];
   return (
     <aside className="lg:sticky lg:top-16 lg:self-start">
@@ -42,6 +43,20 @@ export function GuidePanel({ tab }: { tab: keyof typeof GUIDE }) {
           <p className="opacity-80">
             <b>Ejemplo:</b> {g.example}
           </p>
+          <button
+            className="btn btn-gray !min-h-8 w-full !px-2 text-sm"
+            aria-expanded={tutorial}
+            onClick={() => setTutorial(!tutorial)}
+          >
+            {tutorial ? "Ocultar tutorial ✕" : "Ver tutorial"}
+          </button>
+          {tutorial && (
+            <ul className="list-disc space-y-1.5 pl-5">
+              {g.steps.map((t) => (
+                <li key={t}>{t}</li>
+              ))}
+            </ul>
+          )}
         </Panel>
       )}
     </aside>

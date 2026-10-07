@@ -60,9 +60,9 @@ await err(db.exec(`insert into public.room_players(room_id,player_id,chips) valu
 await db.exec(`update public.player_state set coins=5000 where player_id='${U(2)}'`);
 const ch=(cls,el,rar)=>({class:cls,element:el,rarity:rar,data:{name:"X"}});
 let st=0;
-const pull=async(items,over={})=>{ const banner=over.banner??"character"; const st0=(await db.query(`select pity, pity_ssr from public.gacha_state where player_id='${U(2)}' and banner='${banner}'`)).rows[0]; const old=st0.pity, oldSsr=st0.pity_ssr; return rpc("apply_pull",{p_player:U(2),p_version:over.v??st,p_idem:over.idem??("idem-"+Math.random().toString(36).slice(2,12)),p_banner:over.banner??"character",p_cost:over.cost??150*items.length,p_pity:over.pity===undefined?old+items.length:(over.pity==="x"?0:over.pity),p_pity_ssr:over.pitySsr===undefined?oldSsr+items.length:over.pitySsr,p_seed:123,p_daily:over.daily??false,p_items:items});};
+const pull=async(items,over={})=>{ const banner=over.banner??"character"; const st0=(await db.query(`select pity, pity_ssr from public.gacha_state where player_id='${U(2)}' and banner='${banner}'`)).rows[0]; const old=st0.pity, oldSsr=st0.pity_ssr; return rpc("apply_pull",{p_player:U(2),p_version:over.v??st,p_idem:over.idem??("idem-"+Math.random().toString(36).slice(2,12)),p_banner:over.banner??"character",p_cost:over.cost??250*items.length,p_pity:over.pity===undefined?old+items.length:(over.pity==="x"?0:over.pity),p_pity_ssr:over.pitySsr===undefined?oldSsr+items.length:over.pitySsr,p_seed:123,p_daily:over.daily??false,p_items:items});};
 let r=await pull([ch("mago","fuego","f")]); st=r.version;
-ok(r.coins===4850 && r.results[0].status==="new" && r.results[0].id==="c-mago-fuego-f" && r.pity===1,"first pull "+JSON.stringify(r));
+ok(r.coins===4750 && r.results[0].status==="new" && r.results[0].id==="c-mago-fuego-f" && r.pity===1,"first pull "+JSON.stringify(r));
 r=await pull([ch("mago","fuego","f")],{}); st=r.version;
 ok(r.results[0].status==="star" && r.results[0].stars===1,"dup star");
 r=await pull([ch("mago","agua","f")],{}); st=r.version;
@@ -80,13 +80,13 @@ await err(pull([ch("hacker","rayo","c")],{}),"invalid_items");
 await err(pull([ch("mago","rayo","epic")],{}),"invalid_items","bad rarity");
 await err(pull([],{cost:0}),"invalid_items","empty");
 await err(pull(Array(11).fill(ch("mago","rayo","c")),{cost:1}),"invalid_items","11 items");
-// 10-pull cost 1350
+// 10-pull cost 2250
 const ten=Array.from({length:10},()=>ch("caballero","tierra","f"));
-r=await pull(ten,{cost:1350}); st=r.version;
+r=await pull(ten,{cost:2250}); st=r.version;
 ok(r.results.length===10 && r.results[0].status==="new" && r.results[5].stars===5 || true,"10 pull");
 console.log("10-pull statuses",r.results.map(x=>x.status+":"+x.stars).join(","),"refundTotal",r.refundTotal);
-ok(r.results[5].stars===5 && r.results[6].status==="refund" && r.results[6].refund===75 && r.refundTotal===300,"max star refund");
-await err(pull(ten,{cost:1500}),"invalid_cost","10 at full price");
+ok(r.results[5].stars===5 && r.results[6].status==="refund" && r.results[6].refund===125 && r.refundTotal===500,"max star refund");
+await err(pull(ten,{cost:2500}),"invalid_cost","10 at full price");
 // pity: legendary resets, guarantee at 100
 await db.exec(`update public.gacha_state set pity=100 where player_id='${U(2)}' and banner='character'`);
 await err(pull([ch("clerigo","viento","f")],{pity:101}),"invalid_pity","pity100 non-legend");
@@ -106,7 +106,7 @@ ok(r.results[0].id==="w-espada-fuego-c","weapon id");
 r=await pull([ch("picaro","agua","f")],{daily:true,cost:0}); st=r.version;
 ok(r.results[0].status==="new","daily ok");
 await err(pull([ch("picaro","agua","f")],{daily:true,cost:0}),"already_claimed");
-await err(pull([ch("picaro","agua","f")],{daily:true,cost:150}),"invalid_cost","daily must be free");
+await err(pull([ch("picaro","agua","f")],{daily:true,cost:250}),"invalid_cost","daily must be free");
 // profile, spend fragments, equip
 let prof=await rpc("get_profile",{p_player:U(2)});
 ok(prof.characters.length>=5 && prof.equipped && prof.fragments["mago:f"]>=1,"profile "+JSON.stringify(prof.fragments));

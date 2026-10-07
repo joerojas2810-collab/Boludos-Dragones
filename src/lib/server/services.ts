@@ -27,6 +27,7 @@ import { isVictory } from "../game/run";
 import { createRng } from "../game/rng";
 import { isDayKey, type DailyState } from "../game/streak";
 import { ApiError } from "./http";
+import { trackMissions } from "./missions";
 import {
   audit,
   call,
@@ -219,6 +220,7 @@ export async function doPull(
             { p_player: playerId },
           )
         : null;
+      if (!r.replayed) await trackMissions(d.rpc, playerId, { pull: count });
       const fresh = await loadMe(d.rpc, playerId);
       return {
         streak,
@@ -555,6 +557,17 @@ export async function submitRunService(
         p_mode: tower,
         p_floor: floors,
       });
+    // Missions count only what the verified replay says, never the client.
+    if (verdict === "accepted" && !tower) {
+      const wins = rep.run.wins ?? 0;
+      await trackMissions(d.rpc, playerId, {
+        fight_win: wins,
+        [`element_win:${hero.element}`]: wins,
+        boss_win: rep.run.bossWins ?? 0,
+        floors,
+        dungeon_clear: rank && isVictory(rep.run) ? 1 : 0,
+      });
+    }
     if (doubtful)
       await audit(d.rpc, playerId, "run_slow_pace", {
         runId: body.runId,
@@ -596,6 +609,7 @@ export async function doForge(d: Deps, playerId: string, op: ForgeOp) {
   } catch (e) {
     return mapRpcError(e);
   }
+  await trackMissions(d.rpc, playerId, { forge: 1 });
   // Trace of every forge op (what was spent and gained), to check complaints later.
   await audit(d.rpc, playerId, "forge", {
     op: op.op,
