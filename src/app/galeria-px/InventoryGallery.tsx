@@ -13,11 +13,26 @@ const ITEMS = [
 ] as const;
 const FAMILY_LABELS: Record<string, string> = {
   element: "Elementos", class: "Clases", rank: "Rangos", door: "Puertas",
-  passive: "Pasivos", skill: "Habilidades", trait: "Rasgos", part: "Partes de forja", core: "Núcleos",
+  passive: "Pasivos", skill: "Habilidades", trait: "Rasgos", upgrade: "Mejoras", part: "Partes de forja", core: "Núcleos",
 };
 const LABELS: Record<string, string> = {
   fire: "Fuego", water: "Agua", earth: "Tierra", lightning: "Rayo", wind: "Viento",
   knight: "Caballero", mage: "Mago", rogue: "Pícaro", cleric: "Clérigo",
+  oak_skin: "Piel de roble",
+  sharp_edge: "Filo afilado",
+  firm_shield: "Escudo firme",
+  eagle_eye: "Ojo de águila",
+  light_feet: "Pies ligeros",
+  steady_hand: "Pulso firme",
+  cold_blood: "Sangre fría",
+  good_runner: "Buen corredor",
+  fury: "Furia",
+  colossus: "Coloso",
+  bloodlust: "Sed de sangre",
+  dragon_skin: "Piel de dragón",
+  mastery: "Maestría",
+  shadow_dance: "Danza de sombras",
+  iron_will: "Voluntad de hierro",
   stubborn: "Terco",
   thirsty: "Sediento",
   jinxed: "Gafe",

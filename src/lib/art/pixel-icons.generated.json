@@ -88,5 +88,20 @@
   "trait_swift",
   "trait_tenacious",
   "trait_thirsty",
-  "trait_thorns"
+  "trait_thorns",
+  "upgrade_bloodlust",
+  "upgrade_cold_blood",
+  "upgrade_colossus",
+  "upgrade_dragon_skin",
+  "upgrade_eagle_eye",
+  "upgrade_firm_shield",
+  "upgrade_fury",
+  "upgrade_good_runner",
+  "upgrade_iron_will",
+  "upgrade_light_feet",
+  "upgrade_mastery",
+  "upgrade_oak_skin",
+  "upgrade_shadow_dance",
+  "upgrade_sharp_edge",
+  "upgrade_steady_hand"
 ]
