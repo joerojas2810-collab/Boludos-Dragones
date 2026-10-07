@@ -768,7 +768,7 @@ describe("forge service", () => {
     expect(r.text).toMatch(/3 operaciones/);
     expect(db.forged).toHaveLength(1);
     expect(db.forged[0]).toMatchObject({
-      p_coins: 15,
+      p_coins: 9,
       p_spend: { "p-espada-f": 8, "p-hacha-f": 4, "core-fuego": 3 },
       p_gain: { "p-espada-e": 2, "p-hacha-e": 1 },
       p_grant: [],

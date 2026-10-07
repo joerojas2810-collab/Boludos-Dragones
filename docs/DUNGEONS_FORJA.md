@@ -104,7 +104,7 @@ Tipos de ítem: 9 armas + 5 de armadura/collar = 14. Una parte por tipo de ítem
 4. Armas y equipo en medio de la run. **HECHO** (cofres: 50% de traer 1 pieza; jefes: elegir 1 de 2 o dejarlas, con +1 rango; mercader: 1 pieza a la venta). El botín va a una mochila y **pasa a la colección cuando un jefe lo asegura**: cada jefe vencido asegura todo lo recogido hasta ese momento; lo recogido después del último jefe se pierde si caes o abandonas. Duplicados: +1 estrella, o monedas si ya tiene 5. Falta que el rango dependa del rango del dungeon.
 5. Dungeons: rango, longitud, jefes, candados. **HECHO** (dificultad por rango calibrada con simulación; héroe del mismo rango con 3 estrellas y sin equipo limpia F 97%, E 90, D 81, C 75, B 59, A 48, S 33, SS 16, SSR 5%).
 6. Partes y drops. **HECHO** (14 partes × 9 rangos + 5 núcleos; pelea fácil 25%, difícil 40%, jefe 2 partes + 1 núcleo, jefe final 3 partes de rango +1 y 2 núcleos, cofre 1 parte; se aseguran con los jefes como el botín).
-7. Forja y simulación de economía. **HECHO** (costos de fusión recalibrados: 5, 10, 20, 50, 150, 450, 1400 y 4200 monedas; ≈4 semanas de monedas a 3 runs/día para una pieza SSR por fusión pura) + mercado con intercambios equivalentes ±25%.
+7. Forja y simulación de economía. **HECHO** (costos de fusión recalibrados con la economía de 0017: 3, 5, 10, 25, 75, 225, 700 y 2100 monedas; ≈31.000 monedas para una pieza SSR por fusión pura, ≈2,6 semanas con misiones) + mercado con intercambios equivalentes ±25%.
 8. Salas con rango. **HECHO en el servidor y el lobby** (rango = dificultad; todos los presentes deben tenerlo desbloqueado; sin botín en las rondas).
 
 ## 9. Abiertos

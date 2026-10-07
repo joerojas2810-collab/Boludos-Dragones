@@ -17,20 +17,20 @@ import type { RunPiece } from "./loot";
 import { MAX_STARS, RARITIES, RARITY_IDS, type RarityId } from "./rarity";
 import { WEAPON_TYPE_DATA, weaponKey, type WeaponType } from "./weapons";
 
-// Tune here (coins calibrated with scripts/forge-sim.ts: ~3-4 weeks of regular
-// play of coins for an SSR piece by pure fusion, at ~700 coins per dungeon run).
+// Tune here (coins calibrated with scripts/forge-sim.ts against the 0017 economy: ~30k coins
+// for an SSR piece by pure fusion, ~60% of what the gacha charges for an SSR copy).
 // Merging N things of rank R into one of the next rank costs coins and 1 core.
 export const COMBINE: Partial<
   Record<RarityId, { ratio: number; coins: number }>
 > = {
-  f: { ratio: 4, coins: 5 },
-  e: { ratio: 4, coins: 10 },
-  d: { ratio: 3, coins: 20 },
-  c: { ratio: 3, coins: 50 },
-  b: { ratio: 3, coins: 150 },
-  a: { ratio: 2, coins: 450 },
-  s: { ratio: 2, coins: 1400 },
-  ss: { ratio: 2, coins: 4200 },
+  f: { ratio: 4, coins: 3 },
+  e: { ratio: 4, coins: 5 },
+  d: { ratio: 3, coins: 10 },
+  c: { ratio: 3, coins: 25 },
+  b: { ratio: 3, coins: 75 },
+  a: { ratio: 2, coins: 225 },
+  s: { ratio: 2, coins: 700 },
+  ss: { ratio: 2, coins: 2100 },
 };
 export const CRAFT_PARTS = 3; // parts of the type (same rank) + 1 core of the element
 export const REFINE_RATIO = 3; // any 3 parts of a rank -> 1 part of the type you choose

@@ -40,7 +40,7 @@ export const GUIDE: Record<
       "Fusionar sirve para subir de rango lo que te sobra. Hay dos modos: de partes y de piezas.",
       "Partes, paso 1: elige el tipo de parte y su rango. Mira cuántas necesitas: 4 en F y E, 3 de D a B, y 2 de A a SS.",
       "Partes, paso 2: elige un núcleo del elemento que quieras gastar (se consume 1).",
-      "Partes, paso 3: pulsa Fusionar. Pagas las partes, el núcleo y las monedas, y recibes 1 parte del rango siguiente. Las monedas suben mucho con el rango (5 en F, 4.200 en SS).",
+      "Partes, paso 3: pulsa Fusionar. Pagas las partes, el núcleo y las monedas, y recibes 1 parte del rango siguiente. Las monedas suben mucho con el rango (3 en F, 2.100 en SS).",
       "Piezas, paso 1: junta piezas del mismo tipo y rango pero de distinto elemento. Debes marcar exactamente la cantidad que pide ese rango.",
       "Piezas, paso 2: elige el elemento del resultado. Tiene que ser el de una de las piezas marcadas, y gastas 1 núcleo de ese elemento.",
       "Piezas, paso 3: ojo, las piezas marcadas se consumen y pierden sus estrellas. No puedes usar piezas equipadas. Recibes 1 pieza del rango siguiente.",

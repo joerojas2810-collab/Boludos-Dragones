@@ -7,16 +7,19 @@ import { RARITY_IDS, type RarityId } from "../src/lib/game/rarity";
 
 // Average coins per dungeon run (smart bot, rank-matched hero with 3 stars).
 const RUN_COINS: Record<RarityId, number> = {
-  f: 492,
-  e: 588,
-  d: 721,
-  c: 890,
-  b: 927,
-  a: 992,
-  s: 781,
-  ss: 539,
-  ssr: 244,
+  f: 190,
+  e: 270,
+  d: 320,
+  c: 371,
+  b: 380,
+  a: 330,
+  s: 265,
+  ss: 170,
+  ssr: 101,
 };
+// Mission income per day (missions.ts): daily 500 + weekly 1250/7 + Friday event 1000/7.
+const MISSION_COINS_PER_DAY = 500 + 1250 / 7 + 1000 / 7;
+const AVG_RUN_COINS = 300;
 const RUNS_PER_DAY = 3;
 
 // coins to make ONE part of each rank from F parts (merges only)
@@ -38,7 +41,11 @@ RARITY_IDS.forEach((r, i) => {
   );
 });
 const total = CRAFT_PARTS * (chain.ssr ?? 0) + craftCoins("ssr");
-const runs = total / 700;
+const runs = total / AVG_RUN_COINS;
+const perDay = RUNS_PER_DAY * AVG_RUN_COINS;
 console.log(
-  `\nSSR piece by pure fusion: ${Math.round(total)} coins ~ ${Math.round(runs)} runs ~ ${(runs / RUNS_PER_DAY / 7).toFixed(1)} weeks at ${RUNS_PER_DAY} runs/day (coins only; parts come from the dungeons).`,
+  `\nSSR piece by pure fusion: ${Math.round(total)} coins (gacha SSR copy = 50000).`,
+);
+console.log(
+  `~${(total / perDay / 7).toFixed(1)} weeks from runs alone, ~${(total / (perDay + MISSION_COINS_PER_DAY) / 7).toFixed(1)} weeks with missions (${RUNS_PER_DAY} runs/day; coins only, parts come from the dungeons).`,
 );
