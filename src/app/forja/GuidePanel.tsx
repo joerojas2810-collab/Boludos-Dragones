@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Panel } from "@/components/Panel";
 import { GUIDE } from "./guide";
 
@@ -55,46 +56,47 @@ export function GuidePanel({ tab }: { tab: keyof typeof GUIDE }) {
           </button>
         </Panel>
       )}
-      {tutorial && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3"
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Tutorial · ${g.title}`}
-          onKeyDown={(e) => e.key === "Escape" && setTutorial(false)}
-        >
-          <Panel
-            title={`Tutorial · ${g.title}`}
-            className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto"
+      {tutorial &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Tutorial · ${g.title}`}
+            onKeyDown={(e) => e.key === "Escape" && setTutorial(false)}
           >
-            <p className="text-center text-sm opacity-70">
-              Paso {step + 1} de {g.steps.length}
-            </p>
-            <p className="min-h-24 text-base">{g.steps[step]}</p>
-            <div className="flex gap-2">
-              <button
-                className="btn btn-gray flex-1"
-                onClick={() =>
-                  step === 0 ? setTutorial(false) : setStep(step - 1)
-                }
-              >
-                {step === 0 ? "Cerrar" : "Atrás"}
-              </button>
-              <button
-                autoFocus
-                className="btn flex-1"
-                onClick={() =>
-                  step === g.steps.length - 1
-                    ? setTutorial(false)
-                    : setStep(step + 1)
-                }
-              >
-                {step === g.steps.length - 1 ? "Finalizar" : "Siguiente"}
-              </button>
-            </div>
-          </Panel>
-        </div>
-      )}
+            <Panel title={`Tutorial · ${g.title}`} className="w-full max-w-lg">
+              <div className="max-h-[70vh] space-y-4 overflow-y-auto">
+                <p className="text-center text-sm opacity-70">
+                  Paso {step + 1} de {g.steps.length}
+                </p>
+                <p className="min-h-24 text-base">{g.steps[step]}</p>
+                <div className="flex gap-2">
+                  <button
+                    className="btn btn-gray flex-1"
+                    onClick={() =>
+                      step === 0 ? setTutorial(false) : setStep(step - 1)
+                    }
+                  >
+                    {step === 0 ? "Cerrar" : "Atrás"}
+                  </button>
+                  <button
+                    autoFocus
+                    className="btn flex-1"
+                    onClick={() =>
+                      step === g.steps.length - 1
+                        ? setTutorial(false)
+                        : setStep(step + 1)
+                    }
+                  >
+                    {step === g.steps.length - 1 ? "Finalizar" : "Siguiente"}
+                  </button>
+                </div>
+              </div>
+            </Panel>
+          </div>,
+          document.body,
+        )}
     </aside>
   );
 }

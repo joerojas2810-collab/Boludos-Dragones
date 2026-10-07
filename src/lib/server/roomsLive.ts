@@ -27,7 +27,8 @@ const ROOM_TTL_MS = 6 * 3_600_000;
 function bucket(room: string, now: number): Bucket {
   let b = rooms.get(room);
   if (!b) {
-    for (const [k, v] of rooms) if (now - v.touched > ROOM_TTL_MS) rooms.delete(k);
+    for (const [k, v] of rooms)
+      if (now - v.touched > ROOM_TTL_MS) rooms.delete(k);
     b = { live: new Map(), emotes: [], touched: now };
     rooms.set(room, b);
   }
