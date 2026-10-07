@@ -39,6 +39,18 @@ export const KIND_POWER: Record<FightRole, number> = {
   elite: 0.55,
   final: 0.75,
 };
+// Per-rank difficulty tuning (scripts/stage-tune.ts bisects these to hit the target clear rates).
+export const RANK_TUNE: Record<RarityId, number> = {
+  f: 1.24,
+  e: 1.26,
+  d: 1.46,
+  c: 1.59,
+  b: 1.83,
+  a: 1.98,
+  s: 2.22,
+  ss: 3.02,
+  ssr: 3.77,
+};
 export const LEVEL_STEP = 0.05; // enemy power grows this much per level index
 export const ASC_HP_STEP = 0.12; // per ascension level
 export const ASC_ATK_STEP = 0.05;
@@ -125,7 +137,7 @@ function makeFight(
   const size = groupSize(rng, role, rank, asc);
   const hasBoss = role !== "normal";
   const levelPower = 1 + LEVEL_STEP * spec.index;
-  const rankMult = RARITIES[rank].multiplier;
+  const rankMult = RARITIES[rank].multiplier * RANK_TUNE[rank];
   const theme = DUNGEON_THEMES[rank];
   const made: Character[] = [];
   const seen = new Map<string, number>();

@@ -3,6 +3,8 @@
 import { autoPolicy } from "../src/lib/game/auto";
 import { CLASS_IDS, generateCharacter } from "../src/lib/game/characters";
 import { step } from "../src/lib/game/combat";
+import { applyGear, gearBonus, rollGear } from "../src/lib/game/gear";
+import { GEAR_TYPES, weaponAtk, CLASS_WEAPONS } from "../src/lib/game/weapons";
 import { levelCap } from "../src/lib/game/heroLevel";
 import { heroSkill } from "../src/lib/game/skills";
 import { LEVELS_PER_RANK, levelsOf } from "../src/lib/game/levels";
@@ -20,13 +22,28 @@ function hero(rank: RarityId, seed: number) {
   const rng = createRng(seed);
   const c = generateCharacter(rng, rng.pick(CLASS_IDS), rank);
   const level = Math.min(lvl, levelCap(stars));
+  const gearStars = Number(process.env.GEAR_STARS ?? 0);
+  const gearRank = (process.env.GEAR_RANK as RarityId | undefined) ?? rank;
+  const pieces = process.env.NOGEAR
+    ? []
+    : GEAR_TYPES.map((type) => ({
+        type,
+        rarity: gearRank,
+        stars: gearStars,
+        element: c.element,
+        ...rollGear(rng, type, gearRank),
+      }));
+  const wtype = CLASS_WEAPONS[c.classId][0];
+  const watk = process.env.NOGEAR ? 0 : weaponAtk(gearRank, gearStars, wtype);
+  const base = scaleStats(c.stats, rank, stars, level);
+  const geared = applyGear(base, gearBonus(pieces));
   return {
     ...c,
     rarity: rank,
     stars,
     level,
     skill: heroSkill(c.classId, rank, stars),
-    stats: scaleStats(c.stats, rank, stars, level),
+    stats: { ...geared, atk: Math.round((geared.atk + watk) * 10) / 10 },
   };
 }
 
