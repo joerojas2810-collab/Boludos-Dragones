@@ -139,3 +139,33 @@
     animation: none;
   }
 }
+
+/* Combat stage: sizes follow the arena's own height/width (container units). */
+.stage {
+  container-type: size;
+  --hs: min(68cqh, 40cqw);
+}
+.stage-hero {
+  width: var(--hs);
+  height: var(--hs);
+  bottom: 4cqh;
+}
+.stage-foes[data-n="1"] { --s: min(68cqh, 42cqw, 100cqh - 6rem); }
+.stage-foes[data-n="2"] { --s: min(58cqh, 27cqw, 100cqh - 6rem); }
+.stage-foes[data-n="3"] { --s: min(50cqh, 20cqw, 100cqh - 6rem); }
+.stage-foes { --es: 1; }
+.stage-foe {
+  width: max(var(--s), 11rem);
+}
+.stage-foe-art {
+  width: var(--s);
+  height: var(--s);
+  margin-bottom: 4cqh;
+}
+@media (max-width: 767px) {
+  .stage { --hs: min(40cqh, 34cqw); }
+  .stage-foes[data-n="1"] { --s: min(44cqh, 46cqw); }
+  .stage-foes[data-n="2"] { --s: min(38cqh, 30cqw); }
+  .stage-foes[data-n="3"] { --s: min(32cqh, 22cqw); }
+  .stage-foe { width: max(var(--s), 7.5rem); }
+}

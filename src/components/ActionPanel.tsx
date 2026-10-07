@@ -137,12 +137,9 @@ export function ActionPanel({
   };
 
   return (
-    <Panel
-      title="Acciones"
-      className="max-md:sticky max-md:bottom-0 max-md:z-30 md:[@media(max-height:700px)]:!p-2 md:[@media(max-height:700px)]:!pt-5"
-    >
+    <Panel className="shrink-0 !p-2 max-md:sticky max-md:bottom-0 max-md:z-30">
       {!over && (
-        <div className="mb-2 space-y-0.5 text-center">
+        <div className="mb-1.5 flex flex-wrap items-center justify-center gap-x-4 text-center">
           <div className="flex flex-wrap items-center justify-center gap-x-3 text-base">
             <span className="font-semibold text-green-300">Tu turno</span>
             <span className="text-yellow-300">Ronda {b.turn}</span>
@@ -174,7 +171,7 @@ export function ActionPanel({
         </div>
       )}
       {!over && (
-        <div className="grid grid-cols-3 gap-2 md:gap-3">
+        <div className="grid grid-cols-3 gap-2 md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]">
           {attack("attack1")}
           {attack("attack2")}
           {attack("attack3")}

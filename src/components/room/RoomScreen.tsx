@@ -405,10 +405,11 @@ export function RoomScreen({
                       classId={p.hero.classId}
                       element={p.hero.element}
                       traits={p.hero.traits}
-                      className="w-8 shrink-0"
+                      className="w-12 shrink-0"
+                      crop
                     />
                   ) : (
-                    <span className="w-8 shrink-0" />
+                    <span className="w-12 shrink-0" />
                   )}
                   <span
                     className={`min-w-0 flex-1 truncate ${r.isMe ? "text-yellow-300" : ""}`}
@@ -610,11 +611,7 @@ function FightStrip({
               </div>
               {pct !== null && b.status !== "settled" && (
                 <div className="mt-1 flex items-center gap-2 text-xs">
-                  <Bar
-                    pct={pct}
-                    fill="health"
-                    label={`Vida de ${p.name}`}
-                  />
+                  <Bar pct={pct} fill="health" label={`Vida de ${p.name}`} />
                   {epct !== null && (
                     <Bar pct={epct} fill="health_low" label="Vida del rival" />
                   )}

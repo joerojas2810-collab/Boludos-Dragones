@@ -109,7 +109,8 @@ export default function GachaPage() {
                   key={id}
                   classId={id}
                   element="rayo"
-                  className="w-14 sm:w-20"
+                  className="w-20 sm:w-32"
+                  crop
                 />
               ))
             : WEAPON_TYPES.map((t) => (
@@ -118,7 +119,7 @@ export default function GachaPage() {
                   type={t}
                   element="fuego"
                   rarity="a"
-                  className="w-12 sm:w-16"
+                  className="w-14 sm:w-24"
                 />
               ))}
         </div>

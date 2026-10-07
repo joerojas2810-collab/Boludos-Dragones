@@ -1136,16 +1136,17 @@ function RunScreen() {
     </>
   );
 
+  const wide = screen.t === "fight" ? "max-w-[90rem]" : "max-w-4xl";
   return (
     <main className="flex flex-col gap-3 p-3 pt-6 text-base md:h-screen md:overflow-hidden">
-      <div className="mx-auto w-full max-w-4xl">
+      <div className={`mx-auto w-full ${wide}`}>
         <Hud run={run} />
       </div>
-      <div className="mx-auto flex w-full max-w-4xl flex-col-reverse gap-4 md:min-h-0 md:flex-1 md:flex-row-reverse">
-        <LogPanel lines={logLines}>{logExtra}</LogPanel>
-        <div className="flex min-w-0 flex-1 flex-col gap-4 md:min-h-0">
+      <div className={`mx-auto flex w-full flex-col gap-3 md:min-h-0 md:flex-1 ${wide}`}>
+        <div className="flex min-w-0 flex-1 flex-col gap-3 md:min-h-0">
           {main}
         </div>
+        <LogPanel lines={logLines}>{logExtra}</LogPanel>
       </div>
     </main>
   );
@@ -1169,7 +1170,7 @@ function DungeonSelect({
 }) {
   const [open, setOpen] = useState<RarityId | null>(null);
   return (
-    <main className="flex flex-col justify-center gap-4 p-3 pt-8">
+    <main className="flex flex-col justify-center gap-4 p-3 pt-10">
       <Panel title="Elige un dungeon" className="mx-auto w-full max-w-5xl">
         <p className="mb-3 text-center text-base text-[#d9d2ca]">
           Cada jefe que venzas asegura el botín que llevas. Vence el último para
@@ -1186,14 +1187,14 @@ function DungeonSelect({
                 key={rank}
                 disabled={!!lock}
                 onClick={() => setOpen(rank)}
-                className="pixel-frame flex items-center gap-3 p-2 text-left enabled:hover:brightness-125 disabled:opacity-60"
+                className="pixel-frame flex items-center gap-4 p-3 text-left enabled:hover:brightness-125 disabled:opacity-60"
                 style={{ borderColor: color }}
               >
                 <Icon
                   name={`dungeon_rank_${rank}`}
-                  className="h-14 w-14 shrink-0"
+                  className="h-20 w-20 shrink-0"
                 />
-                <span className="min-w-0 text-sm">
+                <span className="min-w-0 text-base">
                   <span className="block text-base font-semibold text-yellow-300">
                     {d.name}
                   </span>
@@ -1281,7 +1282,7 @@ function AscensionModal({
       role="dialog"
       aria-modal="true"
       aria-label={`${d.name}: ascensiones`}
-      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/75 p-3"
+      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/75 p-3 pt-10"
       onClick={onClose}
     >
       <div className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
@@ -1580,7 +1581,7 @@ function CharacterSelect({
                     stats: hero?.stats,
                     lines: [`Poder ${power}${i === 0 ? " ★ mejor" : ""}`],
                   })}
-                  size={80}
+                  size={96}
                   selected={sel === c.id}
                 />
               </button>

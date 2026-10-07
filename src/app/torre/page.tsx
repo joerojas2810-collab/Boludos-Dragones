@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Icon } from "@/components/Icon";
 import { Panel } from "@/components/Panel";
 import {
   TOWER_BLURB,
@@ -49,19 +50,24 @@ export default function TowerPage() {
 
   if (!ready) return null;
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-4 p-3">
+    <main className="mx-auto w-full max-w-5xl space-y-6 p-3 pt-6">
       <Panel title="Torre semanal">
-        <p className="text-center text-base text-[#d9d2ca]">
-          Una run sin fin con la misma semilla para todos durante la semana.
-          Intentos ilimitados: cuenta tu mejor piso. Cada modo tiene su propio
-          ranking. El lunes, los 3 primeros de cada modo (con al menos{" "}
-          {TOWER_MIN_FLOOR} pisos) cobran:{" "}
-          {TOWER_PRIZES.map(
-            (p) =>
-              `${p.place}º ${p.coins} monedas y ${p.cores} núcleo${p.cores > 1 ? "s" : ""}`,
-          ).join(" · ")}
-          . La torre no da monedas ni botín por sí sola.
+        <p className="text-center text-lg text-[#e8e0d8]">
+          Sube lo más alto que puedas: misma torre para todos esta semana.
         </p>
+        <div
+          className="mx-auto mt-3 flex max-w-xl flex-wrap items-center justify-center gap-x-4 gap-y-1 border-2 border-[var(--edge)] bg-black/30 px-3 py-2 text-sm"
+          title={`Los 3 primeros de cada modo (mínimo ${TOWER_MIN_FLOOR} pisos) cobran el lunes. La torre no da monedas ni botín por sí sola.`}
+        >
+          <span className="opacity-80">Premios del lunes</span>
+          {TOWER_PRIZES.map((p) => (
+            <span key={p.place} className="whitespace-nowrap text-yellow-300">
+              {MEDAL[p.place - 1]} {p.coins}{" "}
+              <Icon name="system_coin" className="h-4" /> +{p.cores} núcleo
+              {p.cores > 1 ? "s" : ""}
+            </span>
+          ))}
+        </div>
         {!remote && (
           <p className="mt-2 text-center text-sm text-yellow-300">
             Modo local: puedes jugar la torre de esta semana, pero sin ranking.
@@ -69,35 +75,42 @@ export default function TowerPage() {
         )}
         {err && <p className="mt-2 text-center text-sm text-red-300">{err}</p>}
       </Panel>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-8 md:grid-cols-2">
         {TOWER_MODES.map((m) => (
           <Panel key={m} title={TOWER_LABEL[m]}>
-            <p className="mb-2 text-center text-sm text-[#d9d2ca]">
-              {TOWER_BLURB[m]}
-            </p>
-            <div className="text-center">
+            <div className="flex flex-col items-center gap-2">
+              <Icon
+                name={m === "nivelado" ? "dungeon_rank_d" : "dungeon_rank_s"}
+                className="h-24 w-24"
+              />
+              <p className="text-center text-sm text-[#d9d2ca]">
+                {TOWER_BLURB[m]}
+              </p>
               <Link
                 href={`/run?torre=${m}`}
-                className="btn inline-block text-center"
+                className="btn mt-1 inline-block px-8 text-center"
               >
                 Subir la torre
               </Link>
             </div>
             {st && (
               <>
-                <div className="mt-3 text-center text-sm text-yellow-300">
+                <div className="mt-3 text-center text-base text-yellow-300">
                   {st.modes[m].mine
                     ? `Tu mejor piso: ${st.modes[m].mine.floor} · puesto ${st.modes[m].mine.place}`
                     : "Aún no has subido esta semana"}
                 </div>
-                <ol className="mt-2 space-y-0.5 text-sm">
+                <ol className="mt-2 space-y-1 text-base">
                   {st.modes[m].top.length === 0 && (
                     <li className="text-center opacity-70">
                       Nadie ha subido todavía.
                     </li>
                   )}
                   {st.modes[m].top.map((r) => (
-                    <li key={r.place} className="flex justify-between">
+                    <li
+                      key={r.place}
+                      className="flex justify-between border-2 border-[var(--edge)] bg-black/25 px-2 py-0.5"
+                    >
                       <span>
                         {MEDAL[r.place - 1] ?? `${r.place}.`} {r.name}
                       </span>
@@ -107,7 +120,7 @@ export default function TowerPage() {
                 </ol>
                 {st.last[m].length > 0 && (
                   <div className="mt-3 border-t border-white/10 pt-2 text-xs opacity-80">
-                    Podio de la semana pasada:{" "}
+                    Semana pasada:{" "}
                     {st.last[m]
                       .map(
                         (r) => `${MEDAL[r.place - 1]} ${r.name} (${r.floor})`,

@@ -614,5 +614,5 @@ hr,
   width: 100%;
   max-width: 28rem;
   height: auto;
-  filter: drop-shadow(0 4px 0 rgb(0 0 0 / 0.45));
+  filter: drop-shadow(0 3px 0 rgb(0 0 0 / 0.6)) drop-shadow(0 0 8px rgb(0 0 0 / 0.55));
 }

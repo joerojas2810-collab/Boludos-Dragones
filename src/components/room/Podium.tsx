@@ -41,7 +41,8 @@ export function Podium({
                   classId={p.hero.classId}
                   element={p.hero.element}
                   traits={p.hero.traits}
-                  className="w-14"
+                  className="w-24"
+                  crop
                 />
               )}
               <b className="max-w-full truncate text-sm">{p.name}</b>

@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
-import { Panel } from "@/components/Panel";
+"use client";
+
+import { useState, type ReactNode } from "react";
 
 // Colour semantics: damage orange, heal green, danger red, misses grey, support cyan.
 function lineClass(l: string): string {
@@ -20,26 +21,40 @@ export function LogPanel({
   lines: string[];
   children?: ReactNode;
 }) {
-  return (
-    <Panel
-      title="Registro"
-      className="flex flex-col text-sm md:w-64 md:shrink-0 md:[@media(max-height:760px)]:w-52"
+  const [open, setOpen] = useState(false);
+  const recent = lines.slice(-4).reverse();
+  const row = (l: string, i: number, n: number) => (
+    <div
+      key={n - i}
+      className={`log-line ${lineClass(l)} ${i === 0 ? "log-new" : ""} ${!open && i === 2 ? "[@media(max-height:800px)]:hidden" : ""}`}
     >
-      <div
-        className="h-32 overflow-y-auto md:h-0 md:flex-1"
-        aria-live="polite"
-        aria-label="Registro de la pelea"
-      >
-        {[...lines].reverse().map((l, i) => (
-          <div
-            key={lines.length - i}
-            className={`log-line ${lineClass(l)} ${i === 0 ? "log-new" : ""}`}
-          >
-            {l}
-          </div>
-        ))}
+      {l}
+    </div>
+  );
+  return (
+    <section className="relative shrink-0 rounded-sm border-2 border-[var(--edge)] bg-[#1b1410]/90 px-3 py-1.5 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-semibold text-yellow-300">Registro</span>
+        <button
+          type="button"
+          className="text-[13px] text-[#d9d2ca] hover:text-white"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
+          {open ? "Compactar ▾" : "Ver todo ▴"}
+        </button>
+        <div className="ml-auto flex flex-wrap items-center gap-2 [&>*]:!mt-0 [&>*]:!w-auto [&>*]:!min-h-0 [&>*]:!py-0.5 [&>*]:text-sm">
+          {children}
+        </div>
       </div>
-      {children}
-    </Panel>
+      <div aria-live="polite" aria-label="Registro de la pelea">
+        {!open && recent.slice(0, 3).map((l, i) => row(l, i, lines.length))}
+      </div>
+      {open && (
+        <div className="panel-art absolute inset-x-0 bottom-full z-40 mb-1 h-64 overflow-y-auto !p-3">
+          {[...lines].reverse().map((l, i) => row(l, i, lines.length))}
+        </div>
+      )}
+    </section>
   );
 }

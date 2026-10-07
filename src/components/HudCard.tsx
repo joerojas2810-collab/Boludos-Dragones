@@ -83,13 +83,20 @@ export function HudCard({
     cells.push({ stat: "accuracy", label: "PRE", value: pct(s.accuracy) });
   if (!compact && s.flee)
     cells.push({ stat: "flee", label: "HUI", value: pct(s.flee) });
-  // Phones: only name, health and announced action stay in view; the rest folds away.
   const [open, setOpen] = useState(false);
-  const fold = open ? "" : "max-md:hidden";
   const ctx = { foe, you, inRun };
   const weapon = weaponTip(c);
+  const hasStatus =
+    (c.shield ?? 0) > 0 ||
+    c.riposte ||
+    (c.reflect ?? 0) > 0 ||
+    (c.freeHits ?? 0) > 0 ||
+    (!you && turn > ENRAGE_AFTER_TURN) ||
+    !!children;
   return (
-    <div className={`pixel-frame min-w-0 p-2 ${className}`}>
+    <div
+      className={`relative min-w-0 rounded-sm border-2 border-[var(--edge)] bg-[#1b1410]/80 p-1.5 shadow-lg ${className}`}
+    >
       <div className="flex items-center gap-1.5">
         <span
           className={`px-1.5 text-[13px] font-semibold leading-5 text-black ${tone === "enemy" ? "bg-red-400" : "bg-green-400"}`}
@@ -97,7 +104,16 @@ export function HudCard({
           {label}
         </span>
         <span className="truncate text-base font-semibold">{c.char.name}</span>
-        <span className="ml-auto">
+        <span className="ml-auto flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            className="text-[13px] leading-5 text-[#d9d2ca] hover:text-white"
+            aria-expanded={open}
+            aria-label="Detalles"
+            onClick={() => setOpen(!open)}
+          >
+            {open ? "Info ▴" : "Info ▾"}
+          </button>
           <ElementIcon
             element={c.char.element}
             className="h-6"
@@ -105,9 +121,7 @@ export function HudCard({
           />
         </span>
       </div>
-      <div
-        className={`mb-1 flex items-center gap-2 text-[13px] leading-5 text-[#d9d2ca] ${compact ? "max-md:flex md:[@media(max-height:700px)]:hidden" : ""}`}
-      >
+      <div className="mb-0.5 flex items-center gap-2 text-[13px] leading-5 text-[#d9d2ca]">
         <span className="truncate">{CLASSES[c.char.classId].name}</span>
         <Tooltip tip={extraTip} className="ml-auto">
           <span
@@ -124,97 +138,95 @@ export function HudCard({
           color={tone === "enemy" ? "#c0392b" : "#3f9d44"}
         />
       </Tooltip>
-      {footer}
-      <button
-        type="button"
-        className="mt-1 w-full border-t border-[var(--edge)] pt-0.5 text-center text-[13px] text-[#d9d2ca] md:hidden"
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-      >
-        {open ? "Ocultar info ▴" : "Ver info ▾"}
-      </button>
-      <div className={`mt-1.5 flex flex-wrap gap-1 ${fold}`}>
-        <Chip
-          tip={passiveTip(c, foe, you)}
-          tone="passive"
-          icon={iconFor("passive", CLASSES[c.char.classId].passive.id)}
-        >
-          {CLASSES[c.char.classId].passive.name}
-        </Chip>
-        {!compact &&
-          c.char.traits.map((id) => (
-            <Chip
-              key={id}
-              tip={traitTip(id, c.char)}
-              tone="trait"
-              icon={iconFor("trait", id)}
-            >
-              {TRAITS[id].name}
+      {hasStatus && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {(c.shield ?? 0) > 0 && (
+            <Chip tip={shieldTip(c, you)} tone="info">
+              Escudo {Math.round(c.shield ?? 0)}
             </Chip>
-          ))}
-        {weapon && (
-          <Chip tip={weapon} tone="gold">
-            Arma
-          </Chip>
-        )}
-        {(c.shield ?? 0) > 0 && (
-          <Chip tip={shieldTip(c, you)} tone="info">
-            Escudo {Math.round(c.shield ?? 0)}
-          </Chip>
-        )}
-        {you && c.char.skill && (
-          <Chip tip={skillTip(c, foe)} tone="gold">
-            {SKILLS[c.char.skill].name}
-          </Chip>
-        )}
-        {c.riposte && (
-          <Chip tip={riposteTip()} tone="heal">
-            Guardia perfecta
-          </Chip>
-        )}
-        {(c.reflect ?? 0) > 0 && (
-          <Chip tip={reflectTip(c)} tone="info">
-            Contraataque
-          </Chip>
-        )}
-        {(c.freeHits ?? 0) > 0 && (
-          <Chip tip={freeHitsTip(c)} tone="passive">
-            Esquiva ×{c.freeHits}
-          </Chip>
-        )}
-        {!you && turn > ENRAGE_AFTER_TURN && (
-          <Chip tip={enrageTip()} tone="danger">
-            Enfurecido
-          </Chip>
-        )}
-        {children}
-      </div>
-      <div
-        className={`hud-stats mt-1.5 grid gap-x-2 ${fold} ${compact ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2 lg:grid-cols-3 lg:[@media(max-height:760px)]:grid-cols-4"}`}
-      >
-        {cells.map((cell) => (
-          <Tooltip
-            key={cell.stat}
-            tip={statTip(cell.stat, c, ctx)}
-            className="block"
-          >
-            <span className="stat-cell">
-              <span className="stat-k">
-                <Icon
-                  name={iconFor("stat", cell.stat) ?? ""}
-                  className="mr-0.5 h-3.5"
-                />
-                {cell.label}
-              </span>
-              <span
-                className={`stat-v ${cell.hot ? "text-orange-300" : "text-[var(--text)]"}`}
+          )}
+          {c.riposte && (
+            <Chip tip={riposteTip()} tone="heal">
+              Guardia perfecta
+            </Chip>
+          )}
+          {(c.reflect ?? 0) > 0 && (
+            <Chip tip={reflectTip(c)} tone="info">
+              Contraataque
+            </Chip>
+          )}
+          {(c.freeHits ?? 0) > 0 && (
+            <Chip tip={freeHitsTip(c)} tone="passive">
+              Esquiva ×{c.freeHits}
+            </Chip>
+          )}
+          {!you && turn > ENRAGE_AFTER_TURN && (
+            <Chip tip={enrageTip()} tone="danger">
+              Enfurecido
+            </Chip>
+          )}
+          {children}
+        </div>
+      )}
+      {footer}
+      {open && (
+        <div className="pixel-frame absolute left-0 top-full z-30 mt-1 w-64 max-w-[80vw] p-2">
+          <div className="flex flex-wrap gap-1">
+            <Chip
+              tip={passiveTip(c, foe, you)}
+              tone="passive"
+              icon={iconFor("passive", CLASSES[c.char.classId].passive.id)}
+            >
+              {CLASSES[c.char.classId].passive.name}
+            </Chip>
+            {!compact &&
+              c.char.traits.map((id) => (
+                <Chip
+                  key={id}
+                  tip={traitTip(id, c.char)}
+                  tone="trait"
+                  icon={iconFor("trait", id)}
+                >
+                  {TRAITS[id].name}
+                </Chip>
+              ))}
+            {weapon && (
+              <Chip tip={weapon} tone="gold">
+                Arma
+              </Chip>
+            )}
+            {you && c.char.skill && (
+              <Chip tip={skillTip(c, foe)} tone="gold">
+                {SKILLS[c.char.skill].name}
+              </Chip>
+            )}
+          </div>
+          <div className="mt-1.5 grid grid-cols-2 gap-x-2">
+            {cells.map((cell) => (
+              <Tooltip
+                key={cell.stat}
+                tip={statTip(cell.stat, c, ctx)}
+                className="block"
               >
-                {cell.value}
-              </span>
-            </span>
-          </Tooltip>
-        ))}
-      </div>
+                <span className="stat-cell">
+                  <span className="stat-k">
+                    <Icon
+                      name={iconFor("stat", cell.stat) ?? ""}
+                      className="mr-0.5 h-3.5"
+                    />
+                    {cell.label}
+                  </span>
+                  <span
+                    className={`stat-v ${cell.hot ? "text-orange-300" : "text-[var(--text)]"}`}
+                  >
+                    {cell.value}
+                  </span>
+                </span>
+              </Tooltip>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

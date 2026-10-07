@@ -22,6 +22,8 @@ type Props = {
   action?: HeroAction; // default idle
   // false (lists, cards): one static idle frame, no timers. true: plays `action`.
   animated?: boolean;
+  // Static only: zoom on the body (feet low) so the hero fills a card frame.
+  crop?: boolean;
 };
 
 const sheet = (src: string, action: HeroAction): SheetAnim => ({
@@ -44,6 +46,7 @@ function Hero({
   className = "",
   action = "idle",
   animated = false,
+  crop = false,
 }: Props & { action: HeroAction }) {
   const [done, setDone] = useState(false);
   const a: HeroAction = animated && !done ? action : "idle";
@@ -60,12 +63,18 @@ function Hero({
   if (!animated) {
     const n = HERO_ACTIONS.idle.frames;
     return (
-      <div role="img" aria-hidden="true" className={root}>
+      <div
+        role="img"
+        aria-hidden="true"
+        className={`${root} ${crop ? "overflow-hidden" : ""}`}
+      >
         {layers.map((src) => (
           <div
             key={src}
             className="absolute inset-0"
             style={{
+              transform: crop ? "scale(1.22)" : undefined,
+              transformOrigin: "50% 94%",
               backgroundImage: `url(${src})`,
               backgroundSize: `${n * 100}% 100%`,
               backgroundRepeat: "no-repeat",

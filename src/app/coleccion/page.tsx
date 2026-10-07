@@ -89,7 +89,7 @@ function Detail({
   return (
     <Panel title={c.name} className="space-y-3">
       <div className="flex items-center gap-3">
-        <ItemCard item={characterView(c, { lines: [] })} size={80} />
+        <ItemCard item={characterView(c, { lines: [] })} size={96} />
         <div className="space-y-1 text-base">
           <div>
             {CLASSES[c.classId].name} · {ELEMENT_LABEL[c.element]} · Nv{" "}
@@ -312,7 +312,7 @@ export default function CollectionPage() {
                     >
                       <ItemCard
                         item={characterView(c)}
-                        size={80}
+                        size={96}
                         selected={selected === c.id}
                       />
                     </button>
@@ -367,7 +367,7 @@ export default function CollectionPage() {
                           o ? `Equipada: ${o.name}` : "Sin equipar",
                         ],
                       })}
-                      size={80}
+                      size={96}
                       className="!w-full"
                     />
                   );

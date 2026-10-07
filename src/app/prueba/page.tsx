@@ -147,20 +147,8 @@ export default function Prueba() {
   const restart = () => setGame(newGame(rng));
   return (
     <main className="p-4 pt-8 text-base md:h-screen md:overflow-hidden">
-      <div className="mx-auto flex max-w-4xl flex-col gap-4 md:h-full md:flex-row-reverse">
-        <LogPanel lines={b.log}>
-          <Link href="/" className="btn btn-gray mt-3 block w-full text-center">
-            ← Menú
-          </Link>
-          <button
-            className="btn btn-gray mt-3 w-full text-center"
-            onClick={restart}
-          >
-            Nuevo personaje
-          </button>
-          <MuteButton />
-        </LogPanel>
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-3 md:h-full">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <BattleArena
             b={b}
             enemyExtra={(_, c) => `Nv ${c.char.level}`}
@@ -219,6 +207,18 @@ export default function Prueba() {
             )}
           </ActionPanel>
         </div>
+        <LogPanel lines={b.log}>
+          <Link href="/" className="btn btn-gray mt-3 block w-full text-center">
+            ← Menú
+          </Link>
+          <button
+            className="btn btn-gray mt-3 w-full text-center"
+            onClick={restart}
+          >
+            Nuevo personaje
+          </button>
+          <MuteButton />
+        </LogPanel>
       </div>
     </main>
   );

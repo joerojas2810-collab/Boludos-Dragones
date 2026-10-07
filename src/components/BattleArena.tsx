@@ -128,11 +128,6 @@ type Props = {
   onTarget?: (i: number) => void;
 };
 
-// Painted enemy scale by group size (the frame has margin; 3 in a row must not overlap).
-const ENEMY_SCALE = { 1: 1.35, 2: 1.2, 3: 1 } as const;
-
-const COLS = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3" } as const;
-
 export function BattleArena({
   b,
   playerExtra,
@@ -151,15 +146,11 @@ export function BattleArena({
   const n = b.enemies.length;
   const multi = n > 1;
   const first = b.enemies[Math.min(enemy, n - 1)];
-  const sprite =
-    "mt-auto flex min-h-20 max-md:min-h-14 md:[@media(max-height:620px)]:min-h-10 flex-1 items-end justify-center pt-1 w-full";
-  const spriteSize =
-    "relative h-full max-h-[9.5rem] max-md:max-h-[5.5rem] aspect-square max-w-full [&>div]:h-full [&>div]:w-full";
   const big = bigMomentFx(b);
   const { fx, paused } = useBattleFx(b, boss);
   return (
     <div
-      className={`relative flex min-h-[22rem] flex-col overflow-hidden border-4 border-[var(--edge)] p-2 md:min-h-0 md:flex-1 ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
+      className={`stage relative min-h-[clamp(21rem,50vh,38rem)] flex-1 overflow-hidden border-4 border-[var(--edge)] ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
       style={big?.style}
       data-hitstop={paused}
     >
@@ -186,71 +177,72 @@ export function BattleArena({
       ) : (
         <ArenaBackground world={world} boss={boss} rank={rank} />
       )}
-      <div className="relative grid min-h-0 flex-1 gap-2 md:grid-cols-[minmax(0,34%)_minmax(0,1fr)]">
-        <div className="relative flex min-h-0 flex-col">
-          <FxLayer t={fx?.player} k={fx?.key ?? 0} />
-          <HudCard
-            c={b.player}
-            foe={first}
-            turn={b.turn}
-            inRun={inRun}
-            extraTip={playerExtraTip}
-            label="TÚ"
-            tone="player"
-            extra={playerExtra}
-            className=""
-          />
-          <div
-            key={`p${b.log.length}`}
-            className={sprite}
-            style={fxStyle(b, "player")}
-          >
-            <div className={`${spriteSize} fx-breathe`}>
-              <div className="h-full w-full origin-bottom scale-[1.4]">
-                <CuedHero b={b} />
-              </div>
-            </div>
+      <div className="stage-hero absolute left-[2%]">
+        <FxLayer t={fx?.player} k={fx?.key ?? 0} />
+        <div
+          key={`p${b.log.length}`}
+          className="h-full w-full"
+          style={fxStyle(b, "player")}
+        >
+          <div className="fx-breathe h-full w-full origin-bottom">
+            <CuedHero b={b} />
           </div>
         </div>
-        <div
-          role="radiogroup"
-          aria-label="Objetivo del ataque"
-          className={`grid min-h-0 min-w-0 gap-2 ${COLS[n as 1 | 2 | 3] ?? COLS[3]}`}
-          style={{ ["--es" as string]: ENEMY_SCALE[n as 1 | 2 | 3] ?? 1 }}
-        >
-          {b.enemies.map((c, i) => {
-            const dead = c.hp <= 0;
-            const selected = i === enemy && !dead;
-            const intents = dead ? [] : enemyIntents(b, i);
-            return (
-              <div
-                key={i}
-                role="radio"
-                aria-checked={selected}
-                aria-disabled={dead}
-                aria-label={`${c.char.name}${dead ? " (derrotado)" : ""}`}
-                tabIndex={dead || !multi ? -1 : selected ? 0 : -1}
-                onClick={() => !dead && onTarget?.(i)}
-                onKeyDown={(e) => {
-                  if (dead || !multi) return;
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onTarget?.(i);
-                  } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-                    e.preventDefault();
-                    const step = e.key === "ArrowRight" ? 1 : -1;
-                    for (let k = 1; k <= n; k++) {
-                      const j = (i + step * k + n * 3) % n;
-                      if (b.enemies[j].hp > 0) {
-                        onTarget?.(j);
-                        break;
-                      }
+      </div>
+      <div className="absolute left-2 top-2 z-10 w-[min(15rem,46%)]">
+        <HudCard
+          c={b.player}
+          foe={first}
+          turn={b.turn}
+          inRun={inRun}
+          extraTip={playerExtraTip}
+          label="TÚ"
+          tone="player"
+          extra={playerExtra}
+          className=""
+        />
+      </div>
+      <div
+        role="radiogroup"
+        aria-label="Objetivo del ataque"
+        data-n={Math.min(n, 3)}
+        className="stage-foes absolute bottom-0 right-[1.5%] top-0 flex items-end justify-end gap-[1%]"
+      >
+        {b.enemies.map((c, i) => {
+          const dead = c.hp <= 0;
+          const selected = i === enemy && !dead;
+          const intents = dead ? [] : enemyIntents(b, i);
+          const isBoss = !!boss && i === 0;
+          return (
+            <div
+              key={i}
+              role="radio"
+              aria-checked={selected}
+              aria-disabled={dead}
+              aria-label={`${c.char.name}${dead ? " (derrotado)" : ""}`}
+              tabIndex={dead || !multi ? -1 : selected ? 0 : -1}
+              onClick={() => !dead && onTarget?.(i)}
+              onKeyDown={(e) => {
+                if (dead || !multi) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onTarget?.(i);
+                } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                  e.preventDefault();
+                  const step = e.key === "ArrowRight" ? 1 : -1;
+                  for (let k = 1; k <= n; k++) {
+                    const j = (i + step * k + n * 3) % n;
+                    if (b.enemies[j].hp > 0) {
+                      onTarget?.(j);
+                      break;
                     }
                   }
-                }}
-                className={`relative flex min-h-0 min-w-0 flex-col rounded-sm outline-offset-2 ${multi && !dead ? "cursor-pointer" : ""} ${selected && multi ? "outline outline-[3px] outline-yellow-300" : ""} ${dead ? "opacity-50 grayscale" : ""}`}
-              >
-                <FxLayer t={fx?.enemies[i]} k={fx?.key ?? 0} />
+                }
+              }}
+              className={`stage-foe relative flex min-w-0 flex-col items-center justify-end rounded-sm outline-offset-2 ${multi && !dead ? "cursor-pointer" : ""} ${selected && multi ? "outline outline-[3px] outline-yellow-300" : ""} ${dead ? "opacity-50 grayscale" : ""}`}
+            >
+              <FxLayer t={fx?.enemies[i]} k={fx?.key ?? 0} />
+              <div className={`relative z-10 w-full ${isBoss ? "" : "mb-[calc(var(--s)*-0.16)]"}`}>
                 <HudCard
                   c={c}
                   foe={b.player}
@@ -287,21 +279,21 @@ export function BattleArena({
                 >
                   {enemyChips?.(i, c)}
                 </HudCard>
-                <div
-                  key={`e${i}-${b.log.length}`}
-                  className={sprite}
-                  style={fxStyle(b, "enemy", i)}
-                >
-                  <div className={`${spriteSize} fx-breathe fx-breathe-b`}>
-                    <EnemyCueContext.Provider value={enemyCue(b, i, boss)}>
-                      {enemyArt(i, c)}
-                    </EnemyCueContext.Provider>
-                  </div>
+              </div>
+              <div
+                key={`e${i}-${b.log.length}`}
+                className="stage-foe-art"
+                style={fxStyle(b, "enemy", i)}
+              >
+                <div className="fx-breathe fx-breathe-b h-full w-full">
+                  <EnemyCueContext.Provider value={enemyCue(b, i, boss)}>
+                    {enemyArt(i, c)}
+                  </EnemyCueContext.Provider>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
