@@ -19,6 +19,15 @@ interface Tab {
   match: readonly string[];
   remoteOnly?: boolean;
 }
+const NAV_ICON: Record<TabId, string> = {
+  dungeons: "door_boss",
+  tower: "dungeon_rank_s",
+  heroes: "class_knight",
+  summon: "system_chest",
+  forge: "upgrade_sharp_edge",
+  missions: "event_whispering_book",
+  room: "system_token",
+};
 const TABS: readonly Tab[] = [
   {
     id: "dungeons",
@@ -64,34 +73,6 @@ const SHELL_ROUTES = [
 ];
 
 // 16x16 pixel-style glyphs, drawn with the current text colour.
-const ICONS: Record<TabId, ReactNode> = {
-  dungeons: <path d="M3 15V6l5-4 5 4v9h-3V8H6v7z" />,
-  tower: <path d="M4 15V7H3V3h2v1h1V3h1v1h2V3h1v1h1V3h2v4h-1v8zm3-2h2v-3H7z" />,
-  heroes: (
-    <path d="M2 2h12v6c0 4-3 6-6 7-3-1-6-3-6-7zm3 2v3c0 2 1 3 3 4 2-1 3-2 3-4V4z" />
-  ),
-  summon: <path d="M8 1l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />,
-  forge: <path d="M1 4h11v3H9v2h4v3H4V9h2V7H1zm11 0h3v2h-3z" />,
-  missions: <path d="M3 2h10v12H3zm2 2v2h6V4zm0 4v1h6V8zm0 3v1h4v-1z" />,
-  room: (
-    <path d="M5 2a2.5 2.5 0 110 5 2.5 2.5 0 010-5zm6 1a2 2 0 110 4 2 2 0 010-4zM1 14c0-3 2-5 4-5s4 2 4 5zm9 0c0-2 1-4 3-4s2 1 2 4z" />
-  ),
-};
-
-function TabIcon({ id }: { id: TabId }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      width="24"
-      height="24"
-      fill="currentColor"
-      aria-hidden
-    >
-      {ICONS[id]}
-    </svg>
-  );
-}
-
 function SoundToggle() {
   const [muted, setMutedState] = useState(false);
   return (
@@ -200,7 +181,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             (t.id === "missions" && missionsPending);
           const inner = (
             <>
-              <TabIcon id={t.id} />
+              <Icon name={NAV_ICON[t.id]} className="h-9 w-9" />
               <span>{t.label}</span>
               {badge && (
                 <i
