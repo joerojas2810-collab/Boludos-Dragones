@@ -30,7 +30,6 @@ import { partCount } from "@/lib/game/parts";
 import { HeroSprite } from "@/components/HeroSprite";
 import { StarRow } from "@/components/StarRow";
 import { Icon } from "@/components/Icon";
-import { RankIcon } from "@/components/RankIcon";
 import { Tooltip } from "@/components/Tooltip";
 import {
   classStatTip,
@@ -55,21 +54,10 @@ import {
 } from "@/lib/game/explain";
 import { CLASSES, CLASS_IDS, type ClassId } from "@/lib/game/characters";
 import { heroFromOwned, heroPower, type Profile } from "@/lib/game/profile";
-import { RARITIES, RARITY_IDS } from "@/lib/game/rarity";
+import { RARITIES } from "@/lib/game/rarity";
 import { Notice } from "@/components/Notice";
 import { proceedRun, type RunAction } from "@/lib/game/replay";
-import {
-  ASC_RULES,
-  DUNGEONS,
-  MAX_ASCENSION,
-  UNLOCK_MIN_LIVES,
-  maxAscension,
-  powerVerdict,
-  recommendedPower,
-  lockReason,
-  type Ascensions,
-  type Clears,
-} from "@/lib/game/dungeons";
+import { DUNGEONS, powerVerdict, recommendedPower } from "@/lib/game/dungeons";
 import type { RarityId } from "@/lib/game/rarity";
 import { canUseWeapon, isGearType, slotOf } from "@/lib/game/weapons";
 import { pieceSummary } from "@/lib/game/loot";
@@ -302,7 +290,7 @@ const Center = ({ children }: { children: ReactNode }) => (
   <div className="flex min-h-0 flex-1 flex-col justify-center">{children}</div>
 );
 
-export default function RunPage() {
+export function TowerRun() {
   return (
     <>
       <Notice />
@@ -320,7 +308,7 @@ function RunScreen() {
   const [seed, setSeed] = useState<number | null>(null);
   const [randomHero, setRandomHero] = useState(false); // classic run: no collection hero
   const [dungeon, setDungeon] = useState<RarityId | null>(null);
-  const [asc, setAsc] = useState(0);
+  const asc = 0;
   const [tower, setTower] = useState<TowerMode | null>(null); // weekly tower (?torre=)
   const router = useRouter();
   const { profile, ready } = useProfile();
@@ -435,18 +423,7 @@ function RunScreen() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isTowerMode(t)) setTower(t);
   }, []);
-  if (seed === null || !ready || !profile) return null;
-  if (!run && !dungeon && !tower)
-    return (
-      <DungeonSelect
-        clears={profile.dungeons}
-        ascensions={profile.ascensions}
-        onPick={(r, a) => {
-          setAsc(a);
-          setDungeon(r);
-        }}
-      />
-    );
+  if (seed === null || !ready || !profile || !tower) return null;
   if (!run && !randomHero && profile.characters.length > 0)
     return (
       <CharacterSelect
@@ -1232,208 +1209,6 @@ const CLASS_BLURB: Record<ClassId, string> = {
   picaro: "Crítico y huida. Rápido y escurridizo.",
   clerigo: "Cura. Resiste con paciencia.",
 };
-
-function DungeonSelect({
-  clears,
-  ascensions,
-  onPick,
-}: {
-  clears: Clears;
-  ascensions: Ascensions;
-  onPick: (r: RarityId, asc: number) => void;
-}) {
-  const [open, setOpen] = useState<RarityId | null>(null);
-  return (
-    <main className="flex flex-col justify-center gap-4 p-3 pt-10">
-      <Panel title="Elige un dungeon" className="mx-auto w-full max-w-5xl">
-        <p className="mb-3 text-center text-base text-[#d9d2ca]">
-          Cada jefe que venzas asegura el botín que llevas. Vence el último para
-          limpiar el dungeon y abrir el siguiente rango.
-        </p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {RARITY_IDS.map((rank) => {
-            const d = DUNGEONS[rank];
-            const lock = lockReason(clears, rank);
-            const color = RARITIES[rank].color;
-            const best = clears[rank];
-            return (
-              <button
-                key={rank}
-                disabled={!!lock}
-                onClick={() => setOpen(rank)}
-                className="pixel-frame flex items-center gap-4 p-3 text-left enabled:hover:brightness-125 disabled:opacity-60"
-                style={{ borderColor: color }}
-              >
-                <RankIcon
-                  rank={rank}
-                  letter
-                  className="h-[min(101px,9vh)] w-[min(101px,9vh)]"
-                />
-                <span className="min-w-0 text-base">
-                  <span className="name-title block text-yellow-300">
-                    {d.name}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    {d.floors} pisos · {d.bosses.length} jefes
-                    <ElementIcon
-                      element={WORLDS[d.world].element}
-                      className="h-4"
-                      bare
-                    />
-                  </span>
-                  {lock ? (
-                    <span className="block text-red-300">
-                      <Icon name="system_locked" className="h-4" /> Limpia{" "}
-                      {RARITIES[lock.rank].label} con {lock.lives}{" "}
-                      {lock.lives === 1 ? "vida" : "vidas"} o más
-                    </span>
-                  ) : best ? (
-                    <span className="block text-green-300">
-                      ✔ Limpiado · mejor: {best}{" "}
-                      <Icon name="system_heart_full" className="h-4" />
-                      {(ascensions[rank] ?? 0) > 0 && (
-                        <>
-                          {" · "}
-                          <Icon
-                            name={`asc_${ascensions[rank]}`}
-                            className="h-5"
-                          />{" "}
-                          Ascensión +{ascensions[rank]}
-                        </>
-                      )}
-                      {(ascensions[rank] ?? 0) >= MAX_ASCENSION && (
-                        <Icon name="asc_max_star" className="ml-1 h-4" />
-                      )}
-                    </span>
-                  ) : (
-                    <span className="block text-[#d9d2ca]">Sin limpiar</span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="mt-3 text-center">
-          <Link href="/" className="btn btn-gray inline-block text-center">
-            ← Volver al menú
-          </Link>
-        </div>
-        <p className="mt-2 text-center text-xs text-[#d9d2ca]">
-          Vidas mínimas para entrar:{" "}
-          {Object.entries(UNLOCK_MIN_LIVES)
-            .map(([r, n]) => `${RARITIES[r as RarityId].label} ${n}`)
-            .join(" · ")}
-          .
-        </p>
-      </Panel>
-      {open && (
-        <AscensionModal
-          rank={open}
-          clears={clears}
-          ascensions={ascensions}
-          onPick={(a) => onPick(open, a)}
-          onClose={() => setOpen(null)}
-        />
-      )}
-    </main>
-  );
-}
-
-// Over the (dimmed) dungeon list: the same dungeon with its ascension levels.
-// +N opens only after clearing +N-1 (level 0 = the normal dungeon).
-function AscensionModal({
-  rank,
-  clears,
-  ascensions,
-  onPick,
-  onClose,
-}: {
-  rank: RarityId;
-  clears: Clears;
-  ascensions: Ascensions;
-  onPick: (asc: number) => void;
-  onClose: () => void;
-}) {
-  const d = DUNGEONS[rank];
-  const color = RARITIES[rank].color;
-  const top = maxAscension(clears, ascensions, rank);
-  const cleared = (clears[rank] ?? 0) > 0 ? (ascensions[rank] ?? 0) : -1;
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${d.name}: ascensiones`}
-      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/75 p-3 pt-10"
-      onClick={onClose}
-    >
-      <div className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-        <Panel title={`${RARITIES[rank].label} · ${d.name}`}>
-          <p className="mb-3 text-center text-sm text-[#d9d2ca]">
-            {d.floors} pisos · {d.bosses.length} jefes. Para abrir la +N tienes
-            que haber pasado la anterior en este dungeon.
-          </p>
-          <div className="space-y-2">
-            {Array.from({ length: MAX_ASCENSION + 1 }, (_, n) => {
-              const locked = n > top;
-              const done = n <= cleared;
-              return (
-                <button
-                  key={n}
-                  disabled={locked}
-                  onClick={() => onPick(n)}
-                  className="pixel-frame flex w-full items-center gap-3 p-2 text-left enabled:hover:brightness-125 disabled:opacity-60"
-                  style={{ borderColor: color }}
-                >
-                  <span className="relative shrink-0">
-                    <Icon name={`asc_${n}`} className="h-14 w-14" />
-                    {n > 0 && (
-                      <span
-                        className="absolute -bottom-1 -right-1 rounded px-1 text-xs font-bold"
-                        style={{ background: color, color: "#000" }}
-                      >
-                        +{n}
-                      </span>
-                    )}
-                  </span>
-                  <span className="min-w-0 text-sm">
-                    <span className="name-title block text-yellow-300">
-                      {n === 0 ? "Normal" : `Ascensión +${n}`}
-                    </span>
-                    <span className="block text-[#d9d2ca]">
-                      {n === 0
-                        ? "Sin reglas extra."
-                        : `${ASC_RULES[n - 1]} · monedas de victoria +${n * 20}% · botín +${n * 10}%`}
-                    </span>
-                    {locked ? (
-                      <span className="block text-red-300">
-                        <Icon name="system_locked" className="h-4" /> Pasa la{" "}
-                        {n - 1 === 0 ? "normal (0)" : `+${n - 1}`} para abrirla
-                      </span>
-                    ) : done ? (
-                      <span className="block text-green-300">✔ Superada</span>
-                    ) : (
-                      <span className="block text-yellow-200">Disponible</span>
-                    )}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-3 text-center">
-            <button className="btn btn-gray" onClick={onClose}>
-              ← Volver
-            </button>
-          </div>
-        </Panel>
-      </div>
-    </div>
-  );
-}
 
 function ClassSelect({
   dungeon,

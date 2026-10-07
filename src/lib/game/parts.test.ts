@@ -108,10 +108,10 @@ describe("parts in a run", () => {
   });
   it("bankRun adds the secured parts; migrate keeps valid keys only", () => {
     const k = partKey("hacha", "d");
-    let p = bankRun(createProfile(), 0, 1, "r1", [], undefined, { [k]: 2 });
-    p = bankRun(p, 0, 1, "r2", [], undefined, { [k]: 1, [coreKey("rayo")]: 1 });
+    let p = bankRun(createProfile(), 0, 1, "r1", [], { [k]: 2 });
+    p = bankRun(p, 0, 1, "r2", [], { [k]: 1, [coreKey("rayo")]: 1 });
     expect(p.parts).toEqual({ [k]: 3, [coreKey("rayo")]: 1 });
-    expect(bankRun(p, 0, 1, "r2", [], undefined, { [k]: 9 }).parts[k]).toBe(3); // same run id
+    expect(bankRun(p, 0, 1, "r2", [], { [k]: 9 }).parts[k]).toBe(3); // same run id
     const m = migrate({
       parts: {
         [k]: 5,

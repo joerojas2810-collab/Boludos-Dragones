@@ -3,6 +3,7 @@
 // level's slot and element, plus rare extras. Parts and cores come from points.
 import type { ClassId } from "./characters";
 import { ELEMENT_LABEL, ELEMENTS } from "./elements";
+import { rollGear } from "./gear";
 import { levelElement, type LevelSpec } from "./levels";
 import { dropRank, type RunPiece } from "./loot";
 import { addParts, coreKey, partKey, type Parts } from "./parts";
@@ -11,6 +12,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import { FIGHT_XP } from "./stage";
 import {
   CLASS_WEAPONS,
+  isGearType,
   WEAPON_TYPE_DATA,
   WEAPON_TYPES,
   type WeaponType,
@@ -49,11 +51,16 @@ function pieceOf(
   const element = levelElement(spec, asc);
   const type: WeaponType =
     spec.drop === "arma" ? rng.pick(CLASS_WEAPONS[classId]) : spec.drop;
+  const rarity = dropRank(rng, spec.rank, up);
+  const rolled = isGearType(type)
+    ? rollGear(rng, type, rarity)
+    : { roll: rollGear(rng, "casco", rarity).roll };
   return {
     type,
     element,
-    rarity: dropRank(rng, spec.rank, up),
+    rarity,
     name: `${WEAPON_TYPE_DATA[type].noun} de ${ELEMENT_LABEL[element]}`,
+    ...rolled,
   };
 }
 

@@ -229,11 +229,13 @@ export const weaponAtk = (
   rarity: RarityId,
   stars: number,
   type: WeaponType = "espada",
+  roll = 1, // per-piece roll (+-15%), see gear.rollGear
 ) =>
   Math.round(
     WEAPON_BASE_ATK *
       WEAPON_TYPE_DATA[type].atkMult *
       itemMult(rarity, stars) *
+      roll *
       10,
   ) / 10;
 

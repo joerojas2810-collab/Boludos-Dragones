@@ -10,7 +10,14 @@ import {
   type Stats,
 } from "./characters";
 import { ELEMENTS, type Element } from "./elements";
-import { firstClearCoins, type Ascensions, type Clears } from "./dungeons";
+import {
+  parseProgress,
+  recordClear,
+  type DungeonProgress,
+} from "./dungeonProgress";
+import { firstClearChest, levelCoins, levelDecay } from "./levelPay";
+import type { LevelLoot } from "./levelLoot";
+import type { StageStatus } from "./stage";
 import type { RunPiece } from "./loot";
 import { addParts, isPartKey, MAX_STACK, type Parts } from "./parts";
 import {
@@ -35,8 +42,14 @@ import {
 import type { Rng } from "./rng";
 import { dayKey, isDayKey, type DailyState } from "./streak";
 import { dayPayMult } from "./economy";
-import { levelCap } from "./heroLevel";
-import { heroSkill } from "./skills";
+import { addHeroXp, gapMult, levelCap } from "./heroLevel";
+import {
+  heroSkill,
+  isSkillId,
+  SKILLS_BY_CLASS,
+  skillUnlocked,
+  type SkillId,
+} from "./skills";
 import { TRAIT_IDS, type TraitId } from "./traits";
 import {
   generateWeapon,
@@ -53,7 +66,7 @@ import {
   type Weapon,
 } from "./weapons";
 
-export const PROFILE_VERSION = 3; // 3: added optional `daily` (claim streak)
+export const PROFILE_VERSION = 4; // 4: dungeons = DungeonProgress (levels), no ascensions map
 // Raised from 150: at ~11-22 pulls/day of income the old price made SSR pity reachable in
 // ~2 weeks (cheaper than the forge). Keep in sync with game_constants (0017).
 export const PULL_COST_CHARACTER = 250;
@@ -87,8 +100,8 @@ export interface Profile {
   runsDay?: { day: string; n: number }; // runs banked on that game day (pay decays, see economy.ts)
   bestFloor: number;
   runsPlayed: number;
-  dungeons: Clears; // dungeon rank -> most lives left in a clear (see dungeons.ts)
-  ascensions: Ascensions; // dungeon rank -> highest ascension level cleared
+  dungeons: DungeonProgress; // levels cleared per rank and ascension (dungeonProgress.ts)
+  levelsDay?: { day: string; n: number }; // repeated levels cleared on that game day (pay decays)
   parts: Parts; // forge parts and cores (see parts.ts)
 }
 
@@ -109,7 +122,6 @@ export const createProfile = (): Profile => ({
   bestFloor: 0,
   runsPlayed: 0,
   dungeons: {},
-  ascensions: {},
   parts: {},
 });
 
@@ -398,7 +410,6 @@ export function bankRun(
   maxFloor: number,
   runId?: string,
   loot: readonly RunPiece[] = [],
-  clear?: { rank: RarityId; lives: number; asc?: number },
   parts: Parts = {},
 ): Profile {
   if (runId !== undefined && p.lastBankedRunId === runId) return p;
@@ -408,36 +419,126 @@ export function bankRun(
   const paid = Math.floor(
     Math.max(0, Math.floor(runCoins) || 0) * dayPayMult(prior + 1),
   );
-  // One-off bonus chest the first time a rank (or a higher ascension level) is cleared.
-  const bonus = clear
-    ? firstClearCoins(
-        clear.rank,
-        (clear.asc ?? 0) > (p.ascensions[clear.rank] ?? 0)
-          ? (clear.asc ?? 0)
-          : 0,
-        p.dungeons[clear.rank] === undefined,
-      )
-    : 0;
   return {
     ...q,
     lastBankedRunId: runId ?? p.lastBankedRunId,
     runsDay: { day: today, n: prior + 1 },
-    coins: q.coins + paid + bonus,
+    coins: q.coins + paid,
     bestFloor: Math.max(p.bestFloor, Math.floor(maxFloor) || 0),
     runsPlayed: p.runsPlayed + 1,
     parts: addParts(q.parts, parts),
-    dungeons: clear
-      ? {
-          ...p.dungeons,
-          [clear.rank]: Math.max(p.dungeons[clear.rank] ?? 0, clear.lives),
-        }
-      : p.dungeons,
-    ascensions: clear
-      ? {
-          ...p.ascensions,
-          [clear.rank]: Math.max(p.ascensions[clear.rank] ?? 0, clear.asc ?? 0),
-        }
-      : p.ascensions,
+  };
+}
+
+// ---- Run v2: dungeon levels ----
+
+export interface LevelResult {
+  rank: RarityId;
+  level: number; // 0-based index in the rank
+  asc: number;
+  heroId: string;
+  status: StageStatus; // the finished stage
+  xp: number; // stage.xp (raw, before the catch-up multiplier)
+  loot: LevelLoot; // computed with levelLoot(..., lootOptions(...))
+  attemptId?: string; // guard against banking one attempt twice
+}
+
+export interface LevelBank {
+  profile: Profile;
+  cleared: boolean; // counted as a clear (stage cleared and the level was unlocked)
+  repeat: boolean;
+  coins: number; // level coins
+  chest: number; // dungeon first-clear chest
+  xp: number; // hero EXP actually applied (after gapMult)
+  levelsGained: number;
+  newLevel: number;
+}
+
+// Repeat flag and daily pay multiplier the loot roll needs BEFORE banking.
+export function lootOptions(
+  p: Profile,
+  rank: RarityId,
+  level: number,
+  asc: number,
+): { repeat: boolean; payMult: number } {
+  const repeat = (p.dungeons[rank]?.[asc] ?? 0) > level;
+  const today = dayKey();
+  const n = (p.levelsDay?.day === today ? p.levelsDay.n : 0) + 1;
+  return { repeat, payMult: repeat ? levelDecay(n) : 1 };
+}
+
+// Pure. Call once per finished attempt. EXP is always kept; everything else only
+// on a cleared, unlocked level.
+export function bankLevel(p: Profile, r: LevelResult): LevelBank {
+  const none = { cleared: false, repeat: false, coins: 0, chest: 0, xp: 0, levelsGained: 0, newLevel: 0 };
+  if (r.attemptId !== undefined && p.lastBankedRunId === r.attemptId)
+    return { profile: p, ...none };
+  let q: Profile = {
+    ...p,
+    lastBankedRunId: r.attemptId ?? p.lastBankedRunId,
+    runsPlayed: p.runsPlayed + 1,
+  };
+  let cleared = false;
+  let repeat = false;
+  let coins = 0;
+  let chest = 0;
+  if (r.status === "cleared") {
+    const rec = recordClear(p.dungeons, r.rank, r.level, r.asc);
+    if (rec) {
+      cleared = true;
+      repeat = !rec.firstTime;
+      const today = dayKey();
+      const n = (p.levelsDay?.day === today ? p.levelsDay.n : 0) + (repeat ? 1 : 0);
+      coins = levelCoins(r.rank, r.asc, repeat, n);
+      chest = rec.dungeonFirstClear ? firstClearChest(r.rank, r.asc) : 0;
+      q = {
+        ...q,
+        dungeons: rec.progress,
+        levelsDay: { day: today, n },
+        coins: q.coins + coins + chest,
+        parts: addParts(q.parts, r.loot.parts),
+      };
+      q = r.loot.pieces.reduce(grantPiece, q);
+    }
+  }
+  const hero = q.characters.find((c) => c.id === r.heroId);
+  let xp = 0;
+  let levelsGained = 0;
+  let newLevel = hero?.level ?? 0;
+  if (hero) {
+    const top = Math.max(...q.characters.map((c) => c.level));
+    xp = Math.round(r.xp * gapMult(hero.level, top));
+    const res = addHeroXp(hero, hero.stars, xp);
+    levelsGained = res.gained;
+    newLevel = res.level;
+    q = {
+      ...q,
+      characters: q.characters.map((c) =>
+        c.id === hero.id ? { ...c, level: res.level, xp: res.xp } : c,
+      ),
+    };
+  }
+  return { profile: q, cleared, repeat, coins, chest, xp, levelsGained, newLevel };
+}
+
+// Saves the hero's third-skill pick. null when not allowed.
+export function chooseHeroSkill(
+  p: Profile,
+  ownedId: string,
+  skillId: SkillId,
+): Profile | null {
+  const c = p.characters.find((x) => x.id === ownedId);
+  if (
+    !c ||
+    !SKILLS_BY_CLASS[c.classId].includes(skillId) ||
+    !skillUnlocked(c.rarity, c.stars)
+  )
+    return null;
+  return {
+    ...p,
+    characters: p.characters.map((x) =>
+      x.id === ownedId ? { ...x, skill: skillId } : x,
+    ),
   };
 }
 
@@ -586,6 +687,11 @@ function parseCharacter(v: unknown): OwnedCharacter | null {
     xp: nat(v.xp),
     rarity,
     stars: nat(v.stars, MAX_STARS),
+    ...(typeof v.skill === "string" &&
+    isSkillId(v.skill) &&
+    SKILLS_BY_CLASS[classId].includes(v.skill)
+      ? { skill: v.skill }
+      : {}),
   };
 }
 
@@ -636,16 +742,6 @@ const parseParts = (v: unknown): Parts => {
     for (const [k, n] of Object.entries(v)) {
       const q = nat(n, MAX_STACK);
       if (q > 0 && isPartKey(k)) out[k] = q;
-    }
-  return out;
-};
-
-const parseClears = (v: unknown): Clears => {
-  const out: Clears = {};
-  if (isObj(v))
-    for (const r of RARITY_IDS) {
-      const n = nat(v[r], 5);
-      if (n > 0) out[r] = n;
     }
   return out;
 };
@@ -732,8 +828,10 @@ export function migrate(json: unknown): Profile {
       : {}),
     bestFloor: nat(json.bestFloor),
     runsPlayed: nat(json.runsPlayed),
-    dungeons: parseClears(json.dungeons),
-    ascensions: parseClears(json.ascensions),
+    dungeons: parseProgress(json.dungeons),
+    ...(isObj(json.levelsDay) && isDayKey(json.levelsDay.day)
+      ? { levelsDay: { day: json.levelsDay.day, n: nat(json.levelsDay.n, 100000) } }
+      : {}),
     parts: parseParts(json.parts),
   };
 }

@@ -11,7 +11,7 @@ import {
   coopTally,
   replayCoop,
 } from "../game/coop";
-import { isUnlocked } from "../game/dungeons";
+import { isRankUnlocked } from "../game/dungeonProgress";
 import type { RarityId } from "../game/rarity";
 import { enemyFor, doorsFor, type Run } from "../game/run";
 import { ENGINE_VERSION } from "../game/replay";
@@ -139,7 +139,7 @@ const pre = (id: string) => id.slice(0, 8);
 async function assertUnlocked(d: RoomDeps, players: string[], rank: RarityId) {
   for (const id of players) {
     const { profile } = await d.loadProfile(id);
-    if (!isUnlocked(profile.dungeons, rank)) return fail("rank_locked");
+    if (!isRankUnlocked(profile.dungeons, rank)) return fail("rank_locked");
   }
 }
 

@@ -16,10 +16,9 @@ import {
 import { isTowerMode, towerHero, type TowerMode } from "../game/tower";
 import {
   isDungeonRank,
-  isUnlocked,
-  maxAscension,
   victoryCoins,
 } from "../game/dungeons";
+import { isRankUnlocked, maxAscension } from "../game/dungeonProgress";
 import { applyForge, type ForgeOp } from "../game/forge";
 import { dayPayMult } from "../game/economy";
 import type { RarityId } from "../game/rarity";
@@ -85,7 +84,6 @@ export function toMe(raw: RawProfile): Me {
     coins: raw.coins,
     pity: raw.pity,
     dungeons: raw.dungeons,
-    ascensions: raw.ascensions,
     parts: raw.parts,
     pitySsr: raw.pitySsr,
     bestFloor: raw.bestFloor,
@@ -323,7 +321,7 @@ export async function startRunService(
     }
   }
   const rank = body.rank ?? "f";
-  if (!isUnlocked(me.profile.dungeons, rank))
+  if (!isRankUnlocked(me.profile.dungeons, rank))
     throw new ApiError(
       403,
       "dungeon_locked",
@@ -331,7 +329,7 @@ export async function startRunService(
     );
   const ascension = body.ascension ?? 0;
   if (
-    ascension > maxAscension(me.profile.dungeons, me.profile.ascensions, rank)
+    ascension > maxAscension(me.profile.dungeons, rank)
   )
     throw new ApiError(
       403,

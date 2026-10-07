@@ -4,6 +4,7 @@
 import type { Character } from "./characters";
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "./elements";
 import {
+  type GearLine,
   applyGearDelta,
   combineGear,
   gearBonus,
@@ -30,6 +31,8 @@ export interface RunPiece {
   element: Element;
   rarity: RarityId;
   name: string;
+  roll?: number; // +-15% roll and extra lines (gear.rollGear)
+  lines?: GearLine[];
 }
 export type RunLoot = Partial<Record<Slot, RunPiece>>;
 

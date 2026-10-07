@@ -20,7 +20,7 @@ import {
   type Profile,
   type PullResult,
 } from "./game/profile";
-import { isUnlocked, maxAscension } from "./game/dungeons";
+import { isRankUnlocked, maxAscension } from "./game/dungeonProgress";
 import { dayPayMult } from "./game/economy";
 import { localWeekSeed, towerHero, type TowerMode } from "./game/tower";
 import { applyForge, type ForgeOp } from "./game/forge";
@@ -200,9 +200,9 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
         };
       }
       const p = store.get();
-      if (!isUnlocked(p.dungeons, rank))
+      if (!isRankUnlocked(p.dungeons, rank))
         throw new RepoError("dungeon_locked", "Dungeon bloqueado.");
-      if (ascension > maxAscension(p.dungeons, p.ascensions, rank))
+      if (ascension > maxAscension(p.dungeons, rank))
         throw new RepoError("ascension_locked", "Ascensión bloqueada.");
       const seed = seedHint ?? Date.now();
       const hero =
@@ -221,7 +221,6 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
           claimed.maxFloor,
           runId,
           claimed.loot,
-          claimed.clear,
           claimed.parts,
         ),
       );
