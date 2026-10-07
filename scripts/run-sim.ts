@@ -296,7 +296,7 @@ function play(seed: number, strat: Strategy): Result {
       run = started.run;
       let b = started.battle;
       res.fights++;
-      if (AUTO && node.kind === "easy" && !autoBlockReason(b, node.kind)) {
+      if (AUTO && node.kind === "easy" && !autoBlockReason(b)) {
         b = autoResolve(b, started.rng);
         res.turns++;
       }

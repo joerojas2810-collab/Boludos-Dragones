@@ -256,7 +256,7 @@ export function FloorPlayer({ client, floor, door }: Props) {
           auto={
             node.kind === "easy"
               ? {
-                  reason: autoBlockReason(b, node.kind),
+                  reason: autoBlockReason(b),
                   onAuto: () => {
                     apply({ t: "auto" });
                   },

@@ -563,7 +563,7 @@ function RunScreen() {
   };
   // Quick resolve: ONE log entry; the server replays it with the same policy.
   const quick = (s: Extract<Screen, { t: "fight" }>) => {
-    if (autoBlockReason(s.battle, s.node.kind)) return;
+    if (autoBlockReason(s.battle)) return;
     rec({ t: "auto" });
     settle(s, autoResolve(s.battle, s.rng));
   };
@@ -831,7 +831,7 @@ function RunScreen() {
             onAct={(a, t) => act(screen, a, t)}
             fleeCost={fleeCost(run)}
             auto={{
-              reason: autoBlockReason(b, node.kind),
+              reason: autoBlockReason(b),
               onAuto: () => quick(screen),
             }}
           >

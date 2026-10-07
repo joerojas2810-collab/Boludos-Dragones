@@ -220,7 +220,7 @@ describe("quick resolve in the action log", () => {
         if (s.fight.result) done = push({ t: "fin" });
         else {
           const b = s.fight.battle;
-          if (!autoBlockReason(b, s.fight.node.kind) && push({ t: "auto" })) {
+          if (!autoBlockReason(b) && push({ t: "auto" })) {
             autos++;
             done = true;
           } else {
@@ -280,7 +280,7 @@ describe("quick resolve in the action log", () => {
     throw new Error("no easy floor-1 fight was auto-resolvable");
   });
 
-  it("is illegal outside easy fights, mid-fight, or without a fight", () => {
+  it("is illegal mid-fight or without a fight", () => {
     const hero = strongHero(5);
     expect(applyRunAction(initialReplay(5, hero), { t: "auto" })).toBeNull();
     for (let seed = 1; seed < 60; seed++) {
@@ -291,7 +291,7 @@ describe("quick resolve in the action log", () => {
           t: "door",
           i: hard,
         }) as ReplayState;
-        expect(applyRunAction(s, { t: "auto" })).toBeNull();
+        expect(applyRunAction(s, { t: "auto" })).not.toBeNull();
       }
       const easy = d.findIndex((x) => x.kind === "easy");
       if (easy >= 0) {

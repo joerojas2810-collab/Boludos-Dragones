@@ -599,21 +599,13 @@ describe("auto policy", () => {
     expect(run(5)).toEqual(a);
   });
 
-  it("is blocked for non-easy fights, mid-fight, low hp and dangerous groups", () => {
+  it("is allowed at any hp, but not mid-fight", () => {
     const b = startBattle(strong(), weakFoes(), createRng(2));
-    expect(autoBlockReason(b, "easy")).toBeNull();
-    expect(autoBlockReason(b, "hard")).toMatch(/fáciles/);
-    expect(autoBlockReason(b, "boss")).toMatch(/fáciles/);
+    expect(autoBlockReason(b)).toBeNull();
     const mid = step(b, "attack1", createRng(2));
-    expect(autoBlockReason(mid, "easy")).toMatch(/empezar/);
+    expect(autoBlockReason(mid)).toMatch(/empezar/);
     const hurt = { ...b, player: { ...b.player, hp: 300 } };
-    expect(autoBlockReason(hurt, "easy")).toMatch(/vida/);
-    const deadly = startBattle(
-      strong({ hp: 100 }),
-      [unit("picaro", { atk: 80 }), unit("mago", { atk: 80 })],
-      createRng(2),
-    );
-    expect(autoBlockReason(deadly, "easy")).toMatch(/fuertes/);
+    expect(autoBlockReason(hurt)).toBeNull(); // risk is the player's
   });
 
   it("hands control back when the hero gets too hurt", () => {

@@ -127,7 +127,7 @@ export function applyRunAction(
     }
     case "auto": {
       const f = s.fight;
-      if (!f || f.result || autoBlockReason(f.battle, f.node.kind)) return null;
+      if (!f || f.result || autoBlockReason(f.battle)) return null;
       return settle(s, f, autoResolve(f.battle, f.rng));
     }
     case "fin": {

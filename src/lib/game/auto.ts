@@ -19,10 +19,7 @@ import {
 } from "./combat";
 import type { Rng } from "./rng";
 
-// Quick resolve is offered only when all of these hold (see autoBlockReason).
-export const AUTO_KIND = "easy";
-export const AUTO_MIN_HP = 0.7; // hero hp fraction when the fight opens
-export const AUTO_MAX_DANGER = 0.35; // expected hp lost / current hp
+// Quick resolve constants (see autoBlockReason).
 export const AUTO_STOP_HP = 0.3; // it gives control back below this hp fraction
 export const AUTO_MAX_STEPS = 200;
 // The policy defends when the announced strong hits would take this much of
@@ -158,13 +155,10 @@ export function fightDanger(b: Battle): number {
 }
 
 // null when quick resolve is allowed, otherwise the reason (Spanish, for the UI).
-export function autoBlockReason(b: Battle, kind: string): string | null {
-  if (kind !== AUTO_KIND) return "Solo en peleas fáciles.";
+// Any fight kind and hp is allowed (the risk is the player's); only mid-fight is blocked.
+export function autoBlockReason(b: Battle): string | null {
   if (b.status !== "ongoing" || b.actions > 0)
     return "Solo al empezar la pelea.";
-  if (b.player.hp < b.player.char.stats.hp * AUTO_MIN_HP)
-    return `Necesitas ${Math.round(AUTO_MIN_HP * 100)}% de vida.`;
-  if (fightDanger(b) > AUTO_MAX_DANGER) return "Rivales demasiado fuertes.";
   return null;
 }
 

@@ -41,7 +41,7 @@ import {
   type Intent,
   type MoveKey,
 } from "./combat";
-import { AUTO_MIN_HP, AUTO_STOP_HP } from "./auto";
+import { AUTO_STOP_HP } from "./auto";
 import { DUNGEONS } from "./dungeons";
 import { RARITIES } from "./rarity";
 import { pieceSummary } from "./loot";
@@ -812,7 +812,7 @@ export function autoTip(reason: string | null): Tip {
     kind: "info",
     lines: [
       "Juega la pelea por ti con una estrategia fija: elige objetivos, usa tu habilidad y defiende golpes fuertes.",
-      `Solo en peleas fáciles, al empezar, con al menos ${pct(AUTO_MIN_HP)} de vida y rivales que no te pongan en peligro.`,
+      "Disponible en cualquier pelea, solo al empezar. Es bajo tu riesgo: puedes perder el personaje.",
       `Si tu vida baja de ${pct(AUTO_STOP_HP)}, te devuelve el control.`,
       reason ? `No disponible: ${reason}` : "Disponible ahora.",
     ],
