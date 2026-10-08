@@ -18,14 +18,22 @@ const all = readdirSync(dir)
 const files = [...all.filter((f) => f !== LAST), ...all.filter((f) => f === LAST)];
 if (files.length === 0) throw new Error(`no migrations in ${dir}`);
 
-const body = files
+// --from=NNNN writes supabase/upgrade_from_NNNN.sql: only the migrations >= NNNN (plus the
+// lockdown last) for a database that already ran the earlier ones.
+const from = process.argv.find((a) => a.startsWith("--from="))?.slice(7);
+const list = from
+  ? files.filter((f) => f === LAST || f.slice(0, 4) >= from)
+  : files;
+const target = from ? join(process.cwd(), "supabase", `upgrade_from_${from}.sql`) : out;
+
+const body = list
   .map(
     (f) =>
       `-- ===== ${f} =====\n${readFileSync(join(dir, f), "utf8").trim()}\n`,
   )
   .join("\n");
 
-const sql = `-- Boludos & Dragones: full database setup (GENERATED, do not edit).
+const sql = `-- Boludos & Dragones: ${from ? `database upgrade from ${from}` : "full database setup"} (GENERATED, do not edit).
 -- Source: supabase/migrations/*.sql. Regenerate: npx tsx scripts/build-setup-sql.ts
 -- Paste into Supabase Dashboard > SQL Editor > Run. Safe to re-run.
 -- All-or-nothing: if any statement fails, nothing is applied.
@@ -36,7 +44,7 @@ commit;
 `;
 
 if (process.argv.includes("--check")) {
-  if (!existsSync(out) || readFileSync(out, "utf8") !== sql) {
+  if (!existsSync(target) || readFileSync(target, "utf8") !== sql) {
     console.error(
       "supabase/setup.sql is out of date. Run: npx tsx scripts/build-setup-sql.ts",
     );
@@ -44,6 +52,6 @@ if (process.argv.includes("--check")) {
   }
   console.log(`setup.sql is up to date (${files.length} migrations).`);
 } else {
-  writeFileSync(out, sql);
-  console.log(`wrote supabase/setup.sql from ${files.join(", ")}`);
+  writeFileSync(target, sql);
+  console.log(`wrote ${target} from ${list.join(", ")}`);
 }

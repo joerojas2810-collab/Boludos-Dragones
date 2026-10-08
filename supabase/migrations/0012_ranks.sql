@@ -18,11 +18,12 @@ begin
 end $$;
 
 -- equipment references the generated `key` columns: rebuild it around the update.
-create temporary table _equip as select * from public.equipment;
-delete from public.equipment;
--- one piece per slot: weapon ('arma') plus the 5 gear slots
+-- one piece per slot: weapon ('arma') plus the 5 gear slots. Added BEFORE the copy so a
+-- re-run keeps every slot (copying without it collapsed all pieces into 'arma').
 alter table public.equipment add column if not exists slot text not null default 'arma'
   check (slot in ('arma', 'casco', 'peto', 'piernas', 'zapatos', 'collar'));
+create temporary table _equip as select * from public.equipment;
+delete from public.equipment;
 alter table public.equipment drop constraint if exists equipment_pkey;
 alter table public.equipment add primary key (player_id, character_key, slot);
 
@@ -35,10 +36,11 @@ update public.characters set rarity = pg_temp.rank(rarity);
 update public.weapons set rarity = pg_temp.rank(rarity);
 update public.fragments set rarity = pg_temp.rank(rarity);
 
-insert into public.equipment (player_id, character_key, weapon_key)
+insert into public.equipment (player_id, character_key, weapon_key, slot)
 select player_id,
        regexp_replace(character_key, '-([a-z]+)$', '-' || pg_temp.rank((regexp_match(character_key, '-([a-z]+)$'))[1])),
-       regexp_replace(weapon_key, '-([a-z]+)$', '-' || pg_temp.rank((regexp_match(weapon_key, '-([a-z]+)$'))[1]))
+       regexp_replace(weapon_key, '-([a-z]+)$', '-' || pg_temp.rank((regexp_match(weapon_key, '-([a-z]+)$'))[1])),
+       slot
   from _equip;
 drop table _equip;
 
