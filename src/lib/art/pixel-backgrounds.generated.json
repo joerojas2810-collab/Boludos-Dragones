@@ -1,0 +1,730 @@
+[
+  {
+    "file": "canyon_boss_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "canyon_boss",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "canyon_boss_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "canyon_boss",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "canyon_boss_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "canyon_boss",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "canyon_boss_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "canyon_boss",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "canyon_boss_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "canyon_boss",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "canyon_normal_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "canyon_normal",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "canyon_normal_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "canyon_normal",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "canyon_normal_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "canyon_normal",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "canyon_normal_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "canyon_normal",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "canyon_normal_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "canyon_normal",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "caverns_boss_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "caverns_boss",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "caverns_boss_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "caverns_boss",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "caverns_boss_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "caverns_boss",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "caverns_boss_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "caverns_boss",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "caverns_boss_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "caverns_boss",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "caverns_normal_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "caverns_normal",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "caverns_normal_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "caverns_normal",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "caverns_normal_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "caverns_normal",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "caverns_normal_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "caverns_normal",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "caverns_normal_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "caverns_normal",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_a_boss_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_a_boss",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "dungeon_a_boss_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_a_boss",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "dungeon_a_boss_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_a_boss",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_a_boss_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_a_boss",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "dungeon_a_boss_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_a_boss",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_a_normal_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_a_normal",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "dungeon_a_normal_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_a_normal",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "dungeon_a_normal_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_a_normal",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_a_normal_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_a_normal",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "dungeon_a_normal_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_a_normal",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_s_boss_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_s_boss",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "dungeon_s_boss_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_s_boss",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "dungeon_s_boss_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_s_boss",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_s_boss_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_s_boss",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "dungeon_s_boss_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_s_boss",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_s_normal_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_s_normal",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "dungeon_s_normal_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_s_normal",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "dungeon_s_normal_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_s_normal",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_s_normal_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_s_normal",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "dungeon_s_normal_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_s_normal",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_ss_boss_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ss_boss",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "dungeon_ss_boss_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ss_boss",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "dungeon_ss_boss_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ss_boss",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_ss_boss_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ss_boss",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "dungeon_ss_boss_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ss_boss",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_ss_normal_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ss_normal",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "dungeon_ss_normal_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ss_normal",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "dungeon_ss_normal_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ss_normal",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_ss_normal_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ss_normal",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "dungeon_ss_normal_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ss_normal",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_ssr_boss_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ssr_boss",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "dungeon_ssr_boss_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ssr_boss",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "dungeon_ssr_boss_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ssr_boss",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_ssr_boss_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ssr_boss",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "dungeon_ssr_boss_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ssr_boss",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_ssr_normal_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ssr_normal",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "dungeon_ssr_normal_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ssr_normal",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "dungeon_ssr_normal_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ssr_normal",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "dungeon_ssr_normal_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ssr_normal",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "dungeon_ssr_normal_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "dungeon_ssr_normal",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "menu_desktop_composite.png",
+    "width": 320,
+    "height": 180,
+    "scene": "menu",
+    "layer": "composite",
+    "parallax": 0
+  },
+  {
+    "file": "peaks_boss_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "peaks_boss",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "peaks_boss_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "peaks_boss",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "peaks_boss_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "peaks_boss",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "peaks_boss_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "peaks_boss",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "peaks_boss_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "peaks_boss",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "peaks_normal_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "peaks_normal",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "peaks_normal_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "peaks_normal",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "peaks_normal_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "peaks_normal",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "peaks_normal_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "peaks_normal",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "peaks_normal_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "peaks_normal",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "storm_boss_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "storm_boss",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "storm_boss_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "storm_boss",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "storm_boss_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "storm_boss",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "storm_boss_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "storm_boss",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "storm_boss_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "storm_boss",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "storm_normal_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "storm_normal",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "storm_normal_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "storm_normal",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "storm_normal_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "storm_normal",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "storm_normal_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "storm_normal",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "storm_normal_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "storm_normal",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "swamp_boss_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "swamp_boss",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "swamp_boss_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "swamp_boss",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "swamp_boss_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "swamp_boss",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "swamp_boss_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "swamp_boss",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "swamp_boss_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "swamp_boss",
+    "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "swamp_normal_desktop_far.png",
+    "width": 320,
+    "height": 180,
+    "scene": "swamp_normal",
+    "layer": "far",
+    "parallax": 0.12
+  },
+  {
+    "file": "swamp_normal_desktop_foreground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "swamp_normal",
+    "layer": "foreground",
+    "parallax": 0.5
+  },
+  {
+    "file": "swamp_normal_desktop_ground.png",
+    "width": 320,
+    "height": 180,
+    "scene": "swamp_normal",
+    "layer": "ground",
+    "parallax": 0
+  },
+  {
+    "file": "swamp_normal_desktop_mid.png",
+    "width": 320,
+    "height": 180,
+    "scene": "swamp_normal",
+    "layer": "mid",
+    "parallax": 0.28
+  },
+  {
+    "file": "swamp_normal_desktop_sky.png",
+    "width": 320,
+    "height": 180,
+    "scene": "swamp_normal",
+    "layer": "sky",
+    "parallax": 0
+  }
+]

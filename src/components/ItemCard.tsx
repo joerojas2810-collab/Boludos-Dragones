@@ -8,6 +8,7 @@ import { RarityFrame } from "./RarityFrame";
 import { HeroSprite } from "./HeroSprite";
 import { StarRow } from "./StarRow";
 import { WeaponSprite } from "./WeaponSprite";
+import { PIXEL, pixelCardOpening } from "@/lib/art/pixel";
 
 // Plain display model: pages map their game objects to this.
 type Base = {
@@ -52,7 +53,7 @@ export function ItemCard({
   const r = RARITIES[item.rarity];
   const S = size + 24; // everything lives inside the frame
   const big = S >= 100;
-  const o = OPENING[item.rarity];
+  const o = PIXEL ? pixelCardOpening : OPENING[item.rarity];
   const title = [`${item.name} · Rango ${r.label}`, ...(item.lines ?? [])].join(
     "\n",
   );

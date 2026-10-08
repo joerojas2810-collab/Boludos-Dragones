@@ -2,6 +2,7 @@ import type { Element } from "@/lib/game/elements";
 import { RARITIES, type RarityId } from "@/lib/game/rarity";
 import { shadePixels } from "@/sprites/shade";
 import { gearIconSrc, handIconSrc } from "@/lib/art";
+import { PIXEL } from "@/lib/art/pixel";
 import { isGearType, type WeaponType } from "@/lib/game/weapons";
 import { WEAPON_SIZE, WEAPON_SPRITES_BY_TYPE } from "@/sprites/weapons";
 
@@ -26,6 +27,7 @@ export function WeaponSprite({
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={gearIconSrc(type, element)}
+        style={PIXEL ? { imageRendering: "pixelated" } : undefined}
         alt=""
         draggable={false}
         className={`aspect-square ${className}`}
@@ -38,6 +40,7 @@ export function WeaponSprite({
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={handIconSrc(type, element)}
+        style={PIXEL ? { imageRendering: "pixelated" } : undefined}
         alt=""
         draggable={false}
         className={`aspect-square ${className}`}

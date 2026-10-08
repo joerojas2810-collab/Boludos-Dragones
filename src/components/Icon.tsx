@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { icon } from "@/lib/art";
+import { isPixelIcon } from "@/lib/art/pixel";
 
 // Painted system icon (public/art/icons/icon_<name>.webp), sized by className.
 export function Icon({
@@ -17,7 +18,7 @@ export function Icon({
       src={icon(name)}
       alt=""
       draggable={false}
-      style={style}
+      style={{ ...style, ...(isPixelIcon(name) ? { imageRendering: "pixelated" } : {}) }}
       className={`inline-block aspect-square align-middle ${className}`}
     />
   );

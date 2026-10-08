@@ -28,6 +28,7 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  distDir: process.env.NEXT_DIST_DIR || ".next", // lets a second dev server (pixel art line) run beside the main one
   async headers() {
     return [
       {
@@ -36,7 +37,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=604800, stale-while-revalidate=2592000",
+            value: isDev ? "no-store" : "public, max-age=604800, stale-while-revalidate=2592000",
           },
         ],
       },

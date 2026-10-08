@@ -14,6 +14,10 @@ import type { ClassId } from "@/lib/game/characters";
 import type { Element } from "@/lib/game/elements";
 import type { TraitId } from "@/lib/game/traits";
 
+// Alternate art line: NEXT_PUBLIC_ART=pixel swaps the painted heroes for 64x96 pixel art.
+const PIXEL = process.env.NEXT_PUBLIC_ART === "pixel";
+const PX_ASPECT = 70 / 96; // 64 px frame + 3 px padding per side
+
 type Props = {
   classId: ClassId;
   element: Element;
@@ -57,6 +61,9 @@ function pairShifts(cls: string, assets: string[], action: HeroAction): Map<stri
 
 // Painted hero: base sheet + the transparent accessory layer of each trait.
 // Falls back to idle once a one-shot action ends (hold actions keep their last frame).
+const notHoldOf = (action: HeroAction) =>
+  !HERO_ACTIONS[action].loop && !("hold" in HERO_ACTIONS[action] && HERO_ACTIONS[action].hold);
+
 export function HeroSprite({ action = "idle", ...p }: Props) {
   // Keyed by action so the "finished" state resets whenever the action changes.
   return <Hero key={action} action={action} {...p} />;
@@ -76,6 +83,38 @@ function Hero({
   const [done, setDone] = useState(false);
   const a: HeroAction = animated && !done ? action : "idle";
   const cls = CLASS_ART[classId];
+  if (PIXEL) {
+    // ponytail: no trait accessories in pixel art yet (needs a phase 1b layer set).
+    const src = `/art/heroes-px/hero_${cls}_${ELEMENT_ART[element]}_${a}.png`;
+    const anim = { ...sheet(src, a), aspect: PX_ASPECT };
+    const frame = animated ? (
+      <AnimSheet anim={anim} onDone={notHoldOf(action) ? () => setDone(true) : undefined} />
+    ) : (
+      <div
+        className="h-full w-full"
+        style={{
+          backgroundImage: `url(${src})`,
+          backgroundRepeat: "no-repeat",
+          backgroundSize: `${HERO_ACTIONS.idle.frames * 100}% 100%`,
+        }}
+      />
+    );
+    return (
+      <div
+        role="img"
+        aria-hidden="true"
+        className={`relative aspect-square ${flip ? "-scale-x-100" : ""} ${className}`}
+        style={{ imageRendering: "pixelated" }}
+      >
+        <div
+          className="absolute bottom-0 left-1/2 h-full -translate-x-1/2"
+          style={{ aspectRatio: PX_ASPECT, transform: `translateX(-50%) ${crop ? "scale(1.22)" : ""}`, transformOrigin: "50% 94%" }}
+        >
+          {frame}
+        </div>
+      </div>
+    );
+  }
   const assets = traits
     .map((t) => TRAIT_ASSET[t])
     .filter((t) => ACCESSORY_SHEETS.has(`${cls}_${t}_${a}`));

@@ -1,4 +1,5 @@
 import ids from "./artIds.json";
+import { isPixelIcon, PIXEL } from "./art/pixel";
 import type { Element } from "@/lib/game/elements";
 import type { DoorKind } from "@/lib/game/room";
 import type { ClassId } from "@/lib/game/characters";
@@ -31,10 +32,16 @@ export const GEAR_ART: Record<GearType, string> = {
 
 // ?v= busts the 7-day static cache when art files are replaced under the same name.
 export const ART_V = 2;
-export const icon = (name: string) => `/art/icons/icon_${name}.webp?v=${ART_V}`;
+export const uiAsset = (name: string) =>
+  `/art/${PIXEL ? "ui-px" : "ui"}/${name}.${PIXEL ? "png" : "webp"}?v=${ART_V}`;
+export const icon = (name: string) => isPixelIcon(name)
+  ? `/art/icons-px/icon_${name}.png?v=${ART_V}`
+  : `/art/icons/icon_${name}.webp?v=${ART_V}`;
 export const elementIconSrc = (e: Element) => icon(`element_${ELEMENT_ART[e]}`);
 export const gearIconSrc = (t: GearType, e: Element) =>
-  `/art/equipment/icon_equipment_${GEAR_ART[t]}_${ELEMENT_ART[e]}.webp`;
+  PIXEL
+    ? `/art/equipment-px/icon_equipment_${GEAR_ART[t]}_${ELEMENT_ART[e]}.png`
+    : `/art/equipment/icon_equipment_${GEAR_ART[t]}_${ELEMENT_ART[e]}.webp`;
 
 type ArtCategory = keyof typeof ids;
 // Icon name for a game id (trait, relic, passive, skill, upgrade, event, enemy_modifier, stat, class), if one exists.
@@ -60,4 +67,6 @@ export const HAND_ART: Record<HandType, string> = {
   libro: "book",
 };
 export const handIconSrc = (t: HandType, e: Element) =>
-  `/art/weapons/icon_weapon_${HAND_ART[t]}_${ELEMENT_ART[e]}.webp`;
+  PIXEL
+    ? `/art/weapons-px/icon_weapon_${HAND_ART[t]}_${ELEMENT_ART[e]}.png`
+    : `/art/weapons/icon_weapon_${HAND_ART[t]}_${ELEMENT_ART[e]}.webp`;

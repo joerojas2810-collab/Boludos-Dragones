@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Alegreya, Nunito } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
+import { uiAsset } from "@/lib/art";
+import { PIXEL } from "@/lib/art/pixel";
 import "./globals.css";
 
-// Painted-art typography: Nunito for text and controls, Alegreya for titles and the logo.
+// Shared typography: Nunito for text and controls, Alegreya for titles.
 const pixel = Nunito({
   variable: "--font-pixel",
   subsets: ["latin"],
@@ -27,7 +29,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: { card: "summary_large_image", images: ["/og.png"] },
-  icons: { icon: "/art/ui/favicon_64.webp", apple: "/art/ui/favicon_180.webp" },
+  icons: { icon: uiAsset("favicon_64"), apple: uiAsset("favicon_180") },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -36,7 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="es"
       className={`${pixel.variable} ${title.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body data-art={PIXEL ? "pixel" : "painted"} className="min-h-full flex flex-col">
         <AppShell>{children}</AppShell>
       </body>
     </html>
