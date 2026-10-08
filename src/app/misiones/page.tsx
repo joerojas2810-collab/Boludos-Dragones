@@ -3,20 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { Panel } from "@/components/Panel";
+import { rewardText, type MissionTier } from "@/lib/game/missions";
 import { replaceProfile, repo, useProfile } from "@/lib/useProfile";
 
-interface Tier {
-  points: number;
-  coins: number;
-  cores: number;
-}
 interface ScopeState {
   scope: "daily" | "weekly" | "event";
   points: number;
   claimed: number;
   canReroll: boolean;
   open: boolean;
-  tiers: Tier[];
+  tiers: MissionTier[];
   missions: {
     slot: number;
     label: string;
@@ -74,12 +70,14 @@ export default function MissionsPage() {
     const d = (await r.json()) as {
       coins?: number;
       cores?: number;
+      parts?: number;
+      pieces?: number;
       error?: { message: string };
     };
     if (!r.ok) setMsg(d.error?.message ?? "No se pudo completar.");
     else if (path === "claim")
       setMsg(
-        `Cobraste ${d.coins} monedas${d.cores ? ` y ${d.cores} núcleo` : ""}.`,
+        `Cobraste ${rewardText({ coins: d.coins ?? 0, cores: d.cores ?? 0, parts: d.parts ?? 0, pieces: d.pieces ?? 0 }) || "tus premios"}.`,
       );
     const me = await repo.load();
     if (me) replaceProfile(me.profile);
@@ -160,11 +158,13 @@ export default function MissionsPage() {
                       draggable={false}
                       className="h-20"
                     />
-                    <span className="flex items-center gap-1">
+                    <span className="flex flex-wrap items-center justify-center gap-1">
                       {i < s.claimed ? "✔ " : ""}
-                      {t.coins} <Icon name="system_coin" className="h-4" />
+                      {rewardText(t)}
+                      {t.coins > 0 && (
+                        <Icon name="system_coin" className="h-4" />
+                      )}
                     </span>
-                    {t.cores > 0 && <span>+{t.cores} núcleo</span>}
                   </li>
                 ))}
               </ol>

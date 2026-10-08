@@ -50,6 +50,8 @@ await err(as("authenticated",U(1),()=>db.query(`select public.get_profile('${U(1
 // --- CHECK constraints
 await err(db.exec(`update public.player_state set coins=-1 where player_id='${U(1)}'`),"violates check","coins<0");
 await err(db.exec(`update public.gacha_state set pity=101 where player_id='${U(1)}'`),"violates check","pity>100");
+await err(db.exec(`update public.gacha_state set pity_ssr=251 where player_id='${U(1)}'`),"violates check","pity_ssr>250");
+await db.exec(`update public.gacha_state set pity_ssr=250 where player_id='${U(1)}'`); pass++; // the new bound is reachable
 await err(db.exec(`insert into public.characters(player_id,class,element,rarity,stars) values ('${U(1)}','mago','fuego','c',6)`),"violates check","stars>5");
 await err(db.exec(`insert into public.characters(player_id,class,element,rarity) values ('${U(1)}','wizard','fuego','c')`),"violates check","class enum");
 await err(db.exec(`insert into public.weapons(player_id,type,element,rarity) values ('${U(1)}','espada','fuego','mythic')`),"violates check","rarity enum");
@@ -62,7 +64,7 @@ const ch=(cls,el,rar)=>({class:cls,element:el,rarity:rar,data:{name:"X"}});
 let st=0;
 const pull=async(items,over={})=>{ const banner=over.banner??"character"; const st0=(await db.query(`select pity, pity_ssr from public.gacha_state where player_id='${U(2)}' and banner='${banner}'`)).rows[0]; const old=st0.pity, oldSsr=st0.pity_ssr; return rpc("apply_pull",{p_player:U(2),p_version:over.v??st,p_idem:over.idem??("idem-"+Math.random().toString(36).slice(2,12)),p_banner:over.banner??"character",p_cost:over.cost??250*items.length,p_pity:over.pity===undefined?old+items.length:(over.pity==="x"?0:over.pity),p_pity_ssr:over.pitySsr===undefined?oldSsr+items.length:over.pitySsr,p_seed:123,p_daily:over.daily??false,p_items:items});};
 let r=await pull([ch("mago","fuego","f")]); st=r.version;
-ok(r.coins===4750 && r.results[0].status==="new" && r.results[0].id==="c-mago-fuego-f" && r.pity===1,"first pull "+JSON.stringify(r));
+ok(r.coins===4750 && r.results[0].status==="new" && r.results[0].id==="c-mago-fuego-f" && r.pitySsr===1,"first pull "+JSON.stringify(r));
 r=await pull([ch("mago","fuego","f")],{}); st=r.version;
 ok(r.results[0].status==="star" && r.results[0].stars===1,"dup star");
 r=await pull([ch("mago","agua","f")],{}); st=r.version;
@@ -75,7 +77,7 @@ ok(rr.replayed===true && rr.coins===coinsAfter,"replay");
 ok((await db.query(`select coins from public.player_state where player_id='${U(2)}'`)).rows[0].coins===coinsAfter,"single charge");
 await err(pull([ch("mago","rayo","c")],{v:0}),"conflict","stale version");
 await err(pull([ch("mago","rayo","c")],{cost:100}),"invalid_cost");
-await err(pull([ch("mago","rayo","c")],{pity:99}),"invalid_pity");
+await err(pull([ch("mago","rayo","c")],{pitySsr:99}),"invalid_pity");
 await err(pull([ch("hacker","rayo","c")],{}),"invalid_items");
 await err(pull([ch("mago","rayo","epic")],{}),"invalid_items","bad rarity");
 await err(pull([],{cost:0}),"invalid_items","empty");
@@ -87,20 +89,24 @@ ok(r.results.length===10 && r.results[0].status==="new" && r.results[5].stars===
 console.log("10-pull statuses",r.results.map(x=>x.status+":"+x.stars).join(","),"refundTotal",r.refundTotal);
 ok(r.results[5].stars===5 && r.results[6].status==="refund" && r.results[6].refund===125 && r.refundTotal===500,"max star refund");
 await err(pull(ten,{cost:2500}),"invalid_cost","10 at full price");
-// pity: legendary resets, guarantee at 100
+// pity (Run v2): the SS pity is gone; the SSR is guaranteed at 250 pulls without one
 await db.exec(`update public.gacha_state set pity=100 where player_id='${U(2)}' and banner='character'`);
-await err(pull([ch("clerigo","viento","f")],{pity:101}),"invalid_pity","pity100 non-legend");
-await err(pull([ch("clerigo","viento","s")],{pity:0}),"invalid_pity","pity100 needs ss or better");
-r=await pull([ch("clerigo","viento","ss")],{pity:0}); st=r.version; ok(r.pity===0,"ss resets pity");
-await db.exec(`update public.gacha_state set pity_ssr=200 where player_id='${U(2)}' and banner='character'`);
-await err(pull([ch("clerigo","viento","ss")],{pity:0,pitySsr:0}),"invalid_pity","pity_ssr200 needs ssr");
-r=await pull([ch("clerigo","viento","ssr")],{pity:0,pitySsr:0}); st=r.version; ok(r.pitySsr===0,"ssr resets pity_ssr");
+r=await pull([ch("clerigo","viento","f")],{pity:0,pitySsr:undefined}); st=r.version; ok(r.results[0].status==="new","SS pity at 100 forces nothing");
+await db.exec(`update public.gacha_state set pity_ssr=249 where player_id='${U(2)}' and banner='character'`);
+r=await pull([ch("clerigo","viento","ss")],{pitySsr:250}); st=r.version; ok(r.pitySsr===250,"249 -> 250 with a non-SSR");
+await err(pull([ch("clerigo","viento","ss")],{pitySsr:0}),"invalid_pity","pity_ssr 250 needs ssr");
+await err(pull([ch("clerigo","viento","ssr")],{pitySsr:5}),"invalid_pity","ssr must reset the counter");
+r=await pull([ch("clerigo","viento","ssr")],{pitySsr:0}); st=r.version; ok(r.pitySsr===0,"ssr resets pity_ssr");
+// 10 pulls crossing the threshold: the 6th (counter 250) must be ssr
+await db.exec(`update public.gacha_state set pity_ssr=245 where player_id='${U(2)}' and banner='character'`);
+await db.exec(`update public.player_state set coins=coins+5000 where player_id='${U(2)}'`);
+await err(pull([...Array(5).fill(ch("caballero","agua","f")),ch("caballero","agua","e")],{pitySsr:0}),"invalid_pity","6th pull of 10 must be ssr");
 // insufficient coins
 await db.exec(`update public.player_state set coins=100 where player_id='${U(2)}'`);
 await err(pull([ch("mago","viento","c")],{}),"insufficient_coins");
 // weapons
 await db.exec(`update public.player_state set coins=5000 where player_id='${U(2)}'`);
-r=await pull([{type:"espada",element:"fuego",rarity:"c",data:{}}],{banner:"weapon"}); st=r.version;
+r=await pull([{type:"espada",element:"fuego",rarity:"c",data:{name:"E"},roll:1}],{banner:"weapon"}); st=r.version;
 ok(r.results[0].id==="w-espada-fuego-c","weapon id");
 // daily
 r=await pull([ch("picaro","agua","f")],{daily:true,cost:0}); st=r.version;

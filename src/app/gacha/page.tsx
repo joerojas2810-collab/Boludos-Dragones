@@ -1,5 +1,6 @@
 "use client";
 
+import { pityTip } from "@/lib/game/explain";
 import { ELEMENTS } from "@/lib/game/elements";
 import { RankIcon } from "@/components/RankIcon";
 import { useState } from "react";
@@ -51,7 +52,7 @@ const BANNERS: Record<Banner, { tab: string; title: string; text: string }> = {
   weapon: {
     tab: "Equipo",
     title: "Banner de equipo",
-    text: "Cada tirada forja una pieza: arma, casco, peto, piernas, zapatos o collar, con elemento y rango. Las armas suman ATQ (y su elemento pasa a ser el de tus ataques); el resto suma vida, defensa, velocidad, esquive, crítico o precisión. Los duplicados suben estrellas.",
+    text: "Cada tirada forja una pieza: arma, casco, peto, piernas, zapatos o collar, con elemento y rango. Las armas suman ATQ (y su elemento pasa a ser el de tus ataques); el resto suma vida, defensa, velocidad, esquive, crítico o precisión. Cada pieza trae su propia tirada (±15%) y, desde rango C, líneas extra. Los duplicados suben estrellas.",
   },
 };
 
@@ -156,15 +157,7 @@ export default function GachaPage() {
 
         <div className="mb-2 text-center">
           <Tooltip
-            tip={{
-              title: "Garantía (pity)",
-              kind: "info",
-              lines: [
-                `Cuenta las tiradas de este banner desde tu último SSR.`,
-                `A las ${PITY_SSR_THRESHOLD} sin SSR, la siguiente tirada es SSR seguro.`,
-                `Cada banner lleva su propio contador.`,
-              ],
-            }}
+            tip={pityTip()}
           >
             <span className="cursor-help block space-y-1 text-sm">
               <span className="flex items-center gap-2">

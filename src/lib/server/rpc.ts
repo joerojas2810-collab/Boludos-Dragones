@@ -70,6 +70,14 @@ const KNOWN: Record<string, [number, string]> = {
   equipped: [409, "Esa pieza está equipada."],
   nothing_to_claim: [409, "No hay premios para reclamar."],
   already_rerolled: [409, "Ya cambiaste una misión en este periodo."],
+  dungeon_locked: [409, "Ese dungeon todavía está bloqueado."],
+  ascension_locked: [409, "Esa ascensión todavía está bloqueada."],
+  level_locked: [409, "Ese nivel todavía está bloqueado."],
+  only_hero: [409, "No puedes quemar a tu único héroe."],
+  invalid_skill: [400, "Esa habilidad no es de esta clase."],
+  skill_locked: [409, "Esa habilidad aún no está disponible para este héroe."],
+  invalid_items: [400, "Datos inválidos."],
+  rate_limited: [429, "Espera un momento."],
 };
 
 // Known contract codes -> friendly API error; unknown -> generic (rethrown).

@@ -4,8 +4,7 @@
 // and what FakeRoomStore / the API use to decide the NEXT state.
 // `[K]` constants live here so one night of play can retune everything.
 
-import { isDungeonRank } from "./dungeons";
-import type { RarityId } from "./rarity";
+import { RARITY_IDS, type RarityId } from "./rarity";
 
 export const ROOM_K = {
   floorsPerRound: 10,
@@ -662,7 +661,7 @@ export function setMode(s: RoomState, host: string, mode: RoomMode): Result {
 export function setRank(s: RoomState, host: string, rank: RarityId): Result {
   const g = guard(s, host, "set_rank");
   if (g) return g;
-  if (!isDungeonRank(rank)) return fail("invalid_args");
+  if (!(RARITY_IDS as readonly unknown[]).includes(rank)) return fail("invalid_args");
   const n = clone(s);
   n.rank = rank;
   return done(n);

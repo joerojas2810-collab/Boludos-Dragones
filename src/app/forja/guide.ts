@@ -25,7 +25,8 @@ export const GUIDE: Record<
       "Paso 3: elige el rango. Usa partes de ese mismo rango, así que una pieza SSR pide partes SSR.",
       "Paso 4: revisa el costo. Son 3 partes del tipo y rango, 1 núcleo del elemento y unas monedas (la mitad de lo que cuesta fusionar hasta ese rango).",
       "Paso 5: pulsa Armar. La pieza aparece en tu colección. Si ya tenías esa misma pieza (tipo, elemento y rango), en vez de repetirse sube 1 estrella, hasta un máximo de 5.",
-      "Después: equípala en Héroes, en el muñeco de 6 casillas. Cada estrella suma bonos, y las piezas del mismo elemento dan bonos de set (2, 4 y 6 piezas).",
+      "La pieza armada trae su propia tirada: el stat principal varía ±15% y, desde rango C, suma líneas extra (más en A y SS). Si ya tenías la misma pieza, conservas la mejor tirada.",
+      "Después: equípala en Héroes, en el muñeco de 6 casillas. Cada estrella suma bonos (3 y 5 estrellas dan un extra), las piezas del mismo elemento dan bonos de set (2, 4 y 6 piezas) y las líneas extra del mismo estilo dan resonancia.",
     ],
   },
   merge: {
@@ -34,7 +35,7 @@ export const GUIDE: Record<
     needs:
       "Partes: varias del mismo tipo y rango + 1 núcleo. Piezas: varias del mismo tipo y rango, de distinto elemento.",
     gives:
-      "1 parte o pieza del rango siguiente. Las piezas pierden sus estrellas.",
+      "1 parte o pieza del rango siguiente. Las piezas pierden sus estrellas y su tirada: la nueva pieza trae una tirada propia.",
     example: "4 partes F + núcleo → 1 parte E.",
     steps: [
       "Fusionar sirve para subir de rango lo que te sobra. Hay dos modos: de partes y de piezas.",

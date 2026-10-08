@@ -17,6 +17,7 @@ import {
   critMultiplier,
   DEF_K,
   DEF_CAP,
+  defReduction,
   DEFEND_FACTOR,
   DOUBLE_ATTACK_FACTOR,
   ELEMENT_SHIFT_EVERY,
@@ -41,6 +42,31 @@ import {
   TRAIT_CAPS,
 } from "./combat";
 import { AUTO_STOP_HP } from "./auto";
+import { BURN_RATE, LEGACY_BURN_RATE } from "./burn";
+import { DAY_LEVEL_TIERS, REPEAT_COIN_MULT } from "./levelPay";
+import {
+  BUILD_LABEL,
+  extraLines,
+  GEAR_CAP,
+  GEAR_RANK_EXP,
+  RESONANCE_BONUS,
+  RESONANCE_MIN_LINES,
+  RESONANCE_STYLE_MULT,
+  ROLL_SPREAD,
+  SET_AFFINITY,
+  SET_BONUS,
+  SET_TIERS,
+} from "./gear";
+import {
+  GAP_BANDS,
+  LEVEL_BASE_CAP,
+  LEVEL_CAP_PER_STAR,
+  LEVEL_POWER_STEP,
+  XP_COST_FACTOR,
+  levelCap,
+  xpToNextLevel,
+} from "./heroLevel";
+import { PITY_SSR_THRESHOLD } from "./rarity";
 import { COUNTER_TAKEN, SKILL_UNLOCK_STARS } from "./skills";
 import {
   ADVANTAGE_BONUS,
@@ -50,7 +76,8 @@ import {
   type Element,
 } from "./elements";
 import { MODIFIER_FLOORS } from "./floorFights";
-import { GAFE_LOSS_XP, SEDIENTO_HEAL } from "./stage";
+import { CLEAR_XP_BONUS, FIGHT_XP, GAFE_LOSS_XP, SEDIENTO_HEAL } from "./stage";
+import { TOWER_XP_FACTOR } from "./tower";
 import { TRAITS, type TraitId, type TraitMods } from "./traits";
 
 export type TipKind =
@@ -194,7 +221,7 @@ export function passiveTip(c: Combatant, foe?: Combatant, you = true): Tip {
       const after = Math.round(20 * (1 - CLASS_PASSIVE_DMG_REDUCTION));
       lines.push(
         `${s("Recibes", `${c.char.name} recibe`)} ${pct(CLASS_PASSIVE_DMG_REDUCTION)} menos daño de todos los golpes (un golpe de 20 pasa a ${after}).`,
-        "Se aplica siempre, además de DEF, Defender y reliquias.",
+        "Se aplica siempre, además de DEF y Defender.",
       );
       break;
     }
@@ -220,7 +247,7 @@ export function passiveTip(c: Combatant, foe?: Combatant, you = true): Tip {
       );
       if (c.perks?.critDamage)
         lines.push(
-          `Una reliquia suma +${n1(c.perks.critDamage)}: total x${mult.toFixed(1)}.`,
+          `Un bono suma +${n1(c.perks.critDamage)}: total x${mult.toFixed(1)}.`,
         );
       lines.push(
         crit > 0
@@ -282,11 +309,11 @@ export function traitTip(id: TraitId, owner?: Character): Tip {
   const tag = "tag" in t ? t.tag : undefined;
   if (tag === "healOnWin")
     tags.push(
-      `Cura ${pct(SEDIENTO_HEAL)} de tu vida máxima al ganar una pelea en una run.`,
+      `Cura ${pct(SEDIENTO_HEAL)} de tu vida máxima al ganar una pelea de un nivel.`,
     );
   if (tag === "xpOnLoss")
     tags.push(
-      `Ganas ${GAFE_LOSS_XP} XP extra cuando pierdes una pelea en una run.`,
+      `Si pierdes una pelea de un nivel, conservas ${GAFE_LOSS_XP} EXP (sin él pierdes todo el EXP de esa pelea).`,
     );
   const r = "rules" in t ? t.rules : undefined;
   if (r && "critDamage" in r)
@@ -377,7 +404,7 @@ export function statTip(
         const em = attackElementMultiplier(c, foe);
         lines.push(
           `Ahora, ${a.name}: ${n1(st.atk)} × ${n1(a.power)} × ${em.toFixed(2)} (elemento) reducido por DEF de ${foe.char.name}.`,
-          `Con defensa, reliquias y pasivas: ~${estimateDamage(c, foe, "attack1")} por golpe (sin crítico).`,
+          `Con defensa, equipo y pasivas: ~${estimateDamage(c, foe, "attack1")} por golpe (sin crítico).`,
         );
       } else
         lines.push(
@@ -387,8 +414,12 @@ export function statTip(
     }
     case "def": {
       lines.push(
-        `La DEF reduce el daño recibido como un porcentaje: ${pct(st.def / (st.def + DEF_K * 10))} (contra ATQ 10; aumenta contra ATQ mayor) hasta ${pct(DEF_CAP)} como máximo.`,
+        `La DEF reduce el daño como un porcentaje: DEF ÷ (DEF + ${DEF_K === 1 ? "" : `${DEF_K} × `}ATQ del atacante), hasta ${pct(DEF_CAP)} como máximo.`,
       );
+      if (foe)
+        lines.push(
+          `Contra ${foeName} (ATQ ${n1(foe.char.stats.atk)}): ${pct(defReduction(foe, c))} menos daño.`,
+        );
       if (foe)
         lines.push(
           `Ahora, ${CLASSES[foe.char.classId].attack1.name} de ${foeName} ${s("te", `le`)} hace ~${estimateDamage(foe, c, "attack1")}.`,
@@ -502,7 +533,7 @@ export function skillTip(c: Combatant, foe?: Combatant): Tip {
       title: "Ataque 3",
       kind: "info",
       lines: [
-        `Se desbloquea con rango C o ${SKILL_UNLOCK_STARS} estrellas: elegirás 1 de 2 habilidades de tu clase.`,
+        `Se desbloquea con rango C o superior, o con ${SKILL_UNLOCK_STARS} estrellas en rangos F a D. Eliges 1 de 2 habilidades de tu clase y puedes cambiarla.`,
       ],
     };
   const lines = [sk.description];
@@ -726,7 +757,7 @@ export function autoTip(reason: string | null): Tip {
     kind: "info",
     lines: [
       "Juega la pelea por ti con una estrategia fija: elige objetivos, usa tu habilidad y defiende golpes fuertes.",
-      "Disponible en cualquier pelea, solo al empezar. Es bajo tu riesgo: puedes perder el personaje.",
+      "Solo al empezar la pelea. Es bajo tu riesgo: con una sola vida, si pierdes el intento termina.",
       `Si tu vida baja de ${pct(AUTO_STOP_HP)}, te devuelve el control.`,
       reason ? `No disponible: ${reason}` : "Disponible ahora.",
     ],
@@ -771,7 +802,10 @@ export function modTip(mod: EnemyMod, enemy?: Combatant): Tip {
     title: MOD_LABEL[mod],
     kind: "danger",
     lines,
-    source: `Modificador de enemigo, desde el piso ${MODIFIER_FLOORS[mod]} en las runs`,
+    source:
+      mod === "dobleAtaque"
+        ? `Modificador de enemigo: jefes en ascensión 4+; en torre y salas, desde el piso ${MODIFIER_FLOORS[mod]}`
+        : `Modificador de enemigo de torre y salas, desde el piso ${MODIFIER_FLOORS[mod]}`,
   };
 }
 
@@ -805,7 +839,7 @@ export function freeHitsTip(c: Combatant): Tip {
     lines: [
       `Los próximos ${plural(c.freeHits ?? 0, "golpe", "golpes")} del rival fallan automáticamente.`,
     ],
-    source: "Efecto de reliquia",
+    source: "Efecto de bono",
   };
 }
 
@@ -814,3 +848,97 @@ export function freeHitsTip(c: Combatant): Tip {
 export function classStatTip(classId: ClassId, stat: keyof Stats): Tip {
   return statTip(stat, previewCombatant(classId));
 }
+
+// ---------- Run v2 rules (levels, rank traits, gear, sets, burning, pay, pity) ----------
+
+export const levelTip = (level: number, xp: number, stars: number): Tip => ({
+  title: `Nivel ${level} de ${levelCap(stars)}`,
+  kind: "stat",
+  lines: [
+    `Cada nivel sobre el 1 suma +${pct(LEVEL_POWER_STEP)} de vida, ATQ y DEF.`,
+    `El tope de nivel sube con las estrellas: ${LEVEL_BASE_CAP} sin estrellas y +${LEVEL_CAP_PER_STAR} por estrella (${levelCap(5)} con 5).`,
+    level >= levelCap(stars)
+      ? "Estás en el tope: sube estrellas para seguir."
+      : `EXP ${xp}/${xpToNextLevel(level)} para el nivel ${level + 1} (cada nivel L cuesta ${XP_COST_FACTOR} × L²).`,
+    `EXP por pelea ganada: ${FIGHT_XP.normal} normal, ${FIGHT_XP.elite} élite, ${FIGHT_XP.final} jefe final; +${pct(CLEAR_XP_BONUS)} al limpiar el nivel. En la torre, ${pct(TOWER_XP_FACTOR)}; las salas no dan.`,
+    `Los héroes muy por debajo de tu mejor nivel aprenden más rápido: ${GAP_BANDS.map((b) => `×${b.mult} con ${b.gap}+ niveles de diferencia`).join(", ")}.`,
+  ],
+  source: "Nivel del héroe",
+});
+
+export const rankTraitsTip = (): Tip => ({
+  title: "Rasgos por rango",
+  kind: "trait",
+  lines: [
+    "F a D: 1 rasgo.",
+    "C a A: 2 rasgos.",
+    "S a SSR: 1 rasgo y además 1 rasgo de regla (con un costo), siempre.",
+  ],
+  source: "Se fijan al invocar al héroe",
+});
+
+export const gearTip = (): Tip => ({
+  title: "Piezas de equipo",
+  kind: "info",
+  lines: [
+    `Cada pieza trae una tirada propia: su stat principal varía ±${pct(ROLL_SPREAD)}.`,
+    `Líneas extra: ${extraLines("c")} desde rango C, ${extraLines("a")} desde A y ${extraLines("ss")} desde SS. Cada una es otro stat con su propia tirada.`,
+    `El rango pesa más que en los héroes (rango ^ ${GEAR_RANK_EXP}); 3 estrellas dan +10% y 5 estrellas +20% extra.`,
+    `Topes de la suma de todas las piezas: vida +${pct(GEAR_CAP.hp)}, ATQ +${pct(GEAR_CAP.atk)}, DEF +${pct(GEAR_CAP.def)}, velocidad +${pct(GEAR_CAP.speed)}.`,
+    "Si repites una pieza, conservas la mejor tirada y sube una estrella.",
+  ],
+  source: "Equipo",
+});
+
+export const setTip = (): Tip => ({
+  title: "Sets de elemento",
+  kind: "info",
+  lines: [
+    `Piezas del mismo elemento: ${SET_TIERS.join(", ")} piezas dan bono (fuego ATQ +${pct(SET_BONUS.fuego[0].atk ?? 0)} / +${pct(SET_BONUS.fuego[1].atk ?? 0)} / +${pct(SET_BONUS.fuego[2].atk ?? 0)}, tierra DEF, agua vida y regeneración, viento velocidad y esquive, rayo crítico).`,
+    `Si el set es del elemento del héroe, el bono se multiplica ×${SET_AFFINITY}.`,
+  ],
+  source: "Equipo",
+});
+
+export const resonanceTip = (): Tip => ({
+  title: "Resonancia de estilo",
+  kind: "info",
+  lines: [
+    `Si al menos ${RESONANCE_MIN_LINES} líneas extra de tu equipo son del mismo estilo (${Object.values(BUILD_LABEL).join(", ")}), ganas un bono pequeño y otro mayor.`,
+    `Daño +${pct(RESONANCE_BONUS.dano[0].dmgDealt ?? 0)} / +${pct(RESONANCE_BONUS.dano[1].dmgDealt ?? 0)}; Tanque −${pct(RESONANCE_BONUS.tanque[0].dmgTaken ?? 0)} / −${pct(RESONANCE_BONUS.tanque[1].dmgTaken ?? 0)} de daño recibido.`,
+    `Si el estilo coincide con tu tercera habilidad, el bono se multiplica ×${RESONANCE_STYLE_MULT}.`,
+  ],
+  source: "Equipo",
+});
+
+export const burnTip = (): Tip => ({
+  title: "Quemar",
+  kind: "info",
+  lines: [
+    `Convierte un héroe o pieza en monedas: ${pct(BURN_RATE)} de su valor de intercambio. Siempre pierdes frente a invocar.`,
+    `Lo anterior al cambio (marcado «legado») rinde ${pct(LEGACY_BURN_RATE)}.`,
+    "No se puede quemar lo equipado ni tu único héroe.",
+  ],
+  source: "Colección",
+});
+
+export const levelPayTip = (): Tip => ({
+  title: "Monedas por nivel",
+  kind: "gold",
+  lines: [
+    "Un nivel nuevo paga el 100% una sola vez; la primera limpieza de un dungeon o ascensión da un cofre grande.",
+    `Repetir un nivel paga ${pct(REPEAT_COIN_MULT)}, y baja con las repeticiones del día: ${DAY_LEVEL_TIERS.map((t) => `hasta la ${t.upTo}.ª al ${pct(t.mult)}`).join(", ")}, y después 10%.`,
+    "El pago por nivel es casi igual en todos los rangos: los rangos altos premian con partes, núcleos y piezas.",
+  ],
+  source: "Dungeons",
+});
+
+export const pityTip = (): Tip => ({
+  title: "Garantía (pity)",
+  kind: "info",
+  lines: [
+    "Cuenta las tiradas de este banner desde tu último SSR.",
+    `A las ${PITY_SSR_THRESHOLD} sin SSR, la siguiente tirada es SSR seguro. No hay garantía para SS ni S.`,
+    "Cada banner lleva su propio contador.",
+  ],
+});

@@ -9,7 +9,6 @@ import {
   type Character,
 } from "./characters";
 import type { EnemyMod } from "./combat";
-import { DUNGEONS } from "./dungeons";
 import { ELEMENTS, type Element } from "./elements";
 import { DUNGEON_THEMES } from "./levels";
 import { makePow } from "./powTable";
@@ -82,9 +81,22 @@ export const kindOfFloor = (floor: number): FloorKind =>
 
 export const isBossRoom = (floor: number) => floor % BOSS_ROOM_EVERY === 0;
 
+// Room / tower difficulty shift per rank (found by simulation, see scripts/run-sim.ts).
+export const RANK_DEPTH_OFFSET: Readonly<Record<RarityId, number>> = {
+  f: 0,
+  e: 1,
+  d: 1,
+  c: 2,
+  b: 3,
+  a: 4,
+  s: 5,
+  ss: 6,
+  ssr: 8,
+};
+
 /** Depth used for scaling: the floor plus the room rank's offset (rooms only). */
 export const depthOf = (floor: number, rank?: RarityId | null) =>
-  floor + (rank ? DUNGEONS[rank].offset : 0);
+  floor + (rank ? RANK_DEPTH_OFFSET[rank] : 0);
 
 export const earlyEase = (depth: number) =>
   Math.min(

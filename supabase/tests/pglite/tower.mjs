@@ -14,13 +14,13 @@ for (let i = 1; i <= 4; i++) {
 const coins = async (i) => (await one(`select coins from public.player_state where player_id='${U(i)}'`)).coins;
 
 // record: best floor only, bounded, per mode
-await err(rpc("tower_record", { p_player: U(1), p_mode: "hax", p_floor: 5 }), "invalid_args");
-await err(rpc("tower_record", { p_player: U(1), p_mode: "nivelado", p_floor: 501 }), "invalid_args");
-await rpc("tower_record", { p_player: U(1), p_mode: "nivelado", p_floor: 12 });
-await rpc("tower_record", { p_player: U(1), p_mode: "nivelado", p_floor: 7 });
-ok((await rpc("tower_record", { p_player: U(1), p_mode: "nivelado", p_floor: 9 })).max_floor === 12, "keeps the best floor");
-await rpc("tower_record", { p_player: U(2), p_mode: "nivelado", p_floor: 15 });
-await rpc("tower_record", { p_player: U(1), p_mode: "coleccion", p_floor: 20 });
+await err(rpc("tower_record", { p_player: U(1), p_mode: "hax", p_floor: 5, p_rounds: 10 }), "invalid_args");
+await err(rpc("tower_record", { p_player: U(1), p_mode: "nivelado", p_floor: 501, p_rounds: 10 }), "invalid_args");
+await rpc("tower_record", { p_player: U(1), p_mode: "nivelado", p_floor: 12, p_rounds: 30 });
+await rpc("tower_record", { p_player: U(1), p_mode: "nivelado", p_floor: 7, p_rounds: 30 });
+ok((await rpc("tower_record", { p_player: U(1), p_mode: "nivelado", p_floor: 9, p_rounds: 30 })).max_floor === 12, "keeps the best floor");
+await rpc("tower_record", { p_player: U(2), p_mode: "nivelado", p_floor: 15, p_rounds: 30 });
+await rpc("tower_record", { p_player: U(1), p_mode: "coleccion", p_floor: 20, p_rounds: 30 });
 await db.exec(`insert into public.tower_scores (week, mode, player_id, max_floor, updated_at) values
   (public.game_week() - 7, 'nivelado', '${U(1)}', 30, now() - interval '3 days'),
   (public.game_week() - 7, 'nivelado', '${U(2)}', 30, now() - interval '2 days'),
@@ -51,7 +51,7 @@ ok((await coins(1)) === c[1] + 300, "settling twice never pays twice");
 // locked down
 for (const [role, uid] of [["authenticated", U(1)], ["anon", null]])
   await as(role, uid, async () => {
-    for (const f of ["tower_record('" + U(1) + "','nivelado',3)", "tower_settle(current_date)", "tower_state('" + U(1) + "')"]) {
+    for (const f of ["tower_record('" + U(1) + "','nivelado',3,10)", "tower_settle(current_date)", "tower_state('" + U(1) + "')"]) {
       try { await db.query(`select public.${f}`); fail++; console.log("FAIL:", role, "can call", f); } catch { pass++; }
     }
   });

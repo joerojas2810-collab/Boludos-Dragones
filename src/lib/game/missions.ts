@@ -1,21 +1,21 @@
 // Missions: daily (3, activity tiers, 1 reroll), weekly (3) and the Friday room event (3).
 // Pure logic. Rotation is deterministic from the day / week key (same for every player, no
 // table needed); only progress and claimed tiers are stored. The server derives progress
-// events from already-verified actions (bank_run, forge, pulls, rooms). Keep rewards in
-// sync with the SQL when the migration is written.
+// events from already-verified actions (see missionDeltas, forge, pulls, rooms). Rewards
+// (SCOPE_TIERS) are mirrored in SQL.
 import { ELEMENTS, type Element } from "./elements";
 import { createRng, hashSeed } from "./rng";
 import { addDays } from "./streak";
 
 export type MissionScope = "daily" | "weekly" | "event";
 
-// What the server counts. `element_win` carries the element as param ("element_win:fuego").
+// What the server counts. `element` carries the element as param ("element:fuego").
 export type MissionKind =
-  | "fight_win"
-  | "boss_win"
-  | "dungeon_clear"
-  | "floors"
-  | "element_win"
+  | "levels"
+  | "fights"
+  | "bosses"
+  | "dungeon"
+  | "element"
   | "forge"
   | "pull"
   | "room_round"
@@ -31,21 +31,20 @@ interface Def {
 }
 
 export const MISSION_POOL: readonly Def[] = [
-  { kind: "fight_win", scope: "daily", target: 5, label: "Gana {n} peleas" },
-  { kind: "fight_win", scope: "daily", target: 10, label: "Gana {n} peleas" },
-  { kind: "floors", scope: "daily", target: 8, label: "Supera {n} pisos" },
-  { kind: "boss_win", scope: "daily", target: 1, label: "Vence a un jefe" },
+  { kind: "levels", scope: "daily", target: 3, label: "Limpia {n} niveles" },
+  { kind: "fights", scope: "daily", target: 15, label: "Gana {n} peleas" },
+  { kind: "fights", scope: "daily", target: 30, label: "Gana {n} peleas" },
   {
-    kind: "element_win",
+    kind: "bosses",
     scope: "daily",
     target: 3,
-    label: "Gana {n} peleas con héroe de {p}",
+    label: "Vence a {n} jefes de nivel",
   },
   {
-    kind: "dungeon_clear",
+    kind: "element",
     scope: "daily",
-    target: 1,
-    label: "Limpia un dungeon",
+    target: 5,
+    label: "Gana {n} peleas con héroe de {p}",
   },
   {
     kind: "pull",
@@ -54,15 +53,15 @@ export const MISSION_POOL: readonly Def[] = [
     label: "Haz una tirada en Invocar",
   },
   { kind: "forge", scope: "daily", target: 1, label: "Usa la forja una vez" },
-  { kind: "fight_win", scope: "weekly", target: 40, label: "Gana {n} peleas" },
-  { kind: "boss_win", scope: "weekly", target: 6, label: "Vence a {n} jefes" },
+  { kind: "levels", scope: "weekly", target: 20, label: "Limpia {n} niveles" },
+  { kind: "fights", scope: "weekly", target: 150, label: "Gana {n} peleas" },
   {
-    kind: "dungeon_clear",
+    kind: "bosses",
     scope: "weekly",
-    target: 4,
-    label: "Limpia {n} dungeons",
+    target: 20,
+    label: "Vence a {n} jefes de nivel",
   },
-  { kind: "floors", scope: "weekly", target: 60, label: "Supera {n} pisos" },
+  { kind: "dungeon", scope: "weekly", target: 1, label: "Limpia 1 dungeon" },
   {
     kind: "forge",
     scope: "weekly",
@@ -71,9 +70,9 @@ export const MISSION_POOL: readonly Def[] = [
   },
   { kind: "pull", scope: "weekly", target: 5, label: "Haz {n} tiradas" },
   {
-    kind: "element_win",
+    kind: "element",
     scope: "weekly",
-    target: 15,
+    target: 25,
     label: "Gana {n} peleas con héroe de {p}",
   },
   {
@@ -109,26 +108,72 @@ export interface Mission {
 }
 
 const POINTS = 30; // every mission is worth the same; tiers fall at 1, 2 and 3 missions
-export const SCOPE_TIERS: Record<
-  MissionScope,
-  readonly { points: number; coins: number; cores: number }[]
-> = {
-  daily: [
-    { points: 30, coins: 100, cores: 0 },
-    { points: 60, coins: 150, cores: 0 },
-    { points: 90, coins: 250, cores: 0 }, // full day = 500 = two pulls
-  ],
+
+export interface MissionTier {
+  points: number;
+  coins: number;
+  cores: number;
+  /** Random parts at the rank of the player's best cleared dungeon (F if none). */
+  parts: number;
+  /** Gear pieces (random type/element) at the rank of the player's best cleared dungeon. */
+  pieces: number;
+}
+const tier = (
+  points: number,
+  coins: number,
+  o: Partial<Omit<MissionTier, "points" | "coins">> = {},
+): MissionTier => ({ points, coins, cores: 0, parts: 0, pieces: 0, ...o });
+
+/**
+ * Mission rewards per scope and tier. MUST be mirrored in SQL (`mission_claim`): any
+ * change here needs the same change in the migration. Totals in coins: daily 250
+ * (one pull), weekly 700, event 550.
+ */
+export const SCOPE_TIERS: Record<MissionScope, readonly MissionTier[]> = {
+  daily: [tier(30, 0, { parts: 2 }), tier(60, 0, { cores: 1 }), tier(90, 250)],
   weekly: [
-    { points: 30, coins: 250, cores: 0 },
-    { points: 60, coins: 400, cores: 0 },
-    { points: 90, coins: 600, cores: 1 }, // 1250 = five pulls
+    tier(30, 100, { parts: 3 }),
+    tier(60, 100, { pieces: 1 }),
+    tier(90, 500, { cores: 1 }),
   ],
-  event: [
-    { points: 30, coins: 100, cores: 0 },
-    { points: 60, coins: 200, cores: 0 },
-    { points: 90, coins: 700, cores: 1 }, // 1000 = four pulls, mostly for finishing
-  ],
+  event: [tier(30, 50), tier(60, 100), tier(90, 400, { cores: 1 })],
 };
+
+/** Short Spanish description of a tier reward ("250 monedas · 1 núcleo"). */
+export function rewardText(t: Omit<MissionTier, "points">): string {
+  const out: string[] = [];
+  if (t.coins) out.push(`${t.coins} monedas`);
+  if (t.parts) out.push(`${t.parts} partes`);
+  if (t.cores) out.push(`${t.cores} ${t.cores === 1 ? "núcleo" : "núcleos"}`);
+  if (t.pieces)
+    out.push(`${t.pieces} ${t.pieces === 1 ? "pieza" : "piezas"}`);
+  return out.join(" · ");
+}
+
+/** Progress increments (keyed like `Mission.key`) from a finished stage / tower / room event. */
+export interface StageResult {
+  status: "playing" | "cleared" | "lost";
+  won: { normal: number; elite: number; final: number };
+  heroElement: Element;
+  /** True when the cleared level was the last one of its rank (the dungeon's final level). */
+  finalLevel?: boolean;
+}
+export function missionDeltas(r: StageResult): Record<string, number> {
+  const fights = r.won.normal + r.won.elite + r.won.final;
+  const out: Record<string, number> = {};
+  const add = (k: string, n: number) => {
+    if (n > 0) out[k] = n;
+  };
+  add("fights", fights);
+  add(`element:${r.heroElement}`, fights);
+  add("bosses", r.won.elite + r.won.final);
+  if (r.status === "cleared") {
+    add("levels", 1);
+    if (r.finalLevel) add("dungeon", 1);
+  }
+  return out;
+}
+
 export const MISSIONS_PER_SCOPE = 3;
 export const MAX_REROLLS = 1;
 
@@ -157,7 +202,7 @@ function build(
   slot: number,
   rng: ReturnType<typeof createRng>,
 ): Mission {
-  const param = def.kind === "element_win" ? rng.pick(ELEMENTS) : undefined;
+  const param = def.kind === "element" ? rng.pick(ELEMENTS) : undefined;
   return {
     slot,
     scope: def.scope,
@@ -249,6 +294,8 @@ export function claimTiers(
     state: { ...s, claimed: Math.max(s.claimed, reached) },
     coins: fresh.reduce((a, t) => a + t.coins, 0),
     cores: fresh.reduce((a, t) => a + t.cores, 0),
+    parts: fresh.reduce((a, t) => a + t.parts, 0),
+    pieces: fresh.reduce((a, t) => a + t.pieces, 0),
   };
 }
 

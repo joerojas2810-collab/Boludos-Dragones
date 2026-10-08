@@ -1,6 +1,15 @@
 import type { Character, ClassId } from "../game/characters";
+import { burn as burnItem } from "../game/burn";
+import { isLevelUnlocked, isRankUnlocked } from "../game/dungeonProgress";
+import { missionDeltas } from "../game/missions";
+import { levelLoot, type LevelLoot } from "../game/levelLoot";
+import { LEVELS_PER_RANK, levelsOf } from "../game/levels";
 import {
+  chooseHeroSkill,
+  heroFromOwned,
+  lootOptions,
   migrate,
+  PROFILE_VERSION,
   pullCharacter,
   pullCost,
   pullWeapon,
@@ -12,12 +21,19 @@ import {
   isTowerMode,
   replayTower,
   towerHero,
+  towerXp,
   type TowerMode,
 } from "../game/tower";
 import { applyForge, type ForgeOp } from "../game/forge";
-import type { RarityId } from "../game/rarity";
+import { RARITY_IDS, type RarityId } from "../game/rarity";
 import { createRng } from "../game/rng";
-import { ENGINE_VERSION, type StageAction } from "../game/stageReplay";
+import { isSkillId } from "../game/skills";
+import { levelFights } from "../game/stage";
+import {
+  ENGINE_VERSION,
+  replayStage,
+  type StageAction,
+} from "../game/stageReplay";
 import { isDayKey, type DailyState } from "../game/streak";
 import { ApiError } from "./http";
 import { trackMissions } from "./missions";
@@ -40,8 +56,8 @@ interface RawProfile {
   coins: number;
   pity: { character: number; weapon: number };
   pitySsr?: { character: number; weapon: number };
-  dungeons?: Record<string, number>;
-  ascensions?: Record<string, number>;
+  dungeons?: Record<string, number[]>;
+  levelsDay?: { day: string; n: number } | null;
   parts?: Record<string, number>;
   characters: {
     id: string;
@@ -74,9 +90,12 @@ export interface Me {
 // migrate() re-validates everything and recomputes derived values (weapon atk).
 export function toMe(raw: RawProfile): Me {
   const profile = migrate({
+    // Rows come from the database: the legacy flags are columns, not "saved before v5".
+    version: PROFILE_VERSION,
     coins: raw.coins,
     pity: raw.pity,
     dungeons: raw.dungeons,
+    levelsDay: raw.levelsDay,
     parts: raw.parts,
     pitySsr: raw.pitySsr,
     bestFloor: raw.bestFloor,
@@ -134,7 +153,14 @@ export interface PullBody {
 
 type Item =
   | { class: string; element: string; rarity: string; data: unknown }
-  | { type: string; element: string; rarity: string; data: unknown };
+  | {
+      type: string;
+      element: string;
+      rarity: string;
+      data: unknown;
+      roll?: number; // the piece's own roll and lines, rolled by the server rng
+      lines?: unknown;
+    };
 
 const itemOf = (r: PullResult): Item | null => {
   if (r.character) {
@@ -152,6 +178,8 @@ const itemOf = (r: PullResult): Item | null => {
       element: r.weapon.element,
       rarity: r.weapon.rarity,
       data: { name: r.weapon.name },
+      roll: r.weapon.roll,
+      ...(r.weapon.lines?.length ? { lines: r.weapon.lines } : {}),
     };
   return null;
 };
@@ -231,14 +259,12 @@ export async function doPull(
 }
 
 // ---- runs ----
-// Only the weekly tower runs through a server-verified log today. Dungeon levels
-// (stage engine) are verified by the level services of the server phase.
+// `runs` rows are generic attempts: the weekly tower (hero.tower) and dungeon levels
+// (hero.kind = "level", written by start_level). Each has its own start/finish service.
 
 export interface RunStartBody {
   classId: ClassId;
   characterId: string | null;
-  rank?: RarityId;
-  ascension?: number;
   tower?: TowerMode; // weekly tower: the week's seed, no payout
 }
 
@@ -247,9 +273,10 @@ async function openRunRow(
   d: Deps,
   playerId: string,
   args: Record<string, unknown>,
+  fn: "start_run" | "start_level" = "start_run",
 ): Promise<{ run_id: string }> {
   try {
-    return await call(d.rpc, "start_run", args);
+    return await call(d.rpc, fn, args);
   } catch (e) {
     if (!(e instanceof RpcError && e.message === "run_open")) throw e;
     const stale = await d.openRunId(playerId);
@@ -264,7 +291,7 @@ async function openRunRow(
       p_reason: "replaced",
     });
     await audit(d.rpc, playerId, "run_replaced", { stale });
-    return await call(d.rpc, "start_run", args);
+    return await call(d.rpc, fn, args);
   }
 }
 
@@ -275,14 +302,10 @@ export async function startRunService(
 ) {
   await limit(d.rpc, `runstart:${playerId}`, 10, 60);
   await limit(d.rpc, `runstarth:${playerId}`, 20, 3600);
-  const me = await loadMe(d.rpc, playerId);
-  // ponytail: dungeon levels are verified by the stage-engine services of phase 4.
+  // Dungeon levels have their own route (startLevelService).
   if (!body.tower)
-    throw new ApiError(
-      501,
-      "levels_not_supported",
-      "Los niveles de dungeon todavía no se verifican en el servidor.",
-    );
+    throw new ApiError(400, "invalid_input", "Falta el modo de la torre.");
+  const me = await loadMe(d.rpc, playerId);
   // Weekly tower: everybody gets the week's seed (first request of the week fixes it).
   const ws = await call<{ seed: number }>(d.rpc, "get_weekly_seed", {
     p_seed: d.randomSeed(),
@@ -304,8 +327,13 @@ export async function startRunService(
       p_character_id: body.characterId,
       p_seed: seed,
       // The engine version rides inside the hero json (no schema change): a log
-      // is only replayable by the engine that recorded it.
-      p_hero: { ...hero, engineVersion: ENGINE_VERSION, tower: body.tower },
+      // is only replayable by the engine that recorded it. heroId: who gets the EXP.
+      p_hero: {
+        ...hero,
+        engineVersion: ENGINE_VERSION,
+        tower: body.tower,
+        ...(body.characterId ? { heroId: body.characterId } : {}),
+      },
     });
     return {
       runId: r.run_id,
@@ -324,6 +352,13 @@ export async function startRunService(
 // a log cannot be faster than a person clicking.
 export const MIN_ACTION_MS = 400; // fastest believable pace per logged action
 export const MIN_ACTION_GRACE_MS = 3_000; // clock skew between app and database
+
+const tooFast = (startedAt: number | undefined, actions: number) => {
+  const elapsed = startedAt ? Date.now() - startedAt : null;
+  return elapsed !== null && elapsed + MIN_ACTION_GRACE_MS < actions * MIN_ACTION_MS
+    ? elapsed
+    : null;
+};
 
 export interface RunSubmitBody {
   runId: string;
@@ -354,21 +389,23 @@ export async function submitRunService(
   const {
     engineVersion: stored = 1,
     tower: storedTower,
+    heroId,
     ...hero
-  } = row.hero as Character & { engineVersion?: number; tower?: string };
+  } = row.hero as Character & {
+    engineVersion?: number;
+    tower?: string;
+    heroId?: string;
+  };
   const tower = isTowerMode(storedTower) ? storedTower : null;
   if (!tower)
     throw new ApiError(
-      501,
-      "levels_not_supported",
-      "Los niveles de dungeon todavía no se verifican en el servidor.",
+      400,
+      "wrong_run_kind",
+      "Esa run no es de la torre: los niveles se entregan en /api/level/finish.",
     );
   // Impossibly fast log: close the run unpaid (nothing is credited) and say why.
-  const elapsed = row.startedAt ? Date.now() - row.startedAt : null;
-  if (
-    elapsed !== null &&
-    elapsed + MIN_ACTION_GRACE_MS < body.actions.length * MIN_ACTION_MS
-  ) {
+  const elapsed = tooFast(row.startedAt, body.actions.length);
+  if (elapsed !== null) {
     try {
       await call(d.rpc, "bank_run", {
         p_player: playerId,
@@ -435,14 +472,24 @@ export async function submitRunService(
       p_clear: null,
       p_loot: [],
     });
-    // Tower ranking: only a fully verified log counts; the best floor of the week stays.
-    // ponytail: the tiebreak (rep.rounds, fewer is better) needs a tower_scores column (SQL phase).
-    if (verdict === "accepted")
+    // Tower ranking: only a fully verified log counts; the best floor of the week stays,
+    // and at equal floors the climb with fewer battle rounds wins.
+    if (verdict === "accepted") {
       await call(d.rpc, "tower_record", {
         p_player: playerId,
         p_mode: tower,
         p_floor: floors,
+        p_rounds: Math.min(rep.rounds, 1_000_000),
       });
+      // A quarter of the dungeon EXP for the hero that climbed (best effort).
+      const xp = towerXp(rep.climb);
+      if (heroId && xp > 0)
+        await call(d.rpc, "grant_hero_xp", {
+          p_player: playerId,
+          p_character_id: heroId,
+          p_xp: xp,
+        }).catch(() => undefined);
+    }
     if (verdict !== "accepted" || r.capped)
       await audit(d.rpc, playerId, "run_" + verdict, {
         runId: body.runId,
@@ -455,6 +502,324 @@ export async function submitRunService(
   }
 }
 
+// ---- dungeon levels (stage engine) ----
+
+export interface LevelStartBody {
+  characterId: string;
+  rank: RarityId;
+  level: number;
+  ascension: number;
+}
+
+/**
+ * Opens a verified attempt: checks the unlock rules, snapshots the hero (stats with rank,
+ * stars, level and gear) and fixes the battle seed. The fights themselves are
+ * deterministic from (rank, level, ascension), so the client derives them locally.
+ */
+export async function startLevelService(
+  d: Deps,
+  playerId: string,
+  body: LevelStartBody,
+) {
+  await limit(d.rpc, `lvstart:${playerId}`, 10, 60);
+  await limit(d.rpc, `lvstarth:${playerId}`, 60, 3600);
+  const { rank, level, ascension: asc } = body;
+  const me = await loadMe(d.rpc, playerId);
+  if (!isRankUnlocked(me.profile.dungeons, rank))
+    throw new ApiError(409, "dungeon_locked", "Ese dungeon todavía está bloqueado.");
+  if (!isLevelUnlocked(me.profile.dungeons, rank, level, asc))
+    throw new ApiError(409, "level_locked", "Ese nivel todavía está bloqueado.");
+  const hero = heroFromOwned(me.profile, body.characterId);
+  if (!hero)
+    throw new ApiError(404, "character_not_found", "Personaje no encontrado.");
+  const seed = d.randomSeed();
+  try {
+    const r = await openRunRow(
+      d,
+      playerId,
+      {
+        p_player: playerId,
+        p_character_id: body.characterId,
+        p_seed: seed,
+        p_hero: { ...hero, engineVersion: ENGINE_VERSION },
+        p_rank: rank,
+        p_level: level,
+        p_asc: asc,
+      },
+      "start_level",
+    );
+    return {
+      runId: r.run_id,
+      seed,
+      hero,
+      rank,
+      level,
+      ascension: asc,
+      engineVersion: ENGINE_VERSION,
+    };
+  } catch (e) {
+    return mapRpcError(e);
+  }
+}
+
+export interface LevelFinishBody {
+  runId: string;
+  actions: StageAction[];
+  engineVersion?: number;
+}
+
+interface LevelBankRaw {
+  cleared: boolean;
+  repeat: boolean;
+  coins: number;
+  chest: number;
+  refund?: number;
+  xp: number;
+  levelsGained: number;
+  newLevel: number;
+  dungeonDone: boolean;
+  verdict: string;
+  capped?: boolean;
+}
+
+const EMPTY_LOOT: LevelLoot = { parts: {}, pieces: [] };
+
+/**
+ * Replays the whole level from the persisted hero snapshot, rolls the loot with the
+ * server seed and pays through bank_level. The client never sends status, EXP or loot:
+ * only the action log. An illegal or unfinished log pays what the replay reached.
+ */
+export async function finishLevelService(
+  d: Deps,
+  playerId: string,
+  body: LevelFinishBody,
+) {
+  await limit(d.rpc, `lvfinish:${playerId}`, 20, 60);
+  const row = await d.getRun(playerId, body.runId);
+  if (!row) throw new ApiError(404, "run_not_found", "Run no encontrada.");
+  if (row.status !== "open")
+    throw new ApiError(409, "duplicate_run", "Este nivel ya fue entregado.");
+  const {
+    engineVersion: stored = 1,
+    kind,
+    rank,
+    level,
+    asc,
+    heroId,
+    ...hero
+  } = row.hero as Character & {
+    engineVersion?: number;
+    kind?: string;
+    rank?: string;
+    level?: number;
+    asc?: number;
+    heroId?: string;
+  };
+  if (
+    kind !== "level" ||
+    !RARITY_IDS.includes(rank as RarityId) ||
+    !Number.isInteger(level) ||
+    !Number.isInteger(asc) ||
+    !heroId
+  )
+    throw new ApiError(
+      400,
+      "wrong_run_kind",
+      "Esa run no es un nivel de dungeon.",
+    );
+  const r = rank as RarityId;
+  const lv = level as number;
+  const ascension = asc as number;
+  const spec = levelsOf(r)[lv];
+  if (!spec || lv >= LEVELS_PER_RANK[r])
+    throw new ApiError(400, "invalid_input", "Datos inválidos.");
+
+  const bank = async (args: Record<string, unknown>) => {
+    try {
+      return await call<LevelBankRaw>(d.rpc, "bank_level", {
+        p_player: playerId,
+        p_run_id: body.runId,
+        p_hero_id: heroId,
+        p_rank: r,
+        p_level: lv,
+        p_asc: ascension,
+        ...args,
+      });
+    } catch (e) {
+      return mapRpcError(e);
+    }
+  };
+
+  // Impossibly fast log: close the attempt unpaid and say why.
+  const elapsed = tooFast(row.startedAt, body.actions.length);
+  if (elapsed !== null) {
+    await bank({
+      p_status: "lost",
+      p_xp: 0,
+      p_parts: {},
+      p_pieces: [],
+      p_repeat: false,
+      p_log: body.actions.length <= 2000 ? body.actions : null,
+      p_verdict: "rejected",
+      p_reason: `too_fast ${elapsed}ms for ${body.actions.length} actions`,
+    });
+    throw new ApiError(
+      429,
+      "too_fast",
+      "Ese intento se jugó demasiado rápido para ser real y no se registró.",
+    );
+  }
+  if (body.engineVersion !== undefined && body.engineVersion !== stored)
+    throw new ApiError(
+      409,
+      "engine_outdated",
+      "El nivel se jugó con otra versión del juego. Recarga la página y empieza de nuevo.",
+    );
+  const rep = replayStage(
+    row.seed,
+    hero as Character,
+    levelFights(spec, ascension),
+    body.actions,
+    ascension,
+    stored,
+  );
+  if (rep.error)
+    throw new ApiError(
+      409,
+      "engine_outdated",
+      "Este nivel es de una versión anterior del juego y ya no se puede verificar.",
+    );
+  const stage = rep.stage;
+  const cleared = stage.status === "cleared";
+  // Illegal action, or a log that stops before the end: pay what the replay reached.
+  const cut = rep.rejectedAt !== null || stage.status === "playing";
+  const reason = cut
+    ? rep.rejectedAt !== null
+      ? `illegal action at ${rep.rejectedAt}`
+      : "unfinished log"
+    : null;
+
+  let out: { raw: LevelBankRaw; loot: LevelLoot } | null = null;
+  for (let attempt = 0; !out; attempt++) {
+    const me = await loadMe(d.rpc, playerId);
+    const opts = lootOptions(me.profile, r, lv, ascension);
+    const loot = cleared
+      ? levelLoot(spec, ascension, (hero as Character).classId, row.seed, opts)
+      : EMPTY_LOOT;
+    try {
+      const raw = await call<LevelBankRaw>(d.rpc, "bank_level", {
+        p_player: playerId,
+        p_run_id: body.runId,
+        p_hero_id: heroId,
+        p_rank: r,
+        p_level: lv,
+        p_asc: ascension,
+        p_status: cleared ? "cleared" : "lost",
+        p_xp: stage.xp,
+        p_parts: loot.parts,
+        p_pieces: loot.pieces,
+        p_repeat: opts.repeat,
+        p_log: cut ? body.actions : null,
+        p_verdict: cut ? "cut" : "accepted",
+        p_reason: reason,
+      });
+      out = { raw, loot };
+    } catch (e) {
+      if (e instanceof RpcError && e.message === "conflict" && attempt < 2) {
+        await audit(d.rpc, playerId, "level_conflict", { attempt });
+        continue;
+      }
+      return mapRpcError(e);
+    }
+  }
+  await trackMissions(
+    d.rpc,
+    playerId,
+    missionDeltas({
+      status: cleared ? "cleared" : "lost",
+      won: stage.won,
+      heroElement: (hero as Character).element,
+      finalLevel: out.raw.dungeonDone,
+    }),
+  );
+  const fresh = await loadMe(d.rpc, playerId);
+  return {
+    bank: {
+      cleared: out.raw.cleared,
+      repeat: out.raw.repeat,
+      coins: out.raw.coins,
+      chest: out.raw.chest,
+      xp: out.raw.xp,
+      levelsGained: out.raw.levelsGained,
+      newLevel: out.raw.newLevel,
+    },
+    loot: out.loot,
+    status: cleared ? "cleared" : "lost",
+    verdict: out.raw.verdict,
+    profile: fresh.profile,
+  };
+}
+
+// ---- burn / hero skill ----
+
+export async function doBurn(
+  d: Deps,
+  playerId: string,
+  kind: "hero" | "piece",
+  id: string,
+) {
+  await limit(d.rpc, `burn:${playerId}`, 30, 60);
+  const me = await loadMe(d.rpc, playerId);
+  const r = burnItem(me.profile, { kind, id });
+  if (!r)
+    throw new ApiError(
+      409,
+      "burn_invalid",
+      "No se puede quemar (¿está equipado o es tu único héroe?).",
+    );
+  try {
+    await call(d.rpc, kind === "hero" ? "burn_hero" : "burn_item", {
+      p_player: playerId,
+      p_version: me.version,
+      p_key: id,
+    });
+  } catch (e) {
+    return mapRpcError(e);
+  }
+  await audit(d.rpc, playerId, "burn", { kind, id, coins: r.coins });
+  const fresh = await loadMe(d.rpc, playerId);
+  return { coins: r.coins, profile: fresh.profile };
+}
+
+export async function doChooseSkill(
+  d: Deps,
+  playerId: string,
+  characterId: string,
+  skill: string,
+) {
+  await limit(d.rpc, `skill:${playerId}`, 30, 60);
+  if (!isSkillId(skill))
+    throw new ApiError(400, "invalid_skill", "Esa habilidad no existe.");
+  const me = await loadMe(d.rpc, playerId);
+  if (!chooseHeroSkill(me.profile, characterId, skill))
+    throw new ApiError(
+      409,
+      "skill_locked",
+      "Esa habilidad no está disponible para este héroe.",
+    );
+  try {
+    await call(d.rpc, "choose_hero_skill", {
+      p_player: playerId,
+      p_character_id: characterId,
+      p_skill: skill,
+    });
+  } catch (e) {
+    return mapRpcError(e);
+  }
+  const fresh = await loadMe(d.rpc, playerId);
+  return { profile: fresh.profile };
+}
+
 // ---- forge ----
 
 // The server runs the same pure forge as the client and persists its diff
@@ -462,7 +827,9 @@ export async function submitRunService(
 export async function doForge(d: Deps, playerId: string, op: ForgeOp) {
   await limit(d.rpc, `forge:${playerId}`, 60, 60);
   const me = await loadMe(d.rpc, playerId);
-  const r = applyForge(me.profile, op);
+  // A real rng for the rolls of new pieces: without it the forge derives them from the
+  // profile state, which a player could steer. The grant carries each piece's roll/lines.
+  const r = applyForge(me.profile, op, createRng(d.randomSeed()));
   if (!r.ok) throw new ApiError(400, "forge_invalid", r.error);
   try {
     await call(d.rpc, "apply_forge", {

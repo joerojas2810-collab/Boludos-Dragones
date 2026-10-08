@@ -1,5 +1,6 @@
 "use client";
 
+import { levelTip } from "@/lib/game/explain";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { ActionPanel } from "@/components/ActionPanel";
@@ -40,14 +41,11 @@ import {
   levelsOf,
   type LevelSpec,
 } from "@/lib/game/levels";
-import { levelLoot, levelXp, type LevelLoot } from "@/lib/game/levelLoot";
+import { levelXp, type LevelLoot } from "@/lib/game/levelLoot";
 import {
-  bankLevel,
-  chooseHeroSkill,
   heroFromOwned,
   bestAutoMode,
   heroPower,
-  lootOptions,
   type LevelBank,
   type OwnedCharacter,
   type Profile,
@@ -74,7 +72,8 @@ import {
   type SkillId,
 } from "@/lib/game/skills";
 import { SLOTS, WEAPON_TYPE_DATA, type Slot } from "@/lib/game/weapons";
-import { repo, updateProfile, useProfile } from "@/lib/useProfile";
+import type { LevelStartInfo } from "@/lib/repo";
+import { pushNotice, repo, useProfile } from "@/lib/useProfile";
 import { slotKey } from "@/lib/game/profile";
 import { playEvents } from "@/lib/sfx";
 import { characterView } from "@/lib/viewModels";
@@ -100,6 +99,7 @@ interface Attempt {
   heroId: string;
   rs: StageReplayState;
   actions: StageAction[]; // what a replay needs (seed + hero + fights + these)
+  info: LevelStartInfo; // attempt id + seed + hero snapshot (the server's in remote mode)
 }
 interface Outcome {
   attempt: Attempt;
@@ -112,6 +112,7 @@ type View =
   | { t: "levels"; rank: RarityId }
   | { t: "prep"; rank: RarityId; level: number }
   | { t: "fight"; a: Attempt }
+  | { t: "saving" } // waiting for the server to verify and pay the attempt
   | { t: "result"; o: Outcome };
 
 const Shell = ({ children }: { children: ReactNode }) => (
@@ -132,54 +133,58 @@ export function ProgressMode() {
 
   const hero = profile.characters.find((c) => c.id === heroId) ?? null;
 
-  const enter = (rank: RarityId, level: number, id: string) => {
+  const enter = async (rank: RarityId, level: number, id: string) => {
     const owned = profile.characters.find((c) => c.id === id);
-    const h = owned && heroFromOwned(profile, owned.id);
-    if (!owned || !h) return;
+    if (!owned) return;
     const spec = levelsOf(rank)[level];
-    const rs = initialStageReplay(Date.now(), h, levelFights(spec, asc), asc);
-    setView({
-      t: "fight",
-      a: { rank, level, asc, heroId: owned.id, rs, actions: [] },
-    });
+    try {
+      const info = await repo.startLevel(owned.id, rank, level, asc);
+      const rs = initialStageReplay(
+        info.seed,
+        info.hero,
+        levelFights(spec, asc),
+        asc,
+      );
+      setView({
+        t: "fight",
+        a: { rank, level, asc, heroId: owned.id, rs, actions: [], info },
+      });
+    } catch (e) {
+      pushNotice(e instanceof Error ? e.message : "No se pudo empezar el nivel.");
+    }
   };
 
-  // Banks once, the moment the attempt ends (win, loss or abandon).
-  const finish = (a: Attempt, rs: StageReplayState) => {
-    const stage = rs.stage;
+  // Banks once, the moment the attempt ends (win, loss or abandon). In remote mode the
+  // server replays the action log and decides coins, EXP and loot.
+  const finish = async (a: Attempt, rs: StageReplayState) => {
     const owned = profile.characters.find((c) => c.id === a.heroId);
     if (!owned) return;
-    const spec = levelsOf(a.rank)[a.level];
-    const loot: LevelLoot =
-      stage.status === "cleared"
-        ? levelLoot(
-            spec,
-            a.asc,
-            owned.classId,
-            stage.seed,
-            lootOptions(profile, a.rank, a.level, a.asc),
-          )
-        : { parts: {}, pieces: [] };
-    const bank = bankLevel(profile, {
-      rank: a.rank,
-      level: a.level,
-      asc: a.asc,
-      heroId: a.heroId,
-      status: stage.status,
-      xp: stage.xp,
-      loot,
-      attemptId: `lv-${stage.seed}`,
-    });
-    updateProfile(() => bank.profile);
-    setView({
-      t: "result",
-      o: {
-        attempt: { ...a, rs },
-        bank,
-        loot,
-        before: { level: owned.level, xp: owned.xp },
-      },
-    });
+    setView({ t: "saving" });
+    try {
+      const out = await repo.finishLevel({
+        info: a.info,
+        heroId: a.heroId,
+        rank: a.rank,
+        level: a.level,
+        asc: a.asc,
+        stage: rs.stage,
+        actions: a.actions,
+      });
+      setView({
+        t: "result",
+        o: {
+          attempt: { ...a, rs },
+          bank: out.bank,
+          loot: out.loot,
+          before: { level: owned.level, xp: owned.xp },
+        },
+      });
+    } catch (e) {
+      pushNotice(
+        e instanceof Error ? e.message : "No se pudo guardar el resultado.",
+      );
+      setView({ t: "ranks" });
+    }
   };
 
   const send = (a: Attempt, action: StageAction) => {
@@ -191,7 +196,7 @@ export function ProgressMode() {
         guard: next.battle.guardEarned,
         boss: currentFight(next.stage)?.role === "final",
       });
-    if (next.stage.status !== "playing") finish(na, next);
+    if (next.stage.status !== "playing") void finish(na, next);
     else setView({ t: "fight", a: na });
   };
 
@@ -345,6 +350,16 @@ export function ProgressMode() {
     );
   }
 
+  if (view.t === "saving")
+    return (
+      <Shell>
+        <Notice />
+        <Panel title="Guardando…" className="mx-auto w-full max-w-md text-center">
+          Verificando tu resultado.
+        </Panel>
+      </Shell>
+    );
+
   // ---------------- result ----------------
   if (view.t === "result") {
     const { o } = view;
@@ -460,7 +475,7 @@ export function ProgressMode() {
         asc={asc}
         setHeroId={setHeroId}
         hero={hero}
-        onEnter={(id) => enter(view.rank, view.level, id)}
+        onEnter={(id) => void enter(view.rank, view.level, id)}
         onBack={() => setView({ t: "levels", rank: view.rank })}
       />
     );
@@ -766,9 +781,11 @@ function Prep({
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               <b style={{ color: RARITIES[sel.rarity].color }}>{sel.name}</b>
               <StarRow stars={sel.stars} className="h-3" />
-              <span>
-                Nv {sel.level}/{levelCap(sel.stars)}
-              </span>
+              <Tooltip tip={levelTip(sel.level, sel.xp, sel.stars)}>
+                <span className="cursor-help">
+                  Nv {sel.level}/{levelCap(sel.stars)}
+                </span>
+              </Tooltip>
               <span className="text-green-300">
                 {sel.level >= levelCap(sel.stars)
                   ? "Nivel máximo (sube estrellas)"
@@ -793,7 +810,9 @@ function Prep({
                       aria-pressed={cur === id}
                       className={`btn text-center ${cur === id ? "" : "btn-gray"}`}
                       onClick={() =>
-                        updateProfile((p) => chooseHeroSkill(p, sel.id, id) ?? p)
+                        void repo
+                          .chooseSkill(sel.id, id)
+                          .catch((e: Error) => pushNotice(e.message))
                       }
                     >
                       {SKILLS[id].name}

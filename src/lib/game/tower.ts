@@ -19,7 +19,7 @@ import {
   type StageAction,
   type StageReplayState,
 } from "./stageReplay";
-import { ENGINE_VERSION, startFight } from "./stage";
+import { ENGINE_VERSION, FIGHT_XP, startFight } from "./stage";
 
 export type TowerMode = "nivelado" | "coleccion";
 export const TOWER_MODES: readonly TowerMode[] = ["nivelado", "coleccion"];
@@ -43,6 +43,57 @@ export const TOWER_PRIZES = [
   { place: 2, coins: 200, cores: 1 },
   { place: 3, coins: 100, cores: 1 },
 ] as const;
+
+// Floor prizes: a 10-floor cycle that repeats; each floor is paid once per week.
+// Daily #1 of each ranking and the "Torre N" badges. Mirror in SQL (tower migration).
+export const TOWER_FLOOR_PRIZES = {
+  normal: { coins: 5, cores: 0 },
+  mid: { coins: 100, cores: 1 }, // floor 5 of the cycle
+  big: { coins: 250, cores: 1 }, // floor 10 of the cycle
+} as const;
+export const towerFloorReward = (floor: number) => {
+  const f = ((floor - 1) % 10) + 1;
+  return f === 10
+    ? TOWER_FLOOR_PRIZES.big
+    : f === 5
+      ? TOWER_FLOOR_PRIZES.mid
+      : TOWER_FLOOR_PRIZES.normal;
+};
+
+export const TOWER_DAILY_PRIZE = {
+  coins: 250,
+  cores: 1,
+  title: "Rey de la torre",
+} as const;
+export const TOWER_DAILY_HOUR_ART = 21; // Argentina is UTC-3 all year
+const ART_OFFSET_H = 3;
+const DAY_MS = 86_400_000;
+/**
+ * The game day of the daily prize: it ends every day at 21:00 ART (00:00 UTC).
+ * `key` is the date (YYYY-MM-DD, ART) on which the window ends.
+ */
+export function dailyKingWindow(now: Date = new Date()) {
+  const end = (Math.floor(now.getTime() / DAY_MS) + 1) * DAY_MS;
+  const endArt = new Date(end - ART_OFFSET_H * 3_600_000);
+  return {
+    start: new Date(end - DAY_MS),
+    end: new Date(end),
+    key: endArt.toISOString().slice(0, 10),
+  };
+}
+
+export const TOWER_BADGE_FLOORS = [10, 20, 30] as const;
+export const towerBadges = (bestFloor: number): string[] =>
+  TOWER_BADGE_FLOORS.filter((f) => bestFloor >= f).map((f) => `Torre ${f}`);
+
+// Tower fights give a quarter of the dungeon EXP; rooms give none.
+export const TOWER_XP_FACTOR = 0.25;
+/** EXP of a verified climb: normal floors pay like normal fights, boss floors like elites. */
+export const towerXp = (c: Pick<Climb, "wins" | "bossWins">): number =>
+  Math.round(
+    TOWER_XP_FACTOR *
+      ((c.wins - c.bossWins) * FIGHT_XP.normal + c.bossWins * FIGHT_XP.elite),
+  );
 
 const strHash = (s: string) => {
   let h = 0;

@@ -54,12 +54,25 @@ export const equipBody = z.strictObject({
 export const spendFragmentsBody = z.strictObject({
   characterId: z.string().min(1).max(100),
 });
+// Weekly tower only (dungeon levels use levelStartBody).
 export const runStartBody = z.strictObject({
   classId: z.enum(["caballero", "mago", "picaro", "clerigo"]),
   characterId: z.string().min(1).max(100).nullable(),
-  rank: z.enum(RARITY_IDS).default("f"),
-  ascension: z.number().int().min(0).max(5).default(0),
-  tower: z.enum(["nivelado", "coleccion"]).optional(),
+  tower: z.enum(["nivelado", "coleccion"]),
+});
+export const levelStartBody = z.strictObject({
+  characterId: z.string().min(1).max(100),
+  rank: z.enum(RARITY_IDS),
+  level: z.number().int().min(0).max(11),
+  ascension: z.number().int().min(0).max(5),
+});
+export const burnBody = z.strictObject({
+  kind: z.enum(["hero", "piece"]),
+  id: z.string().min(1).max(100),
+});
+export const skillBody = z.strictObject({
+  characterId: z.string().min(1).max(100),
+  skillId: z.string().min(1).max(30),
 });
 
 export const runActionSchema = z.discriminatedUnion("t", [
@@ -81,6 +94,12 @@ export const runSubmitBody = z.strictObject({
       maxFloor: z.number().int().min(0).max(1e6),
     })
     .optional(),
+  engineVersion: z.number().int().min(1).max(1000).optional(),
+});
+// Dungeon level: only the action log. Status, EXP and loot are decided by the replay.
+export const levelFinishBody = z.strictObject({
+  runId: uuidSchema,
+  actions: z.array(runActionSchema).max(3000),
   engineVersion: z.number().int().min(1).max(1000).optional(),
 });
 export const dailyBody = z.strictObject({

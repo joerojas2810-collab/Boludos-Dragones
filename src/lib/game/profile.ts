@@ -81,6 +81,9 @@ import {
 export const PROFILE_VERSION = 5; // 5: pieces have roll/lines, pre-v5 items are marked legacy (burn rate)
 // Raised from 150: at ~11-22 pulls/day of income the old price made SSR pity reachable in
 // ~2 weeks (cheaper than the forge). Keep in sync with game_constants (0017).
+// Day-1 tutorial progress (tutorial.ts). Only brand-new local accounts carry it (see
+// newAccountProfile); a profile without the field (existing or remote) counts as finished.
+export const TUTORIAL_DONE = 7;
 export const PULL_COST_CHARACTER = 250;
 export const PULL_COST_WEAPON = 250;
 export const MULTI_PULL = 10;
@@ -116,6 +119,7 @@ export interface Profile {
   dungeons: DungeonProgress; // levels cleared per rank and ascension (dungeonProgress.ts)
   levelsDay?: { day: string; n: number }; // repeated levels cleared on that game day (pay decays)
   parts: Parts; // forge parts and cores (see parts.ts)
+  tutorial?: number; // step 0..TUTORIAL_DONE; missing = done
 }
 
 export const characterKey = (c: ClassId, e: Element, r: RarityId) =>
@@ -927,5 +931,8 @@ export function migrate(json: unknown): Profile {
       ? { levelsDay: { day: json.levelsDay.day, n: nat(json.levelsDay.n, 100000) } }
       : {}),
     parts: parseParts(json.parts),
+    ...(typeof json.tutorial === "number" && json.tutorial < TUTORIAL_DONE
+      ? { tutorial: nat(json.tutorial, TUTORIAL_DONE) }
+      : {}),
   };
 }

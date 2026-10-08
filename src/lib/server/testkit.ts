@@ -1,11 +1,18 @@
 // Test helpers: in-memory fake of the Supabase RPC surface (no real backend).
-import type { StageAction } from "../game/stageReplay";
+import {
+  applyStageAction,
+  initialStageReplay,
+  type StageAction,
+} from "../game/stageReplay";
+import { levelFights } from "../game/stage";
+import { levelsOf } from "../game/levels";
+import type { RarityId } from "../game/rarity";
 import { applyTowerAction, startTower } from "../game/tower";
 import type { Character } from "../game/characters";
 import { RpcError, type Deps, type RpcResult } from "./rpc";
 
 type Args = Record<string, unknown>;
-interface Row {
+export interface Row {
   key: string;
   kind: "char" | "weap";
   a: string; // class | type
@@ -34,6 +41,13 @@ export class FakeDb {
     startedAt?: number;
   } | null = null;
   banked: Args[] = [];
+  levelBanks: Args[] = [];
+  levelStarts: Args[] = [];
+  burned: Args[] = [];
+  skills: Args[] = [];
+  xpGrants: Args[] = [];
+  dungeons: Record<string, number[]> = {};
+  equipped: Record<string, string> = {};
   runsToday = 0;
   towerRecords: Args[] = [];
   audits: string[] = [];
@@ -90,10 +104,56 @@ export class FakeDb {
               stars: r.stars,
               data: r.data,
             })),
-          equipped: {},
+          dungeons: this.dungeons,
+          equipped: this.equipped,
           fragments: {},
           bestFloor: 0,
         });
+      case "start_level": {
+        const h = a.p_hero as Args;
+        this.run = {
+          seed: Number(a.p_seed),
+          hero: {
+            ...h,
+            kind: "level",
+            rank: a.p_rank,
+            level: a.p_level,
+            asc: a.p_asc,
+            heroId: a.p_character_id,
+          },
+          status: "open",
+          startedAt: Date.now(),
+        };
+        this.levelStarts.push(a);
+        return this.okv({ run_id: "00000000-0000-4000-8000-000000000002" });
+      }
+      case "bank_level":
+        this.levelBanks.push(a);
+        if (this.run) this.run.status = "closed";
+        return this.okv({
+          cleared: a.p_status === "cleared" && a.p_verdict !== "rejected",
+          repeat: a.p_repeat,
+          coins: 25,
+          chest: 0,
+          xp: a.p_verdict === "rejected" ? 0 : a.p_xp,
+          levelsGained: 0,
+          newLevel: 1,
+          dungeonDone: false,
+          verdict: a.p_verdict,
+        });
+      case "grant_hero_xp":
+        this.xpGrants.push(a);
+        return this.okv({ xp: a.p_xp, level: 1, gained: 0, applied: true });
+      case "burn_item":
+      case "burn_hero":
+        this.burned.push({ name, ...a });
+        if (a.p_version !== this.version) return this.err("conflict");
+        this.rows = this.rows.filter((r) => r.key !== a.p_key);
+        this.version++;
+        return this.okv({ burned: a.p_key });
+      case "choose_hero_skill":
+        this.skills.push(a);
+        return this.okv({ ok: true });
       case "apply_pull": {
         const idem = String(a.p_idem);
         if (this.idem.has(idem))
@@ -194,6 +254,63 @@ export function playBot(
       ? push({ t: "fin" })
       : push({ t: "act", a: "attack1" }) || push({ t: "act", a: "defend" });
     if (!done) break;
+  }
+  return log;
+}
+
+
+/** A character row (as get_profile returns it) from a generated hero, optionally stronger. */
+export function heroRow(
+  c: Character,
+  rank: RarityId = "f",
+  power = 1,
+): Row {
+  return {
+    key: `c-${c.classId}-${c.element}-${rank}`,
+    kind: "char",
+    a: c.classId,
+    element: c.element,
+    rarity: rank,
+    stars: 0,
+    data: {
+      name: c.name,
+      stats: {
+        ...c.stats,
+        hp: c.stats.hp * power,
+        atk: c.stats.atk * power,
+        def: c.stats.def * power,
+      },
+      traits: c.traits,
+      catchphrase: c.catchphrase,
+      level: 1,
+      xp: 0,
+    },
+  };
+}
+
+/** Plays a dungeon level with a simple bot (attack, else defend) and returns the log. */
+export function playLevelBot(
+  seed: number,
+  hero: Character,
+  rank: RarityId,
+  level: number,
+  asc = 0,
+  maxActions = 600,
+): StageAction[] {
+  let s = initialStageReplay(seed, hero, levelFights(levelsOf(rank)[level], asc), asc);
+  const log: StageAction[] = [];
+  const push = (a: StageAction): boolean => {
+    const n = applyStageAction(s, a);
+    if (!n) return false;
+    s = n;
+    log.push(a);
+    return true;
+  };
+  while (log.length < maxActions && s.stage.status === "playing") {
+    const ok = s.settled
+      ? push({ t: "fin" })
+      : push({ t: "act", a: "attack1" }) || push({ t: "act", a: "defend" });
+    if (!ok) break;
   }
   return log;
 }

@@ -8,19 +8,31 @@ import {
   type ClassId,
 } from "./game/characters";
 import {
+  bankLevel,
   bankRun,
+  chooseHeroSkill,
   equipWeapon,
   heroFromOwned,
+  lootOptions,
   pullCharacter,
   pullCost,
   pullWeapon,
   spendFragments,
   unequipWeapon,
   type Banner,
+  type LevelBank,
   type Profile,
   type PullResult,
 } from "./game/profile";
-import { isRankUnlocked, maxAscension } from "./game/dungeonProgress";
+import {
+  isLevelUnlocked,
+  isRankUnlocked,
+  maxAscension,
+} from "./game/dungeonProgress";
+import { levelLoot, type LevelLoot } from "./game/levelLoot";
+import { levelsOf } from "./game/levels";
+import type { SkillId } from "./game/skills";
+import type { Stage } from "./game/stage";
 import { dayPayMult } from "./game/economy";
 import { localWeekSeed, towerHero, type TowerMode } from "./game/tower";
 import { burn as burnItem } from "./game/burn";
@@ -54,6 +66,26 @@ export interface RunStartInfo {
   ascension?: number;
   tower?: TowerMode;
 }
+// A dungeon-level attempt: in remote mode the server fixes the seed and the hero snapshot.
+export interface LevelStartInfo {
+  attemptId: string;
+  seed: number;
+  hero: Character;
+  engineVersion: number;
+}
+export interface LevelFinish {
+  info: LevelStartInfo;
+  heroId: string;
+  rank: RarityId;
+  level: number;
+  asc: number;
+  stage: Stage; // local mode banks from it; the server only looks at the action log
+  actions: StageAction[];
+}
+export interface LevelOutcome {
+  bank: LevelBank; // bank.profile = the profile after the attempt
+  loot: LevelLoot;
+}
 export interface RunBankInfo {
   coinsAdded: number;
   verdict: "accepted" | "truncated" | "mismatch" | "local";
@@ -76,7 +108,15 @@ export interface ProfileRepo {
     slot?: Slot,
   ): Promise<void>;
   spendFragments(characterId: string): Promise<void>;
-  burn(kind: "hero" | "piece", id: string): Promise<{ coins: number }>; // local mode only for now
+  burn(kind: "hero" | "piece", id: string): Promise<{ coins: number }>;
+  chooseSkill(characterId: string, skill: SkillId): Promise<void>;
+  startLevel(
+    heroId: string,
+    rank: RarityId,
+    level: number,
+    asc: number,
+  ): Promise<LevelStartInfo>;
+  finishLevel(a: LevelFinish): Promise<LevelOutcome>;
   forge(op: ForgeOp): Promise<{ text: string }>;
   startRun(
     classId: ClassId,
@@ -168,6 +208,51 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       if (!r) throw new RepoError("burn_invalid", "No se puede quemar (¿está equipado o es tu único héroe?).");
       store.replace(r.profile);
       return { coins: r.coins };
+    },
+    chooseSkill: async (id, skill) => {
+      if (!chooseHeroSkill(store.get(), id, skill))
+        throw new RepoError("skill_locked", "Esa habilidad no está disponible.");
+      store.update((p) => chooseHeroSkill(p, id, skill) ?? p);
+    },
+    startLevel: async (heroId, rank, level, asc) => {
+      const p = store.get();
+      if (!isRankUnlocked(p.dungeons, rank))
+        throw new RepoError("dungeon_locked", "Dungeon bloqueado.");
+      if (!isLevelUnlocked(p.dungeons, rank, level, asc))
+        throw new RepoError("level_locked", "Nivel bloqueado.");
+      const hero = heroFromOwned(p, heroId);
+      if (!hero)
+        throw new RepoError("character_not_found", "Personaje no encontrado.");
+      const seed = Date.now();
+      return { attemptId: `lv-${seed}`, seed, hero, engineVersion: ENGINE_VERSION };
+    },
+    finishLevel: async (a) => {
+      const p = store.get();
+      const owned = p.characters.find((c) => c.id === a.heroId);
+      if (!owned)
+        throw new RepoError("character_not_found", "Personaje no encontrado.");
+      const loot: LevelLoot =
+        a.stage.status === "cleared"
+          ? levelLoot(
+              levelsOf(a.rank)[a.level],
+              a.asc,
+              owned.classId,
+              a.stage.seed,
+              lootOptions(p, a.rank, a.level, a.asc),
+            )
+          : { parts: {}, pieces: [] };
+      const bank = bankLevel(p, {
+        rank: a.rank,
+        level: a.level,
+        asc: a.asc,
+        heroId: a.heroId,
+        status: a.stage.status,
+        xp: a.stage.xp,
+        loot,
+        attemptId: a.info.attemptId,
+      });
+      store.update(() => bank.profile);
+      return { bank, loot };
     },
     forge: async (op) => {
       const r = applyForge(store.get(), op);
@@ -315,21 +400,60 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       }),
     spendFragments: (characterId) =>
       withProfile("/api/collection/spend-fragments", { characterId }),
-    burn: async () => {
-      throw new RepoError("burn_unavailable", "Quemar aún no está disponible en línea.");
+    burn: async (kind, id) => {
+      const r = await api<{ coins: number; profile: Profile }>(
+        "/api/collection/burn",
+        { kind, id },
+      );
+      store.replace(r.profile);
+      return { coins: r.coins };
+    },
+    chooseSkill: (characterId, skillId) =>
+      withProfile("/api/collection/skill", { characterId, skillId }),
+    startLevel: async (heroId, rank, level, asc) => {
+      const r = await api<{
+        runId: string;
+        seed: number;
+        hero: Character;
+        engineVersion: number;
+      }>("/api/level/start", {
+        characterId: heroId,
+        rank,
+        level,
+        ascension: asc,
+      });
+      return {
+        attemptId: r.runId,
+        seed: r.seed,
+        hero: r.hero,
+        engineVersion: r.engineVersion,
+      };
+    },
+    finishLevel: async (a) => {
+      // Only the action log travels: status, EXP and loot come from the server's replay.
+      const r = await api<{
+        bank: Omit<LevelBank, "profile">;
+        loot: LevelLoot;
+        profile: Profile;
+      }>("/api/level/finish", {
+        runId: a.info.attemptId,
+        actions: a.actions,
+        engineVersion: a.info.engineVersion,
+      });
+      store.replace(r.profile);
+      return { bank: { ...r.bank, profile: r.profile }, loot: r.loot };
     },
     forge: async (op) => {
       const r = await api<{ text: string; profile: Profile }>("/api/forge", op);
       store.replace(r.profile);
       return { text: r.text };
     },
-    startRun: (classId, characterId, _seed, rank = "f", ascension = 0, tower) =>
-      api<RunStartInfo>(
-        "/api/run/start",
-        tower
-          ? { classId, characterId, tower }
-          : { classId, characterId, rank, ascension },
-      ),
+    startRun: async (classId, characterId, _seed, _rank, _ascension, tower) => {
+      // /api/run/start is the weekly tower only; dungeon levels use startLevel.
+      if (!tower)
+        throw new RepoError("invalid_input", "Falta el modo de la torre.");
+      return api<RunStartInfo>("/api/run/start", { classId, characterId, tower });
+    },
     submitRun: async (runId, actions, claimed, keepalive) => {
       const r = await api<{
         coinsAdded: number;

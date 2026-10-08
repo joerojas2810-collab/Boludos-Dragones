@@ -8,11 +8,26 @@ import { parseEnv } from "./envSchema";
 import { ApiError, checkOrigin, readJson } from "./http";
 import { BAD_CREDENTIALS, login } from "./loginFlow";
 import { limit } from "./rpc";
-import { doForge, doPull, startRunService, submitRunService } from "./services";
-import { FakeDb, playBot } from "./testkit";
+import { levelLoot } from "../game/levelLoot";
+import { levelsOf } from "../game/levels";
+import { heroFromOwned, migrate } from "../game/profile";
+import {
+  doBurn,
+  doChooseSkill,
+  doForge,
+  doPull,
+  finishLevelService,
+  loadMe,
+  startLevelService,
+  startRunService,
+  submitRunService,
+} from "./services";
+import { FakeDb, heroRow, playBot, playLevelBot } from "./testkit";
 import {
   credsBody,
   forgeBody,
+  levelFinishBody,
+  levelStartBody,
   nameKeyOf,
   nameSchema,
   pinSchema,
@@ -423,7 +438,30 @@ describe("weekly tower", () => {
     expect(db.towerRecords[0]).toMatchObject({
       p_mode: "coleccion",
       p_floor: truth.floors,
+      p_rounds: truth.rounds, // the tiebreak is stored with the floor
     });
+  });
+
+  it("the tower gives a quarter of the dungeon EXP to the hero that climbed", async () => {
+    const db = new FakeDb();
+    db.run = {
+      seed: 777,
+      hero: {
+        ...hero,
+        engineVersion: ENGINE_VERSION,
+        tower: "coleccion",
+        heroId: "c-caballero-fuego-f",
+      },
+      status: "open",
+    };
+    const log = playBot(777, hero, 800);
+    const truth = replayTower(777, hero, log);
+    await sub(db, log);
+    expect(truth.climb.wins).toBeGreaterThan(0);
+    expect(db.xpGrants[0]).toMatchObject({
+      p_character_id: "c-caballero-fuego-f",
+    });
+    expect(Number(db.xpGrants[0].p_xp)).toBeGreaterThan(0);
   });
 
   it("inflated claims are ignored: the replayed floor is what counts", async () => {
@@ -471,12 +509,19 @@ describe("weekly tower", () => {
       code: "duplicate_run",
     });
     db.run = { seed: 1, hero: { ...hero, engineVersion: ENGINE_VERSION }, status: "open" };
-    expect(await catchErr(sub(db, []))).toMatchObject({ status: 501 });
+    // a dungeon-level attempt cannot be submitted as a tower run (and vice versa)
+    expect(await catchErr(sub(db, []))).toMatchObject({
+      status: 400,
+      code: "wrong_run_kind",
+    });
     expect(
       await catchErr(
-        startRunService(db.deps, "u1", { classId: "mago", characterId: null }),
+        startRunService(db.deps, "u1", {
+          classId: "mago",
+          characterId: null,
+        } as never),
       ),
-    ).toMatchObject({ status: 501 });
+    ).toMatchObject({ status: 400 });
   });
 
   it("a foreign or wrong-class character is refused", async () => {
@@ -588,5 +633,274 @@ describe("forge service", () => {
         element: "agua",
       }).success,
     ).toBe(false);
+  });
+});
+
+
+describe("dungeon level services (fake DB)", () => {
+  const h0 = generateCharacter(createRng(11), "caballero");
+  const row = () => heroRow(h0, "f", 40); // strong enough to clear F level 1 with the bot
+  const ID = row().key;
+  const body = (over = {}) => ({
+    characterId: ID,
+    rank: "f" as const,
+    level: 0,
+    ascension: 0,
+    ...over,
+  });
+  const fin = (db: FakeDb, actions: unknown[], extra = {}) =>
+    finishLevelService(db.deps, "u1", {
+      runId: UUID,
+      actions: actions as never,
+      ...extra,
+    });
+  const started = async (db: FakeDb) => {
+    db.rows.push(row());
+    const info = await startLevelService(db.deps, "u1", body());
+    return info;
+  };
+
+  it("validates request bodies (strict, level range, no client-side loot or status)", () => {
+    expect(levelStartBody.safeParse(body()).success).toBe(true);
+    expect(levelStartBody.safeParse(body({ level: 12 })).success).toBe(false);
+    expect(levelStartBody.safeParse(body({ rank: "zz" })).success).toBe(false);
+    expect(levelStartBody.safeParse(body({ ascension: 6 })).success).toBe(false);
+    const ok = { runId: UUID, actions: [{ t: "fin" }] };
+    expect(levelFinishBody.safeParse(ok).success).toBe(true);
+    for (const extra of [{ xp: 99999 }, { status: "cleared" }, { loot: {} }, { coins: 5 }])
+      expect(levelFinishBody.safeParse({ ...ok, ...extra }).success).toBe(false);
+    expect(
+      levelFinishBody.safeParse({ ...ok, actions: Array(3001).fill({ t: "fin" }) })
+        .success,
+    ).toBe(false);
+  });
+
+  it("starts from the persisted hero (server snapshot, seed from the server) and opens the attempt", async () => {
+    const db = new FakeDb();
+    const info = await started(db);
+    expect(info).toMatchObject({ rank: "f", level: 0, ascension: 0, seed: 12345 });
+    expect(info.engineVersion).toBe(ENGINE_VERSION);
+    expect(db.levelStarts[0]).toMatchObject({
+      p_character_id: ID,
+      p_rank: "f",
+      p_level: 0,
+      p_asc: 0,
+      p_hero: { engineVersion: ENGINE_VERSION },
+    });
+  });
+
+  it("refuses locked ranks, ascensions, levels out of order and heroes you do not own", async () => {
+    const db = new FakeDb();
+    db.rows.push(row());
+    for (const [over, code] of [
+      [{ rank: "e" }, "dungeon_locked"],
+      [{ level: 1 }, "level_locked"],
+      [{ ascension: 1 }, "level_locked"],
+      [{ characterId: "c-mago-fuego-ssr" }, "character_not_found"],
+    ] as const)
+      expect(
+        await catchErr(startLevelService(db.deps, "u1", body(over))),
+        code,
+      ).toMatchObject({ code });
+    expect(db.levelStarts).toHaveLength(0);
+    // after clearing the whole F dungeon rank E opens; ascension +1 of F opens too
+    db.dungeons = { f: [6] };
+    await startLevelService(db.deps, "u1", body({ rank: "e" }));
+    await startLevelService(db.deps, "u1", body({ ascension: 1 }));
+    expect(db.levelStarts).toHaveLength(2);
+  });
+
+  it("pays from the REPLAY: status, EXP and loot are derived, the log is all the client sends", async () => {
+    const db = new FakeDb();
+    const info = await started(db);
+    const log = playLevelBot(info.seed, info.hero, "f", 0);
+    const r = await fin(db, log, { engineVersion: info.engineVersion });
+    expect(r.status).toBe("cleared");
+    const b = db.levelBanks[0];
+    expect(b).toMatchObject({
+      p_status: "cleared",
+      p_rank: "f",
+      p_level: 0,
+      p_asc: 0,
+      p_hero_id: ID,
+      p_repeat: false,
+      p_verdict: "accepted",
+      p_log: null,
+    });
+    expect(Number(b.p_xp)).toBeGreaterThan(0);
+    // the loot is the one the engine rolls from the SERVER seed
+    const expected = levelLoot(levelsOf("f")[0], 0, "caballero", info.seed, {
+      repeat: false,
+      payMult: 1,
+    });
+    expect(b.p_parts).toEqual(expected.parts);
+    expect(b.p_pieces).toEqual(expected.pieces);
+    expect(r.loot).toEqual(expected);
+    for (const piece of expected.pieces) expect(piece.roll).toBeGreaterThan(0.84);
+  });
+
+  it("a lost or abandoned level keeps the EXP of the replay and pays no loot", async () => {
+    const db = new FakeDb();
+    const info = await started(db);
+    // fight one round, then quit
+    const r = await fin(db, [{ t: "act", a: "attack1" }, { t: "quit" }]);
+    expect(r.status).toBe("lost");
+    expect(db.levelBanks[0]).toMatchObject({
+      p_status: "lost",
+      p_parts: {},
+      p_pieces: [],
+      p_verdict: "accepted",
+    });
+    expect(info.seed).toBe(12345);
+  });
+
+  it("a log that stops early or has an illegal action pays only what the replay reached ('cut')", async () => {
+    const db = new FakeDb();
+    await started(db);
+    const r = await fin(db, [{ t: "fin" }]); // nothing to continue
+    expect(r.status).toBe("lost");
+    expect(db.levelBanks[0]).toMatchObject({ p_verdict: "cut", p_status: "lost", p_xp: 0 });
+    const db2 = new FakeDb();
+    await started(db2);
+    const info = db2.run!;
+    const full = playLevelBot(info.seed, info.hero as never, "f", 0);
+    await fin(db2, full.slice(0, 1)); // stops after one blow
+    expect(db2.levelBanks[0]).toMatchObject({ p_status: "lost", p_verdict: "cut" });
+  });
+
+  it("a forged log (replayed on a different attempt) cannot win: the replay decides", async () => {
+    const db = new FakeDb();
+    const info = await started(db);
+    const real = playLevelBot(info.seed + 1, info.hero, "f", 0); // recorded for another seed
+    const r = await fin(db, real);
+    expect(["cleared", "lost"]).toContain(r.status);
+    // whatever it is, the paid status equals the server replay, never a client claim
+    expect(db.levelBanks[0].p_status).toBe(r.status);
+  });
+
+  it("closed attempt, other engine, wrong kind and impossibly fast logs", async () => {
+    const db = new FakeDb();
+    const info = await started(db);
+    const log = playLevelBot(info.seed, info.hero, "f", 0);
+    expect(
+      await catchErr(fin(db, log, { engineVersion: ENGINE_VERSION + 1 })),
+    ).toMatchObject({ code: "engine_outdated" });
+    // fast: 60 actions in half a second
+    db.run!.startedAt = Date.now() - 500;
+    const spam = Array(60).fill({ t: "act", a: "attack1" });
+    expect(await catchErr(fin(db, spam))).toMatchObject({ status: 429, code: "too_fast" });
+    expect(db.levelBanks[0]).toMatchObject({ p_verdict: "rejected", p_xp: 0 });
+    db.run!.status = "closed";
+    expect(await catchErr(fin(db, log))).toMatchObject({ code: "duplicate_run" });
+    // a tower run is not a level
+    db.run = { seed: 1, hero: { ...h0, engineVersion: ENGINE_VERSION, tower: "coleccion" }, status: "open" };
+    expect(await catchErr(fin(db, []))).toMatchObject({ code: "wrong_run_kind" });
+  });
+
+  it("a conflict from bank_level (repeat flag changed) is retried with fresh state", async () => {
+    const db = new FakeDb();
+    const info = await started(db);
+    const log = playLevelBot(info.seed, info.hero, "f", 0);
+    const inner = db.deps.rpc;
+    let n = 0;
+    db.deps.rpc = async (name, args) => {
+      if (name === "bank_level" && n++ === 0)
+        return { data: null, error: { message: "conflict" } };
+      return inner(name, args);
+    };
+    await fin(db, log);
+    expect(db.audits).toContain("level_conflict");
+    expect(db.levelBanks).toHaveLength(1);
+  });
+});
+
+describe("burn / skill / profile mapping (fake DB)", () => {
+  const h0 = generateCharacter(createRng(5), "mago");
+  it("burn runs the pure rules first, then asks SQL with the profile version", async () => {
+    const db = new FakeDb();
+    db.rows.push(heroRow(h0, "f"), heroRow(generateCharacter(createRng(6), "picaro"), "e"));
+    const key = db.rows[0].key;
+    const r = await doBurn(db.deps, "u1", "hero", key);
+    expect(r.coins).toBe(66); // 8% of 830
+    expect(db.burned[0]).toMatchObject({ name: "burn_hero", p_key: key, p_version: 0 });
+    // the only hero left cannot be burned: SQL is never reached
+    const n = db.burned.length;
+    expect(
+      await catchErr(doBurn(db.deps, "u1", "hero", db.rows[0].key)),
+    ).toMatchObject({ code: "burn_invalid" });
+    expect(db.burned).toHaveLength(n);
+    expect(
+      await catchErr(doBurn(db.deps, "u1", "piece", "w-espada-fuego-f")),
+    ).toMatchObject({ code: "burn_invalid" });
+  });
+  it("choose skill validates ownership/class/unlock before SQL", async () => {
+    const db = new FakeDb();
+    const high = heroRow(h0, "c");
+    db.rows.push(high, heroRow(generateCharacter(createRng(8), "picaro"), "f"));
+    await doChooseSkill(db.deps, "u1", high.key, "tormenta");
+    expect(db.skills[0]).toMatchObject({ p_skill: "tormenta" });
+    expect(
+      await catchErr(doChooseSkill(db.deps, "u1", high.key, "barrido")),
+    ).toMatchObject({ code: "skill_locked" }); // a Caballero skill on a Mago
+    expect(
+      await catchErr(doChooseSkill(db.deps, "u1", db.rows[1].key, "golpeDoble")),
+    ).toMatchObject({ code: "skill_locked" }); // rank F needs 3 stars
+    expect(
+      await catchErr(doChooseSkill(db.deps, "u1", high.key, "hackeo")),
+    ).toMatchObject({ code: "invalid_skill" });
+    expect(db.skills).toHaveLength(1);
+  });
+  it("rows from the database keep their legacy flag and are not 'saved before v5'", async () => {
+    const db = new FakeDb();
+    const fresh = heroRow(h0, "f");
+    const old = heroRow(generateCharacter(createRng(9), "picaro"), "e");
+    (old.data as Record<string, unknown>).legacy = true;
+    (old.data as Record<string, unknown>).level = 12;
+    (old.data as Record<string, unknown>).skill = "ejecutar";
+    db.rows.push(fresh, old);
+    db.dungeons = { f: [6, 2] };
+    const me = await loadMe(db.deps.rpc, "u1");
+    const byId = (id: string) => me.profile.characters.find((c) => c.id === id)!;
+    expect(byId(fresh.key).legacy).toBeUndefined();
+    expect(byId(old.key)).toMatchObject({ legacy: true, level: 12, skill: "ejecutar" });
+    expect(me.profile.dungeons.f).toEqual([6, 2]);
+    expect(heroFromOwned(me.profile, old.key)?.level).toBe(12);
+    // migrate() of a client save without version still marks everything legacy
+    expect(migrate({ characters: [fresh.data] }).characters).toHaveLength(0);
+  });
+  it("weapons pulled and forged carry their server-rolled roll and lines", async () => {
+    const db = new FakeDb();
+    await doPull(db.deps, "u1", {
+      banner: "weapon",
+      count: 10,
+      idempotencyKey: UUID,
+    });
+    const items = db.calls.find((c) => c.name === "apply_pull")!.args.p_items as {
+      roll?: number;
+      type: string;
+      lines?: { stat: string }[];
+    }[];
+    expect(items).toHaveLength(10);
+    for (const it of items) {
+      expect(it.roll).toBeGreaterThanOrEqual(0.85);
+      expect(it.roll).toBeLessThanOrEqual(1.15);
+    }
+    // forge: rolls come from the injected server rng, not from the profile state
+    const mk = (seed: number) => {
+      const f = new FakeDb();
+      f.deps.randomSeed = () => seed;
+      f.parts = { "p-casco-f": 3, "core-fuego": 1 };
+      return f;
+    };
+    const a = mk(1);
+    const b = mk(2);
+    const c = mk(1);
+    const op = { op: "craft", type: "casco", element: "fuego", rank: "f" } as const;
+    await doForge(a.deps, "u1", op);
+    await doForge(b.deps, "u1", op);
+    await doForge(c.deps, "u1", op);
+    const roll = (f: FakeDb) => (f.forged[0].p_grant as { roll: number }[])[0].roll;
+    expect(roll(a)).toBe(roll(c));
+    expect(roll(a)).not.toBe(roll(b));
   });
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { TutorialGuide } from "@/components/TutorialGuide";
 import { Icon } from "@/components/Icon";
 import { ScreenBg } from "@/components/ScreenBg";
 import Link from "next/link";
@@ -175,6 +176,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </span>
       </header>
       <div className="shell-body">{children}</div>
+      {repo.mode === "local" && <TutorialGuide />}
       <nav className="shell-nav" aria-label="Secciones">
         {TABS.filter((t) => !t.remoteOnly || remote).map((t) => {
           const active = t.match.includes(path.replace(/\/$/, "") || "/");

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { generateCharacter, type Character, type ClassId } from "./characters";
 import {
+  defReduction,
   estimateDamage,
   startBattle,
   withRound,
@@ -103,7 +104,8 @@ describe("explain: stats", () => {
   });
 
   it("DEF is a percentage reduction vs the attacker", () => {
-    expect(text(statTip("def", me, { foe }))).toContain("44.4%");
+    const pctOf = `${+(defReduction(foe, me) * 100).toFixed(1)}%`;
+    expect(text(statTip("def", me, { foe }))).toContain(`${pctOf} menos daño`);
   });
 
   it("CRIT gives chance and multiplier", () => {
@@ -155,5 +157,15 @@ describe("explain: elements, traits, actions", () => {
     expect(text(modTip("escudo"))).toContain("30%");
     expect(text(modTip("dobleAtaque"))).toContain("50%");
     expect(text(modTip("elementoCambiante"))).toContain("2 rondas");
+  });
+});
+
+describe("explain: Run v2 rules", () => {
+  it("level, pity and gear tips quote the real constants", async () => {
+    const m = await import("./explain");
+    expect(text(m.levelTip(3, 0, 0))).toContain("20");
+    expect(text(m.pityTip())).toContain("250");
+    expect(text(m.gearTip())).toContain("15%");
+    expect(text(m.burnTip())).toContain("8%");
   });
 });

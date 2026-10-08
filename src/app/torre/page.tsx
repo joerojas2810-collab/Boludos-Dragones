@@ -9,7 +9,10 @@ import {
   TOWER_LABEL,
   TOWER_MIN_FLOOR,
   TOWER_MODES,
+  TOWER_DAILY_PRIZE,
+  TOWER_FLOOR_PRIZES,
   TOWER_PRIZES,
+  towerBadges,
   type TowerMode,
 } from "@/lib/game/tower";
 import { repo, useProfile } from "@/lib/useProfile";
@@ -68,6 +71,26 @@ export default function TowerPage() {
             </span>
           ))}
         </div>
+        <p className="mt-2 text-center text-sm text-[#d9d2ca]">
+          Por piso (una vez por semana): {TOWER_FLOOR_PRIZES.normal.coins} monedas;
+          piso 5, {TOWER_FLOOR_PRIZES.mid.coins} + núcleo; piso 10,{" "}
+          {TOWER_FLOOR_PRIZES.big.coins} + núcleo (el ciclo se repite). Cada día
+          a las 21:00 (hora de Buenos Aires) el #1 de cada torre gana{" "}
+          {TOWER_DAILY_PRIZE.coins} monedas, un núcleo y el título «
+          {TOWER_DAILY_PRIZE.title}». Insignias: Torre 10, 20 y 30.
+        </p>
+        {st && (
+          <p className="mt-1 text-center text-sm text-yellow-300">
+            {(() => {
+              const best = Math.max(
+                0,
+                ...TOWER_MODES.map((m) => st.modes[m].mine?.floor ?? 0),
+              );
+              const b = towerBadges(best);
+              return b.length ? `Tus insignias: ${b.join(" · ")}` : "";
+            })()}
+          </p>
+        )}
         {!remote && (
           <p className="mt-2 text-center text-sm text-yellow-300">
             Modo local: puedes jugar la torre de esta semana, pero sin ranking.

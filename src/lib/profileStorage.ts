@@ -2,6 +2,7 @@
 // PLACEHOLDER for Supabase: once accounts exist the profile lives in the
 // database and pulls / run banking MUST be resolved server-side (a client can
 // edit localStorage freely, so nothing here is trustworthy).
+import { newAccountProfile } from "./game/tutorial";
 import { createProfile, migrate, type Profile } from "./game/profile";
 
 export const PROFILE_KEY = "bd-profile-v2";
@@ -28,7 +29,7 @@ export function defaultStore(): KV {
 export function loadProfile(store: KV = defaultStore()): Profile {
   try {
     const raw = store.getItem(PROFILE_KEY);
-    return raw ? migrate(JSON.parse(raw)) : createProfile();
+    return raw ? migrate(JSON.parse(raw)) : newAccountProfile();
   } catch {
     return createProfile();
   }
