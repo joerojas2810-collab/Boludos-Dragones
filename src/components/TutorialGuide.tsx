@@ -2,7 +2,7 @@
 
 // Day-1 tutorial overlay (local mode; remote profiles come without the field = done).
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Panel } from "@/components/Panel";
 import { CLASSES, CLASS_IDS } from "@/lib/game/characters";
 import { TUTORIAL_DONE } from "@/lib/game/profile";
@@ -20,6 +20,7 @@ const HREF = ["", "/run", "/coleccion", "/run", "/gacha", "/forja", "/misiones"]
 
 export function TutorialGuide() {
   const { profile } = useProfile();
+  const [hidden, setHidden] = useState(false);
   useEffect(() => {
     updateProfile(autoAdvance);
   }, [profile]);
@@ -51,6 +52,15 @@ export function TutorialGuide() {
         </Panel>
       </div>
     );
+  if (hidden)
+    return (
+      <button
+        className="btn btn-gray !min-h-8 !px-3 fixed bottom-24 left-2 z-40 text-sm"
+        onClick={() => setHidden(false)}
+      >
+        Tutorial {step}/{TUTORIAL_DONE - 1}
+      </button>
+    );
   return (
     <aside
       role="status"
@@ -72,7 +82,13 @@ export function TutorialGuide() {
         >
           {step === TUTORIAL_DONE - 1 ? "Terminar" : "Hecho"}
         </button>
-        <button className="ml-auto underline opacity-70" onClick={skip}>
+        <button
+          className="ml-auto underline opacity-70"
+          onClick={() => setHidden(true)}
+        >
+          Ocultar
+        </button>
+        <button className="underline opacity-70" onClick={skip}>
           Saltar tutorial
         </button>
       </div>
