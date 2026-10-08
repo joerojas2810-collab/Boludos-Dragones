@@ -127,6 +127,7 @@ export default function ForgePage() {
   // Painted effect of the last action (re-keyed by n so it replays).
   const [fx, setFx] = useState<{ n: number; ids: string[] } | null>(null);
   // What every forge action produced: the latest stays on screen, plus a short history.
+  const [mergeKind, setMergeKind] = useState<"parts" | "pieces">("parts"); // what the Fusionar tab merges
   const [showResult, setShowResult] = useState(false); // result overlay, closed with Continuar
   const [log, setLog] = useState<
     { n: number; what: string; r: ForgeReceipt }[]
@@ -680,6 +681,27 @@ export default function ForgePage() {
 
         {tab === "merge" && (
           <>
+            <div className="grid gap-2 sm:grid-cols-2" role="tablist">
+              {(
+                [
+                  ["parts", "Fusionar PARTES", "Varias partes iguales → 1 parte de rango mayor (material para armar)."],
+                  ["pieces", "Fusionar PIEZAS", "Varias piezas equipables → 1 pieza equipable de rango mayor."],
+                ] as const
+              ).map(([k, title, text]) => (
+                <button
+                  key={k}
+                  type="button"
+                  role="tab"
+                  aria-selected={mergeKind === k}
+                  className={`btn flex-col text-center ${mergeKind === k ? "" : "btn-gray"}`}
+                  onClick={() => setMergeKind(k)}
+                >
+                  <b>{title}</b>
+                  <span className="block text-xs font-normal opacity-90">{text}</span>
+                </button>
+              ))}
+            </div>
+            {mergeKind === "parts" && (
             <Panel title="Fusionar partes" className="space-y-3">
               <p className="text-sm opacity-80">
                 Varias partes del mismo tipo y rango + 1 núcleo + monedas dan 1
@@ -781,6 +803,8 @@ export default function ForgePage() {
                 Fusionar partes
               </button>
             </Panel>
+            )}
+            {mergeKind === "pieces" && (
             <Panel title="Fusionar piezas" className="space-y-3">
               <p className="text-sm opacity-80">
                 {rule?.ratio ?? "Varias"} piezas del mismo tipo y rango, de
@@ -921,6 +945,7 @@ export default function ForgePage() {
                 Fusionar piezas
               </button>
             </Panel>
+            )}
           </>
         )}
 

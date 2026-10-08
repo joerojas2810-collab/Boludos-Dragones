@@ -60,6 +60,7 @@ import {
   type FightRole,
 } from "@/lib/game/stage";
 import { sweepBlock } from "@/lib/game/sweep";
+import { addParts } from "@/lib/game/parts";
 import {
   applyStageAction,
   ENGINE_VERSION,
@@ -110,6 +111,7 @@ interface Outcome {
   bank: LevelBank;
   loot: LevelLoot;
   before: { level: number; xp: number };
+  sweeps?: number; // total of a multi-sweep (×N)
 }
 type View =
   | { t: "ranks" }
@@ -171,40 +173,56 @@ export function ProgressMode() {
   };
 
   // Instant resolution of an already-cleared level; shows the usual result screen.
-  const sweep = async (rank: RarityId, level: number, id: string) => {
+  const sweep = async (rank: RarityId, level: number, id: string, times = 1) => {
     const owned = profile.characters.find((c) => c.id === id);
     if (!owned || view.t === "saving") return;
     setHeroId(id);
     setView({ t: "saving" });
+    let out: Awaited<ReturnType<typeof repo.sweepLevel>> | null = null;
+    let bank: LevelBank | null = null;
+    let loot: LevelLoot = { parts: {}, pieces: [] };
+    let done = 0;
     try {
-      const out = await repo.sweepLevel(owned.id, rank, level, asc);
-      const info: LevelStartInfo = {
-        attemptId: "sweep",
-        seed: out.stage.seed,
-        hero: out.stage.hero,
-        engineVersion: ENGINE_VERSION,
-      };
-      setView({
-        t: "result",
-        o: {
-          attempt: {
-            rank,
-            level,
-            asc,
-            heroId: owned.id,
-            rs: { stage: out.stage, battle: null, rng: null, settled: null },
-            actions: [],
-            info,
-          },
-          bank: out.bank,
-          loot: out.loot,
-          before: { level: owned.level, xp: owned.xp },
-        },
-      });
+      for (; done < times; done++) {
+        const o = await repo.sweepLevel(owned.id, rank, level, asc);
+        out = o;
+        bank = bank
+          ? { ...o.bank, coins: bank.coins + o.bank.coins, chest: bank.chest + o.bank.chest, xp: bank.xp + o.bank.xp, levelsGained: bank.levelsGained + o.bank.levelsGained }
+          : o.bank;
+        loot = { parts: addParts(loot.parts, o.loot.parts), pieces: [...loot.pieces, ...o.loot.pieces] };
+      }
     } catch (e) {
-      pushNotice(e instanceof Error ? e.message : "No se pudo barrer el nivel.");
-      setView({ t: "prep", rank, level });
+      pushNotice(
+        done > 0
+          ? `Barrido detenido tras ${done} de ${times}: ${e instanceof Error ? e.message : "error"}`
+          : e instanceof Error ? e.message : "No se pudo barrer el nivel.",
+      );
     }
+    if (!out || !bank) return setView({ t: "prep", rank, level });
+    const info: LevelStartInfo = {
+      attemptId: "sweep",
+      seed: out.stage.seed,
+      hero: out.stage.hero,
+      engineVersion: ENGINE_VERSION,
+    };
+    setView({
+      t: "result",
+      o: {
+        attempt: {
+          rank,
+          level,
+          asc,
+          heroId: owned.id,
+          rs: { stage: out.stage, battle: null, rng: null, settled: null },
+          actions: [],
+          info,
+        },
+        bank,
+        loot,
+        before: { level: owned.level, xp: owned.xp },
+        sweeps: done,
+      },
+    });
   };
 
   // Banks once, the moment the attempt ends (win, loss or abandon). In remote mode the
@@ -458,6 +476,7 @@ export function ProgressMode() {
             {DUNGEON_THEMES[a.rank].name} · Nivel {a.level + 1}
             {a.asc > 0 && ` · Ascensión +${a.asc}`}
             {won && o.bank.repeat && " · repetido"}
+            {o.sweeps && o.sweeps > 1 && ` · barrido ×${o.sweeps}`}
           </div>
           <div>
             <b className="text-green-300">+{o.bank.xp} EXP</b> ({st.hero.name})
@@ -598,7 +617,7 @@ export function ProgressMode() {
         setHeroId={setHeroId}
         hero={hero}
         onEnter={(id) => void enter(view.rank, view.level, id)}
-        onSweep={(id) => void sweep(view.rank, view.level, id)}
+        onSweep={(id, n) => void sweep(view.rank, view.level, id, n)}
         onBack={() => setView({ t: "levels", rank: view.rank })}
       />
     );
@@ -830,6 +849,43 @@ function LevelCard({
   );
 }
 
+
+// "Barrer" opens its own row of repeat counts (×1, ×5, ×10).
+const SWEEP_TIMES = [1, 5, 10];
+function SweepMenu({ why, onSweep }: { why: string | null; onSweep: (times: number) => void }) {
+  const [open, setOpen] = useState(false);
+  if (!open)
+    return (
+      <button
+        className="btn text-center"
+        disabled={why !== null}
+        title={why ?? "Resuelve el nivel al instante (paga como repetición)."}
+        onClick={() => setOpen(true)}
+      >
+        Barrer ▾
+      </button>
+    );
+  return (
+    <div className="flex gap-1">
+      {SWEEP_TIMES.map((n) => (
+        <button
+          key={n}
+          className="btn text-center"
+          onClick={() => {
+            setOpen(false);
+            onSweep(n);
+          }}
+        >
+          ×{n}
+        </button>
+      ))}
+      <button className="btn btn-gray text-center" aria-label="Cerrar" onClick={() => setOpen(false)}>
+        ✕
+      </button>
+    </div>
+  );
+}
+
 function Prep({
   profile,
   rank,
@@ -848,7 +904,7 @@ function Prep({
   setHeroId: (id: string) => void;
   hero: OwnedCharacter | null;
   onEnter: (id: string) => void;
-  onSweep: (id: string) => void;
+  onSweep: (id: string, times: number) => void;
   onBack: () => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -1037,14 +1093,7 @@ function Prep({
             Entrar al nivel
           </button>
           {repeat && sel && (
-            <button
-              className="btn text-center"
-              disabled={sweepWhy !== null}
-              title={sweepWhy ?? "Resuelve el nivel al instante (paga como repetición)."}
-              onClick={() => onSweep(sel.id)}
-            >
-              Barrer
-            </button>
+            <SweepMenu why={sweepWhy} onSweep={(n) => onSweep(sel.id, n)} />
           )}
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
@@ -1062,14 +1111,7 @@ function Prep({
             Entrar al nivel
           </button>
           {repeat && sel && (
-            <button
-              className="btn text-center"
-              disabled={sweepWhy !== null}
-              title={sweepWhy ?? "Resuelve el nivel al instante (paga como repetición)."}
-              onClick={() => onSweep(sel.id)}
-            >
-              Barrer
-            </button>
+            <SweepMenu why={sweepWhy} onSweep={(n) => onSweep(sel.id, n)} />
           )}
           </div>
           <button

@@ -18,7 +18,7 @@ import {
   type Stage,
 } from "./stage";
 
-export const SWEEP_POWER_FACTOR = 1.3; // hero power / recommended power needed
+export const SWEEP_POWER_FACTOR = 1; // hero power / recommended power needed
 
 const MAX_STEPS_PER_FIGHT = 400;
 
