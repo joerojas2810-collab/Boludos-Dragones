@@ -2,6 +2,7 @@
 
 import { TutorialGuide } from "@/components/TutorialGuide";
 import { Icon } from "@/components/Icon";
+import { useArt } from "@/components/ArtScope";
 import { uiAsset } from "@/lib/art";
 import { ScreenBg } from "@/components/ScreenBg";
 import Link from "next/link";
@@ -73,6 +74,20 @@ const SHELL_ROUTES = [
   "/torre",
   "/misiones",
 ];
+
+function ArtToggle() {
+  const art = useArt();
+  return (
+    <button
+      className="shell-icon"
+      aria-label="Cambiar estilo de arte"
+      title={`Arte: ${art.pixel ? "pixel" : "pintado"} (clic para cambiar)`}
+      onClick={() => art.set(!art.pixel)}
+    >
+      {art.pixel ? "Pixel" : "Pintado"}
+    </button>
+  );
+}
 
 // 16x16 pixel-style glyphs, drawn with the current text colour.
 function SoundToggle() {
@@ -168,6 +183,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               Admin
             </Link>
           )}
+          <ArtToggle />
           <SoundToggle />
           {remote && (
             <button className="shell-icon" onClick={() => void logout()}>
