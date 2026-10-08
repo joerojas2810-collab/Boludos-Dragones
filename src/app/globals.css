@@ -785,3 +785,108 @@ hr,
   border-radius: 0.5rem;
   background: rgb(0 0 0 / 0.32);
 }
+
+/* Alternate native pixel UI; the painted defaults above remain available. */
+body[data-art="pixel"] {
+  --bg: #101522;
+  --panel: #20293d;
+  --surface-raised: #33455f;
+  --edge: #101522;
+  --trim: #7894af;
+  --text: #e7eeea;
+  --muted: #abc1d3;
+  background: #101522;
+}
+body[data-art="pixel"] :is(.panel-art, .title-art, .btn, .bar-track, .bar-fill, .tile-art, .pixel-frame, .game-title-text, progress, input, select, textarea, hr, .separator) { image-rendering: pixelated; }
+body[data-art="pixel"] img[src*="/art/ui-px/"] { image-rendering: pixelated; }
+body[data-art="pixel"] .panel-art { border-width: 8px; border-image: url("/art/ui-px/panel_default.png") 8 fill / 8px stretch; }
+body[data-art="pixel"] :is(.pixel-frame, .game-title-text) { border-width: 8px; border-image: url("/art/ui-px/panel_raised.png") 8 fill / 8px stretch; }
+body[data-art="pixel"] .panel-float.panel-art { border-image: url("/art/ui-px/panel_default.png") 8 / 8px stretch; border-radius: 0; }
+body[data-art="pixel"] .title-art { border-width: 6px 8px; border-image: url("/art/ui-px/title_tab.png") 6 8 fill / 6px 8px stretch; }
+body[data-art="pixel"] .btn {
+  --px-normal: url("/art/ui-px/button_primary_normal.png");
+  --px-hover: url("/art/ui-px/button_primary_hover.png");
+  --px-pressed: url("/art/ui-px/button_primary_pressed.png");
+  --px-focus: url("/art/ui-px/button_primary_focus.png");
+  --px-disabled: url("/art/ui-px/button_primary_disabled.png");
+  border-width: 6px 8px;
+  border-image: var(--px-normal) 6 8 fill / 6px 8px stretch;
+  color: #e7eeea; text-shadow: none; border-radius: 0;
+}
+body[data-art="pixel"] .btn-gray {
+  --px-normal: url("/art/ui-px/button_secondary_normal.png"); --px-hover: url("/art/ui-px/button_secondary_hover.png");
+  --px-pressed: url("/art/ui-px/button_secondary_pressed.png"); --px-focus: url("/art/ui-px/button_secondary_focus.png"); --px-disabled: url("/art/ui-px/button_secondary_disabled.png");
+}
+body[data-art="pixel"] .btn-danger {
+  --px-normal: url("/art/ui-px/button_danger_normal.png"); --px-hover: url("/art/ui-px/button_danger_hover.png");
+  --px-pressed: url("/art/ui-px/button_danger_pressed.png"); --px-focus: url("/art/ui-px/button_danger_focus.png"); --px-disabled: url("/art/ui-px/button_danger_disabled.png");
+}
+body[data-art="pixel"] .btn-gold {
+  --px-normal: url("/art/ui-px/button_gold_normal.png"); --px-hover: url("/art/ui-px/button_gold_hover.png");
+  --px-pressed: url("/art/ui-px/button_gold_pressed.png"); --px-focus: url("/art/ui-px/button_gold_focus.png"); --px-disabled: url("/art/ui-px/button_gold_disabled.png");
+}
+body[data-art="pixel"] .btn-neutral {
+  --px-normal: url("/art/ui-px/button_neutral_normal.png"); --px-hover: url("/art/ui-px/button_neutral_hover.png");
+  --px-pressed: url("/art/ui-px/button_neutral_pressed.png"); --px-focus: url("/art/ui-px/button_neutral_focus.png"); --px-disabled: url("/art/ui-px/button_neutral_disabled.png");
+}
+body[data-art="pixel"] .btn:hover:not(:disabled) { border-image-source: var(--px-hover); }
+body[data-art="pixel"] .btn:active:not(:disabled) { border-image-source: var(--px-pressed); }
+body[data-art="pixel"] .btn:focus-visible { border-image-source: var(--px-focus); }
+body[data-art="pixel"] .btn:disabled { border-image-source: var(--px-disabled); color: #7894af; }
+body[data-art="pixel"] .bar-track { border-width: 4px; border-image: url("/art/ui-px/bar_track.png") 4 fill / 4px stretch; }
+body[data-art="pixel"] .bar-fill { background-image: url("/art/ui-px/bar_fill_health.png"); }
+body[data-art="pixel"] .bar-fill[data-fill="health_low"] { background-image: url("/art/ui-px/bar_fill_health_low.png"); }
+body[data-art="pixel"] .bar-fill[data-fill="xp"] { background-image: url("/art/ui-px/bar_fill_xp.png"); }
+body[data-art="pixel"] .bar-fill[data-fill="turn"] { background-image: url("/art/ui-px/bar_fill_turn.png"); }
+body[data-art="pixel"] .bar-fill[data-fill="shield"] { background-image: url("/art/ui-px/bar_fill_shield.png"); }
+body[data-art="pixel"] .bar-fill[data-fill="pity_ss"] { background-image: url("/art/ui-px/bar_fill_pity_ss.png"); }
+body[data-art="pixel"] .bar-fill[data-fill="pity_ssr"] { background-image: url("/art/ui-px/bar_fill_pity_ssr.png"); }
+body[data-art="pixel"] progress { background-image: url("/art/ui-px/bar_track.png"); }
+body[data-art="pixel"] progress::-webkit-progress-value { background-image: url("/art/ui-px/bar_fill_xp.png"); }
+body[data-art="pixel"] progress::-moz-progress-bar { background-image: url("/art/ui-px/bar_fill_xp.png"); }
+body[data-art="pixel"] input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"]),
+body[data-art="pixel"] textarea { border-width: 6px 8px; border-image: url("/art/ui-px/input_normal.png") 6 8 fill / 6px 8px stretch; color: #e7eeea; }
+body[data-art="pixel"] input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"]):focus,
+body[data-art="pixel"] textarea:focus { border-image-source: url("/art/ui-px/input_focus.png"); }
+body[data-art="pixel"] input:disabled:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"]),
+body[data-art="pixel"] textarea:disabled { border-image-source: url("/art/ui-px/input_disabled.png"); }
+body[data-art="pixel"] :is(input, textarea)[aria-invalid="true"] { border-image-source: url("/art/ui-px/input_error.png"); }
+body[data-art="pixel"] select { border-width: 6px 8px; border-image: url("/art/ui-px/select_normal.png") 6 8 fill / 6px 8px stretch; background-image: url("/art/ui-px/glyph_down.png"); }
+body[data-art="pixel"] select:focus { border-image-source: url("/art/ui-px/select_focus.png"); }
+body[data-art="pixel"] select:disabled { border-image-source: url("/art/ui-px/select_disabled.png"); }
+body[data-art="pixel"] select[aria-invalid="true"] { border-image-source: url("/art/ui-px/select_error.png"); }
+body[data-art="pixel"] input:is([type="checkbox"], [type="radio"]) { width: 16px; height: 16px; }
+body[data-art="pixel"] input[type="checkbox"] { background-image: url("/art/ui-px/checkbox_off.png"); }
+body[data-art="pixel"] input[type="checkbox"]:checked { background-image: url("/art/ui-px/checkbox_on.png"); }
+body[data-art="pixel"] input[type="checkbox"]:indeterminate { background-image: url("/art/ui-px/checkbox_mixed.png"); }
+body[data-art="pixel"] input[type="checkbox"]:focus-visible:not(:checked):not(:indeterminate) { background-image: url("/art/ui-px/checkbox_focus.png"); }
+body[data-art="pixel"] input[type="checkbox"]:focus-visible:is(:checked, :indeterminate) { outline: 1px solid #fff4d4; outline-offset: 2px; }
+body[data-art="pixel"] input[type="checkbox"]:disabled { background-image: url("/art/ui-px/checkbox_disabled_off.png"); opacity: 1; }
+body[data-art="pixel"] input[type="checkbox"]:disabled:checked { background-image: url("/art/ui-px/checkbox_disabled_on.png"); }
+body[data-art="pixel"] input[type="radio"] { background-image: url("/art/ui-px/radio_off.png"); }
+body[data-art="pixel"] input[type="radio"]:checked { background-image: url("/art/ui-px/radio_on.png"); }
+body[data-art="pixel"] input[type="radio"]:focus-visible:not(:checked) { background-image: url("/art/ui-px/radio_focus.png"); }
+body[data-art="pixel"] input[type="radio"]:focus-visible:checked { outline: 1px solid #fff4d4; outline-offset: 2px; }
+body[data-art="pixel"] input[type="radio"]:disabled { background-image: url("/art/ui-px/radio_disabled_off.png"); }
+body[data-art="pixel"] input[type="radio"]:disabled:checked { background-image: url("/art/ui-px/radio_disabled_on.png"); }
+body[data-art="pixel"]::-webkit-scrollbar-track,
+body[data-art="pixel"] ::-webkit-scrollbar-track { border-width: 4px 2px; border-image: url("/art/ui-px/scrollbar_track.png") 4 2 fill / 4px 2px stretch; }
+body[data-art="pixel"]::-webkit-scrollbar-thumb,
+body[data-art="pixel"] ::-webkit-scrollbar-thumb { border-width: 4px 2px; border-image: url("/art/ui-px/scrollbar_thumb.png") 4 2 fill / 4px 2px stretch; }
+body[data-art="pixel"] :is(hr, .separator) { background-image: url("/art/ui-px/separator.png"); }
+body[data-art="pixel"] .tile-art { border-width: 6px; border-image: url("/art/ui-px/slot_normal.png") 6 fill / 6px stretch; }
+body[data-art="pixel"] .tile-art:hover { border-image-source: url("/art/ui-px/slot_hover.png"); }
+body[data-art="pixel"] .tile-art[aria-pressed="true"] { border-image-source: url("/art/ui-px/slot_selected.png"); }
+body[data-art="pixel"] .tile-art:disabled { border-image-source: url("/art/ui-px/slot_disabled.png"); }
+body[data-art="pixel"] .game-title-emblem { width: 128px; filter: none; }
+body[data-art="pixel"] .game-title-word { width: 512px; max-width: 100%; }
+body[data-art="pixel"] [aria-modal="true"] { background-color: transparent; background-image: url("/art/ui-px/modal_scrim.png"); image-rendering: pixelated; }
+body[data-art="pixel"] input[type="range"] { appearance: none; height: 16px; background: transparent; }
+body[data-art="pixel"] input[type="range"]::-webkit-slider-runnable-track { height: 8px; background: center / 100% 100% url("/art/ui-px/slider_track.png"); }
+body[data-art="pixel"] input[type="range"]::-moz-range-track { height: 8px; background: center / 100% 100% url("/art/ui-px/slider_track.png"); }
+body[data-art="pixel"] input[type="range"]::-webkit-slider-thumb { appearance: none; width: 12px; height: 16px; margin-top: -4px; background: center / contain url("/art/ui-px/slider_thumb_normal.png"); image-rendering: pixelated; }
+body[data-art="pixel"] input[type="range"]::-moz-range-thumb { width: 12px; height: 16px; border: 0; border-radius: 0; background: center / contain url("/art/ui-px/slider_thumb_normal.png"); image-rendering: pixelated; }
+body[data-art="pixel"] input[type="range"]:focus-visible::-webkit-slider-thumb { background-image: url("/art/ui-px/slider_thumb_focus.png"); }
+body[data-art="pixel"] input[type="range"]:focus-visible::-moz-range-thumb { background-image: url("/art/ui-px/slider_thumb_focus.png"); }
+body[data-art="pixel"] input[type="range"]:disabled::-webkit-slider-thumb { background-image: url("/art/ui-px/slider_thumb_disabled.png"); }
+body[data-art="pixel"] input[type="range"]:disabled::-moz-range-thumb { background-image: url("/art/ui-px/slider_thumb_disabled.png"); }

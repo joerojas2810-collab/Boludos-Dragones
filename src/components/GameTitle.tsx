@@ -1,17 +1,19 @@
-// Painted emblem + wordmark, tagline as live text (the baked one is too small to read).
+import { uiAsset } from "@/lib/art";
+
+// Emblem and wordmark; tagline stays live text.
 export function GameTitle() {
   return (
     <div className="game-title">
       {/* eslint-disable @next/next/no-img-element */}
       <img
-        src="/art/ui/logo_emblem.webp?v=2"
+        src={uiAsset("logo_emblem")}
         alt=""
         className="game-title-emblem"
         draggable={false}
       />
       <div className="game-title-text">
         <img
-          src="/art/ui/logo_wordmark.webp?v=2"
+          src={uiAsset("logo_wordmark")}
           alt="Boludos & Dragones"
           className="game-title-word"
           draggable={false}

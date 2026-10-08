@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { uiAsset } from "@/lib/art";
 import { Panel } from "@/components/Panel";
 import { replaceProfile, repo, useProfile } from "@/lib/useProfile";
 
@@ -155,7 +156,7 @@ export default function MissionsPage() {
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`/art/ui/chest_tier${i < s.claimed ? Math.max(i + 1, 2) : 1}.webp`}
+                      src={uiAsset(`chest_tier${i < s.claimed ? Math.max(i + 1, 2) : 1}`)}
                       alt=""
                       draggable={false}
                       className="h-20"

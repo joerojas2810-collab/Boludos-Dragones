@@ -33,6 +33,8 @@ export const GEAR_ART: Record<GearType, string> = {
 
 // ?v= busts the 7-day static cache when art files are replaced under the same name.
 export const ART_V = 2;
+export const uiAsset = (name: string) =>
+  `/art/${PIXEL ? "ui-px" : "ui"}/${name}.${PIXEL ? "png" : "webp"}?v=${ART_V}`;
 export const icon = (name: string) => isPixelIcon(name)
   ? `/art/icons-px/icon_${name}.png?v=${ART_V}`
   : `/art/icons/icon_${name}.webp?v=${ART_V}`;

@@ -1,6 +1,6 @@
 # Continuación de producción pixel art
 
-Plan de trabajo para acelerar las fases pendientes mediante bases compartidas y exportaciones automatizadas. Fase 4 completada; las cantidades de Fases 5 a 7 describen el alcance pendiente.
+Plan de trabajo para acelerar las fases pendientes mediante bases compartidas y exportaciones automatizadas. Fases 4 y 5 completadas; las cantidades de Fases 6 y 7 describen el alcance pendiente.
 
 ## Reglas de trabajo
 
@@ -17,11 +17,13 @@ El lote 9 reúne los 8 íconos de estadísticas y los 17 de sistema. Reutiliza s
 
 Las 99 reliquias se descomponen en **24 diseños base, 72 variantes y 3 distintivos de rareza**. Las variantes son `common`, `rare` y `legendary`, una de cada tipo por diseño. La forma del objeto debe conservarse; los detalles de rareza deben distinguirse también por su forma.
 
-Completada el 7 de octubre de 2026: tres lotes de 33 archivos, cada uno con 8 bases, 24 variantes y un distintivo. Se reutilizaron 5 bases aprobadas y se generaron 19 objetos nuevos. Fase 4 total: 238 PNG finales. Importación de las 99 reliquias verificada píxel por píxel; galería con 257 íconos acumulados (19 de Fase 3 y 238 de Fase 4), sin recursos faltantes. TypeScript y ESLint sin errores; 449 pruebas aprobadas. ZIP completo y manifiestos entregados. La siguiente fase es el kit de interfaz.
+Completada el 7 de octubre de 2026: tres lotes de 33 archivos, cada uno con 8 bases, 24 variantes y un distintivo. Se reutilizaron 5 bases aprobadas y se generaron 19 objetos nuevos. Fase 4 total: 238 PNG finales. Importación de las 99 reliquias verificada píxel por píxel; galería con 257 íconos acumulados (19 de Fase 3 y 238 de Fase 4), sin recursos faltantes. TypeScript y ESLint sin errores; 449 pruebas aprobadas. ZIP completo y manifiestos entregados. El kit de interfaz también quedó completado; siguen los fondos.
 
 Fuentes de nombres: `public/art/icons/icon_relic_*.webp` y `src/lib/artIds.json` (sección `relic`). Fuente del significado, nombre en español y rareza: `src/lib/game/relics.ts`. Usar esos datos para agrupar objetos y comprobar los archivos; no deducir nombres nuevos de los textos en español.
 
 ## Fase 5: kit de interfaz
+
+Completada el 7 de octubre de 2026: 130 PNG finales, manifiesto con paleta y cortes, ZIP verificado e integración en `ui-px/`. La galería muestra los 130 recursos sin archivos faltantes y prueba paneles a 320 y 640 px con esquinas fijas. Pruebas de cierre aprobadas: TypeScript, ESLint y 449 pruebas Vitest. Siguiente fase: fondos, previa revisión del usuario.
 
 Referencia exacta: los **130 archivos** actuales de `public/art/ui/`. Construir bases comunes y exportar sus estados de manera consistente:
 
