@@ -6742,6 +6742,34 @@ revoke all on function public.tower_settle_daily(), public.tower_floor_coins(int
   public.best_cleared_rank(uuid), public.grant_core(uuid, text, int) from public, anon, authenticated;
 grant execute on function public.tower_settle_daily(), public.best_cleared_rank(uuid) to service_role;
 
+-- ===== 0031_tutorial.sql =====
+-- 0031: tutorial step stored on the account (was per browser).
+-- sync_tutorial: p_step raises the step (never back); p_init seeds it once when still null.
+-- Returns the stored step. Server only (0018 locks the function down).
+alter table public.player_state
+  add column if not exists tutorial int check (tutorial is null or tutorial between 0 and 7);
+
+create or replace function public.sync_tutorial(p_player uuid, p_step int default null, p_init int default null)
+returns int language plpgsql security definer set search_path = ''
+as $$
+declare v int;
+begin
+  if p_step is not null then
+    update public.player_state set tutorial = greatest(coalesce(tutorial, 0), least(p_step, 7))
+     where player_id = p_player returning tutorial into v;
+  elsif p_init is not null then
+    update public.player_state set tutorial = least(p_init, 7)
+     where player_id = p_player and tutorial is null returning tutorial into v;
+  end if;
+  if v is null then
+    select tutorial into v from public.player_state where player_id = p_player;
+  end if;
+  return v;
+end $$;
+
+revoke all on function public.sync_tutorial(uuid, int, int) from public, anon, authenticated;
+grant execute on function public.sync_tutorial(uuid, int, int) to service_role;
+
 -- ===== 0018_lockdown_functions.sql =====
 -- 0018_lockdown_functions: re-apply the function lockdown to EVERY function in public.
 -- Why: a new signature (apply_pull with p_pity_ssr, bank_run with p_clear/p_parts,

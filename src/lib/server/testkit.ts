@@ -250,6 +250,8 @@ export class FakeDb {
       case "mission_claim":
         this.missionClaims.push(a);
         return this.okv({ coins: 0, cores: 0, parts: 0, pieces: 0, claimed: a.p_reached });
+      case "sync_tutorial":
+        return this.okv(7);
       case "get_streak":
         return this.okv(null);
       case "settle_daily_streak":

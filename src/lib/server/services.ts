@@ -13,6 +13,7 @@ import {
   pullCharacter,
   pullCost,
   pullWeapon,
+  TUTORIAL_DONE,
   type Banner,
   type PullResult,
   type Profile,
@@ -132,7 +133,14 @@ export async function loadMe(rpc: Rpc, playerId: string): Promise<Me> {
     const daily = await call<DailyState | null>(rpc, "get_streak", {
       p_player: playerId,
     });
-    return daily ? migrateDaily(me, daily) : me;
+    // Accounts with heroes start at "level 1" (autoAdvance skips what they did); empty ones at "pull".
+    // Until 0031 is applied the rpc is missing: skip the tutorial instead of breaking login.
+    const tutorial = await call<number | null>(rpc, "sync_tutorial", {
+      p_player: playerId,
+      p_init: me.profile.characters.length ? 1 : 4,
+    }).catch(() => null);
+    const withTut = { ...me, profile: { ...me.profile, tutorial: tutorial ?? TUTORIAL_DONE } };
+    return daily ? migrateDaily(withTut, daily) : withTut;
   } catch (e) {
     return mapRpcError(e);
   }
@@ -869,6 +877,15 @@ export async function towerStateService(d: Deps, playerId: string) {
     return await call<Record<string, unknown>>(d.rpc, "tower_state", {
       p_player: playerId,
     });
+  } catch (e) {
+    return mapRpcError(e);
+  }
+}
+
+export async function doTutorialStep(d: Deps, playerId: string, step: number) {
+  try {
+    await call<number>(d.rpc, "sync_tutorial", { p_player: playerId, p_step: step });
+    return { step };
   } catch (e) {
     return mapRpcError(e);
   }

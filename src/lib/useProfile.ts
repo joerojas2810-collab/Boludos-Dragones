@@ -41,23 +41,16 @@ function devCoins(): number {
 
 const isRemote = () => !!process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-// Remote profiles come from the server on every call and carry no tutorial field, so the step
-// lives in this browser, per account. First time: accounts with heroes start at "level 1"
-// (autoAdvance skips what they already did); empty accounts start at "pull" (no free starter hero).
-// ponytail: per browser, not synced across devices; move to a profile column if that matters.
-const tutKey = (name: string) => `bd-tutorial:${name}`;
-function withTutorial(p: Profile, name: string): Profile {
-  if (!isRemote() || !name) return p;
-  let step = TUTORIAL_DONE; // storage blocked: don't nag on every load
-  try {
-    const raw = localStorage.getItem(tutKey(name));
-    step = raw === null ? (p.characters.length ? 1 : 4) : Number(raw);
-    if (raw === null) localStorage.setItem(tutKey(name), String(step));
-  } catch {}
-  return { ...p, tutorial: Number.isFinite(step) ? step : TUTORIAL_DONE };
-}
+// The tutorial step lives on the account (server); a server reply may be older than a click
+// still in flight, so the step never goes back.
+const withTutorial = (p: Profile): Profile => {
+  const cur = state?.profile?.tutorial;
+  return isRemote() && cur !== undefined && (p.tutorial ?? TUTORIAL_DONE) < cur
+    ? { ...p, tutorial: cur }
+    : p;
+};
 const replaceWith = (p: Profile) =>
-  set({ ...ensure(), profile: withTutorial(p, ensure().session.name) });
+  set({ ...ensure(), profile: withTutorial(p) });
 
 export const repo: ProfileRepo = selectRepo(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -96,10 +89,12 @@ export function updateProfile(fn: (p: Profile) => Profile) {
   const next = fn(s.profile);
   if (next === s.profile) return;
   if (!isRemote()) saveProfile(next); // remote: in-memory cache only
-  else if (next.tutorial !== s.profile.tutorial && s.session.name)
-    try {
-      localStorage.setItem(tutKey(s.session.name), String(next.tutorial ?? TUTORIAL_DONE));
-    } catch {}
+  else if (next.tutorial !== s.profile.tutorial)
+    void fetch("/api/tutorial", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ step: next.tutorial ?? TUTORIAL_DONE }),
+    }).catch(() => undefined); // best effort: next load re-reads the stored step
   set({ ...s, profile: next });
 }
 
@@ -115,7 +110,7 @@ async function bootstrap() {
     set(
       me
         ? {
-            profile: withTutorial(me.profile, me.name),
+            profile: me.profile,
             session: { status: "user", name: me.name, isAdmin: me.isAdmin },
             notice: ensure().notice,
           }
