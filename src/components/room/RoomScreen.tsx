@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/lib/dialogs";
 
 import { useState, type ReactNode } from "react";
 import { DoorIcon } from "@/components/DoorIcon";
@@ -447,8 +448,10 @@ export function RoomScreen({
                       aria-label={`Expulsar a ${r.name}`}
                       title="Expulsar"
                       onClick={() => {
-                        if (window.confirm(`¿Expulsar a ${r.name}?`))
-                          void run(client.kick(r.id));
+                        void askConfirm(`¿Expulsar a ${r.name}?`, "Expulsar").then(
+                          (ok) => {
+      if (ok) void run(client.kick(r.id));
+    });
                       }}
                     >
                       ✕
@@ -477,8 +480,10 @@ export function RoomScreen({
           <button
             className="btn btn-gray mt-3 w-full text-center"
             onClick={() => {
-              if (window.confirm("¿Salir de la sala?"))
-                void client.leave().then(onExit);
+              void askConfirm("¿Salir de la sala?", "Salir").then(
+                (ok) => {
+      if (ok) void client.leave().then(onExit);
+    });
             }}
           >
             Salir
@@ -487,8 +492,10 @@ export function RoomScreen({
             <button
               className="btn btn-gray mt-2 w-full text-center"
               onClick={() => {
-                if (window.confirm("¿Cerrar la sala para todos?"))
-                  void client.close();
+                void askConfirm("¿Cerrar la sala para todos?", "Cerrar sala").then(
+                  (ok) => {
+      if (ok) void client.close();
+    });
               }}
             >
               Cerrar sala

@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm, toast } from "@/lib/dialogs";
 
 import { iconFor } from "@/lib/art";
 import Link from "next/link";
@@ -80,7 +81,9 @@ function BurnButton({
       disabled={disabled}
       title="Se pierde para siempre"
       onClick={() => {
-        if (window.confirm(`¿Quemar ${what}? No se puede deshacer.`)) run();
+        void askConfirm(`¿Quemar ${what}? No se puede deshacer.`, "Quemar").then((ok) => {
+      if (ok) void run();
+    });
       }}
     >
       {label}
@@ -92,11 +95,13 @@ function BurnButton({
 function BurnShown({
   noun,
   count,
+  shown,
   coins,
   run,
 }: {
   noun: string;
   count: number;
+  shown: number; // how many the filter shows (some are protected and never burned)
   coins: number;
   run: () => void;
 }) {
@@ -114,14 +119,16 @@ function BurnShown({
       >
         {ask
           ? `Confirmar: quemar ${count} ${noun} (+${coins} monedas)`
-          : `Quemar las ${count} ${noun} mostradas`}
+          : count < shown
+            ? `Quemar ${count} de las ${shown} ${noun} mostradas`
+            : `Quemar las ${count} ${noun} mostradas`}
       </button>
       {ask && (
         <>
           <button className="btn btn-gray text-center text-sm" onClick={() => setAsk(false)}>
             Cancelar
           </button>
-          <span className="text-xs text-[#d9d2ca]">No se queman las equipadas ni las que tienen estrellas.</span>
+          <span className="text-xs text-[#d9d2ca]">Se conservan las equipadas y las que tienen estrellas (en héroes: con estrellas o nivel superior a 1).</span>
         </>
       )}
     </div>
@@ -224,7 +231,10 @@ function Detail({
         label={`Quemar héroe (+${burnValue(c.rarity, c.legacy)} monedas)`}
         what={`a ${c.name} (${RARITIES[c.rarity].label}, ${c.stars}★)`}
         disabled={profile.characters.length <= 1}
-        run={() => act(async () => void (await repo.burn("hero", c.id)))}
+        run={() => act(async () => {
+            const r = await repo.burn("hero", c.id);
+            toast(`${c.name} quemado: +${r.coins} monedas.`);
+          })}
       />
     </Panel>
   );
@@ -265,7 +275,7 @@ export default function CollectionPage() {
     .filter((w) => !worn.has(w.id) && w.stars === 0)
     .map((w) => w.id);
   const burnableHeroes = list
-    .filter((c) => c.stars === 0 && c.level <= 1 && c.id !== selected)
+    .filter((c) => c.stars === 0 && c.level <= 1)
     .map((c) => c.id);
   const frags = Object.entries(profile.fragments).filter(([, n]) => n > 0);
   const owner = (wid: string) =>
@@ -363,9 +373,13 @@ export default function CollectionPage() {
                   <BurnShown
                     noun="héroes"
                     count={burnableHeroes.length}
+                    shown={list.length}
                     coins={burnMany(profile, "hero", burnableHeroes).coins}
                     run={() =>
-                      act(async () => void (await repo.burnMany("hero", burnableHeroes)))
+                      act(async () => {
+                        const r = await repo.burnMany("hero", burnableHeroes);
+                        toast(`Quema realizada: ${r.count} ${r.count === 1 ? "héroe" : "héroes"}, +${r.coins} monedas.`);
+                      })
                     }
                   />
                 )}
@@ -432,9 +446,13 @@ export default function CollectionPage() {
               <BurnShown
                 noun="piezas"
                 count={burnablePieces.length}
+                shown={shownPieces.length}
                 coins={burnMany(profile, "piece", burnablePieces).coins}
                 run={() =>
-                  act(async () => void (await repo.burnMany("piece", burnablePieces)))
+                  act(async () => {
+                    const r = await repo.burnMany("piece", burnablePieces);
+                    toast(`Quema realizada: ${r.count} ${r.count === 1 ? "pieza" : "piezas"}, +${r.coins} monedas.`);
+                  })
                 }
               />
             )}
@@ -467,7 +485,10 @@ export default function CollectionPage() {
                       label={`Quemar (+${burnValue(w.rarity, w.legacy)})`}
                       what={`${w.name} (${RARITIES[w.rarity].label})`}
                       disabled={worn}
-                      run={() => act(async () => void (await repo.burn("piece", w.id)))}
+                      run={() => act(async () => {
+                        const r = await repo.burn("piece", w.id);
+                        toast(`${w.name} quemada: +${r.coins} monedas.`);
+                      })}
                     />
                     </div>
                   );

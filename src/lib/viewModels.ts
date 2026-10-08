@@ -1,10 +1,12 @@
 // Pure mapping of game objects to display models (no React, relative imports).
 import type { ItemView } from "../components/ItemCard";
+import { ELEMENT_LABEL, type Element } from "./game/elements";
+import type { Tip } from "./game/explain";
 import type { ClassId, Stats } from "./game/characters";
 import type { OwnedCharacter, OwnedWeapon, PullResult } from "./game/profile";
 import { RARITIES, RARITY_IDS, scaleStats, type RarityId } from "./game/rarity";
 import { gearBonus, gearLine, type GearBonus } from "./game/gear";
-import { WEAPON_TYPE_DATA, isGearType } from "./game/weapons";
+import { WEAPON_TYPE_DATA, isGearType, weaponAtk, type WeaponType } from "./game/weapons";
 
 export const statLine = (s: Stats) =>
   `PV ${Math.round(s.hp)} · ATQ ${s.atk} · DEF ${s.def}`;
@@ -169,4 +171,49 @@ export function filterSortCharacters(
         (f.rarity === "all" || c.rarity === f.rarity),
     )
     .sort((a, b) => key(b) - key(a) || a.name.localeCompare(b.name));
+}
+
+// Hover/tap card of one piece: what it gives and what sets it apart from the others of its slot.
+export function pieceTip(w: OwnedWeapon): Tip {
+  const info = WEAPON_TYPE_DATA[w.type];
+  const sgn = (v: number) => (v > 0 ? `+${Math.round(v * 100)}` : `${Math.round(v * 100)}`);
+  const lines: string[] = [];
+  if (isGearType(w.type)) {
+    lines.push(pieceLine(w));
+    for (const l of extraLinesText(w)) lines.push(`Línea extra: ${l}`);
+    lines.push(info.description);
+  } else {
+    lines.push(`Ataque +${w.atkBonus}${rollPct(w) === null ? "" : ` · tirada ${rollPct(w)}%`}`);
+    lines.push(`${info.label}: ${info.description}`);
+    const mods: string[] = [];
+    if (info.atkMult !== 1) mods.push(`daño ×${info.atkMult}`);
+    if (info.accuracy) mods.push(`${sgn(info.accuracy)} puntos de precisión`);
+    if (info.crit) mods.push(`${sgn(info.crit)} puntos de crítico`);
+    if (info.speedMult !== 1) mods.push(`velocidad ×${info.speedMult}`);
+    if (mods.length) lines.push(`Efecto del tipo: ${mods.join(", ")}.`);
+    lines.push(`Su elemento (${ELEMENT_LABEL[w.element]}) pasa a ser el de tus ataques.`);
+  }
+  lines.push(`${w.stars}★: cada estrella mejora la pieza. Piezas del mismo elemento forman set (2, 4 y 6).`);
+  return { title: `${w.name} · ${RARITIES[w.rarity].label}`, kind: "info", lines, color: RARITIES[w.rarity].color };
+}
+
+// Card of a piece TYPE at a given rank and element (forge pickers, before anything exists).
+export function typeTip(type: WeaponType, rank: RarityId, element: Element): Tip {
+  const info = WEAPON_TYPE_DATA[type];
+  const stub: OwnedWeapon = {
+    id: `${type}-${element}-${rank}`,
+    name: `${info.label} de ${ELEMENT_LABEL[element]}`,
+    type,
+    element,
+    rarity: rank,
+    stars: 0,
+    atkBonus: weaponAtk(rank, 0, type),
+  };
+  const t = pieceTip(stub);
+  // a type card shows the base values: no star line, a note that each copy rolls its own
+  return {
+    ...t,
+    title: `${info.label} · ${RARITIES[rank].label}`,
+    lines: [...t.lines.slice(0, -1), "Cada pieza forjada sale con su propia tirada (±15 %)."],
+  };
 }

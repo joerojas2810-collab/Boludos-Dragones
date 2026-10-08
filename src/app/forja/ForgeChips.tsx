@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { RankIcon } from "@/components/RankIcon";
 import { ElementIcon } from "@/components/ElementIcon";
+import { Tooltip } from "@/components/Tooltip";
 import { WeaponSprite } from "@/components/WeaponSprite";
+import { typeTip } from "@/lib/viewModels";
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "@/lib/game/elements";
 import { RARITIES, RARITY_IDS, type RarityId } from "@/lib/game/rarity";
 import {
@@ -75,8 +77,12 @@ export function TypePicker({
       {types.map((t) => {
         const r = ready?.(t);
         return (
-          <Tile
+          <Tooltip
             key={t}
+            tip={typeTip(t, rank, element)}
+            className="block [&>*]:h-full [&>*]:w-full"
+          >
+          <Tile
             selected={t === value}
             ready={r}
             onClick={() => onChange(t)}
@@ -92,6 +98,7 @@ export function TypePicker({
             <span>{WEAPON_TYPE_DATA[t].label}</span>
             {sub && <Sub ok={r}>{sub(t)}</Sub>}
           </Tile>
+          </Tooltip>
         );
       })}
     </div>

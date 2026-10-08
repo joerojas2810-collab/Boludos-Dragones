@@ -3,6 +3,7 @@ import { Alegreya, Nunito } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
 import { uiAsset } from "@/lib/art";
 import { ArtScope } from "@/components/ArtScope";
+import { GameDialogs } from "@/components/GameDialogs";
 import { isPixel } from "@/lib/art/pixel";
 import "./globals.css";
 
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body data-art={isPixel() ? "pixel" : "painted"} className="min-h-full flex flex-col">
         <ArtScope>
           <AppShell>{children}</AppShell>
+          <GameDialogs />
         </ArtScope>
       </body>
     </html>

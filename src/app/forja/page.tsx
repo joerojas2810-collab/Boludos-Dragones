@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/lib/dialogs";
 
 import { Vfx } from "@/components/fx/Vfx";
 import { ElementIcon } from "@/components/ElementIcon";
@@ -8,6 +9,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Panel } from "@/components/Panel";
 import { PartsList } from "@/components/PartsList";
 import { WeaponSprite } from "@/components/WeaponSprite";
+import { Tooltip } from "@/components/Tooltip";
+import { pieceTip, typeTip } from "@/lib/viewModels";
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "@/lib/game/elements";
 import {
   applyForge,
@@ -439,8 +442,10 @@ export default function ForgePage() {
                       className="btn"
                       disabled={busy || !r.ok}
                       onClick={() => {
-                        if (confirm && !window.confirm(confirm)) return;
-                        void run(op);
+                        if (!confirm) return void run(op);
+                        void askConfirm(confirm).then((ok) => {
+      if (ok) void run(op);
+    });
                       }}
                     >
                       {label}
@@ -621,18 +626,20 @@ export default function ForgePage() {
                 need={craftCoins(rank)}
               />
             </ul>
-            <ResultCard>
-              <WeaponSprite
-                type={type}
-                element={element}
-                rarity={rank}
-                className="w-12"
-              />
-              <span>
-                {WEAPON_TYPE_DATA[type].label} {RARITIES[rank].label} de{" "}
-                {ELEMENT_LABEL[element]}
-              </span>
-            </ResultCard>
+            <Tooltip tip={typeTip(type, rank, element)} className="block">
+              <ResultCard>
+                <WeaponSprite
+                  type={type}
+                  element={element}
+                  rarity={rank}
+                  className="w-12"
+                />
+                <span>
+                  {WEAPON_TYPE_DATA[type].label} {RARITIES[rank].label} de{" "}
+                  {ELEMENT_LABEL[element]}
+                </span>
+              </ResultCard>
+            </Tooltip>
             {status(check(craftOp()))}
             <button
               className="btn w-full"
@@ -821,8 +828,8 @@ export default function ForgePage() {
                     const eq = equipped.has(w.id);
                     const on = picked.includes(w.id);
                     return (
+                      <Tooltip key={w.id} tip={pieceTip(w)}>
                       <button
-                        key={w.id}
                         type="button"
                         disabled={eq}
                         aria-pressed={on}
@@ -855,6 +862,7 @@ export default function ForgePage() {
                           </span>
                         </span>
                       </button>
+                      </Tooltip>
                     );
                   })}
                 </div>
@@ -1035,25 +1043,31 @@ export default function ForgePage() {
               const eq = equipped.has(w.id);
               return (
                 <div key={w.id} className="flex items-center gap-2 text-sm">
-                  <WeaponSprite
-                    type={w.type}
-                    element={w.element}
-                    rarity={w.rarity}
-                    className="w-8"
-                  />
-                  <span
-                    className="min-w-0 flex-1"
-                    style={{ color: RARITIES[w.rarity].color }}
-                  >
-                    {w.name} · {RARITIES[w.rarity].label} · {w.stars}★
-                    {eq && " · equipada"}
-                  </span>
+                  <Tooltip tip={pieceTip(w)}>
+                    <span className="flex min-w-0 flex-1 cursor-help items-center gap-2">
+                      <WeaponSprite
+                        type={w.type}
+                        element={w.element}
+                        rarity={w.rarity}
+                        className="w-8"
+                      />
+                      <span
+                        className="min-w-0 flex-1"
+                        style={{ color: RARITIES[w.rarity].color }}
+                      >
+                        {w.name} · {RARITIES[w.rarity].label} · {w.stars}★
+                        {eq && " · equipada"}
+                      </span>
+                    </span>
+                  </Tooltip>
                   <button
                     className="btn btn-gray !min-h-8 !px-2"
                     disabled={busy || eq}
                     onClick={() => {
-                      if (window.confirm(`¿Desmontar ${w.name}?`))
-                        void run({ op: "dismantle", id: w.id });
+                      void askConfirm(`¿Desmontar ${w.name}?`, "Desmontar").then(
+                        (ok) => {
+      if (ok) void run({ op: "dismantle", id: w.id });
+    });
                     }}
                   >
                     Desmontar

@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/lib/dialogs";
 
 // Weekly tower on the stage engine: ONE life, hp carried floor to floor with a small
 // heal, one fight per floor, no doors, relics, upgrades or shops. Score = floors
@@ -321,12 +322,12 @@ export function TowerMode() {
           <button
             className="btn btn-gray text-center"
             onClick={() => {
-              if (
-                window.confirm(
-                  "¿Abandonar? Cuenta lo que ya superaste, pero termina el intento.",
-                )
-              )
-                send(at, { t: "quit" });
+              void askConfirm(
+                "¿Abandonar? Cuenta lo que ya superaste, pero termina el intento.",
+                "Abandonar",
+              ).then((ok) => {
+      if (ok) void send(at, { t: "quit" });
+    });
             }}
           >
             Abandonar

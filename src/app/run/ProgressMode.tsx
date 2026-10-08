@@ -1,4 +1,5 @@
 "use client";
+import { askConfirm } from "@/lib/dialogs";
 
 import { levelTip } from "@/lib/game/explain";
 import Link from "next/link";
@@ -385,12 +386,12 @@ export function ProgressMode() {
             <button
               className="btn btn-gray text-center"
               onClick={() => {
-                if (
-                  window.confirm(
-                    "¿Abandonar el nivel? Cuenta como perdido, pero conservas la EXP ganada.",
-                  )
-                )
-                  send(a, { t: "quit" });
+                void askConfirm(
+                  "¿Abandonar el nivel? Cuenta como perdido, pero conservas la EXP ganada.",
+                  "Abandonar",
+                ).then((ok) => {
+      if (ok) void send(a, { t: "quit" });
+    });
               }}
             >
               Abandonar
