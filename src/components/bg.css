@@ -18,9 +18,18 @@
 }
 
 /* Stationary opaque sky/ground support integer drift of transparent layers. */
+.arena-bg {
+  container-type: size;
+}
 .bg-layer-pixel {
-  inset: 0;
-  width: 100%;
+  --pixel-bg-height: round(up, max(100cqh, 100cqw * 9 / 16), 180px);
+  inset: auto;
+  bottom: 0;
+  left: round(nearest, calc((100cqw - var(--pixel-bg-height) * 16 / 9) / 2), 1px);
+  height: var(--pixel-bg-height);
+  width: calc(var(--pixel-bg-height) * 16 / 9);
+  max-width: none;
+  object-fit: fill;
   image-rendering: pixelated;
   transform: none;
   animation: bg-pixel-drift 24s steps(var(--px-steps), end) infinite alternate;

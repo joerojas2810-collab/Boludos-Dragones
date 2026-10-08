@@ -196,3 +196,21 @@ body[data-art="pixel"] .combat-hud {
   white-space: nowrap;
   font-size: 0.75rem;
 }
+@media (max-width: 767px) {
+  body[data-art="pixel"] .stage:has(.stage-foes[data-n="3"]) .stage-hero {
+    --hs: 192px;
+    left: calc(100% - 192px);
+    top: 4cqh;
+  }
+  body[data-art="pixel"] .stage-foes[data-n="3"] .combat-hud {
+    padding: 4px;
+  }
+  body[data-art="pixel"] .stage-foes[data-n="3"] .combat-hud > div:first-child {
+    flex-wrap: wrap;
+  }
+  body[data-art="pixel"] .stage-foes[data-n="3"] .combat-hud > div:first-child > .truncate {
+    order: -1;
+    width: 100%;
+    font-size: 0.8rem;
+  }
+}

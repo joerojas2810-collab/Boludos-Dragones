@@ -903,3 +903,8 @@ body[data-art="pixel"] .game-title-emblem,
 body[data-art="pixel"] .hub .game-title-emblem { width: max(64px, round(down, clamp(6rem, 15vw, 10.5rem), 64px)); }
 body[data-art="pixel"] .game-title-word { display: block; margin: 0 auto; width: round(down, 100%, 256px); min-width: min(100%, 256px); }
 .bg-px-int { position: absolute; left: 50%; bottom: 0; max-width: none; height: auto; width: round(up, max(100vw, 100vh * 16 / 9), 320px); transform: translateX(-50%); }
+@media (max-width: 767px) {
+  body[data-art="pixel"] .hub-hero {
+    width: max(96px, round(down, min(62vw, 30vh), 96px));
+  }
+}

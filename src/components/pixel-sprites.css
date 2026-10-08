@@ -5,8 +5,11 @@
 .pixel-sprite-frame {
   position: absolute;
   bottom: 0;
-  left: 50%;
+  left: round(nearest, 50cqw, 1px);
   height: max(96px, round(down, var(--pixel-size, 100cqh), 96px));
   transform: translateX(-50%);
   image-rendering: pixelated;
+}
+body[data-art="pixel"] .fx-breathe {
+  animation-timing-function: steps(1, end);
 }
