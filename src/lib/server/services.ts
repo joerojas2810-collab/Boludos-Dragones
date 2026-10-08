@@ -637,8 +637,13 @@ export async function finishLevelService(
   playerId: string,
   body: LevelFinishBody,
 ) {
-  await limit(d.rpc, `lvfinish:${playerId}`, 20, 60);
-  const row = await d.getRun(playerId, body.runId);
+  // Independent round trips go together (each one costs a network hop to the database);
+  // the profile is only needed once the log is verified, but loading it now hides its latency.
+  const [, row, me0] = await Promise.all([
+    limit(d.rpc, `lvfinish:${playerId}`, 20, 60),
+    d.getRun(playerId, body.runId),
+    loadMe(d.rpc, playerId).catch(() => null),
+  ]);
   if (!row) throw new ApiError(404, "run_not_found", "Run no encontrada.");
   if (row.status !== "open")
     throw new ApiError(409, "duplicate_run", "Este nivel ya fue entregado.");
@@ -744,7 +749,7 @@ export async function finishLevelService(
 
   let out: { raw: LevelBankRaw; loot: LevelLoot } | null = null;
   for (let attempt = 0; !out; attempt++) {
-    const me = await loadMe(d.rpc, playerId);
+    const me = attempt === 0 && me0 ? me0 : await loadMe(d.rpc, playerId);
     const opts = lootOptions(me.profile, r, lv, ascension);
     const loot = cleared
       ? levelLoot(spec, ascension, (hero as Character).classId, row.seed, opts)
@@ -775,17 +780,19 @@ export async function finishLevelService(
       return mapRpcError(e);
     }
   }
-  await trackMissions(
-    d.rpc,
-    playerId,
-    missionDeltas({
-      status: cleared ? "cleared" : "lost",
-      won: stage.won,
-      heroElement: (hero as Character).element,
-      finalLevel: out.raw.dungeonDone,
-    }),
-  );
-  const fresh = await loadMe(d.rpc, playerId);
+  const [, fresh] = await Promise.all([
+    trackMissions(
+      d.rpc,
+      playerId,
+      missionDeltas({
+        status: cleared ? "cleared" : "lost",
+        won: stage.won,
+        heroElement: (hero as Character).element,
+        finalLevel: out.raw.dungeonDone,
+      }),
+    ),
+    loadMe(d.rpc, playerId),
+  ]);
   return {
     bank: {
       cleared: out.raw.cleared,
