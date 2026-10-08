@@ -607,3 +607,43 @@ describe("bankRun + migrate", () => {
     expect(p.bestFloor).toBe(0);
   });
 });
+
+describe("migrate: heroes saved before Run v2", () => {
+  it("keeps a hero whose stats have flee and no critDmg, filling class defaults", () => {
+    const old = {
+      version: 4,
+      coins: 10,
+      characters: [
+        {
+          id: "x",
+          name: "Viejo",
+          classId: "picaro",
+          element: "fuego",
+          rarity: "c",
+          stars: 2,
+          traits: ["cobarde"],
+          catchphrase: "hola",
+          level: 1,
+          xp: 0,
+          stats: { hp: 90, atk: 17, def: 4, crit: 0.25, dodge: 0.2, accuracy: 0, flee: 0.1, speed: 10 },
+        },
+        {
+          id: "y",
+          name: "Viejo2",
+          classId: "mago",
+          element: "agua",
+          rarity: "f",
+          stars: 0,
+          stats: { hp: 80, atk: 22, def: 3, crit: 0.1, dodge: 0.05, accuracy: 0, flee: 0, speed: 10 },
+        },
+      ],
+    };
+    const p = migrate(old);
+    expect(p.characters).toHaveLength(2);
+    const pic = p.characters.find((c) => c.classId === "picaro")!;
+    expect(pic.stats.critDmg).toBe(2);
+    expect(pic.stats.regen).toBe(0);
+    expect(p.characters.find((c) => c.classId === "mago")!.stats.critDmg).toBe(1.5);
+    expect(pic.legacy).toBe(true);
+  });
+});

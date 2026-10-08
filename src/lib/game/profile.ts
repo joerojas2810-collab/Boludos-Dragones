@@ -4,6 +4,7 @@
 // there; never trust a client-sent profile without migrate()).
 import {
   CLASS_IDS,
+  CLASSES,
   generateCharacter,
   type Character,
   type ClassId,
@@ -731,27 +732,24 @@ const nat = (v: unknown, max = Number.MAX_SAFE_INTEGER) =>
 const str = (v: unknown, fallback: string) =>
   typeof v === "string" && v.length > 0 ? v.slice(0, 200) : fallback;
 
-const STAT_KEYS: (keyof Stats)[] = [
-  "hp",
-  "atk",
-  "def",
-  "crit",
-  "dodge",
-  "accuracy",
-  "speed",
-  "critDmg",
-  "regen",
-  "lifesteal",
-];
 
-function parseStats(v: unknown): Stats | null {
+// Stats saved before Run v2 have `flee` and no critDmg/regen/lifesteal: those are filled
+// with the class defaults (the Pícaro already crit x2) instead of dropping the hero.
+const REQUIRED_STATS: (keyof Stats)[] = ["hp", "atk", "def", "crit", "dodge", "accuracy", "speed"];
+
+function parseStats(v: unknown, classId: ClassId): Stats | null {
   if (!isObj(v)) return null;
   const out: Partial<Stats> = {};
-  for (const k of STAT_KEYS) {
+  for (const k of REQUIRED_STATS) {
     const n = v[k];
     if (typeof n !== "number" || !Number.isFinite(n)) return null;
     out[k] = n;
   }
+  const num = (x: unknown, d: number) =>
+    typeof x === "number" && Number.isFinite(x) ? x : d;
+  out.critDmg = num(v.critDmg, CLASSES[classId].stats.critDmg);
+  out.regen = num(v.regen, 0);
+  out.lifesteal = num(v.lifesteal, 0);
   // ponytail: stat magnitudes are not range-checked; server must only store
   // characters it generated itself. Add per-class ranges if client saves are trusted.
   return out as Stats;
@@ -761,7 +759,7 @@ function parseCharacter(v: unknown, legacyAll: boolean): OwnedCharacter | null {
   if (!isObj(v)) return null;
   const classId = CLASS_IDS.find((c) => c === v.classId);
   const element = ELEMENTS.find((e) => e === v.element);
-  const stats = parseStats(v.stats);
+  const stats = classId ? parseStats(v.stats, classId) : null;
   const rarity = toRank(v.rarity);
   if (!classId || !element || !stats || !rarity) return null;
   const traits = (Array.isArray(v.traits) ? v.traits : [])
