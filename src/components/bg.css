@@ -16,3 +16,19 @@
 @media (prefers-reduced-motion: reduce) {
   .bg-layer { animation: none; }
 }
+
+/* Stationary opaque sky/ground support integer drift of transparent layers. */
+.bg-layer-pixel {
+  inset: 0;
+  width: 100%;
+  image-rendering: pixelated;
+  transform: none;
+  animation: bg-pixel-drift 24s steps(var(--px-steps), end) infinite alternate;
+}
+@keyframes bg-pixel-drift {
+  from { transform: translateX(calc(-1 * var(--px-drift))); }
+  to { transform: translateX(var(--px-drift)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg-layer-pixel { animation: none; transform: none; }
+}

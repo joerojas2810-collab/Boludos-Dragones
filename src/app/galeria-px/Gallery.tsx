@@ -6,6 +6,7 @@ import { HERO_ACTIONS } from "@/lib/art/heroes";
 import { PX_ACTIONS } from "@/lib/art/enemies";
 import { InventoryGallery } from "./InventoryGallery";
 import { UiGallery } from "./UiGallery";
+import { BackgroundGallery } from "./BackgroundGallery";
 
 const ELEMENTS = ["fire", "water", "earth", "lightning", "wind"] as const;
 const CLASSES = ["knight", "mage", "rogue", "cleric"];
@@ -22,14 +23,14 @@ const enemyRows: Row[] = [
 ];
 
 export function Gallery() {
-  const [lot, setLot] = useState<"heroes" | "enemies" | "items" | "icons" | "frames" | "ui">("heroes");
+  const [lot, setLot] = useState<"heroes" | "enemies" | "items" | "icons" | "frames" | "ui" | "backgrounds">("heroes");
   const [action, setAction] = useState("idle");
   const [bg, setBg] = useState<keyof typeof BGS>("oscuro");
   const [zoom, setZoom] = useState(2);
   const actions = lot === "heroes" ? HERO_ACTIONS : PX_ACTIONS;
   const rows = lot === "heroes" ? heroRows : enemyRows;
   const animated = lot === "heroes" || lot === "enemies";
-  const lotLabels = { heroes: "Héroes", enemies: "Enemigos y jefes", items: "Armas, equipo y forja", icons: "Íconos", frames: "Marcos", ui: "Interfaz" };
+  const lotLabels = { heroes: "Héroes", enemies: "Enemigos y jefes", items: "Armas, equipo y forja", icons: "Íconos", frames: "Marcos", ui: "Interfaz", backgrounds: "Fondos" };
   const a = action in actions ? action : "idle";
   const meta = (actions as Record<string, { frames: number; fps: number }>)[a];
   const w = 70 * zoom;
@@ -37,7 +38,7 @@ export function Gallery() {
   return (
     <main className="min-h-screen bg-neutral-900 p-4 text-neutral-100">
       <div className="sticky top-0 z-10 mb-3 flex flex-wrap gap-2 bg-neutral-900/95 py-2">
-        {(["heroes", "enemies", "items", "icons", "frames", "ui"] as const).map((l) => (
+        {(["heroes", "enemies", "items", "icons", "frames", "ui", "backgrounds"] as const).map((l) => (
           <button key={l} className={btn(lot === l)} onClick={() => { setLot(l); setAction("idle"); }}>{lotLabels[l]}</button>
         ))}
         <span className="mx-2 border-l border-neutral-600" />
@@ -58,7 +59,7 @@ export function Gallery() {
         {rows.map((r) => (
           <Row key={r.label} row={r} action={a} meta={meta} w={w} bg={BGS[bg]} />
         ))}
-      </div> : lot === "ui" ? <UiGallery zoom={zoom} bg={BGS[bg]} /> : <InventoryGallery lot={lot as "items" | "icons" | "frames"} zoom={zoom} bg={BGS[bg]} />}
+      </div> : lot === "backgrounds" ? <BackgroundGallery zoom={zoom} /> : lot === "ui" ? <UiGallery zoom={zoom} bg={BGS[bg]} /> : <InventoryGallery lot={lot as "items" | "icons" | "frames"} zoom={zoom} bg={BGS[bg]} />}
     </main>
   );
 }

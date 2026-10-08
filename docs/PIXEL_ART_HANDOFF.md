@@ -1,7 +1,7 @@
 # Línea de arte pixel: traspaso a otra IA
 
 Rama de trabajo: `design/pixel-art` (sale de `main` en `4d23f57`). Commits de esta línea: `e969c0b`, `b896a25`, `c485230`, `c56f862`, `b2cddf9`.
-Actualización del 7 de octubre de 2026: Fases 1 a 5 entregadas e integradas. Fase 4 completa: 238 íconos en doce lotes, incluidos 24 diseños base de reliquia, 72 variantes y 3 distintivos. Fase 5 completa: 130 recursos de interfaz, con estados compartidos y cortes 9-slice. Hay 466 PNG estáticos finales en `design/pixel-art`. El usuario autorizó continuar sin detenerse hasta terminar una fase y trabajar con un segundo agente para inventario, exportaciones, integración y pruebas. Las pruebas se ejecutaron al cierre de Fases 4 y 5. Los últimos tres lotes se publican juntos como un cambio lógico de cierre. No se fusiona con `main` ni se crea PR sin solicitud explícita. Plan de continuación: `docs/PIXEL_ART_PRODUCTION_PLAN.md`.
+Actualización del 7 de octubre de 2026: Fases 1 a 5 entregadas e integradas. Fase 4 completa: 238 íconos en doce lotes, incluidos 24 diseños base de reliquia, 72 variantes y 3 distintivos. Fase 5 completa: 130 recursos de interfaz, con estados compartidos y cortes 9-slice. Fase 6 tiene un primer lote integrado: 90 capas de combate y el menú (91 de 96 archivos previstos). Hay 557 PNG estáticos finales en `design/pixel-art`. El usuario autorizó continuar sin detenerse hasta terminar una fase y trabajar con un segundo agente para inventario, exportaciones, integración y pruebas. Las pruebas se ejecutaron al cierre de Fases 4 y 5. Los últimos tres lotes se publican juntos como un cambio lógico de cierre. No se fusiona con `main` ni se crea PR sin solicitud explícita. Plan de continuación: `docs/PIXEL_ART_PRODUCTION_PLAN.md`.
 
 Reglas del proyecto que siguen valiendo (ver `CLAUDE.md`): textos de UI en español, código y commits en inglés, componentes sin lógica de juego, capturas pocas y a escala 0.5, preferir `read_page`/DOM a imágenes. Por instrucción posterior del usuario, `tsc`, `eslint` y `vitest` se ejecutan al cierre de cada fase, no de cada lote. Commits pequeños, uno por cambio lógico, con la línea `Co-Authored-By` que indique tu entorno.
 
@@ -32,7 +32,7 @@ Pedido de arte completo por fases: `docs/PEDIDO_ARTE_3.md`. Una fase por vez, si
 | 3 | Armas, equipo, partes, núcleos, marcos de carta | Entregada e integrada localmente: 42 originales, 98 PNG de juego |
 | 4 | Íconos del sistema | Completa e integrada: 238 PNG en doce lotes; últimos tres lotes de 33, con 99 reliquias. Completada y autorizada la continuación por el usuario |
 | 5 | Interfaz (9-slice, botones, barras, logos) | Completa e integrada: 130 PNG y manifiesto; pendiente revisión del usuario antes de Fase 6 |
-| 6 | Fondos | Pendiente: 90 capas de combate y 6 imágenes únicas de pantallas, según decisión posterior del usuario |
+| 6 | Fondos | Parcial: 90 capas de combate y menú entregados e integrados (91/96). Faltan colección, gacha, lobby, mercado y forja por límite diario de imágenes; el usuario eligió esperar al reinicio |
 | 7 | Efectos | Pendiente |
 
 Mientras no se completen las fases 6 y 7, la pantalla mezcla pixel (héroes y enemigos) con arte pintado (resto). Es esperado.
@@ -54,6 +54,8 @@ Mientras no se completen las fases 6 y 7, la pantalla mezcla pixel (héroes y en
 | `scripts/import-pixel-static.mjs` | Importador de Fases 3 y 4; valida tamaño/alfa y recolorea por RGB exacto sin escalar |
 | `scripts/import-pixel-ui.mjs` | Importador de Fase 5: 130 nombres exactos, dimensiones, alfa y cortes; copia PNG sin escalar |
 | `public/art/ui-px/` y `src/lib/art/pixel-ui.generated.json` | 130 recursos de interfaz y metadatos para revisión nativa |
+| `scripts/import-pixel-backgrounds.mjs` | Importador de fondos: final exige 96 archivos, `--partial` exige exactamente las 90 capas de combate más el menú |
+| `public/art/backgrounds-px/` y `src/lib/art/pixel-backgrounds.generated.json` | 91 fondos disponibles; registro evita rutas inexistentes y conserva el respaldo pintado de las 5 pantallas pendientes |
 | `src/lib/art.ts`, `layout.tsx`, `globals.css` y `shell.css` | Selección de UI, logos, favicon y cofres; tema pixel y cortes 9-slice por `body[data-art=pixel]` |
 | `src/lib/art/pixel-palettes.json` | Rampas canónicas de cinco elementos; Rayo amarillo |
 | `src/lib/art/pixel.ts` y `pixel-icons.generated.json` | Interruptor, catálogo disponible y abertura de cartas pixel |
@@ -80,6 +82,8 @@ node scripts/import-pixel.mjs "../Pedido de Arte Pixel Art/heroes" heroes
 node scripts/import-pixel.mjs "../Pedido de Arte Pixel Art/enemies" enemies
 node scripts/import-pixel-static.mjs "../Pedido de Arte Pixel Art" all
 node scripts/import-pixel-ui.mjs "../Pedido de Arte Pixel Art"
+# lote parcial de Fase 6; al completar los 96, quitar --partial
+node scripts/import-pixel-backgrounds.mjs "../Pedido de Arte Pixel Art" --partial
 
 # ver en el navegador (segundo servidor, no choca con el principal)
 NEXT_PUBLIC_ART=pixel NEXT_DIST_DIR=.next-pixel NEXT_PUBLIC_SUPABASE_URL= NEXT_PUBLIC_SUPABASE_ANON_KEY= npx next dev -p 3112
@@ -318,7 +322,7 @@ La galería `src/app/galeria-px/` (`page.tsx` con `notFound()` en producción y 
 - Los doce ZIP por lote contienen respectivamente 25, 22, 24, 15, 8, 9, 7, 4, 25, 33, 33 y 33 PNG, cada uno con manifiesto. `phase_4_relics.zip` contiene 99 PNG; `phase_4_icons_complete.zip` contiene los 238 PNG de Fase 4. Se verificaron integridad de ZIP y coincidencia con los archivos finales.
 - Las reliquias reutilizan cinco bases aprobadas y generan 19 objetos nuevos. Cada objeto mantiene la misma geometría entre sus tres variantes; los adornos de rareza difieren por forma. Los tres distintivos reutilizan símbolos de rango aprobados. No se entregan fuentes ni carpetas de trabajo.
 - El arte pintado sigue disponible sin `NEXT_PUBLIC_ART=pixel`. La galería sigue siendo solo de desarrollo. No se verificaron partidas multijugador, móvil o despliegue de producción en este cierre.
-- No subir originales, ZIP, borradores, `node_modules` ni `.next*`. Próximo paso: revisión del cierre de Fase 5 y producción de fondos de Fase 6 (96 archivos), según el plan. Fase 6 conserva la decisión del usuario: 90 capas de combate y 6 pantallas como imagen única.
+- No subir originales, ZIP, borradores, `node_modules` ni `.next*`. Próximo paso: completar las 5 pantallas pendientes de Fase 6, ejecutar las pruebas de cierre y entregar el paquete completo de 96 archivos. No producir Fase 7 todavía. Fase 6 conserva la decisión del usuario: 90 capas de combate y 6 pantallas como imagen única.
 
 ### Cierre de Fase 5
 
@@ -328,3 +332,15 @@ La galería `src/app/galeria-px/` (`page.tsx` con `notFound()` en producción y 
 - Excepción intencional: `modal_scrim.png`, 8×8 con alfa uniforme 192, oscurece el fondo de un modal. Los otros 129 recursos tienen alfa binario. Sin sombras exteriores; contornos azul oscuro, acero y detalles dorados.
 - Galería Interfaz: 130 imágenes completas y render pixelado, sin desbordamiento horizontal; muestra de los cinco botones, campos, checkbox/radio, slider y barra. Panel probado a 320 y 640 px con cortes constantes de 8 px. Los controles mantienen su estado seleccionado al recibir foco.
 - Pruebas de cierre: TypeScript sin errores, ESLint sin errores con advertencias preexistentes y Vitest 37 archivos / 449 pruebas aprobados. La UI pintada sigue siendo el modo predeterminado; el kit pixel se activa con `NEXT_PUBLIC_ART=pixel`. No se cambió lógica de juego, sonido ni fondos o efectos.
+
+### Fase 6 — lote 1 y bloqueo de cuota
+
+- El 7 de octubre de 2026 se completaron **91 PNG finales**: los 18 escenarios de combate en 5 capas (90 archivos) y `menu_desktop_composite.png`. `phase_6_backgrounds_batch_1.zip` contiene 91 PNG y manifiesto (92 entradas); integridad comprobada. Los 91 recursos de juego coinciden byte por byte con la entrega. La Fase 6 **no está terminada**.
+- Las capas comparten lienzo nativo **320×180, 16:9**, sin suavizado ni exportaciones mobile o escaladas. Anclaje central `(160, 90)`, un cuadro, fps 0, loop falso. Suelo al 70 % (`y=126`). Cielo y menú opacos; las otras capas tienen alfa binario y RGB cero en píxeles transparentes. El manifiesto declara la paleta real, escena, capa y parallax de cada archivo.
+- Se generaron 9 planos lejanos y 9 grupos de arquitectura transparentes, más el menú. Las parejas normal/jefe comparten cielo, plano lejano y primer plano; los jefes añaden altares con ornamentos de reliquias aprobadas y una marca de suelo. Suelo y primer plano usan texturas de píxeles y paletas coherentes con cada entorno.
+- Galería: 19 escenarios disponibles, 91 rutas únicas, ninguna imagen faltante y todas pixeladas; control de capas verificado (5→4→5). La preferencia de movimiento reducido estaba activa y deshabilitó la animación al activar Movimiento. El parallax conserva sus factores y usa pasos de un píxel, sin el escalado suave del modo pintado.
+- `bgSrc` usa la imagen desktop pixel también en celular solo si está registrada. Las 5 pantallas aún no entregadas conservan su arte pintado y sus variantes mobile; no aparecen como escenas vacías en la galería. El modo pintado predeterminado se conserva.
+- **Bloqueo real:** la herramienta integrada devolvió `usage_limit_reached` para las últimas 5 imágenes. El usuario eligió esperar al reinicio, sin usar la API de pago. Reinicio comunicado por la herramienta: **8 de octubre de 2026, aproximadamente 13:37 Argentina (16:37 UTC)**. No volver a generar los 91 archivos terminados.
+- Pendientes exactos: `collection_desktop_composite.png`, `gacha_desktop_composite.png`, `lobby_desktop_composite.png`, `market_desktop_composite.png`, `forge_desktop_composite.png`. Cada pantalla es una sola imagen opaca, por decisión del usuario. Continuar con el mismo estilo y paleta; conservar el manifiesto acumulado de fondos.
+- Al reanudar: generar solo esos 5 recursos, ampliar el manifiesto a 96, ejecutar el importador sin `--partial`, verificar la galería de 24 escenarios, correr TypeScript/ESLint/Vitest una vez y hacer commit/push de cierre. No se ejecutaron esas pruebas de código en este lote parcial, conforme a la instrucción de probar al terminar la fase. Se hicieron validaciones de formato, ZIP, importación y revisión visual.
+- Entrega solo de PNG finales, manifiesto y ZIP; carpetas temporales eliminadas. Los borradores y fuentes no entran al repositorio.
