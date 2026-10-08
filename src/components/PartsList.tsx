@@ -1,3 +1,5 @@
+import { partIconSrc } from "@/lib/art";
+import { isPixel } from "@/lib/art/pixel";
 import { RARITIES, RARITY_IDS } from "@/lib/game/rarity";
 import {
   parsePartKey,
@@ -8,7 +10,33 @@ import {
 import { ELEMENTS } from "@/lib/game/elements";
 import { coreKey } from "@/lib/game/parts";
 
-// Forge stock grouped by rank (placeholder tiles until the art arrives).
+// Icon + label (+ count) tile for a part or core stock key.
+export function PartTile({ k, n, color }: { k: string; n: number; color?: string }) {
+  const src = partIconSrc(k);
+  return (
+    <li
+      className="parts-tile flex items-center gap-2"
+      style={color ? { borderColor: color } : undefined}
+      title={partLabel(k)}
+    >
+      {src && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt=""
+          draggable={false}
+          className="h-9 w-9 shrink-0"
+          style={isPixel() ? { imageRendering: "pixelated" } : undefined}
+        />
+      )}
+      <span>
+        {partLabel(k)} <b>×{n}</b>
+      </span>
+    </li>
+  );
+}
+
+// Forge stock grouped by rank.
 export function PartsList({ parts }: { parts: Parts }) {
   if (partCount(parts) === 0)
     return (
@@ -24,9 +52,7 @@ export function PartsList({ parts }: { parts: Parts }) {
           <h3 className="mb-1 font-semibold text-yellow-300">Núcleos</h3>
           <ul className="flex flex-wrap gap-2">
             {cores.map((e) => (
-              <li key={e} className="parts-tile">
-                {partLabel(coreKey(e))} <b>×{parts[coreKey(e)]}</b>
-              </li>
+              <PartTile key={e} k={coreKey(e)} n={parts[coreKey(e)]} />
             ))}
           </ul>
         </section>
@@ -49,13 +75,7 @@ export function PartsList({ parts }: { parts: Parts }) {
             </h3>
             <ul className="flex flex-wrap gap-2">
               {rows.map(([k, n]) => (
-                <li
-                  key={k}
-                  className="parts-tile"
-                  style={{ borderColor: RARITIES[rank].color }}
-                >
-                  {partLabel(k)} <b>×{n}</b>
-                </li>
+                <PartTile key={k} k={k} n={n} color={RARITIES[rank].color} />
               ))}
             </ul>
           </section>

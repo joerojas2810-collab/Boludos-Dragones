@@ -16,7 +16,7 @@ import { Icon } from "@/components/Icon";
 import { ItemCard } from "@/components/ItemCard";
 import { MuteButton } from "@/components/MuteButton";
 import { Notice } from "@/components/Notice";
-import { dropsText } from "@/components/PartsList";
+import { PartTile } from "@/components/PartsList";
 import { Panel } from "@/components/Panel";
 import { RankIcon } from "@/components/RankIcon";
 import { StarRow } from "@/components/StarRow";
@@ -425,21 +425,34 @@ export function ProgressMode() {
                   <b> · ¡Cofre de primera limpieza: +{o.bank.chest}!</b>
                 )}
               </div>
-              <div className="text-sm">
+              <div className="space-y-2 text-sm">
                 {pieces.length > 0 ? (
-                  pieces.map((p, i) => (
-                    <div key={i} style={{ color: RARITIES[p.rarity].color }}>
-                      {p.name} · {RARITIES[p.rarity].label}
-                    </div>
-                  ))
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {pieces.map((p, i) => (
+                      <ItemCard
+                        key={i}
+                        item={{
+                          kind: "weapon",
+                          type: p.type,
+                          name: p.name,
+                          rarity: p.rarity,
+                          element: p.element,
+                          stars: 0,
+                        }}
+                        size={72}
+                      />
+                    ))}
+                  </div>
                 ) : (
                   <span className="text-[#d9d2ca]">Sin piezas esta vez.</span>
                 )}
-                {dropsText(o.loot.parts) ? (
-                  <div className="text-[#d9d2ca]">
-                    Partes: {dropsText(o.loot.parts)}
-                  </div>
-                ) : null}
+                {Object.keys(o.loot.parts).length > 0 && (
+                  <ul className="flex flex-wrap justify-center gap-2">
+                    {Object.entries(o.loot.parts).map(([k, n]) => (
+                      <PartTile key={k} k={k} n={n} />
+                    ))}
+                  </ul>
+                )}
               </div>
             </>
           ) : (
