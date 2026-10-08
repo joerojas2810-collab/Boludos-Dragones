@@ -38,8 +38,8 @@ export const TUTORIAL_STEPS = [
   },
   {
     id: "pull",
-    title: "Tu primera tirada",
-    text: "En Invocar, gasta monedas en una tirada (250 cada una; con las del cofre del dungeon F alcanza para una de 10).",
+    title: "Tu primera tirada de 10",
+    text: "En Invocar, gasta las monedas del cofre en una tirada de 10.",
   },
   {
     id: "forge",
@@ -111,7 +111,5 @@ export function autoAdvance(p: Profile): Profile {
   if (s === 1 && cleared1) s = 2;
   if (s === 2 && hero && p.equipped[slotKey(hero.id, "arma")]) s = 3;
   if (s === 3 && isDungeonDone(p.dungeons, "f")) s = 4;
-  // pulled at least once (pity only goes up with pulls)
-  if (s === 4 && Object.values(p.pity).some((n) => n > 0)) s = 5;
   return setTutorialStep(p, s);
 }

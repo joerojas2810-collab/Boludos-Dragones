@@ -1,4 +1,6 @@
-import type { Character, ClassId } from "../game/characters";
+import { randomBytes } from "node:crypto";
+import { CLASS_IDS, type Character, type ClassId } from "../game/characters";
+import { createStarterHero } from "../game/tutorial";
 import { burn as burnItem } from "../game/burn";
 import { isLevelUnlocked, isRankUnlocked } from "../game/dungeonProgress";
 import { missionDeltas } from "../game/missions";
@@ -125,16 +127,42 @@ export function toMe(raw: RawProfile): Me {
   };
 }
 
+// Brand-new account (no heroes, tutorial not started): grants one random rank-F hero and a
+// starter weapon of its class, so the tutorial can start at its first step. Guarded in SQL.
+async function grantStarter(rpc: Rpc, playerId: string, me: Me): Promise<boolean> {
+  const rng = createRng(randomBytes(4).readUInt32BE(0));
+  const given = createStarterHero(
+    { ...me.profile, tutorial: 0 },
+    rng.pick(CLASS_IDS),
+    rng,
+  );
+  const hero = given.characters[0];
+  const w = given.weapons[given.weapons.length - 1];
+  if (!hero || !w) return false;
+  const { name, stats, traits, catchphrase } = hero;
+  return call<boolean>(rpc, "grant_starter", {
+    p_player: playerId,
+    p_class: hero.classId,
+    p_element: hero.element,
+    p_data: { name, stats, traits, catchphrase },
+    p_type: w.type,
+    p_name: w.name,
+    p_roll: w.roll ?? null,
+    p_lines: w.lines ?? null,
+  });
+}
+
 export async function loadMe(rpc: Rpc, playerId: string): Promise<Me> {
   try {
-    const me = toMe(
-      await call<RawProfile>(rpc, "get_profile", { p_player: playerId }),
-    );
+    const get = async () =>
+      toMe(await call<RawProfile>(rpc, "get_profile", { p_player: playerId }));
+    let me = await get();
+    // Until 0031 is applied the rpcs are missing: skip the tutorial instead of breaking login.
+    if (!me.profile.characters.length && (await grantStarter(rpc, playerId, me).catch(() => false)))
+      me = await get();
     const daily = await call<DailyState | null>(rpc, "get_streak", {
       p_player: playerId,
     });
-    // Accounts with heroes start at "level 1" (autoAdvance skips what they did); empty ones at "pull".
-    // Until 0031 is applied the rpc is missing: skip the tutorial instead of breaking login.
     const tutorial = await call<number | null>(rpc, "sync_tutorial", {
       p_player: playerId,
       p_init: me.profile.characters.length ? 1 : 4,

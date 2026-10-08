@@ -1556,6 +1556,36 @@ end $$;
 revoke all on function public.sync_tutorial(uuid, int, int) from public, anon, authenticated;
 grant execute on function public.sync_tutorial(uuid, int, int) to service_role;
 
+-- Starter hero + weapon (rank F) for an account with no heroes that has not started the tutorial.
+-- Returns true when it granted them (tutorial goes to step 1), false when the guard says no.
+create or replace function public.grant_starter(
+  p_player uuid, p_class text, p_element text, p_data jsonb,
+  p_type text, p_name text, p_roll numeric, p_lines jsonb
+) returns boolean
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  perform 1 from public.player_state where player_id = p_player and tutorial is null for update;
+  if not found or exists (select 1 from public.characters where player_id = p_player) then
+    return false;
+  end if;
+  if not coalesce(p_class = any (array['caballero', 'mago', 'picaro', 'clerigo']), false)
+     or not coalesce(p_element = any (array['agua', 'fuego', 'viento', 'tierra', 'rayo']), false)
+     or jsonb_typeof(p_data) <> 'object' then
+    raise exception 'invalid_items';
+  end if;
+  insert into public.characters (player_id, class, element, rarity, data)
+  values (p_player, p_class, p_element, 'f', p_data - 'level' - 'xp' - 'legacy' - 'skill');
+  perform public.grant_piece(p_player, p_type, p_element, 'f', p_name, p_roll, p_lines, false);
+  update public.player_state set tutorial = 1, version = version + 1 where player_id = p_player;
+  return true;
+end $$;
+
+revoke all on function public.grant_starter(uuid, text, text, jsonb, text, text, numeric, jsonb)
+  from public, anon, authenticated;
+grant execute on function public.grant_starter(uuid, text, text, jsonb, text, text, numeric, jsonb)
+  to service_role;
+
 -- ===== 0018_lockdown_functions.sql =====
 -- 0018_lockdown_functions: re-apply the function lockdown to EVERY function in public.
 -- Why: a new signature (apply_pull with p_pity_ssr, bank_run with p_clear/p_parts,
