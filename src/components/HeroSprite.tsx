@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { AnimSheet, type SheetAnim } from "@/components/AnimSheet";
 import { CLASS_ART, ELEMENT_ART } from "@/lib/art";
+import { ACC_BOXES, ACC_SIZE } from "@/lib/art/accBoxes";
 import { isPixel } from "@/lib/art/pixel";
 import {
-  ACCESSORY_SHEETS,
   HERO_ACTIONS,
-  PAIR_SHIFTS,
   TRAIT_ASSET,
   type HeroAction,
 } from "@/lib/art/heroes";
@@ -39,25 +38,36 @@ const sheet = (src: string, action: HeroAction): SheetAnim => ({
   ...HERO_ACTIONS[action],
 });
 
-type Off = readonly [number, number];
-const FRAME = 768; // px of the source cell the pair layouts are measured in
-
-// Offsets (% of the cell, one per frame) for each accessory that must move to
-// stay readable next to another one (two-trait heroes), keyed by accessory asset.
-function pairShifts(cls: string, assets: string[], action: HeroAction): Map<string, Off[]> {
-  const out = new Map<string, Off[]>();
-  for (let i = 0; i < assets.length; i++) {
-    for (let j = i + 1; j < assets.length; j++) {
-      for (const [a, b] of [[assets[i], assets[j]], [assets[j], assets[i]]]) {
-        const e = PAIR_SHIFTS[`${cls}_${a}__${b}`];
-        if (!e) continue;
-        const per = typeof e[0] === "number" ? (e as Off) : (e as Record<string, Off | Off[]>)[action];
-        const list = (typeof per[0] === "number" ? Array(HERO_ACTIONS[action].frames).fill(per) : per) as Off[];
-        out.set(b, list.map(([x, y]) => [(x / FRAME) * 100, (y / FRAME) * 100] as const));
-      }
-    }
-  }
-  return out;
+// Trait accessories are drawn as small badges in the bottom corner (never over the face):
+// each one is its big layer cropped to its opaque box.
+const BADGE_H = 13; // % of the hero box
+function Badges({ cls, assets, flip }: { cls: string; assets: string[]; flip: boolean }) {
+  if (!assets.length) return null;
+  return (
+    <div
+      className={`pointer-events-none absolute bottom-[3%] z-10 flex items-end gap-[2%] ${
+        flip ? "left-[3%] -scale-x-100" : "right-[3%]"
+      }`}
+      style={{ height: `${BADGE_H}%` }}
+    >
+      {assets.map((t) => {
+        const [x, y, w, h] = ACC_BOXES[`${cls}_${t}`];
+        return (
+          <div
+            key={t}
+            className="h-full"
+            style={{
+              aspectRatio: `${w} / ${h}`,
+              backgroundImage: `url(/art/heroes/big/acc_${cls}_${t}.webp)`,
+              backgroundRepeat: "no-repeat",
+              backgroundSize: `${(ACC_SIZE / w) * 100}% ${(ACC_SIZE / h) * 100}%`,
+              backgroundPosition: `${(x / (ACC_SIZE - w)) * 100}% ${(y / (ACC_SIZE - h)) * 100}%`,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
 }
 
 // Painted hero: base sheet + the transparent accessory layer of each trait.
@@ -116,43 +126,24 @@ function Hero({
       </div>
     );
   }
-  const assets = traits
-    .map((t) => TRAIT_ASSET[t])
-    .filter((t) => ACCESSORY_SHEETS.has(`${cls}_${t}_${a}`));
-  const shifts = pairShifts(cls, assets, a);
-  const layers = [
-    `/art/heroes/hero_${cls}_${ELEMENT_ART[element]}_${a}.webp`,
-    ...assets.map((t) => `/art/heroes/acc/${cls}_${t}_${a}.webp`),
-  ];
-  // Shift of layer i (0 = body): accessory i-1.
-  const shiftOf = (i: number) => (i ? shifts.get(assets[i - 1]) : undefined);
-  // Static frames use frame 0 of the idle shift.
-  const sh = (i: number) => {
-    const o = shiftOf(i)?.[0];
-    return o ? { transform: `translate(${o[0]}%, ${o[1]}%)` } : undefined;
-  };
+  const assets = traits.map((t) => TRAIT_ASSET[t]).filter((t) => `${cls}_${t}` in ACC_BOXES);
+  const badges = <Badges cls={cls} assets={assets} flip={flip} />;
+  const layers = [`/art/heroes/hero_${cls}_${ELEMENT_ART[element]}_${a}.webp`];
   if (big) {
-    const srcs = [
-      `/art/heroes/big/${cls}_${ELEMENT_ART[element]}.webp`,
-      ...assets.map((t) => `/art/heroes/big/acc_${cls}_${t}.webp`),
-    ];
     return (
       <div
         role="img"
         aria-hidden="true"
         className={`relative aspect-square ${flip ? "-scale-x-100" : ""} ${className}`}
       >
-        {srcs.map((src, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={src}
-            src={src}
-            alt=""
-            draggable={false}
-            className={`h-full w-full ${i ? "absolute inset-0" : ""}`}
-            style={sh(i)}
-          />
-        ))}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`/art/heroes/big/${cls}_${ELEMENT_ART[element]}.webp`}
+          alt=""
+          draggable={false}
+          className="h-full w-full"
+        />
+        {badges}
       </div>
     );
   }
@@ -168,13 +159,12 @@ function Hero({
         aria-hidden="true"
         className={`${root} ${crop ? "overflow-hidden" : ""}`}
       >
-        {layers.map((src, i) => (
+        {layers.map((src) => (
           <div
             key={src}
             className="absolute inset-0"
             style={{
-              transform:
-                [sh(i)?.transform, crop && "scale(1.22)"].filter(Boolean).join(" ") || undefined,
+              transform: crop ? "scale(1.22)" : undefined,
               transformOrigin: "50% 94%",
               backgroundImage: `url(${src})`,
               backgroundSize: `${n * 100}% 100%`,
@@ -182,6 +172,7 @@ function Hero({
             }}
           />
         ))}
+        {badges}
       </div>
     );
   }
@@ -191,11 +182,11 @@ function Hero({
         <div key={src} className={i ? "absolute inset-0" : ""}>
           <AnimSheet
             anim={sheet(src, a)}
-            shift={shiftOf(i)}
             onDone={i === 0 && notHold ? () => setDone(true) : undefined}
           />
         </div>
       ))}
+      {badges}
     </div>
   );
 }
