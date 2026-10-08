@@ -47,7 +47,7 @@ const BANNERS: Record<Banner, { tab: string; title: string; text: string }> = {
   character: {
     tab: "Personajes",
     title: "Banner de personajes",
-    text: "Cada tirada invoca un héroe con clase, elemento y rasgos propios. Un duplicado exacto (clase + elemento + rareza) suma una estrella; si solo repites clase y rareza, ganas un fragmento (3 = una estrella).",
+    text: "Cada tirada invoca un héroe con clase, elemento y rasgos propios. Un duplicado exacto (clase + elemento + rareza) suma una estrella (con 5★ te devuelve la mitad de una tirada). Con 3★ el héroe puede subir de rango en la Forja.",
   },
   weapon: {
     tab: "Equipo",

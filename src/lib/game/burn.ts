@@ -5,7 +5,7 @@ import { TRADE_VALUE } from "./market";
 import type { Profile } from "./profile";
 import type { RarityId } from "./rarity";
 
-export const BURN_RATE = 0.08;
+export const BURN_RATE = 0.04;
 export const LEGACY_BURN_RATE = 0.5;
 
 export const burnValue = (rank: RarityId, legacy = false): number =>

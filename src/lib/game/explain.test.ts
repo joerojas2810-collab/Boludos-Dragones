@@ -166,6 +166,6 @@ describe("explain: Run v2 rules", () => {
     expect(text(m.levelTip(3, 0, 0))).toContain("20");
     expect(text(m.pityTip())).toContain("250");
     expect(text(m.gearTip())).toContain("10%");
-    expect(text(m.burnTip())).toContain("8%");
+    expect(text(m.burnTip())).toContain("4%");
   });
 });

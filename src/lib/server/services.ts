@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { CLASS_IDS, type Character, type ClassId } from "../game/characters";
 import { createStarterHero } from "../game/tutorial";
 import { burn as burnItem, burnMany } from "../game/burn";
+import { fuseHeroes } from "../game/heroFusion";
 import { isLevelUnlocked, isRankUnlocked } from "../game/dungeonProgress";
 import { missionDeltas } from "../game/missions";
 import { levelLoot, type LevelLoot } from "../game/levelLoot";
@@ -80,7 +81,6 @@ interface RawProfile {
     data: Record<string, unknown>;
   }[];
   equipped: Record<string, string>;
-  fragments: Record<string, number>;
   bestFloor: number;
 }
 
@@ -104,7 +104,6 @@ export function toMe(raw: RawProfile): Me {
     pitySsr: raw.pitySsr,
     bestFloor: raw.bestFloor,
     equipped: raw.equipped,
-    fragments: raw.fragments,
     characters: raw.characters.map((c) => ({
       ...c.data,
       classId: c.classId,
@@ -1005,6 +1004,44 @@ export async function doChooseSkill(
   }
   const fresh = await loadMe(d.rpc, playerId);
   return { profile: fresh.profile };
+}
+
+// ---- hero fusion ----
+
+export async function doFuseHeroes(
+  d: Deps,
+  playerId: string,
+  baseId: string,
+  materialIds: string[],
+) {
+  await limit(d.rpc, `fuse:${playerId}`, 30, 60);
+  const me = await loadMe(d.rpc, playerId);
+  const r = fuseHeroes(me.profile, { baseId, materialIds }, createRng(d.randomSeed()));
+  if (!r.ok) throw new ApiError(400, "fusion_invalid", r.error);
+  const h = r.fusion.hero;
+  try {
+    await call(d.rpc, "fuse_heroes", {
+      p_player: playerId,
+      p_version: me.version,
+      p_base: baseId,
+      p_materials: materialIds,
+      p_coins: r.fusion.coins,
+      p_data: h ? { name: h.name, stats: h.stats, traits: h.traits, catchphrase: h.catchphrase } : {},
+      p_level: h?.level ?? 1,
+      p_xp: h?.xp ?? 0,
+      p_stars: h?.stars ?? 0,
+    });
+  } catch (e) {
+    return mapRpcError(e);
+  }
+  await audit(d.rpc, playerId, "fuse_heroes", {
+    base: baseId,
+    materials: materialIds,
+    coins: r.fusion.coins,
+    result: h?.id ?? r.fusion.starTo,
+  });
+  const fresh = await loadMe(d.rpc, playerId);
+  return { text: r.text, id: h?.id ?? r.fusion.starTo ?? baseId, profile: fresh.profile };
 }
 
 // ---- forge ----

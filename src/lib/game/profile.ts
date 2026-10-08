@@ -91,7 +91,8 @@ export const PULL_COST_WEAPON = 250;
 export const MULTI_PULL = 10;
 export const MULTI_PULL_DISCOUNT = 0.1;
 export const DUPLICATE_REFUND = 0.5; // of the single-pull cost, at max stars
-export const FRAGMENTS_PER_STAR = 3;
+// Old saves still holding hero fragments (removed in 0039) are paid this much each, once.
+export const FRAGMENT_REFUND = 40;
 
 export type OwnedCharacter = Character & {
   id: string; // = characterKey
@@ -111,8 +112,6 @@ export interface Profile {
   equipped: Record<string, string>; // characterId -> weaponId
   pity: Record<Banner, number>; // pulls since last SS or better
   pitySsr: Record<Banner, number>; // pulls since last SSR
-  // Character fragments per `${classId}:${rarity}` (see fragmentKey).
-  fragments: Record<string, number>;
   daily?: DailyState; // free daily pull streak (see streak.ts)
   lastBankedRunId?: string; // guard against banking the same run twice
   runsDay?: { day: string; n: number }; // runs banked on that game day (pay decays, see economy.ts)
@@ -127,8 +126,6 @@ export interface Profile {
 export const characterKey = (c: ClassId, e: Element, r: RarityId) =>
   `c-${c}-${e}-${r}`;
 
-export const fragmentKey = (c: ClassId, r: RarityId) => `${c}:${r}`;
-
 export const createProfile = (): Profile => ({
   version: PROFILE_VERSION,
   coins: 0,
@@ -137,7 +134,6 @@ export const createProfile = (): Profile => ({
   equipped: {},
   pity: { character: 0, weapon: 0 },
   pitySsr: { character: 0, weapon: 0 },
-  fragments: {},
   bestFloor: 0,
   runsPlayed: 0,
   dungeons: {},
@@ -169,8 +165,6 @@ export interface PullResult {
   rarity: RarityId;
   stars: number; // after the pull
   refund: number;
-  fragmentGain: number; // characters only: 1 when class+rarity was already owned (different element)
-  fragmentKey?: string;
   pityTriggered: boolean;
   character?: OwnedCharacter;
   weapon?: OwnedWeapon;
@@ -211,8 +205,6 @@ function pull(
     const base = { banner, rarity, pityTriggered };
     let status: PullResult["status"] = "new";
     let refund = 0;
-    let fragmentGain = 0;
-    let fKey: string | undefined;
     if (banner === "character") {
       const c = generateCharacter(rng, undefined, rarity);
       const id = characterKey(c.classId, c.element, rarity);
@@ -225,21 +217,7 @@ function pull(
           ...p,
           characters: p.characters.map((x) => (x.id === id ? item : x)),
         };
-      } else {
-        fKey = fragmentKey(c.classId, rarity);
-        if (
-          p.characters.some(
-            (x) => x.classId === c.classId && x.rarity === rarity,
-          )
-        ) {
-          fragmentGain = 1;
-          p = {
-            ...p,
-            fragments: { ...p.fragments, [fKey]: (p.fragments[fKey] ?? 0) + 1 },
-          };
-        }
-        p = { ...p, characters: [...p.characters, item] };
-      }
+      } else p = { ...p, characters: [...p.characters, item] };
       if (status === "refund") refund = refundAmount(banner);
       results.push({
         ...base,
@@ -247,8 +225,6 @@ function pull(
         id,
         stars: item.stars,
         refund,
-        fragmentGain,
-        fragmentKey: fragmentGain ? fKey : undefined,
         character: item,
       });
     } else {
@@ -276,7 +252,6 @@ function pull(
         id: w.id,
         stars: item.stars,
         refund,
-        fragmentGain: 0,
         weapon: item,
       });
     }
@@ -294,23 +269,6 @@ export const pullCharacter = (p: Profile, rng: Rng, count = 1) =>
   pull(p, rng, count, "character");
 export const pullWeapon = (p: Profile, rng: Rng, count = 1) =>
   pull(p, rng, count, "weapon");
-
-// Spend FRAGMENTS_PER_STAR fragments of the character's class+rarity for +1
-// star on it. null when it does not exist, is at max stars or lacks fragments.
-export function spendFragments(p: Profile, ownedId: string): Profile | null {
-  const c = p.characters.find((x) => x.id === ownedId);
-  if (!c || c.stars >= MAX_STARS) return null;
-  const key = fragmentKey(c.classId, c.rarity);
-  const have = p.fragments[key] ?? 0;
-  if (have < FRAGMENTS_PER_STAR) return null;
-  return {
-    ...p,
-    fragments: { ...p.fragments, [key]: have - FRAGMENTS_PER_STAR },
-    characters: p.characters.map((x) =>
-      x.id === ownedId ? { ...x, stars: x.stars + 1 } : x,
-    ),
-  };
-}
 
 // `equipped` keys: the hero id for the weapon slot, `${heroId}|${slot}` for gear.
 export const slotKey = (characterId: string, slot: Slot) =>
@@ -864,16 +822,12 @@ export function migrate(json: unknown): Profile {
     const w = parsedWeapons[i];
     if (w && isObj(raw) && typeof raw.id === "string") alias.set(raw.id, w.id);
   });
-  const fragments: Record<string, number> = {};
+  // Hero fragments no longer exist: an old save's stock is paid out as coins.
+  let fragmentCoins = 0;
   if (isObj(json.fragments))
     for (const c of CLASS_IDS)
-      for (const raw of [...RARITY_IDS, ...Object.keys(LEGACY_RARITY)]) {
-        const n = nat(json.fragments[`${c}:${raw}`]);
-        const r = toRank(raw);
-        if (n > 0 && r)
-          fragments[fragmentKey(c, r)] =
-            (fragments[fragmentKey(c, r)] ?? 0) + n;
-      }
+      for (const raw of [...RARITY_IDS, ...Object.keys(LEGACY_RARITY)])
+        fragmentCoins += nat(json.fragments[`${c}:${raw}`]) * FRAGMENT_REFUND;
   const equipped: Record<string, string> = {};
   const usedWeapons = new Set<string>();
   if (isObj(json.equipped))
@@ -896,7 +850,7 @@ export function migrate(json: unknown): Profile {
   const pitySsr = isObj(json.pitySsr) ? json.pitySsr : {};
   return {
     version: PROFILE_VERSION,
-    coins: nat(json.coins),
+    coins: nat(json.coins) + fragmentCoins,
     characters,
     weapons,
     equipped,
@@ -908,7 +862,6 @@ export function migrate(json: unknown): Profile {
       character: nat(pitySsr.character, PITY_SSR_THRESHOLD),
       weapon: nat(pitySsr.weapon, PITY_SSR_THRESHOLD),
     },
-    fragments,
     ...(isObj(json.daily) && isDayKey(json.daily.day)
       ? {
           daily: {

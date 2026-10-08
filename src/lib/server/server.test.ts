@@ -846,7 +846,7 @@ describe("burn / skill / profile mapping (fake DB)", () => {
     db.rows.push(heroRow(h0, "f"), heroRow(generateCharacter(createRng(6), "picaro"), "e"));
     const key = db.rows[0].key;
     const r = await doBurn(db.deps, "u1", "hero", key);
-    expect(r.coins).toBe(66); // 8% of 830
+    expect(r.coins).toBe(33); // 4% of 830
     expect(db.burned[0]).toMatchObject({ name: "burn_hero", p_key: key, p_version: 0 });
     // the only hero left cannot be burned: SQL is never reached
     const n = db.burned.length;

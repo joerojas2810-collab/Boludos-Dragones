@@ -68,7 +68,7 @@ ok(r.coins===4750 && r.results[0].status==="new" && r.results[0].id==="c-mago-fu
 r=await pull([ch("mago","fuego","f")],{}); st=r.version;
 ok(r.results[0].status==="star" && r.results[0].stars===1,"dup star");
 r=await pull([ch("mago","agua","f")],{}); st=r.version;
-ok(r.results[0].status==="new" && r.results[0].fragmentGain===1 && r.results[0].fragmentKey==="mago:f","fragment "+JSON.stringify(r));
+ok(r.results[0].status==="new" && !r.results[0].fragmentGain,"new hero, no fragment "+JSON.stringify(r));
 // idempotent replay
 const idem="same-key-1234";
 r=await pull([ch("mago","rayo","c")],{idem}); const coinsAfter=r.coins; st=r.version;
@@ -113,14 +113,10 @@ r=await pull([ch("picaro","agua","f")],{daily:true,cost:0}); st=r.version;
 ok(r.results[0].status==="new","daily ok");
 await err(pull([ch("picaro","agua","f")],{daily:true,cost:0}),"already_claimed");
 await err(pull([ch("picaro","agua","f")],{daily:true,cost:250}),"invalid_cost","daily must be free");
-// profile, spend fragments, equip
+// profile (no fragments any more), equip
 let prof=await rpc("get_profile",{p_player:U(2)});
-ok(prof.characters.length>=5 && prof.equipped && prof.fragments["mago:f"]>=1,"profile "+JSON.stringify(prof.fragments));
-await err(rpc("spend_fragments",{p_player:U(2),p_character_id:"c-mago-fuego-f"}),"insufficient_fragments");
-await db.exec(`update public.fragments set qty=6 where player_id='${U(2)}' and class='mago'`);
-let sf=await rpc("spend_fragments",{p_player:U(2),p_character_id:"c-mago-fuego-f"});
-ok(sf.stars===2 && sf.fragments===3,"spend fragments "+JSON.stringify(sf));
-await err(rpc("spend_fragments",{p_player:U(2),p_character_id:"nope"}),"character_not_found");
+ok(prof.characters.length>=5 && prof.equipped && Object.keys(prof.fragments??{}).length===0,"profile "+JSON.stringify(prof.fragments));
+await err(rpc("spend_fragments",{p_player:U(2),p_character_id:"c-mago-fuego-f"}),"spend_fragments"); // dropped in 0039
 await rpc("equip_weapon",{p_player:U(2),p_character_id:"c-mago-fuego-f",p_weapon_id:"w-espada-fuego-c"});
 await rpc("equip_weapon",{p_player:U(2),p_character_id:"c-mago-agua-f",p_weapon_id:"w-espada-fuego-c"});
 prof=await rpc("get_profile",{p_player:U(2)});

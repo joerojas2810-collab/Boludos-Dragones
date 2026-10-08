@@ -17,7 +17,6 @@ import {
   pullCharacter,
   pullCost,
   pullWeapon,
-  spendFragments,
   unequipWeapon,
   type Banner,
   type LevelBank,
@@ -37,6 +36,7 @@ import { sweepBlock, sweepStage } from "./game/sweep";
 import { dayPayMult } from "./game/economy";
 import { localWeekSeed, towerHero, type TowerMode } from "./game/tower";
 import { burn as burnItem, burnMany } from "./game/burn";
+import { fuseHeroes } from "./game/heroFusion";
 import { applyForge, type ForgeOp } from "./game/forge";
 import type { RunPiece } from "./game/loot";
 import type { Parts } from "./game/parts";
@@ -111,7 +111,6 @@ export interface ProfileRepo {
     weaponId: string | null,
     slot?: Slot,
   ): Promise<void>;
-  spendFragments(characterId: string): Promise<void>;
   burn(kind: "hero" | "piece", id: string): Promise<{ coins: number }>;
   burnMany(kind: "hero" | "piece", ids: string[]): Promise<{ coins: number; count: number }>;
   chooseSkill(characterId: string, skill: SkillId): Promise<void>;
@@ -130,6 +129,8 @@ export interface ProfileRepo {
     asc: number,
   ): Promise<LevelOutcome & { stage: Stage }>;
   forge(op: ForgeOp): Promise<{ text: string }>;
+  /** Hero fusion (Forja > Héroes): `id` is the resulting hero (new rank, or the one that got +1 star). */
+  fuseHeroes(baseId: string, materialIds: string[]): Promise<{ text: string; id: string }>;
   startRun(
     classId: ClassId,
     characterId: string | null,
@@ -214,7 +215,6 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       store.update((p) =>
         w ? equipWeapon(p, c, w) : unequipWeapon(p, c, slot),
       ),
-    spendFragments: async (c) => store.update((p) => spendFragments(p, c) ?? p),
     burn: async (kind, id) => {
       const r = burnItem(store.get(), { kind, id });
       if (!r) throw new RepoError("burn_invalid", "No se puede quemar (¿está equipado o es tu único héroe?).");
@@ -306,6 +306,12 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       if (!r.ok) throw new RepoError("forge_invalid", r.error);
       store.replace(r.profile);
       return { text: r.text };
+    },
+    fuseHeroes: async (baseId, materialIds) => {
+      const r = fuseHeroes(store.get(), { baseId, materialIds });
+      if (!r.ok) throw new RepoError("fusion_invalid", r.error);
+      store.replace(r.profile);
+      return { text: r.text, id: r.fusion.hero?.id ?? r.fusion.starTo ?? baseId };
     },
     startRun: async (
       classId,
@@ -445,8 +451,6 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         weaponId,
         ...(slot ? { slot } : {}),
       }),
-    spendFragments: (characterId) =>
-      withProfile("/api/collection/spend-fragments", { characterId }),
     burn: async (kind, id) => {
       const r = await api<{ coins: number; profile: Profile }>(
         "/api/collection/burn",
@@ -520,6 +524,14 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       const r = await api<{ text: string; profile: Profile }>("/api/forge", op);
       store.replace(r.profile);
       return { text: r.text };
+    },
+    fuseHeroes: async (baseId, materialIds) => {
+      const r = await api<{ text: string; id: string; profile: Profile }>(
+        "/api/collection/fuse-heroes",
+        { baseId, materialIds },
+      );
+      store.replace(r.profile);
+      return { text: r.text, id: r.id };
     },
     startRun: async (classId, characterId, _seed, _rank, _ascension, tower) => {
       // /api/run/start is the weekly tower only; dungeon levels use startLevel.

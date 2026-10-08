@@ -51,6 +51,8 @@ import {
   TypePicker,
   typesOf,
 } from "./ForgeChips";
+import { HeroFusionPanel } from "./HeroFusion";
+import { fuseHeroes } from "@/lib/game/heroFusion";
 import { GuidePanel } from "./GuidePanel";
 
 function Need({
@@ -127,7 +129,7 @@ export default function ForgePage() {
   // Painted effect of the last action (re-keyed by n so it replays).
   const [fx, setFx] = useState<{ n: number; ids: string[] } | null>(null);
   // What every forge action produced: the latest stays on screen, plus a short history.
-  const [mergeKind, setMergeKind] = useState<"parts" | "pieces">("parts"); // what the Fusionar tab merges
+  const [mergeKind, setMergeKind] = useState<"parts" | "pieces" | "heroes">("parts"); // what the Fusionar tab merges
   const [showResult, setShowResult] = useState(false); // result overlay, closed with Continuar
   const [log, setLog] = useState<
     { n: number; what: string; r: ForgeReceipt }[]
@@ -201,6 +203,45 @@ export default function ForgePage() {
         );
       setPicked([]);
       setSpend({});
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof Error ? e.message : "Error" });
+      setShowResult(true);
+      playForgeSound(false);
+      setFx((f) => ({ n: (f?.n ?? 0) + 1, ids: ["forge_failure"] }));
+    }
+    setBusy(false);
+  };
+  // Hero fusion has its own server route (it changes heroes, not parts/pieces).
+  const fuse = async (baseId: string, materialIds: string[]) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const pre = fuseHeroes(profile, { baseId, materialIds });
+      const r = await repo.fuseHeroes(baseId, materialIds);
+      setMsg({ ok: true, text: r.text });
+      setShowResult(true);
+      playForgeSound(true);
+      setFx((f) => ({ n: (f?.n ?? 0) + 1, ids: ["forge_merge", "forge_success"] }));
+      if (pre.ok) {
+        const name = (id: string) => profile.characters.find((c) => c.id === id)?.name ?? id;
+        const f = pre.fusion;
+        setLog((l) =>
+          [
+            {
+              n: (l[0]?.n ?? 0) + 1,
+              what: r.text,
+              r: {
+                spent: [`${f.coins} monedas`, ...[f.baseId, ...f.materialIds].map(name)],
+                got: [
+                  f.hero ? `${f.hero.name} (rango ${RARITIES[f.rank].label}, 0★)` : `${name(f.starTo ?? f.baseId)} +1★`,
+                  ...(f.addedTraits.length ? [`${f.addedTraits.length} rasgo(s) nuevo(s)`] : []),
+                ],
+              },
+            },
+            ...l,
+          ].slice(0, 6),
+        );
+      }
     } catch (e) {
       setMsg({ ok: false, text: e instanceof Error ? e.message : "Error" });
       setShowResult(true);
@@ -681,11 +722,12 @@ export default function ForgePage() {
 
         {tab === "merge" && (
           <>
-            <div className="grid gap-2 sm:grid-cols-2" role="tablist">
+            <div className="grid gap-2 sm:grid-cols-3" role="tablist">
               {(
                 [
                   ["parts", "Fusionar PARTES", "Varias partes iguales → 1 parte de rango mayor (material para armar)."],
                   ["pieces", "Fusionar PIEZAS", "Varias piezas equipables → 1 pieza equipable de rango mayor."],
+                  ["heroes", "Fusionar HÉROES", "Varios héroes del mismo rango → 1 héroe de rango mayor."],
                 ] as const
               ).map(([k, title, text]) => (
                 <button
@@ -701,6 +743,9 @@ export default function ForgePage() {
                 </button>
               ))}
             </div>
+            {mergeKind === "heroes" && (
+              <HeroFusionPanel profile={profile} busy={busy} onFuse={(b, m) => void fuse(b, m)} />
+            )}
             {mergeKind === "parts" && (
             <Panel title="Fusionar partes" className="space-y-3">
               <p className="text-sm opacity-80">

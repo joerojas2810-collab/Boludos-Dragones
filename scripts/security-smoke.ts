@@ -48,7 +48,6 @@ async function main() {
     ["POST", "/api/gacha/pull"],
     ["POST", "/api/gacha/daily"],
     ["POST", "/api/collection/equip"],
-    ["POST", "/api/collection/spend-fragments"],
     ["POST", "/api/run/start"],
     ["POST", "/api/run/submit"],
     ["POST", "/api/auth/admin-reset-pin"],

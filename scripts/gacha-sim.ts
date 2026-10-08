@@ -19,7 +19,6 @@ for (const banner of ["character", "weapon"] as const) {
   let firstLegSum = 0;
   let firstLegN = 0;
   let refunds = 0;
-  const frags: Record<number, number> = {};
   let refundCount = 0;
   const five: Record<number, number> = {};
   const owned: Record<number, number> = {};
@@ -39,9 +38,6 @@ for (const banner of ["character", "weapon"] as const) {
       if (CHECK.includes(n)) {
         const items = banner === "weapon" ? p.weapons : p.characters;
         owned[n] = (owned[n] ?? 0) + items.length;
-        frags[n] =
-          (frags[n] ?? 0) +
-          Object.values(p.fragments).reduce((a, b) => a + b, 0);
         if (items.some((x) => x.rarity === "s" && x.stars === 5))
           five[n] = (five[n] ?? 0) + 1;
       }
@@ -62,7 +58,7 @@ for (const banner of ["character", "weapon"] as const) {
   );
   for (const c of CHECK)
     console.log(
-      `after ${c} pulls: ${(((five[c] ?? 0) / N) * 100).toFixed(1)}% have a 5-star Legendario | avg unique items ${((owned[c] ?? 0) / N).toFixed(1)} | avg fragments ${((frags[c] ?? 0) / N).toFixed(1)} | cost ${c * PULL_COST_CHARACTER} coins`,
+      `after ${c} pulls: ${(((five[c] ?? 0) / N) * 100).toFixed(1)}% have a 5-star Legendario | avg unique items ${((owned[c] ?? 0) / N).toFixed(1)} | cost ${c * PULL_COST_CHARACTER} coins`,
     );
   console.log(
     `avg refunds per ${P} pulls: ${(refundCount / N).toFixed(2)} (${(refunds / N).toFixed(0)} coins)`,

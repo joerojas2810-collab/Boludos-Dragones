@@ -271,6 +271,20 @@ function applyTraits(stats: Stats, ids: readonly TraitId[]): Stats {
   };
 }
 
+// Adds the stat mods of extra traits to stats that already carry the mods of their old ones
+// (hero fusion). ponytail: the +-25% cap applies to the new traits alone, so a stack can
+// overshoot the single-roll cap by a little; fine for a rank-up that grants 1-2 traits.
+export function addTraitMods(stats: Stats, ids: readonly TraitId[]): Stats {
+  const s = applyTraits(stats, ids);
+  return {
+    ...s,
+    accuracy: stats.accuracy + s.accuracy,
+    critDmg: stats.critDmg,
+    regen: stats.regen,
+    lifesteal: stats.lifesteal,
+  };
+}
+
 export function generateCharacter(
   rng: Rng,
   classId: ClassId = rng.pick(CLASS_IDS),

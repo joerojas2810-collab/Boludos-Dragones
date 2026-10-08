@@ -33,9 +33,9 @@ export const GUIDE: Record<
     title: "Fusionar",
     what: "Subes de rango juntando lo repetido.",
     needs:
-      "Partes: varias del mismo tipo y rango + 1 núcleo. Piezas: varias del mismo tipo y rango, de distinto elemento.",
+      "Partes: varias del mismo tipo y rango + 1 núcleo. Piezas: varias del mismo tipo y rango, de distinto elemento. Héroes: varios del mismo rango (el base y los de material).",
     gives:
-      "1 parte o pieza del rango siguiente. Las piezas pierden sus estrellas y su tirada: la nueva pieza trae una tirada propia.",
+      "1 parte, pieza o héroe del rango siguiente. Las piezas pierden sus estrellas y su tirada. El héroe base conserva todo menos las estrellas.",
     example: "4 partes F + núcleo → 1 parte E.",
     steps: [
       "Fusionar sirve para subir de rango lo que te sobra. Hay dos modos: de partes y de piezas.",
@@ -45,6 +45,11 @@ export const GUIDE: Record<
       "Piezas, paso 1: junta piezas del mismo tipo y rango pero de distinto elemento. Debes marcar exactamente la cantidad que pide ese rango.",
       "Piezas, paso 2: elige el elemento del resultado. Tiene que ser el de una de las piezas marcadas, y gastas 1 núcleo de ese elemento.",
       "Piezas, paso 3: ojo, las piezas marcadas se consumen y pierden sus estrellas. No puedes usar piezas equipadas. Recibes 1 pieza del rango siguiente.",
+      'Héroes, qué es: es la forma de darle uso a los héroes que te sobran del gacha. Cambias varios héroes del mismo rango por UNO de rango mayor. El héroe base necesita 3★ y las gasta. Elige "Fusionar HÉROES" arriba.',
+      "Héroes, paso 1: elige el rango. Cada botón muestra cuántos héroes tienes de ese rango y cuántos hacen falta (por ejemplo 7/3). Pide 6 héroes en F y E, 5 en D y C, 4 en B y A, y 3 en S y SS, más unas monedas.",
+      "Héroes, paso 2: elige el héroe base, el que quieres conservar. Mantiene su clase, elemento, nombre, nivel, habilidad y rasgos, y gana los rasgos del rango nuevo. Necesita 3★ y las gasta. Gasta 3★: con 4★ le queda 1★ y con 5★ le quedan 2★.",
+      'Héroes, paso 3: elige los héroes de material. Con "Elegir los más débiles" el juego marca los que menos valen. Se pierden al fusionar, y su equipo vuelve a tu colección.',
+      "Héroes, paso 4: mira el resultado antes de pulsar Fusionar. El base pierde 3★ y conserva las que le sobren. Si ya tenías a ese mismo héroe en el rango nuevo, en vez de crear otro le suma 1 estrella.",
       "Consejo: si tienes partes sueltas de tipos distintos, pásalas primero por Refinar para completar las que necesitas.",
     ],
   },

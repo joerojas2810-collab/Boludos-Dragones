@@ -51,9 +51,6 @@ export const equipBody = z.strictObject({
   weaponId: z.string().min(1).max(100).nullable(),
   slot: z.enum(SLOTS).optional(), // only for unequip (equip derives it from the piece)
 });
-export const spendFragmentsBody = z.strictObject({
-  characterId: z.string().min(1).max(100),
-});
 // Weekly tower only (dungeon levels use levelStartBody).
 export const runStartBody = z.strictObject({
   classId: z.enum(["caballero", "mago", "picaro", "clerigo"]),
@@ -73,6 +70,10 @@ export const burnBody = z.strictObject({
 export const burnManyBody = z.strictObject({
   kind: z.enum(["hero", "piece"]),
   ids: z.array(z.string().min(1).max(100)).min(1).max(100),
+});
+export const fuseHeroesBody = z.strictObject({
+  baseId: z.string().min(1).max(100),
+  materialIds: z.array(z.string().min(1).max(100)).min(2).max(9),
 });
 export const tutorialBody = z.strictObject({ step: z.number().int().min(0).max(7) });
 export const skillBody = z.strictObject({

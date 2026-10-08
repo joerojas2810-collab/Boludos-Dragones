@@ -28,8 +28,6 @@ import {
   traitTip,
 } from "@/lib/game/explain";
 import {
-  FRAGMENTS_PER_STAR,
-  fragmentKey,
   heroFromOwned,
   heroPower,
   type OwnedCharacter,
@@ -152,14 +150,6 @@ function Detail({
     char: hero,
     hp: hero.stats.hp,
   };
-  const fKey = fragmentKey(c.classId, c.rarity);
-  const have = profile.fragments[fKey] ?? 0;
-  const reason =
-    c.stars >= MAX_STARS
-      ? "Ya tiene el máximo de estrellas"
-      : have < FRAGMENTS_PER_STAR
-        ? `Te faltan ${FRAGMENTS_PER_STAR - have} fragmentos`
-        : null;
   return (
     <Panel title={c.name} className="space-y-3">
       <div className="flex items-center gap-3">
@@ -205,32 +195,6 @@ function Detail({
 
       <EquipmentEditor c={c} profile={profile} act={act} />
 
-      <div className="border-t-2 border-[var(--edge)] pt-2">
-        <div className="flex items-center justify-between gap-2">
-          <Tooltip
-            tip={{
-              title: "Fragmentos",
-              kind: "info",
-              lines: [
-                `Los fragmentos son de clase + rareza (${CLASSES[c.classId].name} ${RARITIES[c.rarity].label}).`,
-                `${FRAGMENTS_PER_STAR} fragmentos suben una estrella a un personaje de ese grupo.`,
-              ],
-            }}
-          >
-            <span className="">
-              Fragmentos: {have} / {FRAGMENTS_PER_STAR}
-            </span>
-          </Tooltip>
-          <button
-            className="btn text-center"
-            disabled={reason !== null}
-            onClick={() => act(() => repo.spendFragments(c.id))}
-          >
-            Subir estrella
-          </button>
-        </div>
-        {reason && <p className="mt-1 text-sm text-red-300">{reason}</p>}
-      </div>
       <BurnButton
         label={`Quemar héroe (+${burnValue(c.rarity, c.legacy)} monedas)`}
         what={`a ${c.name} (${RARITIES[c.rarity].label}, ${c.stars}★)`}
@@ -282,7 +246,6 @@ export default function CollectionPage() {
   const burnableHeroes = list
     .filter((c) => burnInvested || (c.stars === 0 && c.level <= 1))
     .map((c) => c.id);
-  const frags = Object.entries(profile.fragments).filter(([, n]) => n > 0);
   const owner = (wid: string) =>
     profile.characters.find((c) => profile.equipped[c.id] === wid);
   const empty = (what: string) => (
@@ -420,17 +383,6 @@ export default function CollectionPage() {
                     </button>
                   ))}
                 </div>
-                {frags.length > 0 && (
-                  <p className="mt-4 text-sm text-[#d9d2ca]">
-                    Fragmentos:{" "}
-                    {frags
-                      .map(([k, n]) => {
-                        const [cl, r] = k.split(":") as [ClassId, RarityId];
-                        return `${CLASSES[cl].name} ${RARITIES[r].label} ${n}`;
-                      })
-                      .join(" · ")}
-                  </p>
-                )}
               </>
             )}
           </Panel>

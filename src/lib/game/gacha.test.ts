@@ -16,9 +16,7 @@ import {
 import {
   bankRun,
   createProfile,
-  FRAGMENTS_PER_STAR,
-  fragmentKey,
-  spendFragments,
+  FRAGMENT_REFUND,
   equipWeapon,
   heroPower,
   heroFor,
@@ -132,7 +130,8 @@ describe("pity", () => {
       rarity: "s",
     });
     expect(p.weapons[0].id).toBe("w-espada-agua-a");
-    expect(p.fragments).toEqual({ "mago:c": 2 });
+    expect("fragments" in p).toBe(false);
+    expect(p.coins).toBe(5 + 2 * FRAGMENT_REFUND); // old fragment stock paid as coins
   });
   it("banners are independent", () => {
     const r = pullCharacter(rich(), createRng(2), 3)!;
@@ -207,46 +206,19 @@ describe("pulls", () => {
   });
 });
 
-describe("fragments", () => {
-  it("exact duplicate = star (no fragment); same class+rarity other element = fragment", () => {
+describe("no fragments", () => {
+  it("exact duplicate = star; any new hero is just a new hero (no fragment bookkeeping)", () => {
     const rng = createRng(21);
     let p = rich();
-    let frag = 0;
     for (let i = 0; i < 600; i++) {
       const before = p;
       const r = pullCharacter(p, rng)!;
       p = r.profile;
       const res = r.results[0];
-      const sameCR = before.characters.some(
-        (x) => x.classId === res.character!.classId && x.rarity === res.rarity,
-      );
-      if (res.status === "new") {
-        expect(p.characters).toHaveLength(before.characters.length + 1);
-        expect(res.fragmentGain).toBe(sameCR ? 1 : 0);
-      } else {
-        expect(p.characters).toHaveLength(before.characters.length);
-        expect(res.fragmentGain).toBe(0);
-      }
-      frag += res.fragmentGain;
+      expect(p.characters).toHaveLength(before.characters.length + (res.status === "new" ? 1 : 0));
+      expect("fragments" in p).toBe(false);
     }
-    expect(frag).toBeGreaterThan(0);
-    expect(Object.values(p.fragments).reduce((a, b) => a + b, 0)).toBe(frag);
     expect(p.characters.length).toBeGreaterThan(50);
-  });
-  it("spendFragments: 3 fragments -> +1 star, refuses otherwise, caps at 5", () => {
-    let p = rich();
-    p = pullCharacter(p, createRng(5))!.profile;
-    const c = p.characters[0];
-    const key = fragmentKey(c.classId, c.rarity);
-    expect(spendFragments(p, c.id)).toBeNull();
-    expect(spendFragments(p, "nope")).toBeNull();
-    p = { ...p, fragments: { [key]: FRAGMENTS_PER_STAR * 7 + 1 } };
-    for (let s = 1; s <= MAX_STARS; s++) {
-      p = spendFragments(p, c.id)!;
-      expect(p.characters[0].stars).toBe(s);
-    }
-    expect(p.fragments[key]).toBe(FRAGMENTS_PER_STAR * 2 + 1);
-    expect(spendFragments(p, c.id)).toBeNull();
   });
 });
 
@@ -571,7 +543,6 @@ describe("bankRun + migrate", () => {
     expect(old.equipped).toEqual({
       "c-caballero-agua-f": "w-espada-fuego-c",
     });
-    expect(old.fragments).toEqual({});
   });
   it("round-trips a valid profile", () => {
     const rng = createRng(6);
@@ -592,17 +563,16 @@ describe("bankRun + migrate", () => {
         { element: "fuego", rarity: "c", stars: 99, atkBonus: 9999 },
         { element: "fuego", rarity: "c", stars: 1 },
       ],
-      fragments: { "mago:c": 4, "x:y": 9, "mago:f": -3 },
+      fragments: { "mago:c": 4, "x:y": 9, "mago:f": -3 }, // junk entries are ignored, valid ones paid
       equipped: { ghost: "w-fuego-c" },
       bestFloor: Infinity,
     });
-    expect(p.coins).toBe(0);
+    expect(p.coins).toBe(4 * FRAGMENT_REFUND);
     expect(p.pity).toEqual({ character: PITY_THRESHOLD, weapon: 0 });
     expect(p.characters).toHaveLength(0);
     expect(p.weapons).toHaveLength(1);
     expect(p.weapons[0].stars).toBe(MAX_STARS);
     expect(p.weapons[0].atkBonus).toBe(weaponAtk("c", 5));
-    expect(p.fragments).toEqual({ "mago:c": 4 });
     expect(p.equipped).toEqual({});
     expect(p.bestFloor).toBe(0);
   });

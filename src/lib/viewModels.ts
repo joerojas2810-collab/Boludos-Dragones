@@ -123,9 +123,8 @@ export function resultView(r: PullResult): ItemView | null {
       : r.status === "star"
         ? "+1 ★"
         : "NUEVO";
-  const lines = r.fragmentGain ? ["+1 fragmento"] : [];
-  if (r.character) return characterView(r.character, { badge, lines });
-  if (r.weapon) return weaponView(r.weapon, { badge, lines });
+  if (r.character) return characterView(r.character, { badge });
+  if (r.weapon) return weaponView(r.weapon, { badge });
   return null;
 }
 
@@ -139,12 +138,10 @@ export function summarizePull(rs: PullResult[]): string {
       RARITY_IDS.indexOf(r.rarity) > RARITY_IDS.indexOf(b) ? r.rarity : b,
     "f",
   );
-  const frags = rs.reduce((a, r) => a + r.fragmentGain, 0);
   const refund = rs.reduce((a, r) => a + r.refund, 0);
   return [
     `${n((r) => r.status === "new")} nuevos`,
     `${n((r) => r.status === "star")} estrellas`,
-    ...(frags ? [`${frags} fragmentos`] : []),
     ...(refund ? [`${refund} monedas de reembolso`] : []),
     `Mejor: ${RARITIES[best].label}`,
   ].join(" · ");

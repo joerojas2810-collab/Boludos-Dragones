@@ -109,7 +109,6 @@ export class FakeDb {
             })),
           dungeons: this.dungeons,
           equipped: this.equipped,
-          fragments: {},
           bestFloor: 0,
         });
       case "start_level": {
