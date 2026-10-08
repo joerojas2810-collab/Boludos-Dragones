@@ -1,16 +1,12 @@
 "use client";
 
 import {
-  cloneElement,
-  isValidElement,
   useCallback,
   useEffect,
   useId,
   useLayoutEffect,
   useRef,
   useState,
-  type PointerEvent,
-  type ReactElement,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
@@ -30,38 +26,29 @@ const KIND_COLOR: Record<TipKind, string> = {
 
 const MARGIN = 8; // min distance to the viewport edge
 const GAP = 8; // distance to the anchor
-const HOLD_MS = 450; // long press on touch for buttons
 
 type Props = {
   tip: Tip | null | undefined;
   children: ReactNode;
   className?: string; // wrapper layout, e.g. "block" or "inline-flex"
-  // false when the child is itself focusable (button): the child gets the aria
-  // link and a long press (touch) opens the tip instead of a tap.
-  focusable?: boolean;
   // "side": open beside the anchor (left, else right) on wide screens so it never covers
   // the elements stacked above/below it (e.g. the action column).
   placement?: "auto" | "side";
 };
 
-// Opens on mouse hover, keyboard focus and tap (touch). Rendered in a portal
-// with fixed position, so it also works inside overflow-hidden containers and
-// is clamped/flipped to stay inside the viewport.
+// The tip opens only when the small "?" badge in the corner is clicked/tapped (never on hover,
+// focus or by pressing the content itself). Rendered in a portal with fixed position, so it also
+// works inside overflow-hidden containers and is clamped/flipped to stay inside the viewport.
 export function Tooltip({
   tip,
   children,
   className = "inline-flex",
-  focusable = true,
   placement = "auto",
 }: Props) {
   const [open, setOpen] = useState(false);
   const id = useId();
   const wrapRef = useRef<HTMLSpanElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
-  const holdTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const suppressClick = useRef(false);
-  const lastPointer = useRef("mouse");
-  const dismissed = useRef(false); // mouse click closed it; stay shut until the pointer leaves
 
   const place = useCallback(() => {
     const anchor = wrapRef.current;
@@ -129,78 +116,24 @@ export function Tooltip({
     };
   }, [open]);
 
-  useEffect(() => () => clearTimeout(holdTimer.current), []);
-
   if (!tip) return <>{children}</>;
 
-  const isTouch = (e: PointerEvent) => e.pointerType !== "mouse";
-  const onPointerDown = (e: PointerEvent) => {
-    lastPointer.current = e.pointerType;
-    if (!isTouch(e)) {
-      // a click means "do it": hide the tip so it never covers the animation
-      dismissed.current = true;
-      setOpen(false);
-      return;
-    }
-    if (focusable) return;
-    suppressClick.current = false;
-    holdTimer.current = setTimeout(() => {
-      suppressClick.current = true;
-      setOpen(true);
-    }, HOLD_MS);
-  };
-  const endHold = () => clearTimeout(holdTimer.current);
-
-  const linked = open ? id : undefined;
-  const child =
-    !focusable && isValidElement(children)
-      ? cloneElement(
-          children as ReactElement<{ "aria-describedby"?: string }>,
-          {
-            "aria-describedby": linked,
-          },
-        )
-      : children;
-
   return (
-    <span
-      ref={wrapRef}
-      className={className}
-      {...(focusable
-        ? { tabIndex: 0, "aria-describedby": linked, role: "group" }
-        : {})}
-      onPointerEnter={(e) => {
-        if (isTouch(e)) return;
-        dismissed.current = false;
-        setOpen(true);
-      }}
-      onPointerLeave={(e) => {
-        if (!isTouch(e)) setOpen(false);
-        dismissed.current = false;
-        endHold();
-      }}
-      onPointerDown={onPointerDown}
-      onPointerUp={endHold}
-      onPointerCancel={endHold}
-      onFocus={(e) => {
-        if (!dismissed.current && e.target.matches(":focus-visible"))
-          setOpen(true);
-      }}
-      onBlur={() => setOpen(false)}
-      onContextMenu={(e) => !focusable && e.preventDefault()}
-      onClickCapture={(e) => {
-        if (suppressClick.current) {
-          suppressClick.current = false;
-          e.preventDefault();
+    <span ref={wrapRef} className={`${className} relative`}>
+      {children}
+      <button
+        type="button"
+        className="tip-q"
+        aria-label={`Ayuda: ${tip.title}`}
+        aria-expanded={open}
+        aria-describedby={open ? id : undefined}
+        onClick={(e) => {
           e.stopPropagation();
-        }
-      }}
-      onClick={() => {
-        // tap on a non-button anchor toggles; mouse clicks leave hover alone
-        if (focusable && lastPointer.current !== "mouse") setOpen((o) => !o);
-      }}
-    >
-      {child}
+          setOpen((o) => !o);
+        }}
+      >
+        ?
+      </button>
       {open &&
         createPortal(
           <div

@@ -169,7 +169,7 @@ export default function GachaPage() {
           <Tooltip
             tip={pityTip()}
           >
-            <span className="cursor-help block space-y-1 text-sm">
+            <span className="block space-y-1 text-sm">
               <span className="flex items-center gap-2">
                 <span className="w-10 text-right" style={{ color: RARITIES.ssr.color }}>
                   SSR

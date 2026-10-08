@@ -64,7 +64,6 @@ function ActionButton({
     <Tooltip
       tip={tip}
       className={wide ? "col-span-full block" : "block"}
-      focusable={false}
       placement={left ? "side" : "auto"}
     >
       <button
@@ -184,7 +183,7 @@ export function ActionPanel({
               </span>
             </span>
             <Tooltip tip={announceTip(b)}>
-              <span className={`cursor-help ${float ? "action-pill" : ""}`}>
+              <span className={`${float ? "action-pill" : ""}`}>
                 Acciones:{" "}
                 <span className="tracking-wider text-yellow-300">
                   {Array.from({ length: mine }, (_, i) =>

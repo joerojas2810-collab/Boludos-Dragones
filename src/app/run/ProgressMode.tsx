@@ -955,7 +955,7 @@ function Prep({
               <b style={{ color: RARITIES[sel.rarity].color }}>{sel.name}</b>
               <StarRow stars={sel.stars} className="h-3" />
               <Tooltip tip={levelTip(sel.level, sel.xp, sel.stars)}>
-                <span className="cursor-help">
+                <span className="">
                   Nv {sel.level}/{levelCap(sel.stars)}
                 </span>
               </Tooltip>

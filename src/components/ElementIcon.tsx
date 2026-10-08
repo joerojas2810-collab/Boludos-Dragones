@@ -24,7 +24,7 @@ export function ElementIcon({
         src={elementIconSrc(element)}
         alt={`Elemento ${ELEMENT_LABEL[element]}`}
         draggable={false}
-        className={`aspect-square cursor-help ${className}`}
+        className={`aspect-square ${className}`}
       />
     </Tooltip>
   );

@@ -203,7 +203,7 @@ export function BattleArena({
           key={b.status}
           id={b.status === "won" ? "victory" : "defeat"}
           delay={b.events.length * STAGGER_S}
-          className="pointer-events-none absolute left-1/2 top-2 z-20 w-[min(60%,24rem)] -translate-x-1/2"
+          className="pointer-events-none absolute left-1/2 top-2 z-40 w-[min(60%,24rem)] -translate-x-1/2"
         />
       )}
       {world === undefined ? (

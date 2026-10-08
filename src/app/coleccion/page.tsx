@@ -217,7 +217,7 @@ function Detail({
               ],
             }}
           >
-            <span className="cursor-help">
+            <span className="">
               Fragmentos: {have} / {FRAGMENTS_PER_STAR}
             </span>
           </Tooltip>

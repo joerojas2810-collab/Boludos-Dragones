@@ -1044,7 +1044,7 @@ export default function ForgePage() {
               return (
                 <div key={w.id} className="flex items-center gap-2 text-sm">
                   <Tooltip tip={pieceTip(w)}>
-                    <span className="flex min-w-0 flex-1 cursor-help items-center gap-2">
+                    <span className="flex min-w-0 flex-1 items-center gap-2">
                       <WeaponSprite
                         type={w.type}
                         element={w.element}

@@ -38,7 +38,6 @@ export function SkillChoice({
                 source: `Habilidad de ${CLASSES[classId].name}`,
               }}
               className="block"
-              focusable={false}
             >
               <button className="btn h-full w-full" onClick={() => onPick(id)}>
                 <div className="flex items-center justify-center gap-2 font-semibold">

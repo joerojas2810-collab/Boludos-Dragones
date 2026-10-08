@@ -129,7 +129,7 @@ export function HudCard({
         <span className="truncate">{!you && c.char.family ? FAMILY_LABEL[c.char.family] : CLASSES[c.char.classId].name}</span>
         <Tooltip tip={extraTip} className="ml-auto">
           <span
-            className={`whitespace-nowrap text-[#e8d9b8] ${extraTip ? "cursor-help" : ""}`}
+            className={`whitespace-nowrap text-[#e8d9b8] ${extraTip ? "" : ""}`}
           >
             {extra}
           </span>

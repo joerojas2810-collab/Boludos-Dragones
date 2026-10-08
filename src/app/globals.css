@@ -922,3 +922,24 @@ body[data-art="pixel"] .game-title-word { display: block; margin: 0 auto; width:
 }
 .game-select-btn:focus-visible,
 .game-select-btn[aria-expanded="true"] { border-image-source: url("/art/ui/select_focus.webp"); }
+
+/* Tooltip "?" badge: the only way to open a tip. Sits on the wrapper's top-right corner. */
+.tip-q {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  z-index: 5;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  background: #2a1d16;
+  color: var(--text);
+  font-weight: 700; font-size: 10px; line-height: 1;
+  opacity: 0.85;
+  cursor: pointer;
+}
+.tip-q:hover, .tip-q[aria-expanded="true"] { opacity: 1; background: #4a3426; }
