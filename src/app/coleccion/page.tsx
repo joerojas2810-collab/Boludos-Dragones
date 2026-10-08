@@ -31,6 +31,7 @@ import {
   FRAGMENTS_PER_STAR,
   fragmentKey,
   heroFromOwned,
+  heroPower,
   type OwnedCharacter,
   type Profile,
 } from "@/lib/game/profile";
@@ -164,6 +165,9 @@ function Detail({
       <div className="flex items-center gap-3">
         <ItemCard item={characterView(c, { lines: [] })} size={96} />
         <div className="space-y-1 text-base">
+          <div className="text-lg font-bold text-amber-300">
+            Poder {heroPower(profile, c.id)}
+          </div>
           <div>
             {CLASSES[c.classId].name} · {ELEMENT_LABEL[c.element]} · Nv{" "}
             {c.level}

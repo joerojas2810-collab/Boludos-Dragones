@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { RARITIES, RARITY_IDS, isTopRank } from "@/lib/game/rarity";
 import { playPullSound } from "@/lib/sfx";
 import { Vfx } from "@/components/fx/Vfx";
@@ -85,7 +86,8 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
 
   const single = items.length === 1;
   const legendNow = shown >= 0 && isTopRank(items[shown].rarity);
-  return (
+  // Portal: an ancestor stacking context would leave the overlay under the top bar.
+  const ui = (
     <div className="fixed inset-0 z-50 flex flex-col items-center gap-4 overflow-y-auto bg-black/95 p-4 [&>*:first-child]:mt-auto [&>*:last-child]:mb-auto">
       {legendNow && (
         <div
@@ -149,4 +151,5 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
       </button>
     </div>
   );
+  return typeof document === "undefined" ? ui : createPortal(ui, document.body);
 }
