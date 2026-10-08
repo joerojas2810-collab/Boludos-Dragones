@@ -563,8 +563,15 @@ export async function startLevelService(
   body: LevelStartBody,
 ) {
   await Promise.all([
-    limit(d.rpc, `lvstart:${playerId}`, 10, 60),
-    limit(d.rpc, `lvstarth:${playerId}`, 60, 3600),
+    limit(d.rpc, `lvstart:${playerId}`, 10, 60, "Demasiados intentos seguidos. Espera un minuto."),
+    // Levels are short (a minute or so): 60 an hour was reachable by a normal player.
+    limit(
+      d.rpc,
+      `lvstarth:${playerId}`,
+      150,
+      3600,
+      "Llegaste al límite de niveles por hora. Descansa un rato y vuelve.",
+    ),
   ]);
   const { rank, level, ascension: asc } = body;
   const me = await loadMe(d.rpc, playerId);

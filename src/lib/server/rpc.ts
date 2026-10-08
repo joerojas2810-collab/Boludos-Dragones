@@ -95,6 +95,7 @@ export async function limit(
   key: string,
   max: number,
   windowSec: number,
+  message = "Espera un momento.",
 ): Promise<void> {
   const r = await call<{ allowed: boolean }>(rpc, "rate_limit_hit", {
     p_key: key,
@@ -102,7 +103,7 @@ export async function limit(
     p_window_seconds: windowSec,
   });
   if (!r.allowed)
-    throw new ApiError(429, "rate_limited", "Espera un momento.", {
+    throw new ApiError(429, "rate_limited", message, {
       retryAfter: windowSec,
     });
 }

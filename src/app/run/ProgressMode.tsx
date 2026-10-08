@@ -137,7 +137,7 @@ export function ProgressMode() {
 
   const enter = async (rank: RarityId, level: number, id: string) => {
     const owned = profile.characters.find((c) => c.id === id);
-    if (!owned) return;
+    if (!owned || view.t === "starting") return; // ignore taps while the server opens the attempt
     const spec = levelsOf(rank)[level];
     setHeroId(id); // the next attempt keeps the same hero
     setView({ t: "starting" });
