@@ -21,12 +21,17 @@ if (partial) {
 }
 const factors = { sky: 0, far: 0.12, mid: 0.28, ground: 0, foreground: 0.5, composite: 0 };
 const metadata = [];
+const sceneSizes = new Map();
 for (const entry of entries) {
   const parts = entry.file.match(/^([a-z0-9_]+)_desktop_(sky|far|mid|ground|foreground|composite)\.png$/);
-  const expectedSize = entry.layer === "composite" && !(entry.scene === "menu" && entry.frame_width === 320) ? [960, 540] : [320, 180];
+  // Existing deliveries remain importable while combat scenes move to native HD.
+  const expectedSize = entry.frame_width === 960 ? [960, 540] : [320, 180];
   if (!parts || entry.frames !== 1 || entry.fps !== 0 || entry.loop !== false || entry.frame_width !== expectedSize[0] || entry.frame_height !== expectedSize[1]) throw new Error("Invalid native static background: " + entry.file);
   const [, scene, layer] = parts;
   if (entry.scene !== scene || entry.layer !== layer || entry.parallax !== factors[layer]) throw new Error("Invalid scene/layer/parallax metadata: " + entry.file);
+  if (sceneSizes.has(scene) && sceneSizes.get(scene) !== entry.frame_width) throw new Error("All layers must share their scene's native dimensions: " + entry.file);
+  sceneSizes.set(scene, entry.frame_width);
+  if (entry.anchor?.type !== "center" || entry.anchor.x !== expectedSize[0] / 2 || entry.anchor.y !== expectedSize[1] / 2) throw new Error("Invalid background center anchor: " + entry.file);
   if (!readFileSync(join(source, entry.file)).subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) throw new Error("Expected PNG: " + entry.file);
   const { data, info } = await sharp(join(source, entry.file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   if (info.width !== expectedSize[0] || info.height !== expectedSize[1]) throw new Error("Unexpected dimensions: " + entry.file);

@@ -8,7 +8,7 @@ import {
   type Rect,
 } from "@/sprites/backgrounds";
 import { AmbientFx } from "@/components/fx/AmbientFx";
-import { BG_LAYERS, BG_PARALLAX, bgSrc, combatScene, isPixelBackground } from "@/lib/art/backgrounds";
+import { BG_LAYERS, BG_PARALLAX, bgSrc, combatScene, isPixelBackground, pixelBackgroundSize } from "@/lib/art/backgrounds";
 import "./arena.css";
 import "./bg.css";
 
@@ -46,6 +46,7 @@ export function ArenaBackground({
   if (legacy) return <SvgBackground world={world} boss={boss} className={className} />;
   const id = combatScene(world, boss, rank);
   const pixel = BG_LAYERS.every((layer) => isPixelBackground(id, layer));
+  const nativeHeight = pixelBackgroundSize(id, "sky")?.height ?? 180;
   return (
     <div
       aria-hidden
@@ -58,7 +59,7 @@ export function ArenaBackground({
             src={bgSrc(id, l)}
             alt=""
             className={pixel ? "bg-layer bg-layer-pixel" : "bg-layer"}
-            style={{ ["--p" as string]: BG_PARALLAX[l], ["--px-drift" as string]: `${Math.round(BG_PARALLAX[l] * 32)}px`, ["--px-steps" as string]: Math.max(1, Math.round(BG_PARALLAX[l] * 32) * 2) }}
+            style={{ ["--p" as string]: BG_PARALLAX[l], ["--pixel-native-height" as string]: `${nativeHeight}px`, ["--px-drift" as string]: `${Math.round(BG_PARALLAX[l] * 32)}px`, ["--px-steps" as string]: Math.max(1, Math.round(BG_PARALLAX[l] * 32) * 2) }}
           />
         </picture>
       ))}

@@ -1,6 +1,6 @@
 # Continuación de producción pixel art
 
-Plan de trabajo para acelerar las fases pendientes mediante bases compartidas y exportaciones automatizadas. Fases 4 y 5 completadas; las cantidades de Fases 6 y 7 describen el alcance pendiente.
+Plan de trabajo mediante bases compartidas y exportaciones automatizadas. Las siete fases originales están completadas; las secciones históricas conservan sus cantidades y decisiones. La Fase 1 ya fue adaptada a HD. El trabajo actual es la conversión de los fondos de combate de Fase 6 a 960×540.
 
 ## Reglas de trabajo
 
@@ -16,6 +16,12 @@ Plan de trabajo para acelerar las fases pendientes mediante bases compartidas y 
 Completada el 8 de octubre de 2026 después de aprobar las cuatro muestras: cuatro clases, diez acciones y cinco elementos. Se reemplazaron las 40 bases de Fuego por tiras nativas 128×192 (144 cuadros), con arma incluida y anclaje (64,180). La importación genera 200 PNG / 720 cuadros, con margen lateral transparente de 6 px por cuadro: tamaño de reproducción 140×192, anclaje (70,180). Las acciones mantienen cuadros, fps, loop y hold de heroes.ts. Poses distintas de ataque, defensa, guardia, golpe, esquive, derrota y victoria; pequeños desplazamientos de piezas completan las transiciones.
 
 Las variantes conservan píxeles neutros y alfa, y cambian solo la rampa exclusiva de cuatro tonos. Paquete phase_1_heroes.zip: 40 bases y manifiesto. Escala entera en combate, mínimo 192 px para el héroe, reducción exacta a 96 px en tarjetas. Verificados 1080p, 2K y móvil; TypeScript y ESLint sin errores; 43 archivos / 414 pruebas aprobadas. Los enemigos y los fondos de combate conservan sus recursos anteriores. Los cuatro reposos antiguos permanecen en la comparación de desarrollo.
+
+## Actualización de Fase 6: combate HD
+
+Autorizada el 8 de octubre de 2026 después de cerrar los héroes HD. Reemplazar 90 capas de combate (18 escenas, nueve parejas normal/jefe) por PNG nativos 960×540; suelo desde y=378 y anclaje central (480,270). Conservar nombres, cinco capas, factores de parallax y las seis pantallas completas HD existentes sin cambios. Reutilizar las cinco capas de Pantano HD aprobadas; producir ocho planos lejanos y ocho grupos de arquitectura nuevos. Los jefes comparten cielo, plano lejano y primer plano y se distinguen por arquitectura ceremonial y detalles de suelo. Entrega acumulada: 96 PNG, manifiesto y ZIP completo.
+
+Producción completa: 90 capas de combate HD importadas y seis pantallas completas intactas. Verificados 96 PNG, paletas exactas, dimensiones, alfa, anclajes, suelo en y=378, igualdad entre entrega y juego y ZIP de 97 entradas (22.318.582 bytes). TypeScript y ESLint sin errores; Vitest 44 archivos / 421 pruebas aprobadas. Revisión visual completada en galería y combate 1080p, 2K y móvil: todas las capas cargan y conservan escalas enteras. La distribución móvil previa del protagonista en la fila superior permanece fuera de esta fase. Lista para commit y push a main. No iniciar la adaptación de enemigos ni otras fases sin la siguiente instrucción del usuario.
 
 ## Fase 4: estadísticas, sistema y reliquias
 

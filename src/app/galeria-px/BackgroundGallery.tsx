@@ -24,17 +24,17 @@ function sceneAssets(scene: string) {
   return (assets as BackgroundAsset[]).filter((entry) => entry.scene === scene).sort((a, b) => order.indexOf(a.layer) - order.indexOf(b.layer));
 }
 
-function ScenePreview({ scene, zoom = 1, hidden = [], motion = false }: { scene: string; zoom?: number; hidden?: string[]; motion?: boolean }) {
+function ScenePreview({ scene, zoom = 1, hidden = [], motion = false, thumbnail = false }: { scene: string; zoom?: number; hidden?: string[]; motion?: boolean; thumbnail?: boolean }) {
   const native = sceneAssets(scene)[0];
   const width = native?.width ?? 320;
   const height = native?.height ?? 180;
-  return <div role="img" aria-label={sceneLabel(scene)} className="relative shrink-0 overflow-hidden bg-black" style={{ width: width * zoom, height: height * zoom, containerType: "size" }}>
+  return <div role="img" aria-label={sceneLabel(scene)} className="relative shrink-0 overflow-hidden bg-black" style={{ width: thumbnail ? 320 : width * zoom, height: thumbnail ? 180 : height * zoom, containerType: "size" }}>
     {sceneAssets(scene).filter((entry) => !hidden.includes(entry.layer)).map((entry) => {
       const drift = Math.round(entry.parallax * 32);
       return (
         // eslint-disable-next-line @next/next/no-img-element
         <img key={entry.file} src={`/art/backgrounds-px/${entry.file}`} alt="" draggable={false}
-          className="bg-layer bg-layer-pixel" width={width * zoom} height={height * zoom}
+          className={thumbnail ? "absolute inset-0 h-full w-full [image-rendering:pixelated]" : "bg-layer bg-layer-pixel"} width={width * zoom} height={height * zoom}
           style={{ animation: motion ? undefined : "none", ["--pixel-native-height" as string]: `${height}px`, ["--px-drift" as string]: `${drift}px`, ["--px-steps" as string]: Math.max(1, drift * 2) }} />
       );
     })}
@@ -70,7 +70,7 @@ export function BackgroundGallery({ zoom }: { zoom: number }) {
       <h2 className="mb-2 text-lg font-bold">Escenarios de combate</h2>
       <div className="flex flex-wrap gap-3">
         {availableCombat.map((id) => <button key={id} aria-pressed={scene === id} className="border border-neutral-600 p-1 text-left" onClick={() => { setScene(id); setHidden([]); }}>
-          <ScenePreview scene={id} /><span className="mt-1 block text-sm">{sceneLabel(id)}</span>
+          <ScenePreview scene={id} thumbnail /><span className="mt-1 block text-sm">{sceneLabel(id)}</span>
         </button>)}
       </div>
     </section>
@@ -78,7 +78,7 @@ export function BackgroundGallery({ zoom }: { zoom: number }) {
       <h2 className="mb-2 text-lg font-bold">Pantallas del juego</h2>
       <div className="flex flex-wrap gap-3">
         {availableScreens.map((id) => <button key={id} aria-pressed={scene === id} className="border border-neutral-600 p-1 text-left" onClick={() => { setScene(id); setHidden([]); }}>
-          <ScenePreview scene={id} /><span className="mt-1 block text-sm">{sceneLabel(id)}</span>
+          <ScenePreview scene={id} thumbnail /><span className="mt-1 block text-sm">{sceneLabel(id)}</span>
         </button>)}
       </div>
       {pending.length > 0 && <p className="mt-3 text-sm text-neutral-400">Fondos pendientes: {pending.map(sceneLabel).join(", ")}.</p>}
