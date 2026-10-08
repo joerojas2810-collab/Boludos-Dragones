@@ -385,6 +385,17 @@ export function chain(
   return finishBulk(p, acc, "fusionar");
 }
 
+// Coins the same chain would cost with unlimited gold (materials still limit it), and how
+// many of them the player lacks. null when there is nothing to merge at all.
+export function chainCoins(
+  p: Profile,
+  a: { maxRank: RarityId; refine: boolean },
+): { need: number; missing: number } | null {
+  const r = chain({ ...p, coins: p.coins + 1_000_000_000 }, a);
+  if (!r.ok) return null;
+  return { need: r.diff.coins, missing: Math.max(0, r.diff.coins - p.coins) };
+}
+
 export function refineAll(p: Profile, a: { rank: RarityId }): ForgeResult {
   const acc = startAcc(p);
   refineAt(acc, a.rank);

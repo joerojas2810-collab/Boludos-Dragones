@@ -11,6 +11,7 @@ import { WeaponSprite } from "@/components/WeaponSprite";
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "@/lib/game/elements";
 import {
   applyForge,
+  chainCoins,
   COMBINE,
   CRAFT_PARTS,
   craftCoins,
@@ -466,6 +467,7 @@ export default function ForgePage() {
                   ))}
                 </select>
               );
+              const chainCost = chainCoins(profile, { maxRank, refine: refineFirst });
               return (
                 <>
                   {block(
@@ -490,6 +492,15 @@ export default function ForgePage() {
                         />
                         Refinar sobrantes primero
                       </label>
+                      {chainCost && chainCost.need > 0 && (
+                        <span
+                          className={`text-sm ${chainCost.missing > 0 ? "text-orange-300" : "text-green-300"}`}
+                        >
+                          {chainCost.missing > 0
+                            ? `Te faltan ${chainCost.missing} monedas (necesitas ${chainCost.need}).`
+                            : `Cuesta ${chainCost.need} monedas: te alcanza.`}
+                        </span>
+                      )}
                     </>,
                   )}
                   {block(

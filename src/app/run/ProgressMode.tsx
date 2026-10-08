@@ -878,7 +878,8 @@ function Prep({
           className="mx-auto w-full max-w-2xl space-y-3"
         >
           <EquipmentEditor c={sel} profile={profile} act={act} />
-          <div className="text-center">
+          {/* Stays in view while the long piece list scrolls. */}
+          <div className="sticky bottom-0 z-10 -mx-1 bg-gradient-to-t from-[#26323f] via-[#26323f]/90 to-transparent pb-1 pt-4 text-center">
             <button className="btn" onClick={() => setEditing(false)}>
               Listo
             </button>
@@ -1020,7 +1021,8 @@ function Prep({
             </div>
           </div>
         )}
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+        {/* Phone: the main actions stay in view while the page scrolls. */}
+        <div className="sticky bottom-0 z-10 flex justify-center gap-2 bg-gradient-to-t from-[#26323f] via-[#26323f]/90 to-transparent pb-1 pt-3 sm:hidden">
           <button
             className="btn text-center"
             disabled={!sel}
@@ -1043,6 +1045,32 @@ function Prep({
               Barrer
             </button>
           )}
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <div className="contents max-sm:hidden">
+          <button
+            className="btn text-center"
+            disabled={!sel}
+            onClick={() => {
+              if (sel) {
+                setHeroId(sel.id);
+                onEnter(sel.id);
+              }
+            }}
+          >
+            Entrar al nivel
+          </button>
+          {repeat && sel && (
+            <button
+              className="btn text-center"
+              disabled={sweepWhy !== null}
+              title={sweepWhy ?? "Resuelve el nivel al instante (paga como repetición)."}
+              onClick={() => onSweep(sel.id)}
+            >
+              Barrer
+            </button>
+          )}
+          </div>
           <button
             className="btn btn-gray text-center"
             disabled={!auto || auto.plan.length === 0}

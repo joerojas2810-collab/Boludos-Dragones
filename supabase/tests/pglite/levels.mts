@@ -120,7 +120,7 @@ await err(bank(run, { p_pieces: [{ ...lootPiece, rarity: "c" }] }), "invalid_ite
 await err(bank(run, { p_pieces: [{ ...lootPiece, roll: 2 }] }), "invalid_items", "roll out of range");
 await err(bank(run, { p_pieces: [{ ...lootPiece, lines: [{ stat: "atk", roll: 1 }] }] }), "invalid_items", "lines on a hand weapon");
 await err(bank(run, { p_pieces: [{ type: "casco", element: "agua", rarity: "f", name: "x", roll: 1, lines: [{ stat: "crit", roll: 1 }] }] }), "invalid_items", "more lines than the rank allows");
-await err(bank(run, { p_pieces: Array(4).fill(lootPiece) }), "invalid_items", "too many pieces");
+await err(bank(run, { p_pieces: Array(31).fill(lootPiece) }), "invalid_items", "too many pieces");
 await err(bank(run, { p_parts: { "p-espada-f": 99, "p-hacha-f": 99 } }), "invalid_items", "parts flood");
 await err(bank(run, { p_parts: { "core-hacker": 1 } }), "invalid_items", "bad part key");
 await err(bank(run, { p_status: "won" }), "invalid_args", "bad status");
@@ -179,6 +179,20 @@ await db.exec(`insert into public.runs(player_id,seed,hero,status,finished_at) s
 await err(startRaw(), "rate_limited", "200 starts/hour");
 await reset();
 
+// 6b. random loot drops many pieces at once (up to 15 on a 5-fight level): the bank must take them
+{
+  await reset();
+  const done0 = (await q(`select cleared from public.dungeon_progress where player_id='${P}' and rank='f' and ascension=0`))[0]?.cleared ?? 0;
+  const prevRepeat = REPEAT;
+  REPEAT = done0 > 0;
+  const many = Array.from({ length: 12 }, (_, i) => ({ type: "casco", element: ["agua", "fuego", "viento", "tierra", "rayo"][i % 5], rarity: i < 5 ? "f" : "e", name: "Casco", roll: 1 }));
+  const rid = (await startRaw()).run_id;
+  const bm2 = await bank(rid, { p_pieces: many, p_parts: { "p-espada-f": 3 } });
+  ok(bm2.cleared, "12 dropped pieces are banked: " + JSON.stringify(bm2));
+  REPEAT = prevRepeat;
+  if (done0 === 0) await db.exec(`delete from public.dungeon_progress where player_id='${P}' and rank='f' and ascension=0`);
+  await reset();
+}
 // 8. burn
 const legacyKey = second.key;
 await db.exec(`update public.characters set legacy=true where key='${legacyKey}'`);

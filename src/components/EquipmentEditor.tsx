@@ -40,6 +40,7 @@ import {
 } from "@/lib/game/weapons";
 import { PieceFilterBar } from "@/components/PieceFilterBar";
 import { filterPieces, NO_PIECE_FILTER, type PieceFilter } from "@/lib/pieceFilter";
+import { isPixel } from "@/lib/art/pixel";
 import { repo } from "@/lib/useProfile";
 import {
   extraLinesText,
@@ -296,18 +297,27 @@ export function EquipmentEditor({
                   className="doll-slot"
                   aria-pressed={sel === sl}
                   title={w ? `${w.name}: ${pieceLine(w)}` : "Vacío"}
-                  style={
-                    w ? { borderColor: RARITIES[w.rarity].color } : undefined
-                  }
+                  data-rank={w && !isPixel() ? w.rarity : undefined}
                   onClick={() => setSel(sl)}
                 >
                   {w ? (
-                    <WeaponSprite
-                      type={w.type}
-                      element={w.element}
-                      rarity={w.rarity}
-                      className="w-9"
-                    />
+                    <>
+                      <WeaponSprite
+                        type={w.type}
+                        element={w.element}
+                        rarity={w.rarity}
+                        className="w-9"
+                      />
+                      {!isPixel() && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={`/art/ui/frame_rank_${w.rarity}_compact.webp`}
+                          alt=""
+                          draggable={false}
+                          className="doll-frame"
+                        />
+                      )}
+                    </>
                   ) : (
                     <span className="doll-empty">
                       {sl === "arma" ? "Arma" : WEAPON_TYPE_DATA[sl].label}

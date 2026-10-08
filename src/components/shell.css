@@ -357,6 +357,30 @@
 .doll-slot:hover:not([aria-pressed="true"]) {
   border-image-source: url("/art/ui/slot_hover.webp");
 }
+/* A worn piece wears its rank frame (portrait, like the item cards). */
+.doll-slot[data-rank] {
+  position: relative;
+  width: 3.7rem;
+  height: 4.9rem;
+  border: 0;
+  border-image: none;
+  background: rgb(20 28 38 / 0.85);
+}
+.doll-slot[data-rank][aria-pressed="true"] {
+  border-image: none;
+  filter: drop-shadow(0 0 6px #fde68a);
+}
+.doll-slot[data-rank]:hover:not([aria-pressed="true"]) {
+  border-image: none;
+  filter: brightness(1.2);
+}
+.doll-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
 .doll-empty {
   opacity: 0.7;
 }
