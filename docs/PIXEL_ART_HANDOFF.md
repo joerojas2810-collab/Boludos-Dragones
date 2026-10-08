@@ -309,6 +309,8 @@ La galería `src/app/galeria-px/` (`page.tsx` con `notFound()` en producción y 
 
 ## 9. Para subir el git
 
+**Actualización vigente, 8 de octubre de 2026:** la rama de pixel art fue fusionada; `main` es la rama actual. El usuario autorizó commit y push de cambios visuales al completar cada fase. Las instrucciones anteriores sobre `design/pixel-art` son históricas.
+
 - Rama `design/pixel-art`; PR contra `main` solo cuando el usuario lo pida. No fusionar sola.
 - Antes de commitear: `git status`. Los dos documentos de arte ya estaban versionados en la rama remota. `docs/PROPUESTA_RUN_V2.md` es del usuario, de otro tema: no la toques ni la incluyas sin preguntar.
 - No subir las carpetas de origen (`Downloads/heroes`, `Downloads/enemies`) ni nada de `.next*`.
@@ -334,6 +336,8 @@ La galería `src/app/galeria-px/` (`page.tsx` con `notFound()` en producción y 
 - Pruebas de cierre: TypeScript sin errores, ESLint sin errores con advertencias preexistentes y Vitest 37 archivos / 449 pruebas aprobados. La UI pintada sigue siendo el modo predeterminado; el kit pixel se activa con `NEXT_PUBLIC_ART=pixel`. No se cambió lógica de juego, sonido ni fondos o efectos.
 
 ### Fase 6 — lote 1 y bloqueo de cuota
+
+**Cierre, 8 de octubre de 2026:** desbloqueada la herramienta integrada y completadas las cinco pantallas pendientes a 960×540 con el detalle HD aprobado. Total 96 PNG: 91 anteriores a 320×180 sin modificar y 5 nuevos a 960×540. Paquete `Pedido de Arte Pixel Art/phase_6_backgrounds_complete.zip` (97 entradas), 4,86 MB. Dimensiones por archivo, alfa binario y pantallas opacas verificados; PNG importados idénticos a la entrega y al ZIP. Importador sin `--partial`: 96 recursos / 24 escenarios. TypeScript y ESLint sin errores; Vitest 42 archivos / 412 pruebas aprobados. El primer intento de Vitest falló por temporales del aislamiento y la repetición local pasó. El usuario autorizó Fase 7 y pospuso mejorar las demás fases hasta cerrar las pendientes.
 
 - El 7 de octubre de 2026 se completaron **91 PNG finales**: los 18 escenarios de combate en 5 capas (90 archivos) y `menu_desktop_composite.png`. `phase_6_backgrounds_batch_1.zip` contiene 91 PNG y manifiesto (92 entradas); integridad comprobada. Los 91 recursos de juego coinciden byte por byte con la entrega. La Fase 6 **no está terminada**.
 - Las capas comparten lienzo nativo **320×180, 16:9**, sin suavizado ni exportaciones mobile o escaladas. Anclaje central `(160, 90)`, un cuadro, fps 0, loop falso. Suelo al 70 % (`y=126`). Cielo y menú opacos; las otras capas tienen alfa binario y RGB cero en píxeles transparentes. El manifiesto declara la paleta real, escena, capa y parallax de cada archivo.

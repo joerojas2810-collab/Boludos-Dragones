@@ -7,7 +7,7 @@ Plan de trabajo para acelerar las fases pendientes mediante bases compartidas y 
 - Mantener el pixel art de aventura de fantasía de 16 bits aprobado: iluminación arriba a la izquierda, contorno coherente, tamaños nativos y PNG sin suavizado.
 - Conservar los nombres existentes en `public/art/`, cambiando únicamente la extensión a `.png`. Las excepciones requieren autorización del usuario.
 - Revisar visualmente cada lote y comprobar sus dimensiones, transparencia y manifiesto. Ejecutar TypeScript, ESLint y Vitest al terminar cada fase, según la instrucción del usuario.
-- Hacer commit y push de cada lote terminado a `design/pixel-art`. No fusionar con `main`, retirar el arte pintado ni crear un PR sin solicitud del usuario.
+- Hacer commit y push de cada fase terminada a `main`: el usuario confirmó que la rama pixel fue fusionada y autorizó subir los cambios visuales. No retirar el arte pintado ni crear un PR sin solicitud del usuario.
 - Trabajar con dos agentes: dirección visual y producción; inventario, exportaciones e integración. Un responsable centraliza los commits y pushes.
 - Entregar solo recursos finales y manifiestos; conservar ZIP fuera del repositorio y excluir fuentes, borradores y carpetas de trabajo.
 
@@ -36,6 +36,10 @@ Referencia exacta: los **130 archivos** actuales de `public/art/ui/`. Construir 
 Los estados deben compartir geometría y cortes para evitar saltos de tamaño. Revisar un conjunto representativo antes de exportar todo el kit. Las piezas no animadas llevan un cuadro; los cortes y tamaños nativos se declaran en el manifiesto.
 
 ## Fase 6: fondos por capas
+
+Actualización del 8 de octubre de 2026: **96 de 96 recursos completados**. Se añadieron colección, invocación, sala, mercado y forja a **960×540**, con el detalle de la muestra HD aprobada. Los 91 archivos anteriores permanecen a 320×180 sin cambios. El manifiesto declara dimensiones por archivo; el importador y el escalado de pantallas respetan ambos tamaños. Paquete completo: `phase_6_backgrounds_complete.zip`, 96 PNG y manifiesto. Verificados ZIP, dimensiones e igualdad de importación; TypeScript y ESLint sin errores, 412 pruebas aprobadas. La muestra de Pantano 960×540 y Caballero 128×192 permanece separada; no convierte los héroes existentes ni sus animaciones.
+
+El usuario autorizó continuar directamente con Fase 7 usando el nuevo detalle. Las mejoras del resto de las fases se evaluarán después del cierre de 6 y 7.
 
 Estado al 7 de octubre de 2026: **91 de 96 archivos entregados e integrados** (90 capas de combate y menú). Faltan únicamente colección, gacha, lobby, mercado y forja, como imágenes únicas. La herramienta alcanzó su límite diario y el usuario eligió esperar al reinicio previsto para el 8 de octubre, aproximadamente 13:37 de Argentina. Conservar los 91 recursos terminados; no iniciar Fase 7 ni marcar Fase 6 completa. Las pruebas de código se ejecutarán al añadir los cinco restantes.
 

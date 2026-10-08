@@ -160,6 +160,14 @@
     "parallax": 0
   },
   {
+    "file": "collection_desktop_composite.png",
+    "width": 960,
+    "height": 540,
+    "scene": "collection",
+    "layer": "composite",
+    "parallax": 0
+  },
+  {
     "file": "dungeon_a_boss_desktop_far.png",
     "width": 320,
     "height": 180,
@@ -477,6 +485,38 @@
     "height": 180,
     "scene": "dungeon_ssr_normal",
     "layer": "sky",
+    "parallax": 0
+  },
+  {
+    "file": "forge_desktop_composite.png",
+    "width": 960,
+    "height": 540,
+    "scene": "forge",
+    "layer": "composite",
+    "parallax": 0
+  },
+  {
+    "file": "gacha_desktop_composite.png",
+    "width": 960,
+    "height": 540,
+    "scene": "gacha",
+    "layer": "composite",
+    "parallax": 0
+  },
+  {
+    "file": "lobby_desktop_composite.png",
+    "width": 960,
+    "height": 540,
+    "scene": "lobby",
+    "layer": "composite",
+    "parallax": 0
+  },
+  {
+    "file": "market_desktop_composite.png",
+    "width": 960,
+    "height": 540,
+    "scene": "market",
+    "layer": "composite",
     "parallax": 0
   },
   {

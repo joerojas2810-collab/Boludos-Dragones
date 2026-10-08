@@ -3,6 +3,8 @@ import { isPixel } from "./pixel";
 import pixelBackgrounds from "./pixel-backgrounds.generated.json";
 
 const pixelFiles = new Set((pixelBackgrounds as { file: string }[]).map((entry) => entry.file));
+export const pixelBackgroundSize = (scene: string, part: string) =>
+  pixelBackgrounds.find((entry) => entry.file === `${scene}_desktop_${part}.png`);
 export const isPixelBackground = (scene: string, part: string) =>
   isPixel() && pixelFiles.has(`${scene}_desktop_${part}.png`);
 

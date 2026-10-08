@@ -22,7 +22,7 @@
   container-type: size;
 }
 .bg-layer-pixel {
-  --pixel-bg-height: round(up, max(100cqh, 100cqw * 9 / 16), 180px);
+  --pixel-bg-height: round(up, max(100cqh, 100cqw * 9 / 16), var(--pixel-native-height, 180px));
   inset: auto;
   bottom: 0;
   left: round(nearest, calc((100cqw - var(--pixel-bg-height) * 16 / 9) / 2), 1px);

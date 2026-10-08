@@ -23,18 +23,19 @@ const factors = { sky: 0, far: 0.12, mid: 0.28, ground: 0, foreground: 0.5, comp
 const metadata = [];
 for (const entry of entries) {
   const parts = entry.file.match(/^([a-z0-9_]+)_desktop_(sky|far|mid|ground|foreground|composite)\.png$/);
-  if (!parts || entry.frames !== 1 || entry.fps !== 0 || entry.loop !== false || entry.frame_width !== 320 || entry.frame_height !== 180) throw new Error("Invalid native static background: " + entry.file);
+  const expectedSize = entry.layer === "composite" && entry.scene !== "menu" ? [960, 540] : [320, 180];
+  if (!parts || entry.frames !== 1 || entry.fps !== 0 || entry.loop !== false || entry.frame_width !== expectedSize[0] || entry.frame_height !== expectedSize[1]) throw new Error("Invalid native static background: " + entry.file);
   const [, scene, layer] = parts;
   if (entry.scene !== scene || entry.layer !== layer || entry.parallax !== factors[layer]) throw new Error("Invalid scene/layer/parallax metadata: " + entry.file);
   if (!readFileSync(join(source, entry.file)).subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) throw new Error("Expected PNG: " + entry.file);
   const { data, info } = await sharp(join(source, entry.file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  if (info.width !== 320 || info.height !== 180) throw new Error("Expected 320x180: " + entry.file);
+  if (info.width !== expectedSize[0] || info.height !== expectedSize[1]) throw new Error("Unexpected dimensions: " + entry.file);
   for (let p = 3; p < data.length; p += 4) {
     if (data[p] !== 0 && data[p] !== 255) throw new Error("Non-binary alpha: " + entry.file);
     if ((layer === "sky" || layer === "composite") && data[p] !== 255) throw new Error("Sky/composite must be opaque: " + entry.file);
     if (!data[p] && (data[p - 3] || data[p - 2] || data[p - 1])) throw new Error("Transparent RGB must be zero: " + entry.file);
   }
-  metadata.push({ file: entry.file, width: 320, height: 180, scene, layer, parallax: entry.parallax });
+  metadata.push({ file: entry.file, width: info.width, height: info.height, scene, layer, parallax: entry.parallax });
 }
 const target = join(repo, "public/art/backgrounds-px");
 mkdirSync(target, { recursive: true });

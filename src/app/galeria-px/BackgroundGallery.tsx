@@ -25,14 +25,17 @@ function sceneAssets(scene: string) {
 }
 
 function ScenePreview({ scene, zoom = 1, hidden = [], motion = false }: { scene: string; zoom?: number; hidden?: string[]; motion?: boolean }) {
-  return <div role="img" aria-label={sceneLabel(scene)} className="relative shrink-0 overflow-hidden bg-black" style={{ width: 320 * zoom, height: 180 * zoom }}>
+  const native = sceneAssets(scene)[0];
+  const width = native?.width ?? 320;
+  const height = native?.height ?? 180;
+  return <div role="img" aria-label={sceneLabel(scene)} className="relative shrink-0 overflow-hidden bg-black" style={{ width: width * zoom, height: height * zoom, containerType: "size" }}>
     {sceneAssets(scene).filter((entry) => !hidden.includes(entry.layer)).map((entry) => {
       const drift = Math.round(entry.parallax * 32);
       return (
         // eslint-disable-next-line @next/next/no-img-element
         <img key={entry.file} src={`/art/backgrounds-px/${entry.file}`} alt="" draggable={false}
-          className="bg-layer bg-layer-pixel" width={320 * zoom} height={180 * zoom}
-          style={{ animation: motion ? undefined : "none", ["--px-drift" as string]: `${drift}px`, ["--px-steps" as string]: Math.max(1, drift * 2) }} />
+          className="bg-layer bg-layer-pixel" width={width * zoom} height={height * zoom}
+          style={{ animation: motion ? undefined : "none", ["--pixel-native-height" as string]: `${height}px`, ["--px-drift" as string]: `${drift}px`, ["--px-steps" as string]: Math.max(1, drift * 2) }} />
       );
     })}
   </div>;
