@@ -521,8 +521,8 @@
   },
   {
     "file": "menu_desktop_composite.png",
-    "width": 320,
-    "height": 180,
+    "width": 960,
+    "height": 540,
     "scene": "menu",
     "layer": "composite",
     "parallax": 0

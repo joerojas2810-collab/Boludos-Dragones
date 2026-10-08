@@ -23,7 +23,7 @@ const factors = { sky: 0, far: 0.12, mid: 0.28, ground: 0, foreground: 0.5, comp
 const metadata = [];
 for (const entry of entries) {
   const parts = entry.file.match(/^([a-z0-9_]+)_desktop_(sky|far|mid|ground|foreground|composite)\.png$/);
-  const expectedSize = entry.layer === "composite" && entry.scene !== "menu" ? [960, 540] : [320, 180];
+  const expectedSize = entry.layer === "composite" && !(entry.scene === "menu" && entry.frame_width === 320) ? [960, 540] : [320, 180];
   if (!parts || entry.frames !== 1 || entry.fps !== 0 || entry.loop !== false || entry.frame_width !== expectedSize[0] || entry.frame_height !== expectedSize[1]) throw new Error("Invalid native static background: " + entry.file);
   const [, scene, layer] = parts;
   if (entry.scene !== scene || entry.layer !== layer || entry.parallax !== factors[layer]) throw new Error("Invalid scene/layer/parallax metadata: " + entry.file);
