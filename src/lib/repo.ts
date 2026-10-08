@@ -32,7 +32,8 @@ import {
 import { levelLoot, type LevelLoot } from "./game/levelLoot";
 import { levelsOf } from "./game/levels";
 import type { SkillId } from "./game/skills";
-import type { Stage } from "./game/stage";
+import { levelFights, type Stage } from "./game/stage";
+import { sweepBlock, sweepStage } from "./game/sweep";
 import { dayPayMult } from "./game/economy";
 import { localWeekSeed, towerHero, type TowerMode } from "./game/tower";
 import { burn as burnItem } from "./game/burn";
@@ -120,6 +121,13 @@ export interface ProfileRepo {
     asc: number,
   ): Promise<LevelStartInfo>;
   finishLevel(a: LevelFinish): Promise<LevelOutcome>;
+  /** Instant resolution of an already-cleared level (see game/sweep.ts). */
+  sweepLevel(
+    heroId: string,
+    rank: RarityId,
+    level: number,
+    asc: number,
+  ): Promise<LevelOutcome & { stage: Stage }>;
   forge(op: ForgeOp): Promise<{ text: string }>;
   startRun(
     classId: ClassId,
@@ -256,6 +264,35 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       });
       store.update(() => bank.profile);
       return { bank, loot };
+    },
+    sweepLevel: async (heroId, rank, level, asc) => {
+      const p = store.get();
+      const why = sweepBlock(p, heroId, rank, level, asc);
+      if (why) throw new RepoError("sweep_locked", why);
+      const hero = heroFromOwned(p, heroId);
+      const spec = levelsOf(rank)[level];
+      if (!hero || !spec)
+        throw new RepoError("character_not_found", "Personaje no encontrado.");
+      const seed = Date.now();
+      const stage = sweepStage(seed, hero, levelFights(spec, asc), asc);
+      if (stage.status !== "cleared")
+        throw new RepoError(
+          "sweep_failed",
+          "Tu héroe no logró barrer este nivel solo. Pelea tú el nivel.",
+        );
+      const loot = levelLoot(spec, asc, hero.classId, seed, lootOptions(p, rank, level, asc));
+      const bank = bankLevel(p, {
+        rank,
+        level,
+        asc,
+        heroId,
+        status: "cleared",
+        xp: stage.xp,
+        loot,
+        attemptId: `sw-${seed}`,
+      });
+      store.update(() => bank.profile);
+      return { bank, loot, stage };
     },
     forge: async (op) => {
       const r = applyForge(store.get(), op);
@@ -445,6 +482,24 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       });
       store.replace(r.profile);
       return { bank: { ...r.bank, profile: r.profile }, loot: r.loot };
+    },
+    sweepLevel: async (heroId, rank, level, asc) => {
+      const r = await api<{
+        seed: number;
+        hero: Character;
+        bank: Omit<LevelBank, "profile">;
+        loot: LevelLoot;
+        profile: Profile;
+      }>("/api/level/sweep", {
+        characterId: heroId,
+        rank,
+        level,
+        ascension: asc,
+      });
+      store.replace(r.profile);
+      // The server paid from its own play; the same deterministic engine rebuilds it for display.
+      const stage = sweepStage(r.seed, r.hero, levelFights(levelsOf(rank)[level], asc), asc);
+      return { bank: { ...r.bank, profile: r.profile }, loot: r.loot, stage };
     },
     forge: async (op) => {
       const r = await api<{ text: string; profile: Profile }>("/api/forge", op);

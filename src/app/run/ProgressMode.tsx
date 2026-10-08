@@ -58,8 +58,10 @@ import {
   levelFights,
   type FightRole,
 } from "@/lib/game/stage";
+import { sweepBlock } from "@/lib/game/sweep";
 import {
   applyStageAction,
+  ENGINE_VERSION,
   initialStageReplay,
   type StageAction,
   type StageReplayState,
@@ -155,6 +157,43 @@ export function ProgressMode() {
       });
     } catch (e) {
       pushNotice(e instanceof Error ? e.message : "No se pudo empezar el nivel.");
+      setView({ t: "prep", rank, level });
+    }
+  };
+
+  // Instant resolution of an already-cleared level; shows the usual result screen.
+  const sweep = async (rank: RarityId, level: number, id: string) => {
+    const owned = profile.characters.find((c) => c.id === id);
+    if (!owned || view.t === "saving") return;
+    setHeroId(id);
+    setView({ t: "saving" });
+    try {
+      const out = await repo.sweepLevel(owned.id, rank, level, asc);
+      const info: LevelStartInfo = {
+        attemptId: "sweep",
+        seed: out.stage.seed,
+        hero: out.stage.hero,
+        engineVersion: ENGINE_VERSION,
+      };
+      setView({
+        t: "result",
+        o: {
+          attempt: {
+            rank,
+            level,
+            asc,
+            heroId: owned.id,
+            rs: { stage: out.stage, battle: null, rng: null, settled: null },
+            actions: [],
+            info,
+          },
+          bank: out.bank,
+          loot: out.loot,
+          before: { level: owned.level, xp: owned.xp },
+        },
+      });
+    } catch (e) {
+      pushNotice(e instanceof Error ? e.message : "No se pudo barrer el nivel.");
       setView({ t: "prep", rank, level });
     }
   };
@@ -522,6 +561,7 @@ export function ProgressMode() {
         setHeroId={setHeroId}
         hero={hero}
         onEnter={(id) => void enter(view.rank, view.level, id)}
+        onSweep={(id) => void sweep(view.rank, view.level, id)}
         onBack={() => setView({ t: "levels", rank: view.rank })}
       />
     );
@@ -766,6 +806,7 @@ function Prep({
   setHeroId,
   hero,
   onEnter,
+  onSweep,
   onBack,
 }: {
   profile: Profile;
@@ -775,6 +816,7 @@ function Prep({
   setHeroId: (id: string) => void;
   hero: OwnedCharacter | null;
   onEnter: (id: string) => void;
+  onSweep: (id: string) => void;
   onBack: () => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -794,6 +836,7 @@ function Prep({
   const sel = hero ?? owned[0]?.c ?? null;
   const act = (job: () => Promise<void>) => void job();
   const auto = sel ? bestAutoMode(profile, sel.id) : null;
+  const sweepWhy = sel ? sweepBlock(profile, sel.id, rank, level, asc) : "Elige un héroe.";
 
   if (editing && sel)
     return (
@@ -960,6 +1003,16 @@ function Prep({
           >
             Entrar al nivel
           </button>
+          {repeat && sel && (
+            <button
+              className="btn text-center"
+              disabled={sweepWhy !== null}
+              title={sweepWhy ?? "Resuelve el nivel al instante (paga como repetición)."}
+              onClick={() => onSweep(sel.id)}
+            >
+              Barrer
+            </button>
+          )}
           <button
             className="btn btn-gray text-center"
             disabled={!auto || auto.plan.length === 0}

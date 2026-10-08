@@ -32,6 +32,7 @@ import { RARITY_IDS, type RarityId } from "../game/rarity";
 import { createRng } from "../game/rng";
 import { isSkillId } from "../game/skills";
 import { levelFights } from "../game/stage";
+import { sweepBlock, sweepStage } from "../game/sweep";
 import {
   ENGINE_VERSION,
   replayStage,
@@ -568,7 +569,7 @@ export async function startLevelService(
     limit(
       d.rpc,
       `lvstarth:${playerId}`,
-      150,
+      200,
       3600,
       "Llegaste al límite de niveles por hora. Descansa un rato y vuelve.",
     ),
@@ -815,6 +816,109 @@ export async function finishLevelService(
     verdict: out.raw.verdict,
     profile: fresh.profile,
   };
+}
+
+/**
+ * Sweeps a level already cleared at this ascension: the engine plays it with the auto
+ * policy from a fresh server seed and pays as a repeat clear. Needs a hero well above
+ * the recommended power (sweepBlock) and an auto play that really clears the level.
+ */
+export async function sweepLevelService(
+  d: Deps,
+  playerId: string,
+  body: LevelStartBody,
+) {
+  await Promise.all([
+    limit(d.rpc, `lvsweep:${playerId}`, 30, 60, "Demasiados barridos seguidos. Espera un minuto."),
+    limit(
+      d.rpc,
+      `lvsweeph:${playerId}`,
+      600,
+      3600,
+      "Llegaste al límite de barridos por hora. Descansa un rato y vuelve.",
+    ),
+  ]);
+  const { rank, level, ascension: asc, characterId } = body;
+  const me = await loadMe(d.rpc, playerId);
+  const spec = levelsOf(rank)[level];
+  if (!spec) throw new ApiError(400, "invalid_input", "Datos inválidos.");
+  const why = sweepBlock(me.profile, characterId, rank, level, asc);
+  if (why) throw new ApiError(409, "sweep_locked", why);
+  const hero = heroFromOwned(me.profile, characterId);
+  if (!hero)
+    throw new ApiError(404, "character_not_found", "Personaje no encontrado.");
+  const seed = d.randomSeed();
+  const stage = sweepStage(seed, hero, levelFights(spec, asc), asc);
+  if (stage.status !== "cleared")
+    throw new ApiError(
+      409,
+      "sweep_failed",
+      "Tu héroe no logró barrer este nivel solo. Pelea tú el nivel.",
+    );
+  const opts = lootOptions(me.profile, rank, level, asc);
+  const loot = levelLoot(spec, asc, hero.classId, seed, opts);
+  try {
+    const r = await openRunRow(
+      d,
+      playerId,
+      {
+        p_player: playerId,
+        p_character_id: characterId,
+        p_seed: seed,
+        p_hero: { ...hero, engineVersion: ENGINE_VERSION, sweep: true },
+        p_rank: rank,
+        p_level: level,
+        p_asc: asc,
+      },
+      "start_level",
+    );
+    const raw = await call<LevelBankRaw>(d.rpc, "bank_level", {
+      p_player: playerId,
+      p_run_id: r.run_id,
+      p_hero_id: characterId,
+      p_rank: rank,
+      p_level: level,
+      p_asc: asc,
+      p_status: "cleared",
+      p_xp: stage.xp,
+      p_parts: loot.parts,
+      p_pieces: loot.pieces,
+      p_repeat: opts.repeat,
+      p_log: null,
+      p_verdict: "accepted",
+      p_reason: "sweep",
+    });
+    const [, fresh] = await Promise.all([
+      trackMissions(
+        d.rpc,
+        playerId,
+        missionDeltas({
+          status: "cleared",
+          won: stage.won,
+          heroElement: hero.element,
+          finalLevel: raw.dungeonDone,
+        }),
+      ),
+      loadMe(d.rpc, playerId),
+    ]);
+    return {
+      seed,
+      hero,
+      bank: {
+        cleared: raw.cleared,
+        repeat: raw.repeat,
+        coins: raw.coins,
+        chest: raw.chest,
+        xp: raw.xp,
+        levelsGained: raw.levelsGained,
+        newLevel: raw.newLevel,
+      },
+      loot,
+      profile: fresh.profile,
+    };
+  } catch (e) {
+    return mapRpcError(e);
+  }
 }
 
 // ---- burn / hero skill ----

@@ -48,7 +48,7 @@ function hero(rank: RarityId, seed: number) {
 }
 
 for (const rank of ranks) {
-  const levels = levelsOf(rank);
+  const levels = levelsOf((process.env.DUNGEON as RarityId | undefined) ?? rank);
   const row: string[] = [];
   let dungeon = 0;
   for (const spec of levels) {

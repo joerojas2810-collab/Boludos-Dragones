@@ -169,10 +169,14 @@ ok(lv.levelsDay && lv.levelsDay.n >= 201, "levelsDay exposed");
 await db.exec(`delete from public.dungeon_progress where player_id='${P}'`);
 await db.exec(`update public.player_state set levels_day=null, levels_n=0`);
 
-// 7. start rate limits (40/hour)
+// 7. start rate limits (200/hour for fights; sweeps do not count)
 await reset();
-await db.exec(`insert into public.runs(player_id,seed,hero,status,finished_at) select '${P}',1,'{"kind":"level"}','closed',now() from generate_series(1,40)`);
-await err(startRaw(), "rate_limited", "40 starts/hour");
+await db.exec(`insert into public.runs(player_id,seed,hero,status,finished_at) select '${P}',1,'{"kind":"level","sweep":true}','closed',now() from generate_series(1,250)`);
+const sw = await startRaw();
+ok(!!sw.run_id, "250 sweeps in the hour do not block a fight");
+await reset();
+await db.exec(`insert into public.runs(player_id,seed,hero,status,finished_at) select '${P}',1,'{"kind":"level"}','closed',now() from generate_series(1,200)`);
+await err(startRaw(), "rate_limited", "200 starts/hour");
 await reset();
 
 // 8. burn
