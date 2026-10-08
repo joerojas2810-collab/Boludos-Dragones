@@ -2,6 +2,22 @@ import { ItemCard } from "@/components/ItemCard";
 import { PIXEL_ICON_NAMES } from "@/lib/art/pixel";
 import { RARITY_IDS } from "@/lib/game/rarity";
 import { DUNGEONS } from "@/lib/game/dungeons";
+import { RELICS } from "@/lib/game/relics";
+import artIds from "@/lib/artIds.json";
+
+const RELIC_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(artIds.relic).map(([id, name]) => [name, RELICS[id as keyof typeof RELICS].name]),
+);
+const RELIC_RARITY_LABELS: Record<string, string> = { common: "Común", rare: "Rara", legendary: "Legendaria" };
+
+function relicLabel(id: string) {
+  if (id.startsWith("rarity_")) return "Rareza " + (RELIC_RARITY_LABELS[id.slice(7)] ?? id.slice(7));
+  if (id.startsWith("variant_")) {
+    const match = id.slice(8).match(/^(.*)_(common|rare|legendary)$/);
+    if (match) return `${RELIC_LABELS[match[1]] ?? match[1]} · ${RELIC_RARITY_LABELS[match[2]]}`;
+  }
+  return RELIC_LABELS[id] ?? id;
+}
 
 const ELEMENTS = [
   ["fire", "Fuego"], ["water", "Agua"], ["earth", "Tierra"],
@@ -14,7 +30,7 @@ const ITEMS = [
 ] as const;
 const FAMILY_LABELS: Record<string, string> = {
   element: "Elementos", class: "Clases", rank: "Rangos", asc: "Ascensión", enemy_modifier: "Modificadores de enemigos", door: "Puertas",
-  passive: "Pasivos", skill: "Habilidades", trait: "Rasgos", upgrade: "Mejoras", event: "Eventos", dungeon: "Dungeons", stat: "Estadísticas", system: "Sistema", part: "Partes de forja", core: "Núcleos",
+  passive: "Pasivos", skill: "Habilidades", trait: "Rasgos", upgrade: "Mejoras", event: "Eventos", dungeon: "Dungeons", stat: "Estadísticas", system: "Sistema", relic: "Reliquias", part: "Partes de forja", core: "Núcleos",
 };
 const LABELS: Record<string, string> = {
   fire: "Fuego", water: "Agua", earth: "Tierra", lightning: "Rayo", wind: "Viento",
@@ -161,19 +177,27 @@ export function InventoryGallery({ lot, zoom, bg }: { lot: "items" | "icons" | "
       {Object.entries(FAMILY_LABELS).map(([family, label]) => {
         const names = PIXEL_ICON_NAMES.filter((name) => name.startsWith(family + "_"));
         if (!names.length) return null;
+        const groups = family === "relic" ? [
+          { title: "Diseños base", names: names.filter((name) => !name.startsWith("relic_variant_") && !name.startsWith("relic_rarity_")) },
+          { title: "Variantes por rareza", names: names.filter((name) => name.startsWith("relic_variant_")) },
+          { title: "Distintivos de rareza", names: names.filter((name) => name.startsWith("relic_rarity_")) },
+        ] : [{ title: "", names }];
         return <section key={family}>
           <h2 className="mb-2 text-lg font-bold">{label}</h2>
+          {groups.map((group) => <div key={group.title} className="mb-4">
+          {group.title && <h3 className="mb-2 text-sm font-bold">{group.title}</h3>}
           <div className="flex flex-wrap gap-3">
-            {names.map((name) => {
+            {group.names.map((name) => {
               const id = name.slice(family.length + 1);
               const dungeon = family === "dungeon" ? RARITY_IDS.find((rank) => id === "rank_" + rank) : undefined;
-              const title = dungeon ? DUNGEONS[dungeon].name : family === "asc" ? (id === "max_star" ? "Estrella máxima" : "Ascensión " + id) : family === "rank" ? id.toUpperCase() : family === "system" && id === "chest" ? "Cofre" : family === "stat" && id === "flee" ? "Huida" : (family === "door" ? DOOR_LABELS[id] : LABELS[id]) ?? id;
+              const title = family === "relic" ? relicLabel(id) : dungeon ? DUNGEONS[dungeon].name : family === "asc" ? (id === "max_star" ? "Estrella máxima" : "Ascensión " + id) : family === "rank" ? id.toUpperCase() : family === "system" && id === "chest" ? "Cofre" : family === "stat" && id === "flee" ? "Huida" : (family === "door" ? DOOR_LABELS[id] : LABELS[id]) ?? id;
               return <figure key={name}>
                 <PixelImage path={"icons-px/icon_" + name} label={title} width={32 * zoom} bg={bg} />
                 <figcaption className="mt-1 text-center text-xs">{title}</figcaption>
               </figure>;
             })}
           </div>
+          </div>)}
         </section>;
       })}
     </section>
