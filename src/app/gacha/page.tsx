@@ -104,7 +104,7 @@ export default function GachaPage() {
             key={k}
             role="tab"
             aria-selected={banner === k}
-            className={`btn flex-1 text-center ${banner === k ? "" : "btn-gray"}`}
+            className={`btn min-w-0 flex-1 text-center max-md:!text-sm max-md:![border-width:8px_10px] max-md:![border-image-width:8px_10px] ${banner === k ? "" : "btn-gray"}`}
             onClick={() => {
               setBanner(k);
               setError(null);

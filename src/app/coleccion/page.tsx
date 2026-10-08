@@ -258,7 +258,7 @@ export default function CollectionPage() {
             key={k}
             role="tab"
             aria-selected={tab === k}
-            className={`btn flex-1 text-center ${tab === k ? "" : "btn-gray"}`}
+            className={`btn min-w-0 flex-1 text-center max-md:!text-sm max-md:![border-width:8px_10px] max-md:![border-image-width:8px_10px] ${tab === k ? "" : "btn-gray"}`}
             onClick={() => setTab(k)}
           >
             {label}

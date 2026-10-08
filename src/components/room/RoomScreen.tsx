@@ -398,7 +398,7 @@ export function RoomScreen({
               return (
                 <li
                   key={r.id}
-                  className="b-enter flex items-center gap-2 text-sm"
+                  className="b-enter flex items-center gap-2 text-sm max-md:gap-1"
                 >
                   <span className="w-5 text-right opacity-70">{r.pos}</span>
                   {p.hero ? (
@@ -406,11 +406,11 @@ export function RoomScreen({
                       classId={p.hero.classId}
                       element={p.hero.element}
                       traits={p.hero.traits}
-                      className="w-16 shrink-0"
+                      className="w-16 shrink-0 max-md:w-10"
                       crop
                     />
                   ) : (
-                    <span className="w-16 shrink-0" />
+                    <span className="w-16 shrink-0 max-md:w-10" />
                   )}
                   <span
                     className={`min-w-0 flex-1 truncate ${r.isMe ? "text-yellow-300" : ""}`}
@@ -443,7 +443,7 @@ export function RoomScreen({
                   </span>
                   {isHost && r.id !== view.me && view.phase !== "closed" && (
                     <button
-                      className="btn btn-gray !px-2 !py-0 text-xs"
+                      className="btn btn-gray !px-2 !py-0 text-xs max-md:![border-width:6px_6px] max-md:![border-image-width:6px_6px] max-md:!px-0.5"
                       aria-label={`Expulsar a ${r.name}`}
                       title="Expulsar"
                       onClick={() => {
