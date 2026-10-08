@@ -8,6 +8,7 @@ import { EnemyCueContext, type EnemyCue } from "@/components/EnemySprite";
 import { HudCard } from "@/components/HudCard";
 import { HeroSprite } from "@/components/HeroSprite";
 import { ACCESSORY_SHEETS, HERO_ACTIONS, TRAIT_ASSET } from "@/lib/art/heroes";
+import { isPixel } from "@/lib/art/pixel";
 import { CLASS_ART, ELEMENT_ART } from "@/lib/art";
 import { Tooltip } from "@/components/Tooltip";
 import type { HeroAction } from "@/lib/art/heroes";
@@ -170,12 +171,16 @@ export function BattleArena({
   const cls = CLASS_ART[hc.classId];
   const accs = hc.traits.map((t) => TRAIT_ASSET[t]);
   usePreload(
-    Object.keys(HERO_ACTIONS).flatMap((a) => [
-      `/art/heroes/hero_${cls}_${ELEMENT_ART[hc.element]}_${a}.webp`,
-      ...accs
-        .filter((t) => ACCESSORY_SHEETS.has(`${cls}_${t}_${a}`))
-        .map((t) => `/art/heroes/acc/${cls}_${t}_${a}.webp`),
-    ]),
+    Object.keys(HERO_ACTIONS).flatMap((a) =>
+      isPixel()
+        ? [`/art/heroes-px/hero_${cls}_${ELEMENT_ART[hc.element]}_${a}.png`]
+        : [
+            `/art/heroes/hero_${cls}_${ELEMENT_ART[hc.element]}_${a}.webp`,
+            ...accs
+              .filter((t) => ACCESSORY_SHEETS.has(`${cls}_${t}_${a}`))
+              .map((t) => `/art/heroes/acc/${cls}_${t}_${a}.webp`),
+          ],
+    ),
   );
   return (
     <div
