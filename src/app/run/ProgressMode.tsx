@@ -781,7 +781,6 @@ function NextStage({
         <ElementIcon element={dom} className="h-5" />
         {spec.length} peleas{spec.final && " · Jefe final"}
       </span>
-      <span className="text-[#d9d2ca]">Suelta: equipo al azar</span>
       <PowerVsRec
         power={heroPower(profile, heroId)}
         rec={recommendedPower(rank, level, asc)}
@@ -816,9 +815,6 @@ function LevelCard({
         <span className="flex items-center gap-1.5">
           <ElementIcon element={levelElement(spec, asc)} className="h-5" />
           {spec.length} peleas{spec.final && " · Jefe final"}
-        </span>
-        <span className="block text-[#d9d2ca]">
-          Suelta: equipo al azar
         </span>
         <span className="block text-[#d9d2ca]">
           Poder rec. {recommendedPower(spec.rank, spec.index, asc)}
@@ -908,7 +904,6 @@ function Prep({
             {ELEMENT_LABEL[dom]}
           </span>
           <span>{spec.length} peleas{spec.final && " · Jefe final"}</span>
-          <span>Suelta: equipo al azar</span>
           <span className="text-green-300">hasta {levelXp(spec)} EXP</span>
           {repeat && <span className="text-yellow-300">Repetición (paga 60%)</span>}
           {asc > 0 && (

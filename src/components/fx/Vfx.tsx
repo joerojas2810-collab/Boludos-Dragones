@@ -32,6 +32,15 @@ export function Vfx({
     const t = setTimeout(() => setGo(true), delay * 1000);
     return () => clearTimeout(t);
   }, [delay]);
+  // Reduced motion shows a still image; "remove" effects must still leave after their
+  // normal duration (otherwise the still stays on screen forever).
+  const stillMs = m ? Math.max(1200, (m.frames / m.fps) * 1000) : 0;
+  const stillOnScreen = !!m && go && reduced && m.finish === "remove";
+  useEffect(() => {
+    if (!stillOnScreen) return;
+    const t = setTimeout(() => setGone(true), stillMs);
+    return () => clearTimeout(t);
+  }, [stillOnScreen, stillMs]);
   if (!m || !go || gone) return null;
   const aspect = m.cell[0] / m.cell[1];
   if (reduced)
