@@ -890,3 +890,11 @@ body[data-art="pixel"] input[type="range"]:focus-visible::-webkit-slider-thumb {
 body[data-art="pixel"] input[type="range"]:focus-visible::-moz-range-thumb { background-image: url("/art/ui-px/slider_thumb_focus.png"); }
 body[data-art="pixel"] input[type="range"]:disabled::-webkit-slider-thumb { background-image: url("/art/ui-px/slider_thumb_disabled.png"); }
 body[data-art="pixel"] input[type="range"]:disabled::-moz-range-thumb { background-image: url("/art/ui-px/slider_thumb_disabled.png"); }
+
+/* Pixel art: show sprites at whole-number scales (round() snaps to a multiple of the native size,
+   so every source pixel is the same size on screen). */
+body[data-art="pixel"] .hub-hero { width: max(96px, round(down, min(88vw, 52vh, 30rem), 96px)); }
+body[data-art="pixel"] .game-title-emblem,
+body[data-art="pixel"] .hub .game-title-emblem { width: max(64px, round(down, clamp(6rem, 15vw, 10.5rem), 64px)); }
+body[data-art="pixel"] .game-title-word { display: block; margin: 0 auto; width: round(down, 100%, 256px); min-width: min(100%, 256px); }
+.bg-px-int { position: absolute; left: 50%; bottom: 0; max-width: none; height: auto; width: round(up, max(100vw, 100vh * 16 / 9), 320px); transform: translateX(-50%); }
