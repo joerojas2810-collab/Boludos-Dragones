@@ -48,6 +48,7 @@ function ActionButton({
   hot,
   icon,
   left,
+  wide,
 }: {
   tip: Tip;
   disabled?: boolean;
@@ -57,11 +58,12 @@ function ActionButton({
   hot?: boolean; // highlighted (perfect guard available)
   icon?: string; // painted skill icon name (iconFor)
   left?: boolean; // left-aligned content (side column)
+  wide?: boolean; // spans the whole row of the actions grid
 }) {
   return (
     <Tooltip
       tip={tip}
-      className="block"
+      className={wide ? "col-span-full block" : "block"}
       focusable={false}
       placement={left ? "side" : "auto"}
     >
@@ -168,7 +170,7 @@ export function ActionPanel({
         <div
           className={
             float
-              ? "mb-2"
+              ? "mb-1.5"
               : "mb-1.5 flex flex-wrap items-center justify-center gap-x-4 text-center"
           }
         >
@@ -194,7 +196,7 @@ export function ActionPanel({
             </Tooltip>
           </div>
           <div
-            className={`text-[13px] leading-5 text-[#d9d2ca] ${float ? "action-inset mt-1.5" : ""}`}
+            className={`text-[13px] leading-5 text-[#d9d2ca] ${float ? "action-inset mt-1 !py-0.5 !text-xs !leading-4" : ""}`}
           >
             Orden: {order}
             {alive.length > 1 && (
@@ -203,12 +205,7 @@ export function ActionPanel({
                   float ? "block text-yellow-300" : "ml-2 text-yellow-300"
                 }
               >
-                Elige un rival (clic o 1-3)
-                {float ? (
-                  <span className="block">Objetivo: {foe.char.name}</span>
-                ) : (
-                  <> · objetivo: {foe.char.name}</>
-                )}
+                Elige un rival (clic o 1-3) · objetivo: {foe.char.name}
               </span>
             )}
           </div>
@@ -240,6 +237,7 @@ export function ActionPanel({
               left={float}
               tip={autoTip(auto.reason)}
               disabled={!!auto.reason}
+              wide
               onClick={auto.onAuto}
               title="Resolver rápido"
               sub={auto.reason ?? "Juega la pelea por ti"}

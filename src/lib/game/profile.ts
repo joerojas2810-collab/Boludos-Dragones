@@ -1,3 +1,4 @@
+import { statPower } from "./recommended";
 // Player profile: persistent, versioned, JSON-serializable. All functions are
 // pure and return new state. Every random function takes the Rng as a
 // parameter: the client creates it now, the server will later (resolve pulls
@@ -699,8 +700,7 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
 export function heroPower(p: Profile, ownedId: string): number {
   const h = heroFromOwned(p, ownedId);
   if (!h) return 0;
-  const s = h.stats;
-  return Math.round((s.hp * (s.atk + s.def * 0.5)) / 50);
+  return statPower(h.stats);
 }
 
 // Best owned character of the class: rarity, then stars. null when none.

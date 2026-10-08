@@ -28,6 +28,7 @@ import { type Action } from "@/lib/game/combat";
 import { elementMultiplier, ELEMENT_LABEL } from "@/lib/game/elements";
 import { MOD_LABEL, modTip } from "@/lib/game/explain";
 import { levelCap, xpToNextLevel } from "@/lib/game/heroLevel";
+import { recommendedPower, recommendedPowerRange } from "@/lib/game/recommended";
 import {
   clearedLevels,
   isLevelUnlocked,
@@ -138,6 +139,7 @@ export function ProgressMode() {
     const owned = profile.characters.find((c) => c.id === id);
     if (!owned) return;
     const spec = levelsOf(rank)[level];
+    setHeroId(id); // the next attempt keeps the same hero
     setView({ t: "starting" });
     try {
       const info = await repo.startLevel(owned.id, rank, level, asc);
@@ -460,24 +462,42 @@ export function ProgressMode() {
               Sin monedas ni botín. Prueba con otro héroe o con mejor equipo.
             </div>
           )}
-          <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-center">
+          {hasNext && (
+            <NextStage
+              profile={o.bank.profile}
+              rank={a.rank}
+              level={a.level + 1}
+              asc={a.asc}
+              heroId={a.heroId}
+            />
+          )}
+          <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap sm:justify-center">
             {hasNext && (
               <button
                 className="btn text-center"
-                onClick={() =>
-                  setView({ t: "prep", rank: a.rank, level: a.level + 1 })
-                }
+                onClick={() => void enter(a.rank, a.level + 1, a.heroId)}
               >
                 Siguiente nivel
               </button>
             )}
             <button
               className={`btn text-center ${hasNext ? "btn-gray" : ""}`}
-              onClick={() =>
-                setView({ t: "prep", rank: a.rank, level: a.level })
-              }
+              onClick={() => void enter(a.rank, a.level, a.heroId)}
             >
-              Repetir
+              {won ? "Repetir" : "Reintentar"}
+            </button>
+            <button
+              className="btn btn-gray text-center"
+              onClick={() => {
+                setHeroId(a.heroId);
+                setView({
+                  t: "prep",
+                  rank: a.rank,
+                  level: hasNext ? a.level + 1 : a.level,
+                });
+              }}
+            >
+              Cambiar héroe
             </button>
             <button
               className="btn btn-gray text-center"
@@ -621,6 +641,12 @@ export function ProgressMode() {
                         ` · Asc. hasta +${maxAscension(profile.dungeons, rank)}`}
                     </span>
                   )}
+                  {!locked && (
+                    <span className="block text-sm text-[#d9d2ca]">
+                      Poder recomendado {recommendedPowerRange(rank)[0]}–
+                      {recommendedPowerRange(rank)[1]}
+                    </span>
+                  )}
                 </span>
               </button>
             );
@@ -642,6 +668,50 @@ function levelCapNote(p: Profile, heroId: string): string {
   return c.level >= levelCap(c.stars)
     ? `Nivel máximo para ${c.stars}★. Las estrellas abren más niveles.`
     : `EXP ${c.xp}/${xpToNextLevel(c.level)} para el nivel ${c.level + 1}`;
+}
+
+// "Poder 420 / recomendado 440", green when the hero reaches the recommendation.
+function PowerVsRec({ power, rec }: { power: number; rec: number }) {
+  return (
+    <span>
+      Poder{" "}
+      <b className={power >= rec ? "text-green-300" : "text-red-300"}>{power}</b>
+      {" · "}recomendado {rec}
+    </span>
+  );
+}
+
+// Small banner on the result screen: what the next level is and how ready the hero is.
+function NextStage({
+  profile,
+  rank,
+  level,
+  asc,
+  heroId,
+}: {
+  profile: Profile;
+  rank: RarityId;
+  level: number;
+  asc: number;
+  heroId: string;
+}) {
+  const spec = levelsOf(rank)[level];
+  if (!spec) return null;
+  const dom = levelElement(spec, asc);
+  return (
+    <div className="action-inset flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm">
+      <b className="text-yellow-300">Siguiente: Nivel {level + 1}</b>
+      <span className="flex items-center gap-1.5">
+        <ElementIcon element={dom} className="h-5" />
+        {spec.length} peleas{spec.final && " · Jefe final"}
+      </span>
+      <span className="text-[#d9d2ca]">Suelta: {SLOT_LABEL[spec.drop]}</span>
+      <PowerVsRec
+        power={heroPower(profile, heroId)}
+        rec={recommendedPower(rank, level, asc)}
+      />
+    </div>
+  );
 }
 
 function LevelCard({
@@ -674,6 +744,9 @@ function LevelCard({
         <span className="block text-[#d9d2ca]">
           Suelta: {SLOT_LABEL[spec.drop]}
           {spec.length < 3 && " (solo partes)"}
+        </span>
+        <span className="block text-[#d9d2ca]">
+          Poder rec. {recommendedPower(spec.rank, spec.index, asc)}
         </span>
       </span>
       {!unlocked ? (
@@ -816,7 +889,10 @@ function Prep({
                   ? "Nivel máximo (sube estrellas)"
                   : `EXP ${sel.xp}/${xpToNextLevel(sel.level)}`}
               </span>
-              <span>Poder {heroPower(profile, sel.id)}</span>
+              <PowerVsRec
+                power={heroPower(profile, sel.id)}
+                rec={recommendedPower(rank, level, asc)}
+              />
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[#d9d2ca]">Ataque 3:</span>
