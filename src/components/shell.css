@@ -197,7 +197,7 @@
   position: relative;
   width: min(88vw, 52vh, 30rem);
   transform-origin: 50% 88%;
-  scale: 1.2;
+  scale: 1;
   animation: hub-bob 2.4s steps(6) infinite;
   filter: drop-shadow(0 4px 0 rgb(0 0 0 / 0.35));
 }

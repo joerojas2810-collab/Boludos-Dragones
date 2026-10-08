@@ -65,7 +65,7 @@ function GearCard({
   const color = RARITIES[w.rarity].color;
   return (
     <div
-      className="flex items-center gap-3 border-2 p-2"
+      className="flex flex-wrap items-center gap-3 border-2 p-2"
       style={{
         borderColor: color,
         background: `${color}${worn ? "26" : "14"}`,
@@ -80,10 +80,10 @@ function GearCard({
           className={worn ? "w-12" : "w-10"}
         />
       </div>
-      <div className="min-w-0 flex-1 space-y-1 text-sm">
+      <div className="min-w-[10rem] flex-1 space-y-1 text-sm">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <RankIcon rank={w.rarity} className="h-7 w-7" />
-          <span className="truncate font-semibold">{w.name}</span>
+          <RankIcon rank={w.rarity} letter className="h-8 w-8" />
+          <span className="font-semibold">{w.name}</span>
           <ElementIcon element={w.element} className="h-4" />
           {worn && (
             <span className="rounded bg-green-700 px-1.5 text-xs text-white">

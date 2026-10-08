@@ -87,7 +87,8 @@ export interface LevelOutcome {
   loot: LevelLoot;
 }
 export interface RunBankInfo {
-  coinsAdded: number;
+  coinsAdded: number; // total credited, bonus included
+  bonus?: number; // first-clear chest part of coinsAdded
   verdict: "accepted" | "truncated" | "mismatch" | "local";
   capped: boolean;
   /** Weekly tower floors paid by this climb (remote mode). */

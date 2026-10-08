@@ -233,7 +233,7 @@ export default function CollectionPage() {
           {notice}
         </p>
       )}
-      <div className="mx-auto w-full max-w-4xl text-center text-base text-[#d9d2ca]">
+      <div className="mx-auto w-full max-w-6xl text-center text-base text-[#d9d2ca]">
         Runs jugadas: {profile.runsPlayed} · Mejor piso: {profile.bestFloor} ·
         Personajes: {profile.characters.length} · Equipo:{" "}
         {profile.weapons.length}
@@ -246,7 +246,7 @@ export default function CollectionPage() {
           </>
         )}
       </div>
-      <div className="mx-auto flex w-full max-w-4xl gap-2" role="tablist">
+      <div className="mx-auto flex w-full max-w-6xl gap-2" role="tablist">
         {(
           [
             ["characters", "Personajes"],
@@ -267,11 +267,11 @@ export default function CollectionPage() {
       </div>
 
       {tab === "parts" ? (
-        <Panel title="Partes de forja" className="mx-auto w-full max-w-4xl">
+        <Panel title="Partes de forja" className="mx-auto w-full max-w-6xl">
           <PartsList parts={profile.parts} />
         </Panel>
       ) : tab === "characters" ? (
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 md:grid md:grid-cols-[1fr_22rem] md:items-start">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 md:grid md:grid-cols-[1fr_22rem] lg:grid-cols-[1fr_32rem] md:items-start">
           <Panel title="Personajes" className="min-w-0">
             {profile.characters.length === 0 ? (
               empty("personajes")
@@ -377,7 +377,7 @@ export default function CollectionPage() {
           )}
         </div>
       ) : (
-        <Panel title="Equipo" className="mx-auto w-full max-w-4xl">
+        <Panel title="Equipo" className="mx-auto w-full max-w-6xl">
           {profile.weapons.length === 0 ? (
             empty("equipo")
           ) : (
