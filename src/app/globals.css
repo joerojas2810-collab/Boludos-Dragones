@@ -16,6 +16,11 @@
   --font-mono: var(--font-pixel);
 }
 
+/* Big monitors: everything is rem-based, so grow the root instead of leaving a small UI on a huge background (16px up to 1920x1080). */
+html {
+  font-size: max(16px, min(100vw / 120, 100vh / 67.5));
+}
+
 body {
   background: linear-gradient(180deg, #342a23 0, var(--bg) 24rem);
   color: var(--text);
