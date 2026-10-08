@@ -27,6 +27,16 @@ await db.exec(`insert into public.tower_scores (week, mode, player_id, max_floor
   (public.game_week() - 7, 'nivelado', '${U(3)}', 12, now()),
   (public.game_week() - 7, 'nivelado', '${U(4)}', 7, now()),
   (public.game_week() - 7, 'coleccion', '${U(4)}', 5, now())`);
+// daily king (0030): the first request after 00:00 UTC pays the #1 of each ranking once
+await db.exec(`delete from public.tower_daily`); // the early records settled the day with partial standings
+const cores = async (i) => (await one(`select coalesce(sum(qty),0)::int n from public.part_stock where player_id='${U(i)}' and key like 'core-%'`)).n;
+const kb = [0, await coins(1), await coins(2)];
+ok((await rpc("tower_settle_daily", {})) === 2, "daily king settles both modes");
+ok((await rpc("tower_settle_daily", {})) === 0, "daily king settles once per day and mode");
+ok((await coins(2)) === kb[2] + 250 && (await coins(1)) === kb[1] + 250, "kings get 250 coins");
+const kings = await q(`select mode, player_id, floor from public.tower_daily order by mode`);
+ok(kings.length === 2 && kings[0].mode === "coleccion" && kings[0].player_id === U(1) && kings[1].player_id === U(2), "king = #1 of each mode");
+const cb = [0, await cores(1), await cores(2), await cores(3)];
 const c = [0, await coins(1), await coins(2), await coins(3), await coins(4)];
 let s = await rpc("tower_state", { p_player: U(1) }); // settles last week lazily
 ok(s.modes.nivelado.top[0].name === "pl2" && s.modes.nivelado.top[0].floor === 15, "top is the best floor");
@@ -41,17 +51,46 @@ ok((await coins(1)) === c[1] + 300, "1st (tie broken by who got there first) get
 ok((await coins(2)) === c[2] + 200, "2nd gets 200");
 ok((await coins(3)) === c[3] + 100, "3rd gets 100");
 ok((await coins(4)) === c[4], "below 8 floors gets nothing");
-const cores = async (i) => (await one(`select coalesce(sum(qty),0)::int n from public.part_stock where player_id='${U(i)}' and key like 'core-%'`)).n;
-ok((await cores(1)) === 2 && (await cores(2)) === 1 && (await cores(3)) === 1, "cores 2/1/1");
+ok((await cores(1)) === cb[1] + 2 && (await cores(2)) === cb[2] + 1 && (await cores(3)) === cb[3] + 1, "cores 2/1/1");
 ok(s.last.nivelado.map((r) => r.name).join() === "pl1,pl2,pl3", "last week's podium is shown");
 ok(s.last.coleccion.length === 0, "a mode with nobody over the minimum has no podium");
 await rpc("tower_state", { p_player: U(2) });
 ok((await coins(1)) === c[1] + 300, "settling twice never pays twice");
 
+// floor prizes (0030): each floor once per week and mode, only on a verified record
+const cc = await coins(3);
+await err(rpc("tower_record", { p_player: U(3), p_mode: "coleccion", p_floor: 9999, p_rounds: 1 }), "invalid_args");
+await err(rpc("tower_record", { p_player: U(3), p_mode: "coleccion", p_floor: -1, p_rounds: 1 }), "invalid_args");
+ok((await coins(3)) === cc, "forged floors pay nothing");
+let t = await rpc("tower_record", { p_player: U(3), p_mode: "coleccion", p_floor: 12, p_rounds: 5 });
+ok(t.prize.coins === 400 && t.prize.cores === 2 && t.prize.floors === 12 && (await coins(3)) === cc + 400, "12 floors: 10x5 + 100 + 250, 2 cores: " + JSON.stringify(t.prize));
+t = await rpc("tower_record", { p_player: U(3), p_mode: "coleccion", p_floor: 12, p_rounds: 4 });
+ok(t.prize.coins === 0 && (await coins(3)) === cc + 400, "replaying the same floors pays nothing");
+t = await rpc("tower_record", { p_player: U(3), p_mode: "coleccion", p_floor: 5, p_rounds: 4 });
+ok(t.prize.coins === 0 && (await coins(3)) === cc + 400, "a lower climb pays nothing");
+t = await rpc("tower_record", { p_player: U(3), p_mode: "coleccion", p_floor: 15, p_rounds: 4 });
+ok(t.prize.coins === 110 && t.prize.cores === 1 && t.prize.floors === 3, "floors 13-15: 5+5+100");
+t = await rpc("tower_record", { p_player: U(3), p_mode: "nivelado", p_floor: 3, p_rounds: 4 });
+ok(t.prize.coins === 15, "the other mode pays its own floors");
+ok((await one(`select count(*)::int n from public.tower_floor_paid where player_id='${U(3)}'`)).n === 18, "one row per paid floor");
+await db.exec(`update public.tower_floor_paid set week = week - 7 where player_id='${U(3)}'`);
+t = await rpc("tower_record", { p_player: U(3), p_mode: "nivelado", p_floor: 3, p_rounds: 3 });
+ok(t.prize.coins === 15, "a new week pays the floors again");
+s = await rpc("tower_state", { p_player: U(2) });
+ok(s.king.nivelado.name === "pl2" && s.king.nivelado.me === true && s.king.coleccion.name === "pl1" && s.modes.coleccion.mine === null, "state shows the daily kings");
+
+// weekly tiebreak by fewer rounds (0030), even if the slower climb got there first
+await db.exec(`insert into public.tower_scores (week, mode, player_id, max_floor, rounds, updated_at) values
+  (public.game_week() - 21, 'coleccion', '${U(1)}', 20, 90, now() - interval '3 days'),
+  (public.game_week() - 21, 'coleccion', '${U(2)}', 20, 40, now())`);
+await rpc("tower_settle", { p_week: (await one("select (public.game_week() - 21) w")).w.toISOString().slice(0, 10) });
+const win = (await one(`select winners from public.tower_settled where mode='coleccion' and week = public.game_week() - 21`)).winners;
+ok(win[0].player === U(2) && win[1].player === U(1), "fewer rounds wins the weekly tie");
+
 // locked down
 for (const [role, uid] of [["authenticated", U(1)], ["anon", null]])
   await as(role, uid, async () => {
-    for (const f of ["tower_record('" + U(1) + "','nivelado',3,10)", "tower_settle(current_date)", "tower_state('" + U(1) + "')"]) {
+    for (const f of ["tower_record('" + U(1) + "','nivelado',3,10)", "tower_settle(current_date)", "tower_settle_daily()", "best_cleared_rank('"+U(1)+"')", "tower_state('" + U(1) + "')"]) {
       try { await db.query(`select public.${f}`); fail++; console.log("FAIL:", role, "can call", f); } catch { pass++; }
     }
   });

@@ -4,11 +4,14 @@ import {
   missionDone,
   missionsFor,
   reroll,
+  rollMissionRewards,
   SCOPE_TIERS,
   activityPoints,
   type MissionScope,
   type MissionState,
 } from "../game/missions";
+import { createRng } from "../game/rng";
+import { RARITY_IDS, type RarityId } from "../game/rarity";
 import { ApiError } from "./http";
 import { call, limit, mapRpcError, type Deps, type Rpc } from "./rpc";
 
@@ -99,10 +102,26 @@ export async function claimMissionService(
       "No hay premios para reclamar.",
     );
   try {
+    // Parts / pieces are rolled here at the rank of the best cleared dungeon (F if none);
+    // mission_claim validates counts, rank cap and each piece before paying.
+    const best = await call<string>(d.rpc, "best_cleared_rank", {
+      p_player: playerId,
+    });
+    const rank: RarityId = (RARITY_IDS as readonly string[]).includes(best)
+      ? (best as RarityId)
+      : "f";
+    const roll = rollMissionRewards(
+      createRng(d.randomSeed()),
+      rank,
+      out.parts,
+      out.pieces,
+    );
     return await call(d.rpc, "mission_claim", {
       p_player: playerId,
       p_scope: scope,
       p_reached: out.state.claimed,
+      p_parts: roll.parts,
+      p_pieces: roll.pieces,
     });
   } catch (e) {
     return mapRpcError(e);

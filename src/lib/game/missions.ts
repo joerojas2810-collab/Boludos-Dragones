@@ -3,8 +3,13 @@
 // table needed); only progress and claimed tiers are stored. The server derives progress
 // events from already-verified actions (see missionDeltas, forge, pulls, rooms). Rewards
 // (SCOPE_TIERS) are mirrored in SQL.
-import { ELEMENTS, type Element } from "./elements";
-import { createRng, hashSeed } from "./rng";
+import { ELEMENT_LABEL, ELEMENTS, type Element } from "./elements";
+import { rollGear } from "./gear";
+import type { RunPiece } from "./loot";
+import { addParts, partKey, type Parts } from "./parts";
+import type { RarityId } from "./rarity";
+import { createRng, hashSeed, type Rng } from "./rng";
+import { isGearType, WEAPON_TYPE_DATA, WEAPON_TYPES } from "./weapons";
 import { addDays } from "./streak";
 
 export type MissionScope = "daily" | "weekly" | "event";
@@ -297,6 +302,37 @@ export function claimTiers(
     parts: fresh.reduce((a, t) => a + t.parts, 0),
     pieces: fresh.reduce((a, t) => a + t.pieces, 0),
   };
+}
+
+/**
+ * Parts and pieces of a claim, rolled by the server (SQL cannot roll gear): random type and
+ * element at `rank` (the rank of the player's best cleared dungeon, F if none). SQL checks
+ * the counts, the rank cap and every piece (grant_piece).
+ */
+export function rollMissionRewards(
+  rng: Rng,
+  rank: RarityId,
+  nParts: number,
+  nPieces: number,
+): { parts: Parts; pieces: RunPiece[] } {
+  let parts: Parts = {};
+  for (let i = 0; i < nParts; i++)
+    parts = addParts(parts, { [partKey(rng.pick(WEAPON_TYPES), rank)]: 1 });
+  const pieces: RunPiece[] = [];
+  for (let i = 0; i < nPieces; i++) {
+    const type = rng.pick(WEAPON_TYPES);
+    const element = rng.pick(ELEMENTS);
+    pieces.push({
+      type,
+      element,
+      rarity: rank,
+      name: `${WEAPON_TYPE_DATA[type].noun} de ${ELEMENT_LABEL[element]}`,
+      ...(isGearType(type)
+        ? rollGear(rng, type, rank)
+        : { roll: rollGear(rng, "casco", rank).roll }),
+    });
+  }
+  return { parts, pieces };
 }
 
 /** Free reroll of one daily/weekly slot, once per period and only if it is not done. */

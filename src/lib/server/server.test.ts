@@ -384,6 +384,30 @@ describe("pull service (fake DB)", () => {
   });
 });
 
+describe("mission claims", () => {
+  it("rolls the promised parts and pieces at the best cleared rank and passes them to SQL", async () => {
+    const db = new FakeDb();
+    db.bestRank = "c";
+    db.missionProgress = { levels: 99, fights: 99, bosses: 99, pull: 99, forge: 99 }; // everything done
+    db.deps.randomSeed = () => 5;
+    const missions = await import("./missions");
+    await missions.claimMissionService(db.deps, "u1", "daily");
+    const a = db.missionClaims[0];
+    expect(a).toMatchObject({ p_scope: "daily", p_reached: 3 });
+    expect(Object.keys(a.p_parts as object).every((k) => k.endsWith("-c"))).toBe(true);
+    expect(
+      Object.values(a.p_parts as Record<string, number>).reduce((n, q) => n + q, 0),
+    ).toBe(2);
+    await expect(
+      missions.claimMissionService(
+        Object.assign(new FakeDb(), { missionProgress: {} }).deps,
+        "u1",
+        "daily",
+      ),
+    ).rejects.toMatchObject({ code: "nothing_to_claim" });
+  });
+});
+
 describe("weekly tower", () => {
   // A beefed-up hero so the bot climbs a few floors.
   const h0 = generateCharacter(createRng(7), "caballero");
@@ -435,6 +459,7 @@ describe("weekly tower", () => {
     const r = await sub(db, log, { coins: 0, maxFloor: truth.floors });
     expect(r.verdict).toBe("accepted");
     expect(db.banked[0]).toMatchObject({ p_coins: 0, p_loot: [], p_parts: {} });
+    expect(r.towerPrize).toMatchObject({ floors: truth.floors }); // paid floors reach the client
     expect(db.towerRecords[0]).toMatchObject({
       p_mode: "coleccion",
       p_floor: truth.floors,

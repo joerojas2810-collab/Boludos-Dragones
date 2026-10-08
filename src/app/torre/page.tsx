@@ -26,9 +26,16 @@ interface TowerState {
   week: string;
   modes: Record<
     TowerMode,
-    { top: Row[]; mine: { floor: number; place: number } | null }
+    {
+      top: Row[];
+      mine: { floor: number; place: number; paidFloors?: number } | null;
+    }
   >;
   last: Record<TowerMode, Row[]>;
+  king?: Record<
+    TowerMode,
+    { day: string; name: string; floor: number; me: boolean } | null
+  >;
 }
 
 const MEDAL = ["🥇", "🥈", "🥉"];
@@ -125,6 +132,13 @@ export default function TowerPage() {
                     ? `Tu mejor piso: ${st.modes[m].mine.floor} · puesto ${st.modes[m].mine.place}`
                     : "Aún no has subido esta semana"}
                 </div>
+                {st.king?.[m] && (
+                  <div className="text-center text-sm text-yellow-300">
+                    👑 {TOWER_DAILY_PRIZE.title}: {st.king[m].name} (piso{" "}
+                    {st.king[m].floor})
+                    {st.king[m].me ? " · ¡eres tú!" : ""}
+                  </div>
+                )}
                 <ol className="mt-1 space-y-0.5 text-sm">
                   {st.modes[m].top.length === 0 && (
                     <li className="text-center opacity-70">

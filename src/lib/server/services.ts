@@ -474,13 +474,18 @@ export async function submitRunService(
     });
     // Tower ranking: only a fully verified log counts; the best floor of the week stays,
     // and at equal floors the climb with fewer battle rounds wins.
+    let towerPrize: { floors: number; coins: number; cores: number } | undefined;
     if (verdict === "accepted") {
-      await call(d.rpc, "tower_record", {
+      // tower_record also pays the floors not paid yet this week (once per floor and mode).
+      const rec = await call<{
+        prize: { floors: number; coins: number; cores: number };
+      }>(d.rpc, "tower_record", {
         p_player: playerId,
         p_mode: tower,
         p_floor: floors,
         p_rounds: Math.min(rep.rounds, 1_000_000),
       });
+      towerPrize = rec?.prize;
       // A quarter of the dungeon EXP for the hero that climbed (best effort).
       const xp = towerXp(rep.climb);
       if (heroId && xp > 0)
@@ -496,7 +501,7 @@ export async function submitRunService(
         reason,
         capped: r.capped,
       });
-    return { ...r, verdict, maxFloor: floors };
+    return { ...r, verdict, maxFloor: floors, towerPrize };
   } catch (e) {
     return mapRpcError(e);
   }

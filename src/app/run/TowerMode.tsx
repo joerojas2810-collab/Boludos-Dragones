@@ -23,6 +23,7 @@ import { MOD_LABEL, modTip } from "@/lib/game/explain";
 import { bossRankOf } from "@/lib/game/floorFights";
 import { CLASSES, CLASS_IDS, type Character, type ClassId } from "@/lib/game/characters";
 import { heroFromOwned, heroPower } from "@/lib/game/profile";
+import { rewardText } from "@/lib/game/missions";
 import type { StageAction } from "@/lib/game/stageReplay";
 import {
   applyTowerAction,
@@ -73,6 +74,11 @@ export function TowerMode() {
         true,
       )
       .then((info) => {
+        const tp = info.towerPrize;
+        if (tp && (tp.coins > 0 || tp.cores > 0))
+          pushNotice(
+            `Premio de pisos nuevos: ${rewardText({ coins: tp.coins, cores: tp.cores, parts: 0, pieces: 0 })}.`,
+          );
         if (info.verdict === "truncated" || info.verdict === "mismatch")
           pushNotice("El servidor no pudo repetir todas tus jugadas.");
       })

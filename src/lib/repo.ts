@@ -90,6 +90,8 @@ export interface RunBankInfo {
   coinsAdded: number;
   verdict: "accepted" | "truncated" | "mismatch" | "local";
   capped: boolean;
+  /** Weekly tower floors paid by this climb (remote mode). */
+  towerPrize?: { floors: number; coins: number; cores: number };
 }
 export interface Me {
   name: string;
@@ -459,6 +461,7 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         coinsAdded: number;
         verdict: RunBankInfo["verdict"];
         capped: boolean;
+        towerPrize?: RunBankInfo["towerPrize"];
       }>(
         "/api/run/submit",
         {

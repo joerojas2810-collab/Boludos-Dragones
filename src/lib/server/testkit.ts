@@ -50,6 +50,9 @@ export class FakeDb {
   equipped: Record<string, string> = {};
   runsToday = 0;
   towerRecords: Args[] = [];
+  missionProgress: Record<string, number> = {};
+  bestRank = "f";
+  missionClaims: Args[] = [];
   audits: string[] = [];
 
   deps: Deps = {
@@ -221,9 +224,32 @@ export class FakeDb {
         return this.okv({ week: "2026-10-05", seed: 777 });
       case "tower_record":
         this.towerRecords.push(a);
-        return this.okv({ week: "2026-10-05", max_floor: a.p_floor });
+        return this.okv({
+          week: "2026-10-05",
+          max_floor: a.p_floor,
+          prize: { floors: Number(a.p_floor), coins: 5, cores: 0 },
+        });
       case "tower_state":
         return this.okv({ week: "2026-10-05", modes: {}, last: {} });
+      case "mission_get": {
+        const sc = (progress: Record<string, number>) => ({
+          progress,
+          claimed: 0,
+          rerolled: null,
+        });
+        return this.okv({
+          day: "2026-10-07", // a Wednesday: no event
+          week: "2026-10-05",
+          daily: sc(this.missionProgress),
+          weekly: sc(this.missionProgress),
+          event: sc({}),
+        });
+      }
+      case "best_cleared_rank":
+        return this.okv(this.bestRank);
+      case "mission_claim":
+        this.missionClaims.push(a);
+        return this.okv({ coins: 0, cores: 0, parts: 0, pieces: 0, claimed: a.p_reached });
       case "get_streak":
         return this.okv(null);
       case "settle_daily_streak":

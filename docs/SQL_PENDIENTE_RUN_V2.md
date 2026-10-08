@@ -1,4 +1,6 @@
-# SQL pendiente de Run v2 (pasada final)
+# SQL de Run v2 (pasada final: HECHA en `0030_missions_tower_prizes.sql`)
+
+Resuelto en 0030: `mission_claim` con `SCOPE_TIERS` (el servidor TS tira partes/piezas y SQL las valida), premios por piso y rey diario de la torre, desempate por rondas en `tower_settle`, `bank_run` solo paga monedas. El texto de abajo es el pedido original.
 
 Hecho en `0025`-`0029` (ver cabeceras): campos de héroe/pieza, `dungeon_progress`, `apply_pull` (pity SSR 250), `apply_forge` con tiradas, `burn_*`, `choose_hero_skill`, `start_level`/`bank_level`/`grant_hero_xp`, torre con `rounds`. Falta, y depende de las constantes de `missions.ts` y `tower.ts`:
 
