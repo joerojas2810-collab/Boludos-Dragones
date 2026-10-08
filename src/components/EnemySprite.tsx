@@ -6,6 +6,7 @@ import { isPixel } from "@/lib/art/pixel";
 import { enemyAnim, PX_ASPECT, type EnemyAction } from "@/lib/art/enemies";
 import type { Element } from "@/lib/game/elements";
 import type { EnemyFamily } from "@/lib/game/worlds";
+import "./pixel-sprites.css";
 
 // Action requested by the arena for the enemy it wraps: plays after `delay` ms
 // (the arena staggers events like the sfx), then returns to idle.
@@ -54,12 +55,14 @@ export function EnemySprite({
   }, [family, tier, element, finalRank]);
   return (
     <div
-      className={`h-full w-full origin-bottom ${className}`}
+      className={`h-full w-full origin-bottom ${isPixel() ? "pixel-sprite-box" : ""} ${className}`}
       // --es set by BattleArena by group size (1.35 alone, smaller with 2-3 so neighbours don't overlap)
-      style={{ transform: `scale(calc(var(--es, 1.35) * ${boss ? 1.26 : 1}))` }}
+      style={isPixel()
+        ? { "--pixel-size": `calc(100cqh * var(--es, 1.35) * ${boss ? 1.26 : 1})` } as React.CSSProperties
+        : { transform: `scale(calc(var(--es, 1.35) * ${boss ? 1.26 : 1}))` }}
     >
       <div
-        className={isPixel() ? "mx-auto h-full" : "h-full w-full"}
+        className={isPixel() ? "pixel-sprite-frame" : "h-full w-full"}
         style={isPixel() ? { aspectRatio: PX_ASPECT, imageRendering: "pixelated" } : undefined}
       >
         <AnimSheet

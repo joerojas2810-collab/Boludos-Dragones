@@ -1,0 +1,12 @@
+.pixel-sprite-box {
+  position: relative;
+  container-type: size;
+}
+.pixel-sprite-frame {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  height: max(96px, round(down, var(--pixel-size, 100cqh), 96px));
+  transform: translateX(-50%);
+  image-rendering: pixelated;
+}

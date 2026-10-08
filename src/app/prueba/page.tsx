@@ -7,6 +7,8 @@ import { BattleArena } from "@/components/BattleArena";
 import { LogPanel } from "@/components/LogPanel";
 import { MuteButton } from "@/components/MuteButton";
 import { Sprite } from "@/components/Sprite";
+import { HeroSprite } from "@/components/HeroSprite";
+import { isPixel } from "@/lib/art/pixel";
 import { generateCharacter, type Character } from "@/lib/game/characters";
 import { useTargeting } from "@/components/useTargeting";
 import { startBattle, step, type Action, type Battle } from "@/lib/game/combat";
@@ -77,9 +79,12 @@ export default function Prueba() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <BattleArena
             b={b}
+            world={isPixel() ? 0 : undefined}
             enemyExtra={(_, c) => `Nv ${c.char.level}`}
             playerExtra={`Victorias ${game.wins}`}
-            enemyArt={(_, c) => (
+            enemyArt={(_, c) => isPixel() ? (
+              <HeroSprite classId={c.char.classId} element={c.char.element} traits={c.char.traits} animated flip />
+            ) : (
               <Sprite
                 classId={c.char.classId}
                 element={c.char.element}

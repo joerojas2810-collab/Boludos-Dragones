@@ -11,7 +11,7 @@ export type SheetAnim = {
 };
 
 // Plays a one-row sprite sheet. The cell fills the width of the box; `key` the
-// component by action to restart it. Honors prefers-reduced-motion (first frame).
+// component by action to restart it. Reduced motion holds a static pose.
 type Props = {
   anim: SheetAnim;
   flip?: boolean;
@@ -37,13 +37,14 @@ function Sheet({ anim, flip = false, className = "", onDone, last, shift }: Prop
   // Frames advance on the compositor via one Web Animation (no React render per frame).
   useEffect(() => {
     const el = ref.current;
-    if (
-      !el ||
-      last ||
-      frames < 2 ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      return;
+    if (!el || last) return;
+    if (frames < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // Keep a static pose, but complete its visual lifecycle at the normal time.
+      if (loop) return;
+      el.style.backgroundPosition = pos(frames - 1);
+      el.style.transform = move(frames - 1);
+      const timer = setTimeout(() => onDone?.(), fps > 0 ? (frames / fps) * 1000 : 0);
+      return () => clearTimeout(timer);
     }
     const keys: Keyframe[] = Array.from({ length: frames }, (_, i) => ({
       backgroundPosition: pos(i),

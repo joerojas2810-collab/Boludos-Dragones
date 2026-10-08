@@ -26,6 +26,11 @@ import {
 import type { Stats } from "@/lib/game/characters";
 import { SKILLS } from "@/lib/game/skills";
 import { TRAITS } from "@/lib/game/traits";
+import type { EnemyFamily } from "@/lib/game/worlds";
+
+const FAMILY_LABEL: Record<EnemyFamily, string> = {
+  limo: "Limo", diablillo: "Diablillo", arpia: "Arpía", golem: "Gólem", espectro: "Espectro",
+};
 
 type Props = {
   c: Combatant;
@@ -93,7 +98,7 @@ export function HudCard({
     !!children;
   return (
     <div
-      className={`relative min-w-0 rounded-md border border-[#b9855a]/55 bg-[#141d28]/90 p-2 shadow-[0_4px_14px_rgb(0_0_0/0.45)] ${className}`}
+      className={`combat-hud relative min-w-0 rounded-md border border-[#b9855a]/55 bg-[#141d28]/90 p-2 shadow-[0_4px_14px_rgb(0_0_0/0.45)] ${className}`}
     >
       <div className="flex items-center gap-1.5">
         {tone === "enemy" && label !== "RIVAL" && (
@@ -121,7 +126,7 @@ export function HudCard({
         </span>
       </div>
       <div className="mb-1 flex items-center gap-2 text-[13px] leading-5 text-[#9fb0c0]">
-        <span className="truncate">{CLASSES[c.char.classId].name}</span>
+        <span className="truncate">{!you && c.char.family ? FAMILY_LABEL[c.char.family] : CLASSES[c.char.classId].name}</span>
         <Tooltip tip={extraTip} className="ml-auto">
           <span
             className={`whitespace-nowrap text-[#e8d9b8] ${extraTip ? "cursor-help" : ""}`}

@@ -186,6 +186,12 @@
   }
 }
 /* HP text must stay on one line inside the narrow floating cards. */
+body[data-art="pixel"] .combat-hud {
+  border-radius: 0;
+  border-width: 8px;
+  border-image: url("/art/ui-px/panel_default.png") 8 fill / 8px stretch;
+  box-shadow: none;
+}
 .stage .bar-track > span {
   white-space: nowrap;
   font-size: 0.75rem;

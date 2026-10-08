@@ -218,7 +218,7 @@ export function BattleArena({
           className="h-full w-full"
           style={fxStyle(b, "player")}
         >
-          <div className="fx-breathe h-full w-full origin-bottom scale-[1.15]">
+          <div className={`fx-breathe h-full w-full origin-bottom ${isPixel() ? "" : "scale-[1.15]"}`}>
             <CuedHero b={b} />
           </div>
         </div>

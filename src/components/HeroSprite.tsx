@@ -14,6 +14,7 @@ import {
 import type { ClassId } from "@/lib/game/characters";
 import type { Element } from "@/lib/game/elements";
 import type { TraitId } from "@/lib/game/traits";
+import "./pixel-sprites.css";
 
 // Alternate art line: NEXT_PUBLIC_ART=pixel swaps the painted heroes for 64x96 pixel art.
 const PX_ASPECT = 70 / 96; // 64 px frame + 3 px padding per side
@@ -103,12 +104,12 @@ function Hero({
       <div
         role="img"
         aria-hidden="true"
-        className={`relative aspect-square ${flip ? "-scale-x-100" : ""} ${className}`}
+        className={`pixel-sprite-box relative aspect-square ${flip ? "-scale-x-100" : ""} ${className}`}
         style={{ imageRendering: "pixelated" }}
       >
         <div
-          className="absolute bottom-0 left-1/2 h-full -translate-x-1/2"
-          style={{ aspectRatio: PX_ASPECT, transform: `translateX(-50%) ${crop ? "scale(1.22)" : ""}`, transformOrigin: "50% 94%" }}
+          className="pixel-sprite-frame"
+          style={{ aspectRatio: PX_ASPECT }}
         >
           {frame}
         </div>
