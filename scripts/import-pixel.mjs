@@ -1,13 +1,39 @@
-// Importer: pixel-art strips (fire only, 64x96 PNG) -> public/art/<heroes|enemies>-px/ for all 5 elements.
+// Importer: fire strips (64x96 or HD heroes 128x192) -> public/art/<heroes|enemies>-px/ in 5 elements.
 // Usage: node scripts/import-pixel.mjs "<dir>" <heroes|enemies>   (dir has manifest.json + the strips)
 import sharp from "sharp";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const dir = process.argv[2];
 const lot = process.argv[3];
 if (!dir || !["heroes", "enemies"].includes(lot)) throw new Error("usage: <dir> <heroes|enemies>");
 const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
+const FW = manifest.frame_width;
+const FH = manifest.frame_height;
+if (!(FW === 64 && FH === 96) && !(lot === "heroes" && FW === 128 && FH === 192))
+  throw new Error("unsupported native frame dimensions");
+const PAD = FW / 64 * 3;
+if (lot === "heroes") {
+  const expected = Object.fromEntries([...readFileSync("src/lib/art/heroes.ts", "utf8").matchAll(/^  (\w+): \{ frames: (\d+), fps: (\d+), loop: (true|false), hold: (true|false) \},$/gm)]
+    .map((m) => [m[1], { frames: +m[2], fps: +m[3], loop: m[4] === "true", hold: m[5] === "true" }]));
+  const required = new Set(["knight", "mage", "rogue", "cleric"].flatMap((c) => Object.keys(expected).map((a) => `hero_${c}_${a}.png`)));
+  if (Object.keys(expected).length !== 10 || manifest.files.length !== required.size) throw new Error("heroes require four classes and ten actions");
+  for (const entry of manifest.files) {
+    const action = entry.file.match(/^hero_(?:knight|mage|rogue|cleric)_(.+)\.png$/)?.[1];
+    if (!required.delete(entry.file) || !expected[action]) throw new Error(`unexpected or duplicate hero: ${entry.file}`);
+    for (const field of ["frames", "fps", "loop", "hold"])
+      if (entry[field] !== expected[action][field]) throw new Error(`invalid ${field}: ${entry.file}`);
+    if (entry.frame_width !== FW || entry.frame_height !== FH || entry.anchor?.x !== FW / 2 || entry.anchor?.y !== FH * 15 / 16)
+      throw new Error(`invalid hero dimensions or feet anchor: ${entry.file}`);
+  }
+}
+// Validate every header before replacing any runtime asset.
+for (const entry of manifest.files) {
+  if (!/^[a-z0-9_]+\.png$/.test(entry.file)) throw new Error(`invalid filename: ${entry.file}`);
+  const info = await sharp(join(dir, entry.file)).metadata();
+  if (info.width !== FW * entry.frames || info.height !== FH || !info.hasAlpha)
+    throw new Error(`invalid strip header: ${entry.file}`);
+}
 
 // Tone order: dark, main, light, highlight. Fire comes from the manifest; the rest are ours.
 const RAMPS = {
@@ -38,8 +64,6 @@ const flat = (ramp) => {
 };
 if (lot === "enemies") for (const k of Object.keys(RAMPS)) RAMPS[k] = dim(flat(RAMPS[k]));
 
-const FW = manifest.frame_width;
-const PAD = 3;
 const out = `public/art/${lot}-px`;
 mkdirSync(out, { recursive: true });
 let n = 0;
@@ -88,4 +112,9 @@ for (const { file } of manifest.files) {
     n++;
   }
 }
+if (lot === "heroes") writeFileSync("src/lib/art/pixel-heroes.generated.json", JSON.stringify({
+  frame_width: FW, frame_height: FH, padding: PAD,
+  runtime_frame_width: FW + 2 * PAD,
+  anchor: { x: FW / 2 + PAD, y: FH * 15 / 16 },
+}, null, 2) + "\n");
 console.log({ written: n });

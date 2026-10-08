@@ -7,6 +7,7 @@ const LAYERS = [
   ["sky", "Cielo"], ["far", "Lejos"], ["mid", "Medio"],
   ["ground", "Suelo"], ["foreground", "Primer plano"],
 ] as const;
+const CLASSES = { knight: "Caballero", mage: "Mago", rogue: "Pícaro", cleric: "Clérigo" } as const;
 const VIEWS = {
   full_hd: { label: "1080p", width: 1920, aspect: "16 / 9" },
   qhd: { label: "2K", width: 2560, aspect: "16 / 9" },
@@ -18,6 +19,8 @@ export function HdSample() {
   const [view, setView] = useState<keyof typeof VIEWS>("full_hd");
   const [hidden, setHidden] = useState<string[]>([]);
   const [hero, setHero] = useState(true);
+  const [heroClass, setHeroClass] = useState<keyof typeof CLASSES>("knight");
+  const [showAll, setShowAll] = useState(true);
   const [hud, setHud] = useState(false);
   const [viewport, setViewport] = useState({ width: 960, height: 540 });
   const container = useRef<HTMLDivElement>(null);
@@ -52,10 +55,22 @@ export function HdSample() {
     <div className="mx-auto max-w-[2560px] space-y-3">
       <Link href="/galeria-px" className="text-sm underline">Volver a la galería</Link>
       <h1 className="text-xl font-bold">Muestra de mayor resolución</h1>
-      <p className="text-sm text-amber-200">Propuesta pendiente de aprobación. Solo Pantano y Caballero en reposo.</p>
+      <p className="text-sm text-amber-200">Diseños aprobados de las cuatro clases a 128×192. Aquí se muestran poses estáticas; las diez animaciones están disponibles en la galería de héroes.</p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {Object.entries(CLASSES).map(([id, label]) => <figure key={id} className="flex flex-col items-center border border-slate-700 bg-slate-900 p-2">
+          <figcaption className="mb-2 font-bold">{label}</figcaption>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/art/pixel-hd-sample/heroes/hero_${id}_fire_idle.png`} alt={`${label} de fuego, muestra`} width={128} height={192} style={{ imageRendering: "pixelated" }} />
+          <span className="text-xs text-slate-400">128×192 · tamaño nativo</span>
+        </figure>)}
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         <button className={button(!higher)} aria-pressed={!higher} onClick={() => setResolution("current")}>Actual</button>
         <button className={button(higher)} aria-pressed={higher} onClick={() => setResolution("higher")}>Mayor resolución</button>
+        <label className="text-sm">Clase: <select aria-label="Clase de héroe" className="bg-slate-800 p-2" value={heroClass} onChange={(event) => { setHeroClass(event.target.value as keyof typeof CLASSES); setShowAll(false); }}>
+          {Object.entries(CLASSES).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+        </select></label>
+        <button className={button(showAll)} aria-pressed={showAll} onClick={() => setShowAll(!showAll)}>Las cuatro clases en el mapa</button>
         <span className="px-2 text-sm">Vista:</span>
         {(Object.keys(VIEWS) as (keyof typeof VIEWS)[]).map((id) => <button key={id} className={button(view === id)} aria-pressed={view === id} onClick={() => setView(id)}>{VIEWS[id].label}</button>)}
       </div>
@@ -63,15 +78,15 @@ export function HdSample() {
         {LAYERS.map(([id, label]) => <label key={id} className="flex items-center gap-1">
           <input type="checkbox" checked={!hidden.includes(id)} onChange={() => setHidden((previous) => previous.includes(id) ? previous.filter((layer) => layer !== id) : [...previous, id])} />{label}
         </label>)}
-        <label className="flex items-center gap-1"><input type="checkbox" checked={hero} onChange={(event) => setHero(event.target.checked)} />Caballero</label>
+        <label className="flex items-center gap-1"><input type="checkbox" checked={hero} onChange={(event) => setHero(event.target.checked)} />Mostrar héroe</label>
         <label className="flex items-center gap-1"><input type="checkbox" checked={hud} onChange={(event) => setHud(event.target.checked)} />Vida y daño de muestra</label>
       </div>
       <p className="text-xs text-slate-300">
         Fondo: {higher ? "960×540" : "320×180"} a ×{higher ? sceneScale : sceneScale * 3}.
-        {" "}Caballero: {higher ? "128×192" : "64×96, con margen de 3 px"} a ×{higher ? heroScale : heroScale * 2}.
+        {" "}{higher && showAll && view !== "mobile" ? "Cuatro clases" : CLASSES[heroClass]}: {higher ? "128×192" : "64×96, con margen de 3 px"} a ×{higher ? heroScale : heroScale * 2}.
         {" "}Mismo encuadre, escala entera y primer cuadro de reposo.
       </p>
-      <div ref={container} role="img" aria-label={`Pantano con Caballero: ${higher ? "mayor resolución" : "arte actual"}`}
+      <div ref={container} role="img" aria-label={`Pantano con ${higher && showAll && view !== "mobile" ? "las cuatro clases" : CLASSES[heroClass]}: ${higher ? "mayor resolución" : "arte actual"}`}
         className="relative mx-auto w-full overflow-hidden bg-black"
         style={{ maxWidth: VIEWS[view].width, aspectRatio: VIEWS[view].aspect }}>
         {LAYERS.filter(([id]) => !hidden.includes(id)).map(([id]) => (
@@ -80,24 +95,25 @@ export function HdSample() {
             width={width} height={height} className="absolute max-w-none"
             style={{ left, top, width, height, imageRendering: "pixelated" }} />
         ))}
-        {hero && (higher ? (
+        {hero && higher && (showAll && view !== "mobile" ? Object.keys(CLASSES) as (keyof typeof CLASSES)[] : [heroClass]).map((id, index, classes) => (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src="/art/pixel-hd-sample/heroes/hero_knight_fire_idle.png" alt="" draggable={false}
+          <img key={id} src={`/art/pixel-hd-sample/heroes/hero_${id}_fire_idle.png`} alt={CLASSES[id]} draggable={false}
             width={heroWidth} height={heroHeight} className="absolute max-w-none"
-            style={{ left: heroLeft, top: heroTop, width: heroWidth, height: heroHeight, imageRendering: "pixelated" }} />
-        ) : <div aria-hidden className="absolute"
+            style={{ left: classes.length === 1 ? heroLeft : Math.round(viewport.width * (index + 1) / 5 - heroWidth / 2), top: heroTop, width: heroWidth, height: heroHeight, imageRendering: "pixelated" }} />
+        ))}
+        {hero && !higher && <div aria-hidden className="absolute"
           style={{ left: heroLeft, top: heroTop, width: heroWidth, height: heroHeight,
-            backgroundImage: "url(/art/heroes-px/hero_knight_fire_idle.png)", backgroundRepeat: "no-repeat",
-            backgroundSize: "400% 100%", backgroundPosition: "0 0", imageRendering: "pixelated" }} />)}
+            backgroundImage: `url(/art/pixel-hd-sample/heroes/previous/hero_${heroClass}_fire_idle.png)`, backgroundRepeat: "no-repeat",
+            backgroundSize: "400% 100%", backgroundPosition: "0 0", imageRendering: "pixelated" }} />}
         {hud && <>
           <div className="absolute left-4 top-4 w-44 border border-slate-400 bg-slate-950/90 p-2 text-xs">
-            <p>Caballero de fuego</p><p>Vida: 120 / 120</p>
+            <p>{CLASSES[heroClass]} de fuego</p><p>Vida: 120 / 120</p>
             <div className="mt-1 h-2 bg-slate-700"><div className="h-full w-full bg-green-400" /></div>
           </div>
           {hero && <span className="absolute font-bold text-red-300" style={{ left: heroLeft + heroWidth - 20, top: heroTop + 32, textShadow: "1px 1px 0 #101522" }}>−24</span>}
         </>}
       </div>
-      <p className="text-xs text-slate-400">La vista elegida se adapta al espacio disponible. En móvil se recortan los lados del fondo y el Caballero permanece centrado.</p>
+      <p className="text-xs text-slate-400">La vista elegida se adapta al espacio disponible. En móvil se recortan los lados del fondo y el héroe permanece centrado.</p>
     </div>
   </main>;
 }

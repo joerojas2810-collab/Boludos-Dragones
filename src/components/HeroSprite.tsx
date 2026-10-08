@@ -5,6 +5,7 @@ import { AnimSheet, type SheetAnim } from "@/components/AnimSheet";
 import { CLASS_ART, ELEMENT_ART } from "@/lib/art";
 import { ACC_BOXES, ACC_SIZE } from "@/lib/art/accBoxes";
 import { isPixel } from "@/lib/art/pixel";
+import pixelHeroes from "@/lib/art/pixel-heroes.generated.json";
 import {
   HERO_ACTIONS,
   TRAIT_ASSET,
@@ -15,8 +16,8 @@ import type { Element } from "@/lib/game/elements";
 import type { TraitId } from "@/lib/game/traits";
 import "./pixel-sprites.css";
 
-// Alternate art line: NEXT_PUBLIC_ART=pixel swaps the painted heroes for 64x96 pixel art.
-const PX_ASPECT = 70 / 96; // 64 px frame + 3 px padding per side
+// Hero dimensions are imported independently from the unchanged enemy sprites.
+const PX_ASPECT = pixelHeroes.runtime_frame_width / pixelHeroes.frame_height;
 
 type Props = {
   classId: ClassId;
@@ -115,7 +116,7 @@ function Hero({
         role="img"
         aria-hidden="true"
         className={`pixel-sprite-box relative aspect-square ${flip ? "-scale-x-100" : ""} ${className}`}
-        style={{ imageRendering: "pixelated" }}
+        style={{ imageRendering: "pixelated", "--pixel-frame-height": `${pixelHeroes.frame_height}px` } as React.CSSProperties}
       >
         <div
           className="pixel-sprite-frame"

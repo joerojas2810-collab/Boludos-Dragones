@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AnimSheet } from "@/components/AnimSheet";
 import { HERO_ACTIONS } from "@/lib/art/heroes";
 import { PX_ACTIONS } from "@/lib/art/enemies";
+import pixelHeroes from "@/lib/art/pixel-heroes.generated.json";
 import { InventoryGallery } from "./InventoryGallery";
 import { UiGallery } from "./UiGallery";
 import { BackgroundGallery } from "./BackgroundGallery";
@@ -34,7 +35,9 @@ export function Gallery() {
   const lotLabels = { heroes: "Héroes", enemies: "Enemigos y jefes", items: "Armas, equipo y forja", icons: "Íconos", frames: "Marcos", ui: "Interfaz", backgrounds: "Fondos", effects: "Efectos" };
   const a = action in actions ? action : "idle";
   const meta = (actions as Record<string, { frames: number; fps: number }>)[a];
-  const w = 70 * zoom;
+  const cellWidth = lot === "heroes" ? pixelHeroes.runtime_frame_width : 70;
+  const cellHeight = lot === "heroes" ? pixelHeroes.frame_height : 96;
+  const w = cellWidth * zoom;
   const btn = (on: boolean) => `rounded border px-2 py-1 text-sm ${on ? "bg-amber-500 text-black" : "bg-neutral-800 text-neutral-200"}`;
   return (
     <main className="min-h-screen bg-neutral-900 p-4 text-neutral-100">
@@ -58,20 +61,20 @@ export function Gallery() {
         <div />
         {ELEMENTS.map((e) => <div key={e} className="text-center text-xs text-neutral-400">{e}</div>)}
         {rows.map((r) => (
-          <Row key={r.label} row={r} action={a} meta={meta} w={w} bg={BGS[bg]} />
+          <Row key={r.label} row={r} action={a} meta={meta} w={w} aspect={cellWidth / cellHeight} bg={BGS[bg]} />
         ))}
       </div> : lot === "effects" ? <EffectsGallery zoom={zoom} bg={BGS[bg]} /> : lot === "backgrounds" ? <BackgroundGallery zoom={zoom} /> : lot === "ui" ? <UiGallery zoom={zoom} bg={BGS[bg]} /> : <InventoryGallery lot={lot as "items" | "icons" | "frames"} zoom={zoom} bg={BGS[bg]} />}
     </main>
   );
 }
 
-function Row({ row, action, meta, w, bg }: { row: Row; action: string; meta: { frames: number; fps: number }; w: number; bg: string }) {
+function Row({ row, action, meta, w, aspect, bg }: { row: Row; action: string; meta: { frames: number; fps: number }; w: number; aspect: number; bg: string }) {
   return (
     <>
       <div className="self-center text-xs text-neutral-300">{row.label}</div>
       {ELEMENTS.map((e) => (
         <div key={e} style={{ width: w, background: bg, imageRendering: "pixelated" }}>
-          <AnimSheet anim={{ src: `/art/${row.file(e, action)}.png`, frames: meta.frames, fps: meta.fps, loop: true, aspect: 70 / 96 }} className="w-full" />
+          <AnimSheet anim={{ src: `/art/${row.file(e, action)}.png`, frames: meta.frames, fps: meta.fps, loop: true, aspect }} className="w-full" />
         </div>
       ))}
     </>

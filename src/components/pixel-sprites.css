@@ -6,9 +6,15 @@
   position: absolute;
   bottom: 0;
   left: round(nearest, 50cqw, 1px);
-  height: max(96px, round(down, var(--pixel-size, 100cqh), 96px));
+  /* HD heroes use whole native frames; 96px cards use an exact half scale.
+     Enemies retain the original 96px native step. */
+  height: max(var(--pixel-min-height, 96px), round(down, var(--pixel-size, 100cqh), var(--pixel-frame-height, 96px)));
   transform: translateX(-50%);
   image-rendering: pixelated;
+}
+.stage-hero .pixel-sprite-box {
+  /* Combat heroes remain readable at native HD size on narrow screens. */
+  --pixel-min-height: 192px;
 }
 body[data-art="pixel"] .fx-breathe {
   animation-timing-function: steps(1, end);

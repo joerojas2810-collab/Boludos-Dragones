@@ -11,6 +11,12 @@ Plan de trabajo para acelerar las fases pendientes mediante bases compartidas y 
 - Trabajar con dos agentes: dirección visual y producción; inventario, exportaciones e integración. Un responsable centraliza los commits y pushes.
 - Entregar solo recursos finales y manifiestos; conservar ZIP fuera del repositorio y excluir fuentes, borradores y carpetas de trabajo.
 
+## Actualización de Fase 1: héroes HD
+
+Completada el 8 de octubre de 2026 después de aprobar las cuatro muestras: cuatro clases, diez acciones y cinco elementos. Se reemplazaron las 40 bases de Fuego por tiras nativas 128×192 (144 cuadros), con arma incluida y anclaje (64,180). La importación genera 200 PNG / 720 cuadros, con margen lateral transparente de 6 px por cuadro: tamaño de reproducción 140×192, anclaje (70,180). Las acciones mantienen cuadros, fps, loop y hold de heroes.ts. Poses distintas de ataque, defensa, guardia, golpe, esquive, derrota y victoria; pequeños desplazamientos de piezas completan las transiciones.
+
+Las variantes conservan píxeles neutros y alfa, y cambian solo la rampa exclusiva de cuatro tonos. Paquete phase_1_heroes.zip: 40 bases y manifiesto. Escala entera en combate, mínimo 192 px para el héroe, reducción exacta a 96 px en tarjetas. Verificados 1080p, 2K y móvil; TypeScript y ESLint sin errores; 43 archivos / 414 pruebas aprobadas. Los enemigos y los fondos de combate conservan sus recursos anteriores. Los cuatro reposos antiguos permanecen en la comparación de desarrollo.
+
 ## Fase 4: estadísticas, sistema y reliquias
 
 El lote 9 reúne los 8 íconos de estadísticas y los 17 de sistema. Reutiliza símbolos aprobados cuando representan el mismo concepto y deriva los estados de corazón y las filas de estrellas de bases compartidas.

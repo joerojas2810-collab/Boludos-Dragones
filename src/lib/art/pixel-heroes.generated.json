@@ -1,0 +1,10 @@
+{
+  "frame_width": 128,
+  "frame_height": 192,
+  "padding": 6,
+  "runtime_frame_width": 140,
+  "anchor": {
+    "x": 70,
+    "y": 180
+  }
+}
