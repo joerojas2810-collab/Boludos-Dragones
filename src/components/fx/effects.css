@@ -1,0 +1,22 @@
+.pixel-effect { image-rendering: pixelated; }
+
+.pixel-effect-vfx-box {
+  container-type: size;
+  overflow: visible;
+}
+
+.pixel-effect-vfx-box:where(:not(.absolute):not(.fixed):not(.sticky)) {
+  position: relative;
+}
+
+.pixel-effect-vfx-native {
+  --pixel-render-width: max(var(--pixel-cell-w), round(nearest, 100cqw, var(--pixel-cell-w)));
+  --pixel-render-height: calc(var(--pixel-render-width) / var(--pixel-cell-aspect));
+  position: absolute;
+  width: var(--pixel-render-width);
+  height: var(--pixel-render-height);
+  max-width: none;
+  left: round(nearest, calc((100cqw - var(--pixel-render-width)) / 2), 1px);
+  top: round(nearest, calc((100cqh - var(--pixel-render-height)) / 2), 1px);
+  image-rendering: pixelated;
+}

@@ -49,6 +49,8 @@ El usuario decidió mantener menú, colección, gacha, lobby, mercado y forja co
 
 ## Fase 7: efectos
 
+Completada el 8 de octubre de 2026: **142 PNG finales**, 71 animaciones y 71 variantes de movimiento reducido. Diseños nuevos con el detalle HD aprobado; golpes 128×128, auras/forja/invocación 192×192, entradas por rango 384×192, resultados 384×128, emotes 64×64, glifos 32×48 y otros tamaños declarados por archivo. Se conservaron cuadros, fps, filas, mapas de glifos, loop y finish de las referencias. Cofres cerrados y abiertos, máscaras de rango y símbolos aprobados distinguen las variantes. PNG con alfa binario y máximo 96 colores, anclaje central; reduced estático o transparente para decoraciones. Importador, galería y selección de rutas pixel integrados; respaldo pintado y lógica de juego conservados. ZIP `phase_7_effects.zip`, 143 entradas y 1.999.074 bytes. La revisión de las demás fases con el nuevo detalle queda pendiente de decisión del usuario.
+
 Existen **71 efectos principales y 71 versiones en `reduced/`**. Referencias de nombres: `public/art/effects/`. Referencia exacta de cuadros, fps, filas, tamaño de celda y comportamiento al finalizar: `src/lib/art/effects.generated.ts`. Conservar `remove`, `hold` o `loop` y los metadatos de glifos cuando correspondan.
 
 Reutilizar bases para los cinco golpes elementales, las aperturas y revelaciones de gacha por rango y las entradas de jefe. Exportar las variantes y versiones reducidas mediante reglas comunes cuando su animación y significado lo permitan. No cambiar los cuadros ni las velocidades para ahorrar producción sin una aprobación explícita.

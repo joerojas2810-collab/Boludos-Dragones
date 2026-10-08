@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { AnimSheet } from "@/components/AnimSheet";
 import { usePrefersReducedMotion } from "@/lib/motion";
-import { EFFECTS } from "@/lib/art/effects.generated";
-
-const src = (id: string, reduced: boolean) =>
-  `/art/effects/${reduced ? "reduced/" : ""}${id}.webp`;
+import { effectMeta, effectSrc, isPixelEffect } from "@/lib/art/effects";
+import "./effects.css";
 
 // Painted one-row effect sheet (id = file name without "vfx_", e.g. "hit_fire").
 // Plays after `delay` s; "remove" effects vanish when done, "hold" keep the last
@@ -24,7 +22,7 @@ export function Vfx({
   onDone?: () => void;
 }) {
   const reduced = usePrefersReducedMotion();
-  const m = EFFECTS[id];
+  const m = effectMeta(id);
   const [go, setGo] = useState(delay <= 0);
   const [gone, setGone] = useState(false);
   useEffect(() => {
@@ -43,14 +41,32 @@ export function Vfx({
   }, [stillOnScreen, stillMs]);
   if (!m || !go || gone) return null;
   const aspect = m.cell[0] / m.cell[1];
+  if (isPixelEffect(id)) {
+    const style = {
+      aspectRatio: aspect,
+      "--pixel-cell-w": `${m.cell[0]}px`,
+      "--pixel-cell-h": `${m.cell[1]}px`,
+      "--pixel-cell-aspect": aspect,
+    } as CSSProperties;
+    return <div className={`${className} pixel-effect-vfx-box`} style={style}>
+      {reduced ? <img src={effectSrc(id, true)} alt="" className="pixel-effect-vfx-native" /> : <AnimSheet
+        anim={{ src: effectSrc(id, false), frames: m.frames, fps: m.fps, loop: m.loop, aspect }}
+        className="pixel-effect-vfx-native"
+        onDone={() => {
+          onDone?.();
+          if (m.finish === "remove") setGone(true);
+        }}
+      />}
+    </div>;
+  }
   if (reduced)
     return (
-      <img src={src(id, true)} alt="" className={className} style={{ aspectRatio: aspect }} />
+      <img src={effectSrc(id, true)} alt="" className={className} style={{ aspectRatio: aspect, imageRendering: isPixelEffect(id) ? "pixelated" : undefined }} />
     );
   return (
     <AnimSheet
-      anim={{ src: src(id, false), frames: m.frames, fps: m.fps, loop: m.loop, aspect }}
-      className={className}
+      anim={{ src: effectSrc(id, false), frames: m.frames, fps: m.fps, loop: m.loop, aspect }}
+      className={`${className}${isPixelEffect(id) ? " pixel-effect" : ""}`}
       onDone={() => {
         onDone?.();
         if (m.finish === "remove") setGone(true);
@@ -73,7 +89,8 @@ export function VfxNumber({
   size?: number;
 }) {
   const reduced = usePrefersReducedMotion();
-  const m = EFFECTS[kind];
+  const m = effectMeta(kind);
+  const glyphSize = isPixelEffect(kind) ? Math.max(m.cell[1], Math.round(size / m.cell[1]) * m.cell[1]) : size;
   const [frame, setFrame] = useState(0);
   useEffect(() => {
     if (reduced) return;
@@ -91,11 +108,11 @@ export function VfxNumber({
     };
   }, [reduced, delay, m.frames, m.fps]);
   const rows = m.rows;
-  const w = (size * m.cell[0]) / m.cell[1];
-  const step = (m.advance ?? m.cell[0] / 2) * (size / m.cell[1]);
+  const w = (glyphSize * m.cell[0]) / m.cell[1];
+  const step = (m.advance ?? m.cell[0] / 2) * (glyphSize / m.cell[1]);
   const cols = reduced ? 1 : m.frames;
   return (
-    <span role="img" aria-label={text} className="inline-flex" style={{ height: size }}>
+    <span role="img" aria-label={text} className="inline-flex" style={{ height: glyphSize, imageRendering: isPixelEffect(kind) ? "pixelated" : undefined }}>
       {[...text].map((ch, i) => {
         const row = m.glyphRow?.[ch];
         if (row === undefined) return null;
@@ -104,13 +121,13 @@ export function VfxNumber({
             key={i}
             style={{
               width: step,
-              height: size,
+              height: glyphSize,
               flex: "none",
-              backgroundImage: `url(${src(kind, reduced)})`,
+              backgroundImage: `url(${effectSrc(kind, reduced)})`,
               backgroundRepeat: "no-repeat",
-              backgroundSize: `${cols * w}px ${rows * size}px`,
+              backgroundSize: `${cols * w}px ${rows * glyphSize}px`,
               // center the glyph cell inside its advance
-              backgroundPosition: `${(step - w) / 2 - (reduced ? 0 : frame * w)}px ${-row * size}px`,
+              backgroundPosition: `${(step - w) / 2 - (reduced ? 0 : frame * w)}px ${-row * glyphSize}px`,
               overflow: "visible",
             }}
           />
