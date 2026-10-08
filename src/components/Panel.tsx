@@ -17,7 +17,7 @@ export function Panel({
     <section className={`panel-art p-4 ${title ? "pt-12" : ""} ${className}`}>
       {title && (
         <h2
-          className={`title-art panel-title absolute max-w-[calc(100vw-3rem)] whitespace-normal px-5 py-1 text-center leading-tight sm:max-w-none sm:whitespace-nowrap ${titleClass}`}
+          className={`title-art panel-title absolute w-max max-w-[calc(100vw-3rem)] whitespace-normal px-5 py-1 text-center leading-tight sm:max-w-none sm:whitespace-nowrap ${titleClass}`}
         >
           {title}
         </h2>

@@ -5,7 +5,7 @@ import { bgSrc, isPixelBackground } from "@/lib/art/backgrounds";
 export function ScreenBg({ scene, dim = 0 }: { scene: string; dim?: number }) {
   const px = isPixelBackground(scene, "composite");
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       <picture>
         <source media="(max-width: 767px)" srcSet={bgSrc(scene, "composite", true)} />
         <img

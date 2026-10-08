@@ -110,7 +110,8 @@ export function HudCard({
             aria-label="Detalles"
             onClick={() => setOpen(!open)}
           >
-            {open ? "Info ▴" : "Info ▾"}
+            <span className="md:hidden">ⓘ</span>
+            <span className="max-md:hidden">{open ? "Info ▴" : "Info ▾"}</span>
           </button>
           <ElementIcon
             element={c.char.element}

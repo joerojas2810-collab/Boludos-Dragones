@@ -68,7 +68,7 @@ function ActionButton({
       placement={left ? "side" : "auto"}
     >
       <button
-        className={`btn h-full w-full ${left ? "min-h-11 !px-2 !py-1" : "min-h-14 max-md:min-h-12 md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1"} ${hot ? "!border-yellow-300" : ""}`}
+        className={`btn h-full w-full max-md:![border-width:6px_10px] max-md:![border-image-width:6px_10px] max-md:!px-1 max-md:!py-0.5 ${left ? "min-h-11 !px-2 !py-1" : "min-h-14 max-md:min-h-12 md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1"} ${hot ? "!border-yellow-300" : ""}`}
         disabled={disabled}
         onClick={onClick}
       >
@@ -78,7 +78,7 @@ function ActionButton({
           {icon && (
             <Icon
               name={icon}
-              className={`shrink-0 max-md:h-6 ${left ? "h-6" : "h-8"}`}
+              className={`shrink-0 max-md:h-5 ${left ? "h-6" : "h-8"}`}
             />
           )}
           <div>
@@ -88,7 +88,7 @@ function ActionButton({
               {title}
             </div>
             <div
-              className={`leading-snug max-md:text-xs ${left ? "text-[11px]" : "text-sm"}`}
+              className={`leading-snug max-md:text-[11px] max-md:leading-tight ${left ? "text-[11px]" : "text-sm"}`}
             >
               {sub}
             </div>

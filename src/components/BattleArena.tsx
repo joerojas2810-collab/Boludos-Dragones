@@ -184,7 +184,7 @@ export function BattleArena({
   );
   return (
     <div
-      className={`stage relative ${tall ? "h-[clamp(20rem,50vh,34rem)] flex-none" : "min-h-[clamp(17rem,36vh,30rem)] flex-1 max-md:flex-none"} max-md:h-[27rem] overflow-hidden ${bleed ? "" : "border-4 border-[var(--edge)]"} ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
+      className={`stage relative ${tall ? "h-[clamp(20rem,50vh,34rem)] flex-none" : "min-h-[clamp(17rem,36vh,30rem)] flex-1 max-md:flex-none"} max-md:h-[22.5rem] overflow-hidden ${bleed ? "" : "border-4 border-[var(--edge)]"} ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
       style={big?.style}
       data-hitstop={paused}
     >

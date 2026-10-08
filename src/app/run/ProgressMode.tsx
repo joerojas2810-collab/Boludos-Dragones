@@ -844,7 +844,7 @@ function Prep({
             Todavía no tienes héroes. Haz tiradas en el gacha.
           </p>
         ) : (
-          <div className="grid max-h-[40vh] min-h-40 grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] justify-items-center gap-x-2 gap-y-4 overflow-y-auto pr-1">
+          <div className="grid max-h-[40vh] min-h-40 grid-cols-[repeat(auto-fit,minmax(7.5rem,1fr))] justify-items-center gap-x-2 gap-y-4 overflow-y-auto pr-1">
             {owned.map(({ c, power, mult }) => {
               const h = heroFromOwned(profile, c.id);
               return (

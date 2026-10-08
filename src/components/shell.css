@@ -77,6 +77,7 @@
 .shell-tab {
   position: relative;
   flex: 1 1 0;
+  min-width: 0;
   max-width: 9rem;
   display: flex;
   flex-direction: column;
@@ -178,6 +179,38 @@
     margin: 0 auto;
     width: 100%;
     max-height: calc(100dvh - 8.5rem);
+  }
+}
+/* Phones: shorter hero so the stats and the main button show without hunting for them */
+@media (max-width: 899px) {
+  .hub {
+    grid-template-areas: "title" "stage" "actions" "stats";
+    gap: 0.4rem;
+  }
+  .hub .game-title-emblem {
+    width: 5.5rem;
+  }
+  .hub .game-title-tag {
+    font-size: 1rem;
+  }
+  .hub-hero {
+    width: min(62vw, 30vh, 30rem);
+  }
+  .hub-name {
+    min-height: 4.6rem;
+  }
+}
+@media (max-width: 520px) {
+  .parts-tile {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.8rem;
+  }
+  .shell-nav {
+    gap: 0.1rem;
+    padding-inline: 0.2rem;
+  }
+  .shell-tab {
+    font-size: 0.7rem;
   }
 }
 .hub-stage {

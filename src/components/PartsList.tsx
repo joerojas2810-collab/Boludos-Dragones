@@ -25,7 +25,7 @@ export function PartTile({ k, n, color }: { k: string; n: number; color?: string
           src={src}
           alt=""
           draggable={false}
-          className="h-9 w-9 shrink-0"
+          className="h-9 w-9 shrink-0 max-md:h-7 max-md:w-7"
           style={isPixel() ? { imageRendering: "pixelated" } : undefined}
         />
       )}
