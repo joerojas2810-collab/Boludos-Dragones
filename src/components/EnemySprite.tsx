@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { AnimSheet } from "@/components/AnimSheet";
-import { enemyAnim, PIXEL, PX_ASPECT, type EnemyAction } from "@/lib/art/enemies";
+import { isPixel } from "@/lib/art/pixel";
+import { enemyAnim, PX_ASPECT, type EnemyAction } from "@/lib/art/enemies";
 import type { Element } from "@/lib/game/elements";
 import type { EnemyFamily } from "@/lib/game/worlds";
 
@@ -58,8 +59,8 @@ export function EnemySprite({
       style={{ transform: `scale(calc(var(--es, 1.35) * ${boss ? 1.26 : 1}))` }}
     >
       <div
-        className={PIXEL ? "mx-auto h-full" : "h-full w-full"}
-        style={PIXEL ? { aspectRatio: PX_ASPECT, imageRendering: "pixelated" } : undefined}
+        className={isPixel() ? "mx-auto h-full" : "h-full w-full"}
+        style={isPixel() ? { aspectRatio: PX_ASPECT, imageRendering: "pixelated" } : undefined}
       >
         <AnimSheet
           key={shown}

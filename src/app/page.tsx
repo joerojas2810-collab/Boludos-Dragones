@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useArt } from "@/components/ArtScope";
 import { DailyStreak } from "@/components/DailyStreak";
 import { GameTitle } from "@/components/GameTitle";
 import { HeroSprite } from "@/components/HeroSprite";
@@ -44,6 +45,7 @@ function Stat({
 
 export default function Home() {
   const { profile, session } = useProfile();
+  const art = useArt();
   const hero = profile ? bestHero(profile) : null;
   const dailyReady = !!profile && !claimedToday(profile.daily, dayKey());
   return (
@@ -108,6 +110,9 @@ export default function Home() {
         <Link href="/gacha" className="btn btn-gray text-center">
           {dailyReady ? "Tirada gratis disponible" : "Invocar"}
         </Link>
+        <button className="btn btn-gray text-center" onClick={() => art.set(!art.pixel)}>
+          Arte: {art.pixel ? "Pixel" : "Pintado"}
+        </button>
         {(repo.mode === "local" || session.isAdmin) && (
           <Link href="/prueba" className="btn btn-gray text-center">
             Banco de pruebas

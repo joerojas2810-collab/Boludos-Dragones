@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Vfx } from "@/components/fx/Vfx";
 import { RankIcon } from "@/components/RankIcon";
-import { PIXEL } from "@/lib/art/pixel";
+import { isPixel } from "@/lib/art/pixel";
 import { RARITIES, type RarityId } from "@/lib/game/rarity";
 
 type Props = {
@@ -48,8 +48,8 @@ export function RarityFrame({
       {painted && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={PIXEL ? `/art/frames-px/card_${rarity}.png?v=2` : `/art/frames/card_${rarity}.webp?v=2`}
-          style={PIXEL ? { imageRendering: "pixelated" } : undefined}
+          src={isPixel() ? `/art/frames-px/card_${rarity}.png?v=2` : `/art/frames/card_${rarity}.webp?v=2`}
+          style={isPixel() ? { imageRendering: "pixelated" } : undefined}
           alt=""
           draggable={false}
           className="pointer-events-none absolute inset-0 z-[15] h-full w-full"

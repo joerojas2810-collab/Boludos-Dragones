@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Alegreya, Nunito } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
 import { uiAsset } from "@/lib/art";
-import { PIXEL } from "@/lib/art/pixel";
+import { ArtScope } from "@/components/ArtScope";
+import { isPixel } from "@/lib/art/pixel";
 import "./globals.css";
 
 // Shared typography: Nunito for text and controls, Alegreya for titles.
@@ -38,8 +39,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="es"
       className={`${pixel.variable} ${title.variable} h-full antialiased`}
     >
-      <body data-art={PIXEL ? "pixel" : "painted"} className="min-h-full flex flex-col">
-        <AppShell>{children}</AppShell>
+      <body data-art={isPixel() ? "pixel" : "painted"} className="min-h-full flex flex-col">
+        <ArtScope>
+          <AppShell>{children}</AppShell>
+        </ArtScope>
       </body>
     </html>
   );

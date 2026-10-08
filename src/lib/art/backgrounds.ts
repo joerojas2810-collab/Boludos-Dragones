@@ -1,10 +1,10 @@
 import { BG_DUNGEON, BG_LAYERS, BG_PARALLAX } from "./backgrounds.generated";
-import { PIXEL } from "./pixel";
+import { isPixel } from "./pixel";
 import pixelBackgrounds from "./pixel-backgrounds.generated.json";
 
 const pixelFiles = new Set((pixelBackgrounds as { file: string }[]).map((entry) => entry.file));
 export const isPixelBackground = (scene: string, part: string) =>
-  PIXEL && pixelFiles.has(`${scene}_desktop_${part}.png`);
+  isPixel() && pixelFiles.has(`${scene}_desktop_${part}.png`);
 
 export { BG_LAYERS, BG_PARALLAX };
 const WORLD_SCENES = ["swamp", "peaks", "canyon", "caverns", "storm"];

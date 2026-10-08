@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AnimSheet, type SheetAnim } from "@/components/AnimSheet";
 import { CLASS_ART, ELEMENT_ART } from "@/lib/art";
+import { isPixel } from "@/lib/art/pixel";
 import {
   ACCESSORY_SHEETS,
   HERO_ACTIONS,
@@ -15,7 +16,6 @@ import type { Element } from "@/lib/game/elements";
 import type { TraitId } from "@/lib/game/traits";
 
 // Alternate art line: NEXT_PUBLIC_ART=pixel swaps the painted heroes for 64x96 pixel art.
-const PIXEL = process.env.NEXT_PUBLIC_ART === "pixel";
 const PX_ASPECT = 70 / 96; // 64 px frame + 3 px padding per side
 
 type Props = {
@@ -83,7 +83,7 @@ function Hero({
   const [done, setDone] = useState(false);
   const a: HeroAction = animated && !done ? action : "idle";
   const cls = CLASS_ART[classId];
-  if (PIXEL) {
+  if (isPixel()) {
     // ponytail: no trait accessories in pixel art yet (needs a phase 1b layer set).
     const src = `/art/heroes-px/hero_${cls}_${ELEMENT_ART[element]}_${a}.png`;
     const anim = { ...sheet(src, a), aspect: PX_ASPECT };
