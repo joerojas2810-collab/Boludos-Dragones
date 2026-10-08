@@ -177,7 +177,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </span>
       </header>
       <div className="shell-body">{children}</div>
-      {repo.mode === "local" && <TutorialGuide />}
+      <TutorialGuide />
       <nav className="shell-nav" aria-label="Secciones">
         {TABS.filter((t) => !t.remoteOnly || remote).map((t) => {
           const active = t.match.includes(path.replace(/\/$/, "") || "/");

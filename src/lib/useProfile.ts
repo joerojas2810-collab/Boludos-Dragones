@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import type { Profile } from "./game/profile";
+import { TUTORIAL_DONE, type Profile } from "./game/profile";
 import { loadProfile, PROFILE_KEY, saveProfile } from "./profileStorage";
 import { selectRepo, type ProfileRepo } from "./repo";
 
@@ -41,16 +41,34 @@ function devCoins(): number {
 
 const isRemote = () => !!process.env.NEXT_PUBLIC_SUPABASE_URL;
 
+// Remote profiles come from the server on every call and carry no tutorial field, so the step
+// lives in this browser, per account. First time: accounts with heroes start at "level 1"
+// (autoAdvance skips what they already did); empty accounts start at "pull" (no free starter hero).
+// ponytail: per browser, not synced across devices; move to a profile column if that matters.
+const tutKey = (name: string) => `bd-tutorial:${name}`;
+function withTutorial(p: Profile, name: string): Profile {
+  if (!isRemote() || !name) return p;
+  let step = TUTORIAL_DONE; // storage blocked: don't nag on every load
+  try {
+    const raw = localStorage.getItem(tutKey(name));
+    step = raw === null ? (p.characters.length ? 1 : 4) : Number(raw);
+    if (raw === null) localStorage.setItem(tutKey(name), String(step));
+  } catch {}
+  return { ...p, tutorial: Number.isFinite(step) ? step : TUTORIAL_DONE };
+}
+const replaceWith = (p: Profile) =>
+  set({ ...ensure(), profile: withTutorial(p, ensure().session.name) });
+
 export const repo: ProfileRepo = selectRepo(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   {
     get: () => ensure().profile as Profile,
     update: (fn) => updateProfile(fn),
-    replace: (p) => set({ ...ensure(), profile: p }),
+    replace: replaceWith,
   },
 );
 
-export const replaceProfile = (p: Profile) => set({ ...ensure(), profile: p });
+export const replaceProfile = replaceWith;
 
 function ensure(): State {
   if (!state) {
@@ -78,6 +96,10 @@ export function updateProfile(fn: (p: Profile) => Profile) {
   const next = fn(s.profile);
   if (next === s.profile) return;
   if (!isRemote()) saveProfile(next); // remote: in-memory cache only
+  else if (next.tutorial !== s.profile.tutorial && s.session.name)
+    try {
+      localStorage.setItem(tutKey(s.session.name), String(next.tutorial ?? TUTORIAL_DONE));
+    } catch {}
   set({ ...s, profile: next });
 }
 
@@ -93,7 +115,7 @@ async function bootstrap() {
     set(
       me
         ? {
-            profile: me.profile,
+            profile: withTutorial(me.profile, me.name),
             session: { status: "user", name: me.name, isAdmin: me.isAdmin },
             notice: ensure().notice,
           }
