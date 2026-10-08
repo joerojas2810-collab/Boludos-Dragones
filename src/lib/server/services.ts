@@ -156,13 +156,13 @@ export async function loadMe(rpc: Rpc, playerId: string): Promise<Me> {
   try {
     const get = async () =>
       toMe(await call<RawProfile>(rpc, "get_profile", { p_player: playerId }));
-    let me = await get();
+    // get_streak does not depend on the profile: run both round trips together.
+    const dailyP = call<DailyState | null>(rpc, "get_streak", { p_player: playerId });
+    let me = await get().catch((e) => (dailyP.catch(() => {}), Promise.reject(e)));
     // Until 0031 is applied the rpcs are missing: skip the tutorial instead of breaking login.
     if (!me.profile.characters.length && (await grantStarter(rpc, playerId, me).catch(() => false)))
       me = await get();
-    const daily = await call<DailyState | null>(rpc, "get_streak", {
-      p_player: playerId,
-    });
+    const daily = await dailyP;
     const tutorial = await call<number | null>(rpc, "sync_tutorial", {
       p_player: playerId,
       p_init: me.profile.characters.length ? 1 : 4,
@@ -562,8 +562,10 @@ export async function startLevelService(
   playerId: string,
   body: LevelStartBody,
 ) {
-  await limit(d.rpc, `lvstart:${playerId}`, 10, 60);
-  await limit(d.rpc, `lvstarth:${playerId}`, 60, 3600);
+  await Promise.all([
+    limit(d.rpc, `lvstart:${playerId}`, 10, 60),
+    limit(d.rpc, `lvstarth:${playerId}`, 60, 3600),
+  ]);
   const { rank, level, ascension: asc } = body;
   const me = await loadMe(d.rpc, playerId);
   if (!isRankUnlocked(me.profile.dungeons, rank))

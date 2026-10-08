@@ -112,6 +112,7 @@ type View =
   | { t: "levels"; rank: RarityId }
   | { t: "prep"; rank: RarityId; level: number }
   | { t: "fight"; a: Attempt }
+  | { t: "starting" } // waiting for the server to open the attempt
   | { t: "saving" } // waiting for the server to verify and pay the attempt
   | { t: "result"; o: Outcome };
 
@@ -137,6 +138,7 @@ export function ProgressMode() {
     const owned = profile.characters.find((c) => c.id === id);
     if (!owned) return;
     const spec = levelsOf(rank)[level];
+    setView({ t: "starting" });
     try {
       const info = await repo.startLevel(owned.id, rank, level, asc);
       const rs = initialStageReplay(
@@ -151,6 +153,7 @@ export function ProgressMode() {
       });
     } catch (e) {
       pushNotice(e instanceof Error ? e.message : "No se pudo empezar el nivel.");
+      setView({ t: "prep", rank, level });
     }
   };
 
@@ -349,6 +352,16 @@ export function ProgressMode() {
       </main>
     );
   }
+
+  if (view.t === "starting")
+    return (
+      <Shell>
+        <Notice />
+        <Panel title="Entrando…" className="mx-auto w-full max-w-md text-center">
+          Preparando el nivel.
+        </Panel>
+      </Shell>
+    );
 
   if (view.t === "saving")
     return (
