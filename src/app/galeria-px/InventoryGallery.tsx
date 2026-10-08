@@ -14,11 +14,18 @@ const ITEMS = [
 ] as const;
 const FAMILY_LABELS: Record<string, string> = {
   element: "Elementos", class: "Clases", rank: "Rangos", asc: "Ascensión", enemy_modifier: "Modificadores de enemigos", door: "Puertas",
-  passive: "Pasivos", skill: "Habilidades", trait: "Rasgos", upgrade: "Mejoras", event: "Eventos", dungeon: "Dungeons", part: "Partes de forja", core: "Núcleos",
+  passive: "Pasivos", skill: "Habilidades", trait: "Rasgos", upgrade: "Mejoras", event: "Eventos", dungeon: "Dungeons", stat: "Estadísticas", system: "Sistema", part: "Partes de forja", core: "Núcleos",
 };
 const LABELS: Record<string, string> = {
   fire: "Fuego", water: "Agua", earth: "Tierra", lightning: "Rayo", wind: "Viento",
   knight: "Caballero", mage: "Mago", rogue: "Pícaro", cleric: "Clérigo",
+  accuracy: "Precisión", attack: "Ataque", critical: "Crítico", defense: "Defensa",
+  dodge: "Esquive", hp: "Vida", speed: "Velocidad",
+  coin: "Moneda", fragment: "Fragmento", heart_empty: "Corazón vacío",
+  heart_full: "Corazón lleno", heart_half: "Medio corazón", locked: "Bloqueado",
+  potion: "Poción", star: "Estrella", token: "Ficha", unlocked: "Desbloqueado",
+  stars_0: "Sin estrellas", stars_1: "Una estrella", stars_2: "Dos estrellas",
+  stars_3: "Tres estrellas", stars_4: "Cuatro estrellas", stars_5: "Cinco estrellas",
   changing_element: "Elemento cambiante",
   shield: "Escudo",
   regeneration: "Regeneración",
@@ -160,7 +167,7 @@ export function InventoryGallery({ lot, zoom, bg }: { lot: "items" | "icons" | "
             {names.map((name) => {
               const id = name.slice(family.length + 1);
               const dungeon = family === "dungeon" ? RARITY_IDS.find((rank) => id === "rank_" + rank) : undefined;
-              const title = dungeon ? DUNGEONS[dungeon].name : family === "asc" ? (id === "max_star" ? "Estrella máxima" : "Ascensión " + id) : family === "rank" ? id.toUpperCase() : (family === "door" ? DOOR_LABELS[id] : LABELS[id]) ?? id;
+              const title = dungeon ? DUNGEONS[dungeon].name : family === "asc" ? (id === "max_star" ? "Estrella máxima" : "Ascensión " + id) : family === "rank" ? id.toUpperCase() : family === "system" && id === "chest" ? "Cofre" : family === "stat" && id === "flee" ? "Huida" : (family === "door" ? DOOR_LABELS[id] : LABELS[id]) ?? id;
               return <figure key={name}>
                 <PixelImage path={"icons-px/icon_" + name} label={title} width={32 * zoom} bg={bg} />
                 <figcaption className="mt-1 text-center text-xs">{title}</figcaption>

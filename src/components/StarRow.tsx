@@ -1,4 +1,5 @@
 import { icon } from "@/lib/art";
+import { isPixelIcon } from "@/lib/art/pixel";
 import { MAX_STARS } from "@/lib/game/rarity";
 
 export function StarRow({
@@ -21,6 +22,7 @@ export function StarRow({
           src={icon("system_star")}
           alt=""
           draggable={false}
+          style={isPixelIcon("system_star") ? { imageRendering: "pixelated" } : undefined}
           className={`aspect-square ${className} ${i < stars ? "" : "opacity-30 grayscale"}`}
         />
       ))}
