@@ -682,7 +682,7 @@ function Prep({
   const spec = levelsOf(rank)[level];
   const dom = levelElement(spec, asc);
   const repeat = level < clearedLevels(profile.dungeons, rank, asc);
-  // Element advantage vs the level first, then raw power.
+  // Total power first; the element advantage is only shown on the card.
   const owned = profile.characters
     .map((c) => ({
       c,
@@ -690,8 +690,7 @@ function Prep({
       mult: elementMultiplier(c.element, dom),
     }))
     .sort(
-      (a, b) =>
-        b.mult - a.mult || b.power - a.power || a.c.name.localeCompare(b.c.name),
+      (a, b) => b.power - a.power || a.c.name.localeCompare(b.c.name),
     );
   const sel = hero ?? owned[0]?.c ?? null;
   const act = (job: () => Promise<void>) => void job();
