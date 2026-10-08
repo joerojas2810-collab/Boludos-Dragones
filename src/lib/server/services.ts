@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { CLASS_IDS, type Character, type ClassId } from "../game/characters";
 import { createStarterHero } from "../game/tutorial";
-import { burn as burnItem } from "../game/burn";
+import { burn as burnItem, burnMany } from "../game/burn";
 import { isLevelUnlocked, isRankUnlocked } from "../game/dungeonProgress";
 import { missionDeltas } from "../game/missions";
 import { levelLoot, type LevelLoot } from "../game/levelLoot";
@@ -950,6 +950,32 @@ export async function doBurn(
   await audit(d.rpc, playerId, "burn", { kind, id, coins: r.coins });
   const fresh = await loadMe(d.rpc, playerId);
   return { coins: r.coins, profile: fresh.profile };
+}
+
+export async function doBurnMany(
+  d: Deps,
+  playerId: string,
+  kind: "hero" | "piece",
+  ids: string[],
+) {
+  await limit(d.rpc, `burnmany:${playerId}`, 20, 60);
+  const me = await loadMe(d.rpc, playerId);
+  if (burnMany(me.profile, kind, ids).count === 0)
+    throw new ApiError(409, "burn_invalid", "No hay nada que se pueda quemar.");
+  let raw: { burned: number; gained: number };
+  try {
+    raw = await call(d.rpc, "burn_many", {
+      p_player: playerId,
+      p_version: me.version,
+      p_kind: kind,
+      p_keys: ids,
+    });
+  } catch (e) {
+    return mapRpcError(e);
+  }
+  await audit(d.rpc, playerId, "burn_many", { kind, n: raw.burned, coins: raw.gained });
+  const fresh = await loadMe(d.rpc, playerId);
+  return { count: raw.burned, coins: raw.gained, profile: fresh.profile };
 }
 
 export async function doChooseSkill(

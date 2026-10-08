@@ -6,7 +6,6 @@ import {
   CLASS_PASSIVE_DMG_REDUCTION,
   CLASS_PASSIVE_REGEN,
   CLASSES,
-  TRAIT_MULT_CAP,
   type Character,
   type ClassId,
   type Stats,
@@ -294,7 +293,7 @@ const MOD_LABEL_LOWER: Record<keyof TraitMods, string> = {
   accuracy: "precisión",
 };
 
-export function traitTip(id: TraitId, owner?: Character): Tip {
+export function traitTip(id: TraitId): Tip {
   const t = TRAITS[id];
   const mods: TraitMods = t.mods;
   const sign = (v: number) => (v > 0 ? "+" : "−");
@@ -341,13 +340,6 @@ export function traitTip(id: TraitId, owner?: Character): Tip {
       `Cada golpe que acierta pega entre x${n1(1 - r.spread)} y x${n1(1 + r.spread)} de su daño; el promedio es el mismo y la precisión no cambia. El daño estimado muestra el promedio.`,
     );
   const lines = [...effects.map((e) => `${e}.`), ...tags];
-  if (effects.some((e) => e.includes("puntos")))
-    lines.push(
-      "«Puntos» = puntos porcentuales (+10 crítico = +10% de probabilidad).",
-    );
-  if (effects.some((e) => e.includes("%")))
-    lines.push(`Entre rasgos, cada stat en % topa en ±${pct(TRAIT_MULT_CAP)}.`);
-  if (owner) lines.push("Ya está sumado a los stats que ves.");
   return {
     title: t.name,
     kind: "trait",

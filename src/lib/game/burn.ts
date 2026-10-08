@@ -48,3 +48,24 @@ export function burn(
     },
   };
 }
+
+export const BURN_MANY_MAX = 100;
+
+// Burns every id it can (equipped pieces and the last hero are skipped, never an error).
+export function burnMany(
+  p: Profile,
+  kind: BurnTarget["kind"],
+  ids: string[],
+): { profile: Profile; coins: number; count: number } {
+  let cur = p;
+  let coins = 0;
+  let count = 0;
+  for (const id of ids.slice(0, BURN_MANY_MAX)) {
+    const r = burn(cur, { kind, id });
+    if (!r) continue;
+    cur = r.profile;
+    coins += r.coins;
+    count++;
+  }
+  return { profile: cur, coins, count };
+}

@@ -38,6 +38,8 @@ import {
   slotOf,
   type Slot,
 } from "@/lib/game/weapons";
+import { PieceFilterBar } from "@/components/PieceFilterBar";
+import { filterPieces, NO_PIECE_FILTER, type PieceFilter } from "@/lib/pieceFilter";
 import { repo } from "@/lib/useProfile";
 import {
   extraLinesText,
@@ -157,6 +159,7 @@ export function EquipmentEditor({
   const [mode, setMode] = useState<AutoMode>("poder");
   const [steal, setSteal] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [pf, setPf] = useState<PieceFilter>(NO_PIECE_FILTER);
   const wornElements = (
     ["arma", "casco", "peto", "piernas", "zapatos", "collar"] as const
   ).flatMap((sl) => {
@@ -413,9 +416,22 @@ export function EquipmentEditor({
             ) : (
               <p className="text-sm text-[#d9d2ca]">Vacío.</p>
             )}
+            {free.length > 0 && (
+              <div className="mt-2">
+                <PieceFilterBar
+                  value={pf}
+                  onChange={setPf}
+                  showSlot={false}
+                  showClass={false}
+                  showFree={false}
+                  shown={filterPieces(free, pf, new Set()).length}
+                  total={free.length}
+                />
+              </div>
+            )}
             {free.length > 0 ? (
-              <ul className="mt-2 space-y-2">
-                {[...free]
+              <ul className="space-y-2">
+                {filterPieces(free, pf, new Set())
                   .sort(
                     (x, y) => rankOrder(y) - rankOrder(x) || y.stars - x.stars,
                   )

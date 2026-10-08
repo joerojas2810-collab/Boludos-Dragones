@@ -446,9 +446,10 @@ export function unequipWeapon(
   return { ...p, equipped };
 }
 
-// A run piece that reached the collection: new, +1 star on a duplicate, or a
-// coin refund when the duplicate is already at max stars (same as the gacha).
-export function grantPiece(p: Profile, piece: RunPiece): Profile {
+// A run piece that reached the collection: new, +1 star on a duplicate, or nothing when
+// the duplicate is already at max stars: a coin refund for classic runs (as the server's
+// bank_run), nothing for dungeon levels (drops are plentiful; migration 0034).
+export function grantPiece(p: Profile, piece: RunPiece, refund = true): Profile {
   const id = weaponKey(piece.type, piece.element, piece.rarity);
   const owned = p.weapons.find((w) => w.id === id);
   if (!owned)
@@ -470,7 +471,7 @@ export function grantPiece(p: Profile, piece: RunPiece): Profile {
       ],
     };
   if (owned.stars >= MAX_STARS)
-    return { ...p, coins: p.coins + refundAmount("weapon") };
+    return refund ? { ...p, coins: p.coins + refundAmount("weapon") } : p;
   const next = withStars(owned, owned.stars + 1, piece);
   return { ...p, weapons: p.weapons.map((w) => (w.id === id ? next : w)) };
 }
@@ -504,7 +505,7 @@ export function bankRun(
   parts: Parts = {},
 ): Profile {
   if (runId !== undefined && p.lastBankedRunId === runId) return p;
-  const q = loot.reduce(grantPiece, p);
+  const q = loot.reduce((acc, piece) => grantPiece(acc, piece), p);
   const today = dayKey();
   const prior = p.runsDay?.day === today ? p.runsDay.n : 0;
   const paid = Math.floor(
@@ -589,7 +590,7 @@ export function bankLevel(p: Profile, r: LevelResult): LevelBank {
         coins: q.coins + coins + chest,
         parts: addParts(q.parts, r.loot.parts),
       };
-      q = r.loot.pieces.reduce(grantPiece, q);
+      q = r.loot.pieces.reduce((acc, piece) => grantPiece(acc, piece, false), q);
     }
   }
   const hero = q.characters.find((c) => c.id === r.heroId);

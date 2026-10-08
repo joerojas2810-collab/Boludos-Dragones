@@ -187,7 +187,7 @@ export function HudCard({
               c.char.traits.map((id) => (
                 <Chip
                   key={id}
-                  tip={traitTip(id, c.char)}
+                  tip={traitTip(id)}
                   tone="trait"
                   icon={iconFor("trait", id)}
                 >

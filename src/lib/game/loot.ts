@@ -22,12 +22,17 @@ export const RANK_DECAY = 0.5; // each rank below is this much as likely as the 
 export const UP_CHANCE = 0.1; // a drop one rank ABOVE the dungeon's
 
 // Rank of one dungeon drop: the dungeon's rank or lower (geometric), rarely one above.
-export function dropRank(rng: Rng, rank: RarityId, upChance: number): RarityId {
+export function dropRank(
+  rng: Rng,
+  rank: RarityId,
+  upChance: number,
+  decay = RANK_DECAY,
+): RarityId {
   const top = RARITY_IDS.indexOf(rank);
   if (rng.chance(upChance) && top < RARITY_IDS.length - 1)
     return RARITY_IDS[top + 1];
   const weights: number[] = [];
-  for (let d = 0, w = 1; d <= top; d++, w *= RANK_DECAY) weights.push(w); // no ** (engine determinism)
+  for (let d = 0, w = 1; d <= top; d++, w *= decay) weights.push(w); // no ** (engine determinism)
   let r = rng.next() * weights.reduce((a, b) => a + b, 0);
   const d = weights.findIndex((w) => (r -= w) < 0);
   return RARITY_IDS[top - (d < 0 ? 0 : d)];

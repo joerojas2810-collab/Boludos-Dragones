@@ -70,6 +70,10 @@ export const burnBody = z.strictObject({
   kind: z.enum(["hero", "piece"]),
   id: z.string().min(1).max(100),
 });
+export const burnManyBody = z.strictObject({
+  kind: z.enum(["hero", "piece"]),
+  ids: z.array(z.string().min(1).max(100)).min(1).max(100),
+});
 export const tutorialBody = z.strictObject({ step: z.number().int().min(0).max(7) });
 export const skillBody = z.strictObject({
   characterId: z.string().min(1).max(100),

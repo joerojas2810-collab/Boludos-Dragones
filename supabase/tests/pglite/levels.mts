@@ -196,6 +196,16 @@ await err(rpc("burn_item", { p_player: P, p_version: br.version, p_key: "w-espad
 await db.exec(`delete from public.equipment`);
 br = await rpc("burn_item", { p_player: P, p_version: br.version, p_key: "w-espada-agua-f" });
 ok(br.gained === burnValue("f", false) && br.gained === 66, "piece burns at 8%: " + br.gained);
+// burn_many: skips equipped / unknown, one version bump, 8% each
+await db.exec(`insert into public.weapons(player_id,type,element,rarity) values ('${P}','hacha','agua','f'),('${P}','lanza','agua','f'),('${P}','arco','agua','f')`);
+await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,slot) values ('${P}','${HERO}','w-arco-agua-f','arma')`);
+const vBefore = Number((await q(`select version from public.player_state where player_id='${P}'`))[0].version);
+const bm = await rpc("burn_many", { p_player: P, p_version: vBefore, p_kind: "piece", p_keys: '{"w-hacha-agua-f","w-lanza-agua-f","w-arco-agua-f","w-nada-nada-f"}' });
+ok(bm.burned === 2 && bm.gained === 2 * burnValue("f", false) && bm.version === vBefore + 1, "burn_many burns 2, skips equipped/unknown: " + JSON.stringify(bm));
+await err(rpc("burn_many", { p_player: P, p_version: vBefore, p_kind: "piece", p_keys: '{"w-hacha-agua-f"}' }), "conflict", "burn_many stale version");
+await db.exec(`delete from public.equipment where weapon_key='w-arco-agua-f'`);
+await db.exec(`delete from public.weapons where key='w-arco-agua-f'`);
+br = { ...br, version: bm.version };
 for (const r of RARITY_IDS) for (const lg of [false, true]) {
   const sqlv = (await q(`select (public.trade_value('c-mago-fuego-${r}') * ${lg ? 50 : 8} / 100) v`))[0].v;
   if (sqlv !== burnValue(r, lg)) { fail++; console.log("FAIL burn parity", r, lg, sqlv, burnValue(r, lg)); } else pass++;

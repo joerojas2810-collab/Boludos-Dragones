@@ -221,7 +221,6 @@ export function Tooltip({
                 {l}
               </p>
             ))}
-            {tip.source && <p className="tip-source">Fuente: {tip.source}</p>}
           </div>,
           document.body,
         )}

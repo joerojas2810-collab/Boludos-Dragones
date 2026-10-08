@@ -36,7 +36,7 @@ import { levelFights, type Stage } from "./game/stage";
 import { sweepBlock, sweepStage } from "./game/sweep";
 import { dayPayMult } from "./game/economy";
 import { localWeekSeed, towerHero, type TowerMode } from "./game/tower";
-import { burn as burnItem } from "./game/burn";
+import { burn as burnItem, burnMany } from "./game/burn";
 import { applyForge, type ForgeOp } from "./game/forge";
 import type { RunPiece } from "./game/loot";
 import type { Parts } from "./game/parts";
@@ -113,6 +113,7 @@ export interface ProfileRepo {
   ): Promise<void>;
   spendFragments(characterId: string): Promise<void>;
   burn(kind: "hero" | "piece", id: string): Promise<{ coins: number }>;
+  burnMany(kind: "hero" | "piece", ids: string[]): Promise<{ coins: number; count: number }>;
   chooseSkill(characterId: string, skill: SkillId): Promise<void>;
   startLevel(
     heroId: string,
@@ -219,6 +220,12 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       if (!r) throw new RepoError("burn_invalid", "No se puede quemar (¿está equipado o es tu único héroe?).");
       store.replace(r.profile);
       return { coins: r.coins };
+    },
+    burnMany: async (kind, ids) => {
+      const r = burnMany(store.get(), kind, ids);
+      if (r.count === 0) throw new RepoError("burn_invalid", "No hay nada que se pueda quemar.");
+      store.replace(r.profile);
+      return { coins: r.coins, count: r.count };
     },
     chooseSkill: async (id, skill) => {
       if (!chooseHeroSkill(store.get(), id, skill))
@@ -447,6 +454,14 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       );
       store.replace(r.profile);
       return { coins: r.coins };
+    },
+    burnMany: async (kind, ids) => {
+      const r = await api<{ coins: number; count: number; profile: Profile }>(
+        "/api/collection/burn-many",
+        { kind, ids },
+      );
+      store.replace(r.profile);
+      return { coins: r.coins, count: r.count };
     },
     chooseSkill: (characterId, skillId) =>
       withProfile("/api/collection/skill", { characterId, skillId }),

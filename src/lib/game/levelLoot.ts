@@ -11,22 +11,27 @@ import { RARITY_IDS } from "./rarity";
 import { createRng, hashSeed, type Rng } from "./rng";
 import { FIGHT_XP } from "./stage";
 import {
-  CLASS_WEAPONS,
+  HAND_TYPES,
   isGearType,
+  SLOTS,
   WEAPON_TYPE_DATA,
   WEAPON_TYPES,
   type WeaponType,
 } from "./weapons";
 
-// Tune here (starting values, measured in phase 6).
-export const EXTRA_PIECE_CHANCE = [0.3, 0.05] as const; // 2nd and 3rd piece
-export const UP_CHANCE = { normal: 0.1, final: 0.25 } as const; // piece one rank above
-export const REPEAT_PIECE_CHANCE = 0.25; // repeat clears: no guaranteed piece
+// Tune here. Every piece is random now: slot (6), element and rank. A level rolls
+// PIECE_ROLLS_PER_FIGHT per fight; ranks run from the dungeon's rank down to F with a flat
+// decay, and a small chance of one rank above. Parts and cores come from points.
+export const PIECE_ROLLS_PER_FIGHT = 3;
+export const PIECE_CHANCE = 0.6; // per roll
+export const PIECE_RANK_DECAY = 0.7; // flatter than the old directed drop (0.5)
+export const UP_CHANCE = { normal: 0.05, final: 0.1 } as const; // piece one rank above
+export const PIECE_ELEMENT_LEVEL_SHARE = 0.4; // else any element
+export const REPEAT_PIECE_MULT = 0.75; // repeat clears (and sweeps) keep most of the piece drops
 export const REPEAT_PART_MULT = 0.6;
 export const ASC_LOOT_STEP = 0.1; // +10% points per ascension level
 export const ROLE_POINTS = { normal: 1, elite: 2, final: 4 } as const;
 export const CORE_SHARE = 0.2;
-export const piecesOnClear = (length: number) => (length >= 3 ? 1 : 0);
 
 export interface LevelLoot {
   parts: Parts;
@@ -45,13 +50,14 @@ function pieceOf(
   rng: Rng,
   spec: LevelSpec,
   asc: number,
-  classId: ClassId,
   up: number,
 ): RunPiece {
-  const element = levelElement(spec, asc);
-  const type: WeaponType =
-    spec.drop === "arma" ? rng.pick(CLASS_WEAPONS[classId]) : spec.drop;
-  const rarity = dropRank(rng, spec.rank, up);
+  const lvEl = levelElement(spec, asc);
+  const element = rng.chance(PIECE_ELEMENT_LEVEL_SHARE) ? lvEl : rng.pick(ELEMENTS);
+  const slot = rng.pick(SLOTS);
+  // Any weapon type: the hero you run with does not decide what drops.
+  const type: WeaponType = slot === "arma" ? rng.pick(HAND_TYPES) : slot;
+  const rarity = dropRank(rng, spec.rank, up, PIECE_RANK_DECAY);
   const rolled = isGearType(type)
     ? rollGear(rng, type, rarity)
     : { roll: rollGear(rng, "casco", rarity).roll };
@@ -68,7 +74,7 @@ function pieceOf(
 export function levelLoot(
   spec: LevelSpec,
   asc: number,
-  classId: ClassId,
+  _classId: ClassId, // kept for callers: drops no longer depend on the hero
   seed: number,
   opts: { repeat: boolean; payMult?: number },
 ): LevelLoot {
@@ -76,17 +82,10 @@ export function levelLoot(
   const mult = (opts.payMult ?? 1) * (opts.repeat ? REPEAT_PART_MULT : 1);
   const up = spec.final ? UP_CHANCE.final : UP_CHANCE.normal;
   const pieces: RunPiece[] = [];
-  if (piecesOnClear(spec.length) > 0) {
-    const first = opts.repeat
-      ? rng.chance(REPEAT_PIECE_CHANCE * (opts.payMult ?? 1))
-      : (rng.next(), true);
-    if (first) {
-      pieces.push(pieceOf(rng, spec, asc, classId, up));
-      EXTRA_PIECE_CHANCE.forEach((c) => {
-        if (rng.chance(c)) pieces.push(pieceOf(rng, spec, asc, classId, up));
-      });
-    }
-  }
+  const pieceMult = (opts.repeat ? REPEAT_PIECE_MULT : 1) * (opts.payMult ?? 1);
+  for (let i = 0; i < spec.length * PIECE_ROLLS_PER_FIGHT; i++)
+    if (rng.chance(PIECE_CHANCE * pieceMult))
+      pieces.push(pieceOf(rng, spec, asc, up));
   let points = levelPoints(spec, asc) * mult;
   let parts: Parts = {};
   while (points > 0) {

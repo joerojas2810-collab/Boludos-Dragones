@@ -908,3 +908,17 @@ body[data-art="pixel"] .game-title-word { display: block; margin: 0 auto; width:
     width: max(96px, round(down, min(62vw, 30vh), 96px));
   }
 }
+
+/* GameSelect: a button wearing the select skin (the popup list is a .tip-panel). */
+.game-select-btn {
+  appearance: none;
+  border: solid transparent;
+  border-width: 7px 16px;
+  border-image: url("/art/ui/select_normal.webp") 12 26 fill / 7px 16px stretch;
+  background: no-repeat right 0.15rem center / 0.9rem url("/art/ui/glyph_down.webp");
+  color: var(--text);
+  padding-right: 1.2rem;
+  white-space: nowrap;
+}
+.game-select-btn:focus-visible,
+.game-select-btn[aria-expanded="true"] { border-image-source: url("/art/ui/select_focus.webp"); }

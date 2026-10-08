@@ -9,13 +9,16 @@ import { Panel } from "@/components/Panel";
 import { PartsList } from "@/components/PartsList";
 import { Tooltip } from "@/components/Tooltip";
 import { EquipmentEditor } from "@/components/EquipmentEditor";
+import { GameSelect } from "@/components/GameSelect";
+import { PieceFilterBar } from "@/components/PieceFilterBar";
+import { filterPieces, isFiltering, NO_PIECE_FILTER, type PieceFilter } from "@/lib/pieceFilter";
 import {
   CLASSES,
   CLASS_IDS,
   type ClassId,
   type Stats,
 } from "@/lib/game/characters";
-import { burnValue } from "@/lib/game/burn";
+import { burnMany, burnValue } from "@/lib/game/burn";
 import { ELEMENT_LABEL } from "@/lib/game/elements";
 import {
   previewCombatant,
@@ -59,9 +62,6 @@ const FRACTION = ["hp", "atk", "def", "speed"];
 const fmt = (k: keyof Stats, v: number) =>
   FRACTION.includes(k) ? `${+v.toFixed(1)}` : `${Math.round(v * 100)}%`;
 
-const selectCls =
-  "px-2 py-1.5 text-base";
-
 // Destructive: asks for confirmation first. The coins are far below the gacha price.
 function BurnButton({
   label,
@@ -85,6 +85,46 @@ function BurnButton({
     >
       {label}
     </button>
+  );
+}
+
+// Bulk burn of what the filter shows: two clicks (ask, then confirm), no browser dialog.
+function BurnShown({
+  noun,
+  count,
+  coins,
+  run,
+}: {
+  noun: string;
+  count: number;
+  coins: number;
+  run: () => void;
+}) {
+  const [ask, setAsk] = useState(false);
+  if (count === 0) return null;
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-2">
+      <button
+        className={`btn text-center text-sm ${ask ? "" : "btn-gray"}`}
+        onClick={() => {
+          if (!ask) return setAsk(true);
+          setAsk(false);
+          run();
+        }}
+      >
+        {ask
+          ? `Confirmar: quemar ${count} ${noun} (+${coins} monedas)`
+          : `Quemar las ${count} ${noun} mostradas`}
+      </button>
+      {ask && (
+        <>
+          <button className="btn btn-gray text-center text-sm" onClick={() => setAsk(false)}>
+            Cancelar
+          </button>
+          <span className="text-xs text-[#d9d2ca]">No se queman las equipadas ni las que tienen estrellas.</span>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -130,7 +170,7 @@ function Detail({
                 key={t}
                 tone="trait"
                 icon={iconFor("trait", t)}
-                tip={traitTip(t, c)}
+                tip={traitTip(t)}
               >
                 {TRAITS[t].name}
               </Chip>
@@ -210,10 +250,23 @@ export default function CollectionPage() {
     sort: "rarity",
   });
   const [selected, setSelected] = useState<string | null>(null);
+  const [pf, setPf] = useState<PieceFilter>(NO_PIECE_FILTER);
 
   if (!ready || !profile) return null;
   const list = filterSortCharacters(profile.characters, filter);
   const sel = profile.characters.find((c) => c.id === selected) ?? null;
+  const shownPieces = filterPieces(
+    profile.weapons,
+    pf,
+    new Set(Object.values(profile.equipped)),
+  );
+  const worn = new Set(Object.values(profile.equipped));
+  const burnablePieces = shownPieces
+    .filter((w) => !worn.has(w.id) && w.stars === 0)
+    .map((w) => w.id);
+  const burnableHeroes = list
+    .filter((c) => c.stars === 0 && c.level <= 1 && c.id !== selected)
+    .map((c) => c.id);
   const frags = Object.entries(profile.fragments).filter(([, n]) => n > 0);
   const owner = (wid: string) =>
     profile.characters.find((c) => profile.equipped[c.id] === wid);
@@ -278,57 +331,44 @@ export default function CollectionPage() {
             ) : (
               <>
                 <div className="mb-3 flex flex-wrap gap-2">
-                  <select
-                    aria-label="Clase"
-                    className={selectCls}
+                  <GameSelect
+                    label="Clase"
                     value={filter.classId}
-                    onChange={(e) =>
-                      setFilter({
-                        ...filter,
-                        classId: e.target.value as ClassId | "all",
-                      })
-                    }
-                  >
-                    <option value="all">Todas las clases</option>
-                    {CLASS_IDS.map((id) => (
-                      <option key={id} value={id}>
-                        {CLASSES[id].name}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    aria-label="Rareza"
-                    className={selectCls}
+                    onChange={(classId) => setFilter({ ...filter, classId })}
+                    options={[
+                      { value: "all", label: "Todas las clases" },
+                      ...CLASS_IDS.map((id) => ({ value: id, label: CLASSES[id].name })),
+                    ]}
+                  />
+                  <GameSelect
+                    label="Rareza"
                     value={filter.rarity}
-                    onChange={(e) =>
-                      setFilter({
-                        ...filter,
-                        rarity: e.target.value as RarityId | "all",
-                      })
-                    }
-                  >
-                    <option value="all">Todas las rarezas</option>
-                    {RARITY_IDS.map((id) => (
-                      <option key={id} value={id}>
-                        {RARITIES[id].label}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    aria-label="Orden"
-                    className={selectCls}
+                    onChange={(rarity) => setFilter({ ...filter, rarity })}
+                    options={[
+                      { value: "all", label: "Todas las rarezas" },
+                      ...RARITY_IDS.map((id) => ({ value: id, label: RARITIES[id].label })),
+                    ]}
+                  />
+                  <GameSelect
+                    label="Orden"
                     value={filter.sort}
-                    onChange={(e) =>
-                      setFilter({
-                        ...filter,
-                        sort: e.target.value as CollectionFilter["sort"],
-                      })
-                    }
-                  >
-                    <option value="rarity">Orden: rareza</option>
-                    <option value="stars">Orden: estrellas</option>
-                  </select>
+                    onChange={(sort) => setFilter({ ...filter, sort })}
+                    options={[
+                      { value: "rarity", label: "Orden: rareza" },
+                      { value: "stars", label: "Orden: estrellas" },
+                    ]}
+                  />
                 </div>
+                {(filter.classId !== "all" || filter.rarity !== "all") && (
+                  <BurnShown
+                    noun="héroes"
+                    count={burnableHeroes.length}
+                    coins={burnMany(profile, "hero", burnableHeroes).coins}
+                    run={() =>
+                      act(async () => void (await repo.burnMany("hero", burnableHeroes)))
+                    }
+                  />
+                )}
                 {list.length === 0 && (
                   <p className="py-4 text-center">
                     Ninguno coincide con el filtro.
@@ -381,8 +421,28 @@ export default function CollectionPage() {
           {profile.weapons.length === 0 ? (
             empty("equipo")
           ) : (
+            <>
+            <PieceFilterBar
+              value={pf}
+              onChange={setPf}
+              shown={shownPieces.length}
+              total={profile.weapons.length}
+            />
+            {isFiltering(pf) && (
+              <BurnShown
+                noun="piezas"
+                count={burnablePieces.length}
+                coins={burnMany(profile, "piece", burnablePieces).coins}
+                run={() =>
+                  act(async () => void (await repo.burnMany("piece", burnablePieces)))
+                }
+              />
+            )}
+            {shownPieces.length === 0 && (
+              <p className="py-4 text-center">Ninguna pieza coincide con el filtro.</p>
+            )}
             <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] justify-items-center gap-x-2 gap-y-5">
-              {[...profile.weapons]
+              {[...shownPieces]
                 .sort(
                   (a, b) =>
                     RARITY_IDS.indexOf(b.rarity) -
@@ -413,6 +473,7 @@ export default function CollectionPage() {
                   );
                 })}
             </div>
+            </>
           )}
         </Panel>
       )}

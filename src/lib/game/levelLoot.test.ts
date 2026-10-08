@@ -8,16 +8,34 @@ describe("level loot", () => {
   const three = ls.find((l) => l.length === 3)!;
   const two = ls.find((l) => l.length === 2)!;
 
-  it("first clear: levels of 3+ guarantee a piece of the level slot and element; 2-fight levels none", () => {
-    for (let s = 0; s < 20; s++) {
+  it("every piece is random: generous volume, all slots and elements, ranks from the dungeon down", () => {
+    const slots = new Set<string>();
+    const els = new Set<string>();
+    const ranks = new Set<string>();
+    let total = 0;
+    for (let s = 0; s < 300; s++) {
       const l = levelLoot(three, 0, "mago", s, { repeat: false });
-      expect(l.pieces.length).toBeGreaterThanOrEqual(1);
-      expect(l.pieces[0].element).toBe(three.element);
-      expect(levelLoot(two, 0, "mago", s, { repeat: false }).pieces).toHaveLength(0);
+      total += l.pieces.length;
+      for (const p of l.pieces) {
+        slots.add(p.type);
+        els.add(p.element);
+        ranks.add(p.rarity);
+      }
     }
+    expect(total / 300).toBeGreaterThan(4); // 3-fight level: ~5 pieces
+    expect(slots.size).toBeGreaterThanOrEqual(8);
+    expect(els.size).toBe(5);
+    expect(ranks.size).toBeGreaterThanOrEqual(4);
+    expect([...ranks].every((r) => ["f", "e", "d", "c", "b"].includes(r))).toBe(true); // c dungeon: up to b
   });
 
-  it("repeats rarely give a piece and fewer materials", () => {
+  it("2-fight levels also drop pieces", () => {
+    let n = 0;
+    for (let s = 0; s < 200; s++) n += levelLoot(two, 0, "mago", s, { repeat: false }).pieces.length;
+    expect(n / 200).toBeGreaterThan(2);
+  });
+
+  it("repeats give fewer pieces and fewer materials than a first clear", () => {
     let first = 0;
     let rep = 0;
     let fp = 0;
@@ -30,7 +48,8 @@ describe("level loot", () => {
       fp += a.pieces.length;
       rp += b.pieces.length;
     }
-    expect(rp).toBeLessThan(fp / 2);
+    expect(rp).toBeLessThan(fp);
+    expect(rp).toBeGreaterThan(fp / 3); // still generous: sweeps are repeats
     expect(rep).toBeLessThan(first);
     expect(levelPoints(three, 3)).toBeGreaterThan(levelPoints(three, 0));
   });

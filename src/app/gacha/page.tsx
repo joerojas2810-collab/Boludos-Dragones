@@ -56,6 +56,13 @@ const BANNERS: Record<Banner, { tab: string; title: string; text: string }> = {
   },
 };
 
+// Equipment now comes from dungeons and the tower; the banner stays in code (server pull
+// and pity are kept) but is hidden. Set to true to bring the tab back.
+const SHOW_EQUIPMENT_BANNER = false;
+const SHOWN_BANNERS = (Object.keys(BANNERS) as Banner[]).filter(
+  (k) => SHOW_EQUIPMENT_BANNER || k !== "weapon",
+);
+
 export default function GachaPage() {
   const { profile, ready } = useProfile();
   const [banner, setBanner] = useState<Banner>("character");
@@ -98,8 +105,11 @@ export default function GachaPage() {
 
   return (
     <main className="flex flex-col gap-3 p-3 pt-2">
-      <div className="mx-auto flex w-full max-w-4xl gap-2" role="tablist">
-        {(Object.keys(BANNERS) as Banner[]).map((k) => (
+      <div
+        className={`mx-auto w-full max-w-4xl gap-2 ${SHOWN_BANNERS.length > 1 ? "flex" : "hidden"}`}
+        role="tablist"
+      >
+        {SHOWN_BANNERS.map((k) => (
           <button
             key={k}
             role="tab"

@@ -128,7 +128,8 @@ const Shell = ({ children }: { children: ReactNode }) => (
 export function ProgressMode() {
   const { profile, ready } = useProfile();
   const [view, setView] = useState<View>({ t: "ranks" });
-  const [asc, setAsc] = useState(0);
+  const [asc0, setAsc] = useState(0);
+  const asc = asc0;
   const [heroId, setHeroId] = useState<string | null>(null);
   const targeting = useTargeting(
     view.t === "fight" ? view.a.rs.battle : null,
@@ -137,7 +138,14 @@ export function ProgressMode() {
 
   const hero = profile.characters.find((c) => c.id === heroId) ?? null;
 
-  const enter = async (rank: RarityId, level: number, id: string) => {
+  const enter = async (
+    rank: RarityId,
+    level: number,
+    id: string,
+    ascOverride?: number,
+  ) => {
+    const asc = ascOverride ?? asc0;
+    if (ascOverride !== undefined) setAsc(ascOverride);
     const owned = profile.characters.find((c) => c.id === id);
     if (!owned || view.t === "starting") return; // ignore taps while the server opens the attempt
     const spec = levelsOf(rank)[level];
@@ -425,6 +433,18 @@ export function ProgressMode() {
       a.level + 1 < LEVELS_PER_RANK[a.rank] &&
       isLevelUnlocked(o.bank.profile.dungeons, a.rank, a.level + 1, a.asc);
     const pieces = o.loot.pieces;
+    // Last level cleared: offer the next ascension of this dungeon and the next dungeon.
+    const dungeonEnd = won && a.level + 1 >= LEVELS_PER_RANK[a.rank];
+    const nextAsc =
+      dungeonEnd &&
+      a.asc + 1 <= maxAscension(o.bank.profile.dungeons, a.rank)
+        ? a.asc + 1
+        : null;
+    const nextRank = dungeonEnd
+      ? RARITY_IDS[RARITY_IDS.indexOf(a.rank) + 1]
+      : undefined;
+    const nextRankOpen =
+      nextRank !== undefined && isRankUnlocked(o.bank.profile.dungeons, nextRank);
     return (
       <Shell>
         <Notice />
@@ -519,8 +539,24 @@ export function ProgressMode() {
                 Siguiente nivel
               </button>
             )}
+            {nextAsc !== null && (
+              <button
+                className="btn text-center"
+                onClick={() => void enter(a.rank, 0, a.heroId, nextAsc)}
+              >
+                Siguiente ascensión (+{nextAsc})
+              </button>
+            )}
+            {nextRankOpen && nextRank && (
+              <button
+                className={`btn text-center ${nextAsc !== null ? "btn-gray" : ""}`}
+                onClick={() => void enter(nextRank, 0, a.heroId, 0)}
+              >
+                Siguiente dungeon: {DUNGEON_THEMES[nextRank].name}
+              </button>
+            )}
             <button
-              className={`btn text-center ${hasNext ? "btn-gray" : ""}`}
+              className={`btn text-center ${hasNext || nextAsc !== null || nextRankOpen ? "btn-gray" : ""}`}
               onClick={() => void enter(a.rank, a.level, a.heroId)}
             >
               {won ? "Repetir" : "Reintentar"}
@@ -745,7 +781,7 @@ function NextStage({
         <ElementIcon element={dom} className="h-5" />
         {spec.length} peleas{spec.final && " · Jefe final"}
       </span>
-      <span className="text-[#d9d2ca]">Suelta: {SLOT_LABEL[spec.drop]}</span>
+      <span className="text-[#d9d2ca]">Suelta: equipo al azar</span>
       <PowerVsRec
         power={heroPower(profile, heroId)}
         rec={recommendedPower(rank, level, asc)}
@@ -782,8 +818,7 @@ function LevelCard({
           {spec.length} peleas{spec.final && " · Jefe final"}
         </span>
         <span className="block text-[#d9d2ca]">
-          Suelta: {SLOT_LABEL[spec.drop]}
-          {spec.length < 3 && " (solo partes)"}
+          Suelta: equipo al azar
         </span>
         <span className="block text-[#d9d2ca]">
           Poder rec. {recommendedPower(spec.rank, spec.index, asc)}
@@ -873,7 +908,7 @@ function Prep({
             {ELEMENT_LABEL[dom]}
           </span>
           <span>{spec.length} peleas{spec.final && " · Jefe final"}</span>
-          <span>Suelta: {SLOT_LABEL[spec.drop]}</span>
+          <span>Suelta: equipo al azar</span>
           <span className="text-green-300">hasta {levelXp(spec)} EXP</span>
           {repeat && <span className="text-yellow-300">Repetición (paga 60%)</span>}
           {asc > 0 && (
