@@ -6,10 +6,12 @@ import { ElementIcon } from "@/components/ElementIcon";
 import { Icon } from "@/components/Icon";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { playForgeSound } from "@/lib/sfx";
 import { Panel } from "@/components/Panel";
 import { PartsList } from "@/components/PartsList";
 import { WeaponSprite } from "@/components/WeaponSprite";
-import { Tooltip } from "@/components/Tooltip";
+import { TipHover, Tooltip } from "@/components/Tooltip";
 import { pieceTip, typeTip } from "@/lib/viewModels";
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "@/lib/game/elements";
 import {
@@ -125,6 +127,7 @@ export default function ForgePage() {
   // Painted effect of the last action (re-keyed by n so it replays).
   const [fx, setFx] = useState<{ n: number; ids: string[] } | null>(null);
   // What every forge action produced: the latest stays on screen, plus a short history.
+  const [showResult, setShowResult] = useState(false); // result overlay, closed with Continuar
   const [log, setLog] = useState<
     { n: number; what: string; r: ForgeReceipt }[]
   >([]);
@@ -181,6 +184,8 @@ export default function ForgePage() {
       const pre = applyForge(profile, op); // same pure code the server runs
       const r = await repo.forge(op);
       setMsg({ ok: true, text: r.text });
+      setShowResult(true);
+      playForgeSound(true);
       setFx((f) => ({ n: (f?.n ?? 0) + 1, ids: [FORGE_FX[op.op], "forge_success"] }));
       if (pre.ok)
         setLog((l) =>
@@ -197,6 +202,8 @@ export default function ForgePage() {
       setSpend({});
     } catch (e) {
       setMsg({ ok: false, text: e instanceof Error ? e.message : "Error" });
+      setShowResult(true);
+      playForgeSound(false);
       setFx((f) => ({ n: (f?.n ?? 0) + 1, ids: ["forge_failure"] }));
     }
     setBusy(false);
@@ -327,12 +334,16 @@ export default function ForgePage() {
     );
 
   return (
+    <TipHover value>
     <main className="mx-auto grid w-full max-w-6xl gap-4 p-3 lg:grid-cols-[1fr_18rem]">
+      {typeof document !== "undefined" &&
+        createPortal(
+          <>
       {fx && (
         <div
           key={fx.n}
           aria-hidden
-          className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center"
+          className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center"
         >
           {fx.ids.map((id, i) => (
             <Vfx
@@ -344,14 +355,12 @@ export default function ForgePage() {
           ))}
         </div>
       )}
-      <div className="min-w-0 space-y-4">
-        {msg && !msg.ok && (
-          <p role="status" className="text-center text-red-300">
-            {msg.text}
-          </p>
-        )}
-        {log.length > 0 && (
-          <Panel title="Resultado de la forja">
+            {showResult && msg && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/85 p-4">
+                <div className="w-full max-w-xl space-y-4">
+                  {msg.ok ? (
+                    <Panel title="Resultado de la forja">
+
             {log.map((e, i) => (
               <div
                 key={e.n}
@@ -382,8 +391,26 @@ export default function ForgePage() {
                 </div>
               </div>
             ))}
-          </Panel>
+                    </Panel>
+                  ) : (
+                    <Panel title="No se pudo forjar">
+                      <p role="status" className="text-center text-red-300">
+                        {msg.text}
+                      </p>
+                    </Panel>
+                  )}
+                  <div className="text-center">
+                    <button className="btn btn-gray text-center" onClick={() => setShowResult(false)}>
+                      Continuar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>,
+          document.body,
         )}
+      <div className="min-w-0 space-y-4">
         <div className="flex flex-wrap gap-2" role="tablist">
           {TABS.map(([k, label]) => (
             <button
@@ -1091,5 +1118,6 @@ export default function ForgePage() {
       </div>
       <GuidePanel tab={tab} />
     </main>
+    </TipHover>
   );
 }

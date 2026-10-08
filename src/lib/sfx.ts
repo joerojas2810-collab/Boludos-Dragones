@@ -232,3 +232,23 @@ export function playPullSound(rarity: RarityId) {
     // audio unavailable: ignore
   }
 }
+
+// Forge result: anvil clinks + rising chime on success, low thud on failure.
+export function playForgeSound(ok: boolean) {
+  if (muted) return;
+  try {
+    ctx ??= new AudioContext();
+    if (ctx.state === "suspended") void ctx.resume();
+    const t = ctx.currentTime;
+    if (ok) {
+      noiseBurst(ctx, t, 2500, 6000, 4, 0.08, 0.12);
+      noiseBurst(ctx, t + 0.22, 2500, 6000, 4, 0.08, 0.12);
+      [659, 988, 1319].forEach((f, i) => note(ctx!, t + 0.45 + i * 0.1, f, 0.4, 0.12));
+    } else {
+      note(ctx, t, 196, 0.4, 0.15);
+      note(ctx, t + 0.18, 147, 0.5, 0.15);
+    }
+  } catch {
+    // audio unavailable: ignore
+  }
+}

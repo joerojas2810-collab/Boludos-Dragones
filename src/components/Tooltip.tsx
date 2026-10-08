@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useId,
   useLayoutEffect,
@@ -27,6 +29,11 @@ const KIND_COLOR: Record<TipKind, string> = {
 const MARGIN = 8; // min distance to the viewport edge
 const GAP = 8; // distance to the anchor
 
+// Screens that wrap their content in <TipHover> open tips on mouse hover (and tap on touch)
+// instead of the "?" badge.
+const HoverCtx = createContext(false);
+export const TipHover = HoverCtx.Provider;
+
 type Props = {
   tip: Tip | null | undefined;
   children: ReactNode;
@@ -45,6 +52,7 @@ export function Tooltip({
   className = "inline-flex",
   placement = "auto",
 }: Props) {
+  const hover = useContext(HoverCtx);
   const [open, setOpen] = useState(false);
   const id = useId();
   const wrapRef = useRef<HTMLSpanElement>(null);
@@ -119,21 +127,35 @@ export function Tooltip({
   if (!tip) return <>{children}</>;
 
   return (
-    <span ref={wrapRef} className={`${className} relative`}>
+    <span
+      ref={wrapRef}
+      className={`${className} relative`}
+      {...(hover && {
+        onPointerEnter: (e) => e.pointerType === "mouse" && setOpen(true),
+        onPointerLeave: (e) => e.pointerType === "mouse" && setOpen(false),
+        onPointerDown: (e) => e.pointerType === "mouse" && setOpen(false), // a click means "do it"
+        onClick: (e) => {
+          if ((e.nativeEvent as PointerEvent).pointerType === "touch")
+            setOpen((o) => !o);
+        },
+      })}
+    >
       {children}
-      <button
-        type="button"
-        className="tip-q"
-        aria-label={`Ayuda: ${tip.title}`}
-        aria-expanded={open}
-        aria-describedby={open ? id : undefined}
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen((o) => !o);
-        }}
-      >
-        ?
-      </button>
+      {!hover && (
+        <button
+          type="button"
+          className="tip-q"
+          aria-label={`Ayuda: ${tip.title}`}
+          aria-expanded={open}
+          aria-describedby={open ? id : undefined}
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen((o) => !o);
+          }}
+        >
+          ?
+        </button>
+      )}
       {open &&
         createPortal(
           <div

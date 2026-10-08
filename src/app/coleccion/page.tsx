@@ -8,7 +8,7 @@ import { Chip } from "@/components/Chip";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
 import { PartsList } from "@/components/PartsList";
-import { Tooltip } from "@/components/Tooltip";
+import { TipHover, Tooltip } from "@/components/Tooltip";
 import { EquipmentEditor } from "@/components/EquipmentEditor";
 import { GameSelect } from "@/components/GameSelect";
 import { PieceFilterBar } from "@/components/PieceFilterBar";
@@ -295,6 +295,7 @@ export default function CollectionPage() {
   );
 
   return (
+    <TipHover value>
     <main className="flex flex-col gap-4 p-3 pt-4">
       {notice && (
         <p role="alert" className="text-center text-sm text-red-300">
@@ -524,5 +525,6 @@ export default function CollectionPage() {
         </Panel>
       )}
     </main>
+    </TipHover>
   );
 }
