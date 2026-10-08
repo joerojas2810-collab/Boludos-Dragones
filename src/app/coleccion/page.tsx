@@ -128,7 +128,7 @@ function BurnShown({
           <button className="btn btn-gray text-center text-sm" onClick={() => setAsk(false)}>
             Cancelar
           </button>
-          <span className="text-xs text-[#d9d2ca]">Se conservan las equipadas y las que tienen estrellas (en héroes: con estrellas o nivel superior a 1).</span>
+          <span className="text-xs text-[#d9d2ca]">Se conservan las equipadas y las que tienen estrellas (en héroes: con estrellas o nivel superior a 1), salvo que marques la casilla.</span>
         </>
       )}
     </div>
@@ -261,6 +261,7 @@ export default function CollectionPage() {
   });
   const [selected, setSelected] = useState<string | null>(null);
   const [pf, setPf] = useState<PieceFilter>(NO_PIECE_FILTER);
+  const [burnInvested, setBurnInvested] = useState(false); // include heroes and pieces with stars (or levels)
 
   if (!ready || !profile) return null;
   const list = filterSortCharacters(profile.characters, filter);
@@ -272,10 +273,10 @@ export default function CollectionPage() {
   );
   const worn = new Set(Object.values(profile.equipped));
   const burnablePieces = shownPieces
-    .filter((w) => !worn.has(w.id) && w.stars === 0)
+    .filter((w) => !worn.has(w.id) && (burnInvested || w.stars === 0))
     .map((w) => w.id);
   const burnableHeroes = list
-    .filter((c) => c.stars === 0 && c.level <= 1)
+    .filter((c) => burnInvested || (c.stars === 0 && c.level <= 1))
     .map((c) => c.id);
   const frags = Object.entries(profile.fragments).filter(([, n]) => n > 0);
   const owner = (wid: string) =>
@@ -370,6 +371,16 @@ export default function CollectionPage() {
                   />
                 </div>
                 {(filter.classId !== "all" || filter.rarity !== "all") && (
+                  <label className="mb-2 flex items-center gap-2 text-xs text-[#d9d2ca]">
+                    <input
+                      type="checkbox"
+                      checked={burnInvested}
+                      onChange={(e) => setBurnInvested(e.target.checked)}
+                    />
+                    Incluir héroes con estrellas o nivel
+                  </label>
+                )}
+                {(filter.classId !== "all" || filter.rarity !== "all") && (
                   <BurnShown
                     noun="héroes"
                     count={burnableHeroes.length}
@@ -442,6 +453,16 @@ export default function CollectionPage() {
               shown={shownPieces.length}
               total={profile.weapons.length}
             />
+            {isFiltering(pf) && (
+              <label className="mb-2 flex items-center gap-2 text-xs text-[#d9d2ca]">
+                <input
+                  type="checkbox"
+                  checked={burnInvested}
+                  onChange={(e) => setBurnInvested(e.target.checked)}
+                />
+                Incluir piezas con estrellas
+              </label>
+            )}
             {isFiltering(pf) && (
               <BurnShown
                 noun="piezas"

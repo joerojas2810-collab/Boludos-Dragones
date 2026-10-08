@@ -46,6 +46,11 @@ export function levelPoints(spec: LevelSpec, asc: number): number {
   return (fights + last) * rankBonus * (1 + ASC_LOOT_STEP * asc);
 }
 
+function roundRandom(rng: Rng, x: number): number {
+  const n = Math.floor(x);
+  return n + (rng.chance(x - n) ? 1 : 0);
+}
+
 function pieceOf(
   rng: Rng,
   spec: LevelSpec,
@@ -83,9 +88,10 @@ export function levelLoot(
   const up = spec.final ? UP_CHANCE.final : UP_CHANCE.normal;
   const pieces: RunPiece[] = [];
   const pieceMult = (opts.repeat ? REPEAT_PIECE_MULT : 1) * (opts.payMult ?? 1);
-  for (let i = 0; i < spec.length * PIECE_ROLLS_PER_FIGHT; i++)
-    if (rng.chance(PIECE_CHANCE * pieceMult))
-      pieces.push(pieceOf(rng, spec, asc, up));
+  // Counts are the expected value with random rounding (no per-roll variance), like points below.
+  const count = roundRandom(rng, spec.length * PIECE_ROLLS_PER_FIGHT * PIECE_CHANCE * pieceMult);
+  const ups = roundRandom(rng, count * up);
+  for (let i = 0; i < count; i++) pieces.push(pieceOf(rng, spec, asc, i < ups ? 1 : 0));
   let points = levelPoints(spec, asc) * mult;
   let parts: Parts = {};
   while (points > 0) {
