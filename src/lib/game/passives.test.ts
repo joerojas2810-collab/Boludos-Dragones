@@ -49,7 +49,7 @@ const comb = (char: Character, hp = char.stats.hp): Combatant => ({
 });
 
 describe("class passives", () => {
-  it("Muralla: caballero takes 10% less", () => {
+  it("Muralla: caballero takes 18% less (mago 5%)", () => {
     const att = comb(hero("picaro", "agua"));
     const plain = estimateDamage(att, comb(hero("mago", "agua")), "attack1");
     const wall = estimateDamage(
@@ -57,8 +57,8 @@ describe("class passives", () => {
       comb(hero("caballero", "agua")),
       "attack1",
     );
-    expect(plain).toBe(20);
-    expect(wall).toBe(18);
+    expect(plain).toBe(19); // 20*.95
+    expect(wall).toBe(16); // 20*.82
   });
 
   it("Muralla composes multiplicatively with relic reduction", () => {
@@ -67,18 +67,18 @@ describe("class passives", () => {
       ...comb(hero("caballero", "agua")),
       perks: { dmgReduction: 0.5 },
     };
-    expect(estimateDamage(att, def, "attack1")).toBe(9); // 20*.5*.9
+    expect(estimateDamage(att, def, "attack1")).toBe(8); // 20*.5*.82
   });
 
-  it("Foco arcano: mago advantage is +40%, disadvantage and neutral unchanged", () => {
+  it("Foco arcano: mago advantage is +55%, disadvantage and neutral unchanged", () => {
     const def = (e: Element) => comb(hero("picaro", e));
     const mago = comb(hero("mago", "agua", { atk: 20 }));
     const rogue = comb(hero("picaro", "agua", { atk: 20 }));
     // agua beats fuego
-    expect(estimateDamage(mago, def("fuego"), "attack1")).toBe(25); // 20*.9*1.4
+    expect(estimateDamage(mago, def("fuego"), "attack1")).toBe(31); // 20*1*1.55
     expect(estimateDamage(rogue, def("fuego"), "attack1")).toBe(25); // 20*1.25
-    expect(estimateDamage(mago, def("agua"), "attack1")).toBe(18);
-    expect(estimateDamage(mago, def("rayo"), "attack1")).toBe(14); // 18*.75 -> 13.5
+    expect(estimateDamage(mago, def("agua"), "attack1")).toBe(20);
+    expect(estimateDamage(mago, def("rayo"), "attack1")).toBe(15); // 20*.75
   });
 
   it("Foco arcano uses the weapon element when equipped", () => {
@@ -86,7 +86,7 @@ describe("class passives", () => {
     const armed = comb({ ...m, weapon: { element: "agua", atkBonus: 0 } });
     expect(
       estimateDamage(armed, comb(hero("picaro", "fuego")), "attack1"),
-    ).toBe(25);
+    ).toBe(31);
   });
 
   it("Filo mortal: picaro crits x2.0, others x1.5, relic adds on top", () => {
@@ -111,14 +111,14 @@ describe("class passives", () => {
     );
   });
 
-  it("Bendición: heals 1.5% per turn (rounded) and logs it", () => {
+  it("Bendición: heals 0.5% per turn (rounded) and logs it", () => {
     const c = hero("clerigo", "agua", { hp: 200, speed: 99 });
     const e = hero("caballero", "agua", { hp: 1000, speed: 1 });
     let b = startBattle(c, e, createRng(5));
     b = withRound({ ...b, player: comb(c, 100) }, false, ["defend"]);
     b = step(b, "defend", createRng(5));
     expect(b.player.hp).toBe(100 + Math.round(200 * CLASS_PASSIVE_REGEN));
-    expect(b.log.some((l) => l.includes("se recupera 3"))).toBe(true);
+    expect(b.log.some((l) => l.includes("se recupera 1"))).toBe(true);
   });
 
   it("Bendición never exceeds max hp", () => {

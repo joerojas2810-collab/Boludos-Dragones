@@ -2,6 +2,8 @@
 // character's real stats, so the UI can never drift from the rules.
 import {
   CLASS_PASSIVE_ADVANTAGE_BONUS,
+  CLASS_PASSIVE_MAGE_CRIT,
+  CLASS_PASSIVE_MAGE_REDUCTION,
   CLASS_PASSIVE_CRIT_MULT,
   CLASS_PASSIVE_DMG_REDUCTION,
   CLASS_PASSIVE_REGEN,
@@ -47,7 +49,6 @@ import {
   BUILD_LABEL,
   extraLines,
   GEAR_CAP,
-  GEAR_RANK_EXP,
   RESONANCE_BONUS,
   RESONANCE_MIN_LINES,
   RESONANCE_STYLE_MULT,
@@ -227,7 +228,8 @@ export function passiveTip(c: Combatant, foe?: Combatant, you = true): Tip {
     case "focoArcano": {
       lines.push(
         `${s("Tu", "Su")} ventaja elemental pega +${pct(CLASS_PASSIVE_ADVANTAGE_BONUS)} en vez de +${pct(ADVANTAGE_BONUS)} (x${(1 + CLASS_PASSIVE_ADVANTAGE_BONUS).toFixed(2)} en vez de x${(1 + ADVANTAGE_BONUS).toFixed(2)}).`,
-        "Con desventaja o elemento neutral no cambia nada.",
+        `Además ${s("tienes", "tiene")} +${pct(CLASS_PASSIVE_MAGE_CRIT)} de probabilidad de crítico y ${s("recibes", "recibe")} ${pct(CLASS_PASSIVE_MAGE_REDUCTION)} menos daño.`,
+        "La ventaja no cambia con desventaja o elemento neutral.",
         "Cuenta el elemento del arma si hay una equipada.",
       );
       if (foe) {
@@ -874,8 +876,8 @@ export const gearTip = (): Tip => ({
   kind: "info",
   lines: [
     `Cada pieza trae una tirada propia: su stat principal varía ±${pct(ROLL_SPREAD)}.`,
-    `Líneas extra: ${extraLines("c")} desde rango C, ${extraLines("a")} desde A y ${extraLines("ss")} desde SS. Cada una es otro stat con su propia tirada.`,
-    `El rango pesa más que en los héroes (rango ^ ${GEAR_RANK_EXP}); 3 estrellas dan +10% y 5 estrellas +20% extra.`,
+    `Líneas extra: ${extraLines("c")} desde rango C, ${extraLines("a")} desde A y ${extraLines("ss")} desde SS y ${extraLines("ssr")} en SSR. Cada una es otro stat con su propia tirada.`,
+    "El rango pesa más que en los héroes (SSR es muy superior a SS); 3 estrellas dan +10% y 5 estrellas +20% extra.",
     `Topes de la suma de todas las piezas: vida +${pct(GEAR_CAP.hp)}, ATQ +${pct(GEAR_CAP.atk)}, DEF +${pct(GEAR_CAP.def)}, velocidad +${pct(GEAR_CAP.speed)}.`,
     "Si repites una pieza, conservas la mejor tirada y sube una estrella.",
   ],

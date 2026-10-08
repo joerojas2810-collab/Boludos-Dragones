@@ -6,19 +6,19 @@ import { RARITY_IDS, type RarityId } from "./rarity";
 export const SKILL_LEVEL = 5;
 
 // ---- tuning (scripts/run-sim.ts) ----
-export const SWEEP_POWER = 0.65; // Barrido: damage vs EACH enemy
-export const STORM_POWER = 0.8; // Tormenta: damage vs EACH enemy
+export const SWEEP_POWER = 1; // Barrido: damage vs EACH enemy
+export const STORM_POWER = 1; // Tormenta: damage vs EACH enemy
 export const COUNTER_ROUNDS = 2; // Contraataque lasts this many round ends
 export const COUNTER_TAKEN = 0.5; // damage taken by the hero while it is up
-export const COUNTER_REFLECT = 1; // x the unreduced hit, sent back
-export const DRAIN_POWER = 1.15; // Drenar maná: single-target strike
-export const DRAIN_LIFESTEAL = 0.5; // fraction of damage dealt healed
-export const DOUBLE_STRIKE_POWER = 0.85; // per hit (two hits)
-export const EXECUTE_POWER = 1.4;
+export const COUNTER_REFLECT = 1.2; // x the unreduced hit, sent back
+export const DRAIN_POWER = 1; // Drenar maná: single-target strike
+export const DRAIN_LIFESTEAL = 0.25; // fraction of damage dealt healed
+export const DOUBLE_STRIKE_POWER = 0.95; // per hit (two hits)
+export const EXECUTE_POWER = 1.6;
 export const EXECUTE_BELOW = 0.4; // target hp fraction
 export const EXECUTE_MULT = 2;
-export const SANCTUARY_HEAL = 0.3; // fraction of max hp
-export const SMITE_POWER = 1.3;
+export const SANCTUARY_HEAL = 0.14; // fraction of max hp
+export const SMITE_POWER = 1.55;
 export const SMITE_LIFESTEAL = 0.5; // fraction of damage dealt
 
 export type SkillId =
@@ -82,9 +82,9 @@ export const SKILLS: Record<SkillId, Skill> = {
     name: "Tormenta",
     blurb: "Daño a todos",
     description: `Un temporal golpea a todos los enemigos (${pc(STORM_POWER)} de poder). Enfriamiento largo.`,
-    cooldown: 4,
+    cooldown: 3,
     power: STORM_POWER,
-    accuracy: 0.8,
+    accuracy: 0.9,
     area: true,
   },
   drenarMana: {

@@ -57,22 +57,22 @@ const comb = (char: Character): Combatant => ({
 });
 
 describe("explain: class passives", () => {
-  it("Bendición states 1.5% and the right PV for this character", () => {
+  it("Bendición states 0.5% and the right PV for this character", () => {
     const t = text(passiveTip(comb(hero("clerigo", "agua"))));
-    expect(t).toContain("1.5%");
-    expect(t).toContain("≈2 PV con 106 de vida");
+    expect(t).toContain("0.5%");
+    expect(t).toContain("≈1 PV con 106 de vida");
     expect(t).toContain("No cura si caes ni si la pelea terminó");
   });
 
-  it("Muralla states 10% and 20 -> 18", () => {
+  it("Muralla states 18% and 20 -> 16", () => {
     const t = text(passiveTip(comb(hero("caballero", "agua"))));
-    expect(t).toContain("10%");
-    expect(t).toContain("un golpe de 20 pasa a 18");
+    expect(t).toContain("18%");
+    expect(t).toContain("un golpe de 20 pasa a 16");
   });
 
-  it("Foco arcano states +40% instead of +25%", () => {
+  it("Foco arcano states +55% instead of +25%", () => {
     const t = text(passiveTip(comb(hero("mago", "agua"))));
-    expect(t).toContain("+40% en vez de +25%");
+    expect(t).toContain("+55% en vez de +25%");
   });
 
   it("Filo mortal states x2.0 / x1.5 and the crit chance", () => {
@@ -165,7 +165,7 @@ describe("explain: Run v2 rules", () => {
     const m = await import("./explain");
     expect(text(m.levelTip(3, 0, 0))).toContain("20");
     expect(text(m.pityTip())).toContain("250");
-    expect(text(m.gearTip())).toContain("15%");
+    expect(text(m.gearTip())).toContain("10%");
     expect(text(m.burnTip())).toContain("8%");
   });
 });

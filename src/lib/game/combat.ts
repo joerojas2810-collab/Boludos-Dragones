@@ -1,6 +1,8 @@
 import {
   CLASS_PASSIVE_ADVANTAGE_BONUS,
   CLASS_PASSIVE_DMG_REDUCTION,
+  CLASS_PASSIVE_MAGE_CRIT,
+  CLASS_PASSIVE_MAGE_REDUCTION,
   CLASS_PASSIVE_REGEN,
   CLASSES,
   type Attack,
@@ -159,6 +161,7 @@ export const passiveReduction = (c: Combatant): number =>
   Math.min(
     PASSIVE_REDUCTION_CAP,
     (c.char.classId === "caballero" ? CLASS_PASSIVE_DMG_REDUCTION : 0) +
+      (c.char.classId === "mago" ? CLASS_PASSIVE_MAGE_REDUCTION : 0) +
       (c.char.gear?.dmgTaken ?? 0),
   );
 
@@ -576,7 +579,7 @@ function strike(
     ev("miss");
     return { attacker, defender: def, dmg: 0 };
   }
-  const crit = rng.chance(att.char.stats.crit);
+  const crit = rng.chance(att.char.stats.crit + (att.char.classId === "mago" ? CLASS_PASSIVE_MAGE_CRIT : 0));
   // Apostador: one extra draw per landed hit, only for gamblers (old streams intact).
   const spread = rulesOf(att).spread;
   const gamble = spread > 0 ? 1 + spread * (2 * rng.next() - 1) : 1;

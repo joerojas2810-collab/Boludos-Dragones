@@ -50,7 +50,8 @@ function rate(rank: RarityId): number {
   return total / levels.length;
 }
 
-for (const rank of RARITY_IDS) {
+const ONLY = process.env.RANKS?.split(","); // e.g. RANKS=ss,ssr
+for (const rank of RARITY_IDS.filter((r) => !ONLY || ONLY.includes(r))) {
   let lo = 0.3, hi = 6;
   for (let it = 0; it < 9; it++) {
     const mid = (lo + hi) / 2;

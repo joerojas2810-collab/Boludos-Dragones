@@ -1,6 +1,6 @@
 import type { Stats } from "./characters";
 import { ELEMENTS, type Element } from "./elements";
-import { RARITIES, RARITY_IDS, starMult, type RarityId } from "./rarity";
+import { RARITY_IDS, starMult, type RarityId } from "./rarity";
 import { createRng, hashSeed, type Rng } from "./rng";
 import {
   isGearType,
@@ -71,12 +71,13 @@ export const LINE_POOL: Record<GearType, readonly LineStat[]> = {
   zapatos: ["dodge", "hp", "atk", "regen", "crit"],
   collar: ["critDmg", "accuracy", "atk", "speed", "lifesteal"],
 };
-export const ROLL_SPREAD = 0.15; // every roll is 1 +- 15%
+export const ROLL_SPREAD = 0.1; // new rolls are 1 +- 10%
+export const ROLL_ACCEPT = 0.15; // saved pieces (and the database) may hold up to +-15%
 export interface GearLine {
   stat: LineStat;
   roll: number; // 1 +- ROLL_SPREAD
 }
-const EXTRA_FROM = ["c", "a", "ss"] as const;
+const EXTRA_FROM = ["c", "a", "ss", "ssr"] as const;
 export const extraLines = (rarity: RarityId): number =>
   EXTRA_FROM.filter((r) => RARITY_IDS.indexOf(rarity) >= RARITY_IDS.indexOf(r))
     .length;
@@ -116,7 +117,7 @@ export function parseRoll(
 ): { roll?: number; lines?: GearLine[] } {
   if (typeof roll !== "number" || !Number.isFinite(roll)) return {};
   const clamp = (n: number) =>
-    Math.round(Math.min(1 + ROLL_SPREAD, Math.max(1 - ROLL_SPREAD, n)) * 1000) / 1000;
+    Math.round(Math.min(1 + ROLL_ACCEPT, Math.max(1 - ROLL_ACCEPT, n)) * 1000) / 1000;
   if (!isGearType(type)) return { roll: clamp(roll) };
   const seen = new Set<string>();
   const out: GearLine[] = [];
@@ -157,13 +158,24 @@ function legacyRoll(p: WornPiece): { roll: number; lines: GearLine[] } {
   return { roll: 1, lines: lines.map((l) => ({ ...l, roll: 1 })) };
 }
 
-// Gear grows faster with rank than heroes do (rank mult ^ GEAR_RANK_EXP), and stars
-// add milestones: +10% at 3 stars, +20% at 5.
-export const GEAR_RANK_EXP = 1.25;
+// Gear grows faster with rank than heroes do (the old rank mult ^ 1.25, as a table so no `**`
+// runs in the engine) and SSR stands clearly above SS: worst SSR roll beats best SS roll.
+// Stars add milestones: +10% at 3 stars, +20% at 5.
+export const GEAR_RANK_MULT: Record<RarityId, number> = {
+  f: 1,
+  e: 1.191,
+  d: 1.388,
+  c: 1.66,
+  b: 2.013,
+  a: 2.378,
+  s: 2.91,
+  ss: 3.4,
+  ssr: 4.6,
+};
 // Global knob for patches: scales every piece bonus (base and extra lines).
 export const GEAR_SCALE = 0.5;
 export const gearMult = (rarity: RarityId, stars: number): number =>
-  RARITIES[rarity].multiplier ** GEAR_RANK_EXP *
+  GEAR_RANK_MULT[rarity] *
   starMult(stars) *
   (stars >= 5 ? 1.2 : stars >= 3 ? 1.1 : 1);
 // Caps on the sum of all pieces (a full SSR 5-star set saturates a little).

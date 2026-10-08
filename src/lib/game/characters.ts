@@ -53,11 +53,13 @@ export interface Passive {
 }
 
 // Class passive strengths (tuned with scripts/balance.ts).
-export const CLASS_PASSIVE_DMG_REDUCTION = 0.1; // Caballero: incoming damage
-export const CLASS_PASSIVE_ADVANTAGE_BONUS = 0.4; // Mago: replaces ADVANTAGE_BONUS
+export const CLASS_PASSIVE_DMG_REDUCTION = 0.18; // Caballero: incoming damage
+export const CLASS_PASSIVE_ADVANTAGE_BONUS = 0.55; // Mago: replaces ADVANTAGE_BONUS
 export const CLASS_PASSIVE_CRIT_MULT = 2; // Pícaro: base crit damage multiplier
+export const CLASS_PASSIVE_MAGE_CRIT = 0.1; // Mago: extra crit chance
+export const CLASS_PASSIVE_MAGE_REDUCTION = 0.05; // Mago: incoming damage
 export const BASE_CRIT_DMG = 1.5;
-export const CLASS_PASSIVE_REGEN = 0.015; // Clérigo: max hp per turn
+export const CLASS_PASSIVE_REGEN = 0.005; // Clérigo: max hp per turn
 
 const pct = (v: number) => `${+(v * 100).toFixed(1)}%`;
 
@@ -94,8 +96,8 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
     attack1: { name: "Tajo", power: 1, accuracy: 0.95, cooldown: 0, heal: 0 },
     attack2: {
       name: "Golpe de escudo",
-      power: 1.9,
-      accuracy: 0.7,
+      power: 2.1,
+      accuracy: 0.75,
       cooldown: 2,
       heal: 0,
     },
@@ -105,7 +107,7 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
     passive: {
       id: "focoArcano",
       name: "Foco arcano",
-      description: `Con ventaja elemental su daño sube ${pct(CLASS_PASSIVE_ADVANTAGE_BONUS)} en vez de 25%.`,
+      description: `Con ventaja elemental su daño sube ${pct(CLASS_PASSIVE_ADVANTAGE_BONUS)} en vez de 25%, tiene +${pct(CLASS_PASSIVE_MAGE_CRIT)} de crítico y recibe ${pct(CLASS_PASSIVE_MAGE_REDUCTION)} menos daño.`,
     },
     stats: {
       hp: 85,
@@ -121,15 +123,15 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
     },
     attack1: {
       name: "Chispa",
-      power: 0.9,
+      power: 1,
       accuracy: 0.95,
       cooldown: 0,
       heal: 0,
     },
     attack2: {
       name: "Cataclismo",
-      power: 2.4,
-      accuracy: 0.6,
+      power: 2.6,
+      accuracy: 0.7,
       cooldown: 2,
       heal: 0,
     },
@@ -163,7 +165,7 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
     attack2: {
       name: "Golpe bajo",
       power: 2.1,
-      accuracy: 0.65,
+      accuracy: 0.75,
       cooldown: 2,
       heal: 0,
     },
@@ -193,7 +195,7 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
       power: 0.6,
       accuracy: 0.9,
       cooldown: 2,
-      heal: 0.25,
+      heal: 0.09,
     },
   },
 };

@@ -21,7 +21,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 7;
+export const ENGINE_VERSION = 8;
 
 export type FightRole = "normal" | "elite" | "final";
 
@@ -49,7 +49,7 @@ export const RANK_TUNE: Record<RarityId, number> = {
   a: 1.98,
   s: 2.22,
   ss: 3.02,
-  ssr: 3.77,
+  ssr: 4.14,
 };
 export const LEVEL_STEP = 0.05; // enemy power grows this much per level index
 export const ASC_HP_STEP = 0.12; // per ascension level

@@ -24,6 +24,7 @@ import {
 } from "./combat";
 import { createRng, type Rng } from "./rng";
 import {
+  COUNTER_REFLECT,
   COUNTER_TAKEN,
   EXECUTE_MULT,
   SKILLS,
@@ -280,10 +281,11 @@ describe("class skills (Ataque 3)", () => {
       { ...b.player, reflect: 0 },
       "attack1",
     );
-    expect(taken).toBe(Math.round(plainHit * COUNTER_TAKEN));
-    expect(b.enemies[0].hp - s.enemies[0].hp).toBe(
-      Math.round(taken / COUNTER_TAKEN),
-    );
+    expect(Math.abs(taken - plainHit * COUNTER_TAKEN)).toBeLessThanOrEqual(1); // estimate rounds the full hit
+    // the reflect rounds the unrounded hit, so allow the rounding of `taken` to show
+    expect(
+      Math.abs(b.enemies[0].hp - s.enemies[0].hp - (taken / COUNTER_TAKEN) * COUNTER_REFLECT),
+    ).toBeLessThanOrEqual(2);
     expect(s.player.reflect).toBeLessThanOrEqual(1); // spent hit, ticking down
     expect(s.log.some((l) => l.includes("contraataca"))).toBe(true);
     // it only works once
