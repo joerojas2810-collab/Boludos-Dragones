@@ -289,7 +289,7 @@ async function coopViewOf(
   );
   const damage = Object.fromEntries(rows.map((r) => [r.playerId, r.damage]));
   const t = coopTally(pool, damage);
-  const prizes = coopPrizes(s.roundSeed, t, damage);
+  const prizes = coopPrizes(t, damage);
   if (s.phase !== "coop_boss" && rows.some((r) => !r.paid))
     await payCoop(d, room, prizes, rows);
   return {
@@ -318,7 +318,7 @@ async function payCoop(
       player: p.id,
       coins: p.coins,
       chips: p.chips,
-      cores: p.cores,
+      dados: p.dados,
     }));
   try {
     if (out.length) await d.store.payCoop(room, out);

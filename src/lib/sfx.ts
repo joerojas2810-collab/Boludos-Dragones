@@ -107,7 +107,7 @@ function play(e: BattleEvent, delay: number) {
   const k = e.actor === "player" ? 1 : 0.7;
   if (
     e.classId === "mago" ||
-    (e.classId === "clerigo" && e.move === "attack2")
+    (e.classId === "clerigo" && e.move === "attack2" && e.weapon === "libro")
   ) {
     magic(ctx, t, k, e);
     return;

@@ -73,17 +73,16 @@ export default function TowerPage() {
           {TOWER_PRIZES.map((p) => (
             <span key={p.place} className="whitespace-nowrap text-yellow-300">
               {MEDAL[p.place - 1]} {p.coins}{" "}
-              <Icon name="system_coin" className="h-4" /> +{p.cores} núcleo
-              {p.cores > 1 ? "s" : ""}
+              <Icon name="system_coin" className="h-4" /> +{p.dados} Dado cargado
             </span>
           ))}
         </div>
         <p className="mt-2 text-center text-sm text-[#d9d2ca]">
           Por piso (una vez por semana): {TOWER_FLOOR_PRIZES.normal.coins} monedas;
-          piso 5, {TOWER_FLOOR_PRIZES.mid.coins} + núcleo; piso 10,{" "}
-          {TOWER_FLOOR_PRIZES.big.coins} + núcleo (el ciclo se repite). Cada día
+          piso 5, {TOWER_FLOOR_PRIZES.mid.coins}; piso 10,{" "}
+          {TOWER_FLOOR_PRIZES.big.coins} (el ciclo se repite). Cada día
           a las 21:00 (hora de Buenos Aires) el #1 de cada torre gana{" "}
-          {TOWER_DAILY_PRIZE.coins} monedas, un núcleo y el título «
+          {TOWER_DAILY_PRIZE.coins} monedas y el título «
           {TOWER_DAILY_PRIZE.title}». Insignias: Torre 10, 20 y 30.
         </p>
         {st && (

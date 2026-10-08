@@ -17,7 +17,6 @@ import { Icon } from "@/components/Icon";
 import { ItemCard } from "@/components/ItemCard";
 import { MuteButton } from "@/components/MuteButton";
 import { Notice } from "@/components/Notice";
-import { PartTile } from "@/components/PartsList";
 import { Panel } from "@/components/Panel";
 import { RankIcon } from "@/components/RankIcon";
 import { StarRow } from "@/components/StarRow";
@@ -60,7 +59,6 @@ import {
   type FightRole,
 } from "@/lib/game/stage";
 import { sweepBlock } from "@/lib/game/sweep";
-import { addParts } from "@/lib/game/parts";
 import {
   applyStageAction,
   ENGINE_VERSION,
@@ -180,7 +178,7 @@ export function ProgressMode() {
     setView({ t: "saving" });
     let out: Awaited<ReturnType<typeof repo.sweepLevel>> | null = null;
     let bank: LevelBank | null = null;
-    let loot: LevelLoot = { parts: {}, pieces: [] };
+    let loot: LevelLoot = { escamas: 0, dados: 0, pieces: [] };
     let done = 0;
     try {
       for (; done < times; done++) {
@@ -189,7 +187,7 @@ export function ProgressMode() {
         bank = bank
           ? { ...o.bank, coins: bank.coins + o.bank.coins, chest: bank.chest + o.bank.chest, xp: bank.xp + o.bank.xp, levelsGained: bank.levelsGained + o.bank.levelsGained }
           : o.bank;
-        loot = { parts: addParts(loot.parts, o.loot.parts), pieces: [...loot.pieces, ...o.loot.pieces] };
+        loot = { escamas: loot.escamas + o.loot.escamas, dados: loot.dados + o.loot.dados, pieces: [...loot.pieces, ...o.loot.pieces] };
       }
     } catch (e) {
       pushNotice(
@@ -527,12 +525,19 @@ export function ProgressMode() {
                 ) : (
                   <span className="text-[#d9d2ca]">Sin piezas esta vez.</span>
                 )}
-                {Object.keys(o.loot.parts).length > 0 && (
-                  <ul className="flex flex-wrap justify-center gap-2">
-                    {Object.entries(o.loot.parts).map(([k, n]) => (
-                      <PartTile key={k} k={k} n={n} />
-                    ))}
-                  </ul>
+                {(o.loot.escamas > 0 || o.loot.dados > 0) && (
+                  <div className="flex flex-wrap justify-center gap-4">
+                    {o.loot.escamas > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Icon name="material_scales" className="h-6" /> +{o.loot.escamas} Escamas
+                      </span>
+                    )}
+                    {o.loot.dados > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Icon name="material_loaded_die" className="h-6" /> +{o.loot.dados} Dado cargado
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </>

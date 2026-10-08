@@ -18,15 +18,15 @@ import {
   type DungeonProgress,
 } from "./dungeonProgress";
 import { firstClearChest, levelCoins, levelDecay } from "./levelPay";
-import type { LevelLoot } from "./levelLoot";
+import { DADO_DAILY_MAX, type LevelLoot } from "./levelLoot";
 import type { StageStatus } from "./stage";
 import type { RunPiece } from "./loot";
-import { addParts, isPartKey, MAX_STACK, type Parts } from "./parts";
 import {
   activeSets,
   applyGear,
   combineGear,
   GEAR_CAP,
+  plusFactor,
   gearBonus,
   LINE_BASE,
   LINE_GROUP,
@@ -119,7 +119,9 @@ export interface Profile {
   runsPlayed: number;
   dungeons: DungeonProgress; // levels cleared per rank and ascension (dungeonProgress.ts)
   levelsDay?: { day: string; n: number }; // repeated levels cleared on that game day (pay decays)
-  parts: Parts; // forge parts and cores (see parts.ts)
+  escamas: number; // Mejorar material (upgrade.ts); bound to the account
+  dados: number; // Dado cargado (upgrade.ts); bound to the account
+  dadosDay?: { day: string; n: number }; // dice found on that game day by last-level drops (max 2)
   tutorial?: number; // step 0..TUTORIAL_DONE; missing = done
 }
 
@@ -137,7 +139,8 @@ export const createProfile = (): Profile => ({
   bestFloor: 0,
   runsPlayed: 0,
   dungeons: {},
-  parts: {},
+  escamas: 0,
+  dados: 0,
 });
 
 const UNIT_COST: Record<Banner, number> = {
@@ -460,7 +463,6 @@ export function bankRun(
   maxFloor: number,
   runId?: string,
   loot: readonly RunPiece[] = [],
-  parts: Parts = {},
 ): Profile {
   if (runId !== undefined && p.lastBankedRunId === runId) return p;
   const q = loot.reduce((acc, piece) => grantPiece(acc, piece), p);
@@ -476,7 +478,6 @@ export function bankRun(
     coins: q.coins + paid,
     bestFloor: Math.max(p.bestFloor, Math.floor(maxFloor) || 0),
     runsPlayed: p.runsPlayed + 1,
-    parts: addParts(q.parts, parts),
   };
 }
 
@@ -510,11 +511,12 @@ export function lootOptions(
   rank: RarityId,
   level: number,
   asc: number,
-): { repeat: boolean; payMult: number } {
+): { repeat: boolean; payMult: number; dadoLeft: number } {
   const repeat = (p.dungeons[rank]?.[asc] ?? 0) > level;
   const today = dayKey();
   const n = (p.levelsDay?.day === today ? p.levelsDay.n : 0) + 1;
-  return { repeat, payMult: repeat ? levelDecay(n) : 1 };
+  const found = p.dadosDay?.day === today ? p.dadosDay.n : 0;
+  return { repeat, payMult: repeat ? levelDecay(n) : 1, dadoLeft: Math.max(0, DADO_DAILY_MAX - found) };
 }
 
 // Pure. Call once per finished attempt. EXP is always kept; everything else only
@@ -546,7 +548,11 @@ export function bankLevel(p: Profile, r: LevelResult): LevelBank {
         dungeons: rec.progress,
         levelsDay: { day: today, n },
         coins: q.coins + coins + chest,
-        parts: addParts(q.parts, r.loot.parts),
+        escamas: Math.min(MAX_MATERIAL, q.escamas + r.loot.escamas),
+        dados: Math.min(MAX_MATERIAL, q.dados + r.loot.dados),
+        ...(r.loot.dados > 0
+          ? { dadosDay: { day: today, n: (p.dadosDay?.day === today ? p.dadosDay.n : 0) + r.loot.dados } }
+          : {}),
       };
       q = r.loot.pieces.reduce((acc, piece) => grantPiece(acc, piece, false), q);
     }
@@ -636,6 +642,7 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
       ...(hasGear ? { gear } : {}),
     };
   const sec = weaponSecondary(w.type);
+  const wAtk = w.atkBonus * plusFactor(w.plus);
   return {
     ...c,
     level,
@@ -643,14 +650,14 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
     ...(hasGear ? { gear } : {}),
     stats: {
       ...geared,
-      atk: Math.round((geared.atk + w.atkBonus) * 10) / 10,
+      atk: Math.round((geared.atk + wAtk) * 10) / 10,
       accuracy: Math.round((geared.accuracy + sec.accuracy) * 100) / 100,
       crit:
         Math.round(Math.min(0.6, Math.max(0, geared.crit + sec.crit)) * 100) /
         100,
       speed: Math.round(geared.speed * sec.speedMult * 10) / 10,
     },
-    weapon: { element: w.element, atkBonus: w.atkBonus },
+    weapon: { element: w.element, atkBonus: wAtk, type: w.type },
   };
 }
 
@@ -750,12 +757,13 @@ function parseWeapon(v: unknown, legacyAll: boolean): OwnedWeapon | null {
   const element = ELEMENTS.find((e) => e === v.element);
   const rarity = toRank(v.rarity);
   if (!element || !rarity) return null;
-  const type = isWeaponType(v.type) ? v.type : "espada"; // old saves: no type
+  // old saves: no type; the removed "lanza" became "espada" (v9)
+  const type = v.type !== "lanza" && isWeaponType(v.type) ? v.type : "espada";
   const stars = nat(v.stars, MAX_STARS);
   const rolled = parseRoll(type, rarity, v.roll, v.lines);
   return {
     id: weaponKey(type, element, rarity),
-    name: str(v.name, "Espada"),
+    name: str(v.name, "Espada").replace(/^Lanza\b/, "Espada"),
     type,
     element,
     rarity,
@@ -763,6 +771,8 @@ function parseWeapon(v: unknown, legacyAll: boolean): OwnedWeapon | null {
     atkBonus: weaponAtk(rarity, stars, type, rolled.roll), // never trusted
     ...rolled,
     ...(legacyAll || v.legacy === true ? { legacy: true } : {}),
+    ...(nat(v.plus, 10) > 0 ? { plus: nat(v.plus, 10) } : {}),
+    ...(nat(v.plusStreak, 1000) > 0 ? { plusStreak: nat(v.plusStreak, 1000) } : {}),
   };
 }
 
@@ -789,15 +799,26 @@ const canEquipPair = (
   );
 };
 
-const parseParts = (v: unknown): Parts => {
-  const out: Parts = {};
-  if (isObj(v))
-    for (const [k, n] of Object.entries(v)) {
-      const q = nat(n, MAX_STACK);
-      if (q > 0 && isPartKey(k)) out[k] = q;
+export const MAX_MATERIAL = 99999;
+// Old forge stock (v8) paid out without loss: S/SS/SSR parts -> Escamas (1/2/4 each), F..A parts ->
+// coins (5/8/12/20/35/60 each), every core -> 1 Dado cargado. Keep in sync with 0041_forge_v9.sql.
+export const PART_TO_ESCAMAS: Partial<Record<RarityId, number>> = { s: 1, ss: 2, ssr: 4 };
+export const PART_TO_COINS: Partial<Record<RarityId, number>> = { f: 5, e: 8, d: 12, c: 20, b: 35, a: 60 };
+function convertOldParts(v: unknown): { coins: number; escamas: number; dados: number } {
+  const out = { coins: 0, escamas: 0, dados: 0 };
+  if (!isObj(v)) return out;
+  for (const [k, n] of Object.entries(v)) {
+    const q = nat(n, 9999);
+    if (/^core-(agua|fuego|viento|tierra|rayo)$/.test(k)) out.dados += q;
+    else {
+      const rank = /^p-[a-z]+-(f|e|d|c|b|a|s|ss|ssr)$/.exec(k)?.[1] as RarityId | undefined;
+      if (!rank) continue;
+      out.escamas += q * (PART_TO_ESCAMAS[rank] ?? 0);
+      out.coins += q * (PART_TO_COINS[rank] ?? 0);
     }
+  }
   return out;
-};
+}
 
 export function migrate(json: unknown): Profile {
   if (!isObj(json)) return createProfile();
@@ -815,7 +836,15 @@ export function migrate(json: unknown): Profile {
   });
   const rawWeapons = Array.isArray(json.weapons) ? json.weapons : [];
   const parsedWeapons = rawWeapons.map((w) => parseWeapon(w, legacyAll));
+  // A converted lanza can collide with an espada of the same element and rank: +1 star.
   const weapons = uniqueById(parsedWeapons);
+  parsedWeapons.forEach((w) => {
+    const kept = w && weapons.find((x) => x.id === w.id);
+    if (kept && kept !== w) {
+      kept.stars = Math.min(MAX_STARS, Math.max(kept.stars, w.stars) + 1);
+      kept.atkBonus = weaponAtk(kept.rarity, kept.stars, kept.type, kept.roll);
+    }
+  });
   // old id (no type) -> new id, so saved `equipped` entries survive
   const alias = new Map<string, string>();
   rawWeapons.forEach((raw, i) => {
@@ -823,6 +852,7 @@ export function migrate(json: unknown): Profile {
     if (w && isObj(raw) && typeof raw.id === "string") alias.set(raw.id, w.id);
   });
   // Hero fragments no longer exist: an old save's stock is paid out as coins.
+  const oldParts = convertOldParts(json.parts);
   let fragmentCoins = 0;
   if (isObj(json.fragments))
     for (const c of CLASS_IDS)
@@ -850,7 +880,7 @@ export function migrate(json: unknown): Profile {
   const pitySsr = isObj(json.pitySsr) ? json.pitySsr : {};
   return {
     version: PROFILE_VERSION,
-    coins: nat(json.coins) + fragmentCoins,
+    coins: nat(json.coins) + fragmentCoins + oldParts.coins,
     characters,
     weapons,
     equipped,
@@ -882,7 +912,11 @@ export function migrate(json: unknown): Profile {
     ...(isObj(json.levelsDay) && isDayKey(json.levelsDay.day)
       ? { levelsDay: { day: json.levelsDay.day, n: nat(json.levelsDay.n, 100000) } }
       : {}),
-    parts: parseParts(json.parts),
+    escamas: Math.min(MAX_MATERIAL, nat(json.escamas, MAX_MATERIAL) + oldParts.escamas),
+    dados: Math.min(MAX_MATERIAL, nat(json.dados, MAX_MATERIAL) + oldParts.dados),
+    ...(isObj(json.dadosDay) && isDayKey(json.dadosDay.day)
+      ? { dadosDay: { day: json.dadosDay.day, n: nat(json.dadosDay.n, 100) } }
+      : {}),
     ...(typeof json.tutorial === "number" && json.tutorial < TUTORIAL_DONE
       ? { tutorial: nat(json.tutorial, TUTORIAL_DONE) }
       : {}),

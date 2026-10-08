@@ -3,7 +3,6 @@ import { Icon } from "@/components/Icon";
 import { Panel } from "@/components/Panel";
 import { Tooltip } from "@/components/Tooltip";
 import { iconFor } from "@/lib/art";
-import { CLASSES } from "@/lib/game/characters";
 import {
   actionsLeft,
   estimateDamage,
@@ -14,6 +13,7 @@ import {
   type Action,
   type Battle,
   type MoveKey,
+  attackOf,
 } from "@/lib/game/combat";
 import {
   announceTip,
@@ -110,7 +110,6 @@ export function ActionPanel({
   const over = b.status !== "ongoing";
   const left = actionsLeft(b);
   const mine = b.playerActions;
-  const cls = CLASSES[b.player.char.classId];
   const alive = livingEnemies(b);
   const foe = b.enemies[alive[target] ?? alive[0] ?? 0];
   const skill = skillOf(b.player);
@@ -120,7 +119,7 @@ export function ActionPanel({
     .join(" › ");
 
   const attack = (k: MoveKey) => {
-    const a = k === "attack3" ? null : cls[k];
+    const a = k === "attack3" ? null : attackOf(b.player, k);
     const reason = attackDisabledReason(b.player, k);
     if (k === "attack3" && !skill)
       return (

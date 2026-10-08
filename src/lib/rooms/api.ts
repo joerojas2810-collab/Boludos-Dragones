@@ -149,7 +149,7 @@ export const coopView = z.object({
       id: uuid,
       coins: int,
       chips: int,
-      cores: z.array(z.string()),
+      dados: int,
       mvp: z.boolean(),
     }),
   ),

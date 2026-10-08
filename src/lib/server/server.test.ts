@@ -14,7 +14,8 @@ import { heroFromOwned, migrate } from "../game/profile";
 import {
   doBurn,
   doChooseSkill,
-  doForge,
+  doAscend,
+  doUpgrade,
   doPull,
   finishLevelService,
   loadMe,
@@ -25,7 +26,8 @@ import {
 import { FakeDb, heroRow, playBot, playLevelBot } from "./testkit";
 import {
   credsBody,
-  forgeBody,
+  ascendBody,
+  upgradeBody,
   levelFinishBody,
   levelStartBody,
   nameKeyOf,
@@ -385,7 +387,7 @@ describe("pull service (fake DB)", () => {
 });
 
 describe("mission claims", () => {
-  it("rolls the promised parts and pieces at the best cleared rank and passes them to SQL", async () => {
+  it("rolls the promised pieces at the best cleared rank and passes them to SQL", async () => {
     const db = new FakeDb();
     db.bestRank = "c";
     db.missionProgress = { levels: 99, fights: 99, bosses: 99, pull: 99, forge: 99 }; // everything done
@@ -394,10 +396,8 @@ describe("mission claims", () => {
     await missions.claimMissionService(db.deps, "u1", "daily");
     const a = db.missionClaims[0];
     expect(a).toMatchObject({ p_scope: "daily", p_reached: 3 });
-    expect(Object.keys(a.p_parts as object).every((k) => k.endsWith("-c"))).toBe(true);
-    expect(
-      Object.values(a.p_parts as Record<string, number>).reduce((n, q) => n + q, 0),
-    ).toBe(2);
+    expect(a.p_pieces).toEqual([]); // daily pays coins only
+    expect("p_parts" in a).toBe(false);
     await expect(
       missions.claimMissionService(
         Object.assign(new FakeDb(), { missionProgress: {} }).deps,
@@ -578,89 +578,63 @@ describe("weekly tower", () => {
   });
 });
 
-describe("forge service", () => {
-  it("runs the pure forge and persists exactly its diff; invalid combos never reach the DB", async () => {
+describe("forge service (Ascender + Mejorar)", () => {
+  const piece = (type: string, element: string, rarity: string, stars = 0, extra = {}) => ({
+    key: `w-${type}-${element}-${rarity}`,
+    kind: "weap" as const,
+    a: type,
+    element,
+    rarity,
+    stars,
+    data: { name: "x", roll: 1, ...extra },
+  });
+  it("ascend: runs the pure rule, rolls with the server rng and persists base + materials", async () => {
     const db = new FakeDb();
-    db.parts = { "p-espada-f": 3, "core-fuego": 1 };
-    const r = await doForge(db.deps, "u1", {
-      op: "craft",
-      type: "espada",
-      element: "fuego",
-      rank: "f",
-    });
-    expect(r.text).toMatch(/Forjas/);
+    db.coins = 100;
+    db.rows.push(
+      piece("espada", "fuego", "f"),
+      ...["a", "b", "c", "d", "e"].map((x, i) => piece(["hacha", "espada", "espada", "espada", "espada"][i], ["agua", "agua", "rayo", "tierra", "viento"][i], "f")),
+    );
+    const r = await doAscend(db.deps, "u1", "w-espada-fuego-f", [
+      "w-hacha-agua-f",
+      "w-espada-agua-f",
+      "w-espada-rayo-f",
+      "w-espada-tierra-f",
+      "w-espada-viento-f",
+    ]);
+    expect(r.newId).toBe("w-espada-fuego-e");
     expect(db.forged[0]).toMatchObject({
-      p_coins: 3,
-      p_spend: { "p-espada-f": 3, "core-fuego": 1 },
-      p_gain: {},
-      p_remove: [],
-      p_grant: [{ type: "espada", element: "fuego", rarity: "f" }],
+      name: "apply_ascend",
+      p_base: "w-espada-fuego-f",
+      p_new: { type: "espada", element: "fuego", rarity: "e" },
     });
-    db.parts = {};
+    // too few materials never reach the DB
     expect(
-      await catchErr(
-        doForge(db.deps, "u1", {
-          op: "craft",
-          type: "espada",
-          element: "fuego",
-          rank: "f",
-        }),
-      ),
+      await catchErr(doAscend(db.deps, "u1", "w-espada-fuego-f", ["w-hacha-agua-f"])),
     ).toMatchObject({ status: 400, code: "forge_invalid" });
     expect(db.forged).toHaveLength(1);
   });
-  it("bulk shortcuts are planned by the server and persisted as ONE net diff", async () => {
+  it("upgrade: the server rolls the success; costs and gates are checked before the DB", async () => {
     const db = new FakeDb();
-    db.parts = { "p-espada-f": 9, "p-hacha-f": 4, "core-fuego": 5 };
-    const r = await doForge(db.deps, "u1", { op: "mergeAll", rank: "f" });
-    expect(r.text).toMatch(/3 operaciones/);
+    db.escamas = 10;
+    db.rows.push(piece("espada", "fuego", "s", 5), piece("hacha", "fuego", "a", 5), piece("daga", "fuego", "s", 3));
+    const r = await doUpgrade(db.deps, "u1", "w-espada-fuego-s", false);
+    expect(r.success).toBe(true); // +1 is 100%
+    expect(db.forged[0]).toMatchObject({ name: "apply_upgrade", p_key: "w-espada-fuego-s", p_use_dado: false, p_success: true });
+    for (const id of ["w-hacha-fuego-a", "w-daga-fuego-s"])
+      expect(await catchErr(doUpgrade(db.deps, "u1", id, false))).toMatchObject({ status: 400, code: "forge_invalid" });
+    expect(await catchErr(doUpgrade(db.deps, "u1", "w-espada-fuego-s", true))).toMatchObject({ code: "forge_invalid" }); // no dice
     expect(db.forged).toHaveLength(1);
-    expect(db.forged[0]).toMatchObject({
-      p_coins: 9,
-      p_spend: { "p-espada-f": 8, "p-hacha-f": 4, "core-fuego": 3 },
-      p_gain: { "p-espada-e": 2, "p-hacha-e": 1 },
-      p_grant: [],
-      p_remove: [],
-    });
   });
-  it("validates the request body (unknown op / bad key / too many ids)", () => {
-    expect(
-      forgeBody.safeParse({
-        op: "craft",
-        type: "espada",
-        element: "fuego",
-        rank: "f",
-      }).success,
-    ).toBe(true);
-    expect(
-      forgeBody.safeParse({
-        op: "craft",
-        type: "sable",
-        element: "fuego",
-        rank: "f",
-      }).success,
-    ).toBe(false);
-    expect(forgeBody.safeParse({ op: "hack" }).success).toBe(false);
-    expect(
-      forgeBody.safeParse({ op: "chain", maxRank: "c", refine: true }).success,
-    ).toBe(true);
-    expect(
-      forgeBody.safeParse({ op: "chain", maxRank: "zz", refine: true }).success,
-    ).toBe(false);
-    expect(
-      forgeBody.safeParse({ op: "dismantleLow", maxRank: "d", maxStars: 9 })
-        .success,
-    ).toBe(false);
-    expect(
-      forgeBody.safeParse({
-        op: "combinePieces",
-        ids: Array(9).fill("w-a-b-c"),
-        element: "agua",
-      }).success,
-    ).toBe(false);
+  it("validates the request bodies", () => {
+    expect(ascendBody.safeParse({ baseId: "w-a-b-c", materialIds: ["x", "y"] }).success).toBe(true);
+    expect(ascendBody.safeParse({ baseId: "w-a-b-c", materialIds: ["x"] }).success).toBe(false);
+    expect(ascendBody.safeParse({ baseId: "w-a-b-c", materialIds: Array(9).fill("x") }).success).toBe(false);
+    expect(ascendBody.safeParse({ baseId: "w", materialIds: ["x", "y"], extra: 1 }).success).toBe(false);
+    expect(upgradeBody.safeParse({ pieceId: "w-a-b-c", useDado: true }).success).toBe(true);
+    expect(upgradeBody.safeParse({ pieceId: "w-a-b-c" }).success).toBe(false);
   });
 });
-
 
 describe("dungeon level services (fake DB)", () => {
   const h0 = generateCharacter(createRng(11), "caballero");
@@ -758,9 +732,9 @@ describe("dungeon level services (fake DB)", () => {
       repeat: false,
       payMult: 1,
     });
-    expect(b.p_parts).toEqual(expected.parts);
+    expect(b.p_dados).toBe(expected.dados);
     expect(b.p_pieces).toEqual(expected.pieces);
-    expect(r.loot).toEqual(expected);
+    expect(r.loot).toEqual({ ...expected, escamas: 0, dados: expected.dados }); // escamas come from SQL (fake: 0)
     for (const piece of expected.pieces) expect(piece.roll).toBeGreaterThan(0.84);
   });
 
@@ -772,7 +746,7 @@ describe("dungeon level services (fake DB)", () => {
     expect(r.status).toBe("lost");
     expect(db.levelBanks[0]).toMatchObject({
       p_status: "lost",
-      p_parts: {},
+      p_dados: 0,
       p_pieces: [],
       p_verdict: "accepted",
     });
@@ -910,22 +884,23 @@ describe("burn / skill / profile mapping (fake DB)", () => {
       expect(it.roll).toBeGreaterThanOrEqual(0.85);
       expect(it.roll).toBeLessThanOrEqual(1.15);
     }
-    // forge: rolls come from the injected server rng, not from the profile state
+    // ascend: the new piece's roll comes from the injected server rng, not from the profile state
     const mk = (seed: number) => {
       const f = new FakeDb();
       f.deps.randomSeed = () => seed;
-      f.parts = { "p-casco-f": 3, "core-fuego": 1 };
+      f.coins = 100;
+      for (const [t, e] of [["casco", "fuego"], ["casco", "agua"], ["casco", "rayo"], ["casco", "tierra"], ["casco", "viento"], ["peto", "agua"]])
+        f.rows.push({ key: `w-${t}-${e}-f`, kind: "weap", a: t, element: e, rarity: "f", stars: 0, data: { name: "x", roll: 1 } });
       return f;
     };
-    const a = mk(1);
-    const b = mk(2);
-    const c = mk(1);
-    const op = { op: "craft", type: "casco", element: "fuego", rank: "f" } as const;
-    await doForge(a.deps, "u1", op);
-    await doForge(b.deps, "u1", op);
-    await doForge(c.deps, "u1", op);
-    const roll = (f: FakeDb) => (f.forged[0].p_grant as { roll: number }[])[0].roll;
-    expect(roll(a)).toBe(roll(c));
-    expect(roll(a)).not.toBe(roll(b));
+    const run = async (f: FakeDb) => {
+      await doAscend(f.deps, "u1", "w-casco-fuego-f", ["w-casco-agua-f", "w-casco-rayo-f", "w-casco-tierra-f", "w-casco-viento-f", "w-peto-agua-f"]);
+      return (f.forged[0].p_new as { roll: number }).roll;
+    };
+    const ra = await run(mk(1));
+    const rb = await run(mk(2));
+    const rc = await run(mk(1));
+    expect(ra).toBe(rc);
+    expect(ra).not.toBe(rb);
   });
 });

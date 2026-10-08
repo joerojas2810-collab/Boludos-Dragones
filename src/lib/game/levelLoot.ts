@@ -4,10 +4,10 @@
 import type { ClassId } from "./characters";
 import { ELEMENT_LABEL, ELEMENTS } from "./elements";
 import { rollGear } from "./gear";
+import { levelDecay } from "./levelPay";
 import { levelElement, type LevelSpec } from "./levels";
 import { dropRank, type RunPiece } from "./loot";
-import { addParts, coreKey, partKey, type Parts } from "./parts";
-import { RARITY_IDS } from "./rarity";
+import { RARITY_IDS, type RarityId } from "./rarity";
 import { createRng, hashSeed, type Rng } from "./rng";
 import { FIGHT_XP } from "./stage";
 import {
@@ -15,35 +15,46 @@ import {
   isGearType,
   SLOTS,
   WEAPON_TYPE_DATA,
-  WEAPON_TYPES,
   type WeaponType,
 } from "./weapons";
 
 // Tune here. Every piece is random now: slot (6), element and rank. A level rolls
 // PIECE_ROLLS_PER_FIGHT per fight; ranks run from the dungeon's rank down to F with a flat
-// decay, and a small chance of one rank above. Parts and cores come from points.
+// decay, and a small chance of one rank above. Escamas and the Dado cargado (Mejorar, docs/FORJA_V9.md)
+// drop only in dungeons S and above.
 export const PIECE_ROLLS_PER_FIGHT = 3;
 export const PIECE_CHANCE = 0.6; // per roll
 export const PIECE_RANK_DECAY = 0.7; // flatter than the old directed drop (0.5)
 export const UP_CHANCE = { normal: 0.05, final: 0.1 } as const; // piece one rank above
 export const PIECE_ELEMENT_LEVEL_SHARE = 0.4; // else any element
 export const REPEAT_PIECE_MULT = 0.75; // repeat clears (and sweeps) keep most of the piece drops
-export const REPEAT_PART_MULT = 0.6;
-export const ASC_LOOT_STEP = 0.1; // +10% points per ascension level
-export const ROLE_POINTS = { normal: 1, elite: 2, final: 4 } as const;
-export const CORE_SHARE = 0.2;
+// Keep in sync with bank_level / level_escamas in SQL (0041).
+export const ESCAMAS_PER_LEVEL: Partial<Record<RarityId, number>> = { s: 2, ss: 3, ssr: 4 };
+export const ESCAMAS_ASC_STEP = 0.1; // +10% per ascension level
+export const DADO_CHANCE = 0.05; // last level of a dungeon S+, first clear and repeats
+export const DADO_DAILY_MAX = 2;
 
 export interface LevelLoot {
-  parts: Parts;
+  escamas: number;
+  dados: number;
   pieces: RunPiece[];
 }
 
-// Material points a level hands out at an ascension (per rank index bonus +10%).
-export function levelPoints(spec: LevelSpec, asc: number): number {
-  const rankBonus = 1 + 0.1 * RARITY_IDS.indexOf(spec.rank);
-  const fights = spec.length - 1;
-  const last = spec.final ? ROLE_POINTS.final : ROLE_POINTS.elite;
-  return (fights + last) * rankBonus * (1 + ASC_LOOT_STEP * asc);
+// Escamas of a cleared level: only S+. A first clear rounds; a repeat takes the coin repeat factor and the
+// daily decay and FLOORS (so a heavily decayed repeat reaches 0). Keep in sync with level_escamas (0042).
+export const ESCAMAS_REPEAT_MULT = 0.6;
+export function levelEscamas(rank: RarityId, asc: number, repeat = false, payMult = 1): number {
+  const x = (ESCAMAS_PER_LEVEL[rank] ?? 0) * (1 + ESCAMAS_ASC_STEP * asc);
+  return repeat ? Math.floor(x * ESCAMAS_REPEAT_MULT * payMult + 1e-9) : Math.round(x);
+}
+
+/**
+ * Dado cargado roll for a cleared level: last level of a dungeon S+, 5%, only while the account has room today.
+ * The caller rolls it at bank time with a SERVER rng (never from the run seed, which the client knows).
+ */
+export function rollDado(spec: LevelSpec, rng: Rng, dadoLeft: number): number {
+  const eligible = spec.final && RARITY_IDS.indexOf(spec.rank) >= RARITY_IDS.indexOf("s") && dadoLeft > 0;
+  return eligible && rng.chance(DADO_CHANCE) ? 1 : 0;
 }
 
 function roundRandom(rng: Rng, x: number): number {
@@ -75,7 +86,7 @@ function pieceOf(
   };
 }
 
-// payMult in 0..1 is the daily decay (economy.ts); repeat = level already cleared.
+// payMult in 0..1 is the daily decay (economy.ts); repeat = level already cleared; dados stay 0 here.
 export function levelLoot(
   spec: LevelSpec,
   asc: number,
@@ -84,27 +95,18 @@ export function levelLoot(
   opts: { repeat: boolean; payMult?: number },
 ): LevelLoot {
   const rng = createRng(hashSeed(seed, spec.index, asc, 9201));
-  const mult = (opts.payMult ?? 1) * (opts.repeat ? REPEAT_PART_MULT : 1);
   const up = spec.final ? UP_CHANCE.final : UP_CHANCE.normal;
   const pieces: RunPiece[] = [];
   const pieceMult = (opts.repeat ? REPEAT_PIECE_MULT : 1) * (opts.payMult ?? 1);
-  // Counts are the expected value with random rounding (no per-roll variance), like points below.
+  // Counts are the expected value with random rounding (no per-roll variance).
   const count = roundRandom(rng, spec.length * PIECE_ROLLS_PER_FIGHT * PIECE_CHANCE * pieceMult);
   const ups = roundRandom(rng, count * up);
   for (let i = 0; i < count; i++) pieces.push(pieceOf(rng, spec, asc, i < ups ? 1 : 0));
-  let points = levelPoints(spec, asc) * mult;
-  let parts: Parts = {};
-  while (points > 0) {
-    // random rounding of the fractional rest keeps expected value exact
-    if (points < 1 && !rng.chance(points)) break;
-    points -= 1;
-    parts = addParts(parts, {
-      [rng.chance(CORE_SHARE)
-        ? coreKey(rng.chance(0.6) ? levelElement(spec, asc) : rng.pick(ELEMENTS))
-        : partKey(rng.pick(WEAPON_TYPES), dropRank(rng, spec.rank, up))]: 1,
-    });
-  }
-  return { parts, pieces };
+  return {
+    escamas: levelEscamas(spec.rank, asc, opts.repeat, opts.payMult ?? 1),
+    dados: 0, // rolled by the caller at bank time (rollDado)
+    pieces,
+  };
 }
 
 // EXP of a level if every fight is won (kept in sync with stage.finishFight).

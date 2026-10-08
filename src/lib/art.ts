@@ -3,7 +3,6 @@ import { isPixel, isPixelIcon } from "./art/pixel";
 import type { Element } from "@/lib/game/elements";
 import type { DoorKind } from "@/lib/game/room";
 import type { ClassId } from "@/lib/game/characters";
-import { parsePartKey } from "@/lib/game/parts";
 import type { GearType, HandType } from "@/lib/game/weapons";
 
 // Spanish game ids -> English file names of the painted art in public/art.
@@ -44,18 +43,8 @@ export const gearIconSrc = (t: GearType, e: Element) =>
     ? `/art/equipment-px/icon_equipment_${GEAR_ART[t]}_${ELEMENT_ART[e]}.png`
     : `/art/equipment/icon_equipment_${GEAR_ART[t]}_${ELEMENT_ART[e]}.webp`;
 
-// Forge part / core icon for a stock key (p-<type>-<rank>, core-<element>).
-export const partIconSrc = (key: string): string | null => {
-  const i = parsePartKey(key);
-  if (!i) return null;
-  const name =
-    i.kind === "core"
-      ? `core_${ELEMENT_ART[i.element]}`
-      : `part_${HAND_ART[i.type as HandType] ?? GEAR_ART[i.type as GearType]}`;
-  return isPixel()
-    ? `/art/icons-px/icon_${name}.png?v=${ART_V}`
-    : `/art/equipment/icon_${name}.webp?v=${ART_V}`;
-};
+// Forge materials: painted icon names (Escamas, Dado cargado).
+export const MATERIAL_ICON = { escamas: "material_scales", dado: "material_loaded_die" } as const;
 
 type ArtCategory = keyof typeof ids;
 // Icon name for a game id (trait, relic, passive, skill, upgrade, event, enemy_modifier, stat, class), if one exists.
@@ -72,7 +61,6 @@ export const CLASS_ART: Record<ClassId, string> = {
 export const HAND_ART: Record<HandType, string> = {
   espada: "sword",
   hacha: "axe",
-  lanza: "spear",
   arco: "bow",
   baston: "staff",
   daga: "dagger",

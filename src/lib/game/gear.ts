@@ -194,6 +194,10 @@ export const GEAR_CAP: GearBonus = {
   dmgDealt: 0.25,
 };
 
+// Mejorar (+N): each level adds this share of a piece's own stats (docs/FORJA_V9.md).
+export const PLUS_BONUS_PER_LEVEL = 0.04;
+export const plusFactor = (plus = 0) => 1 + PLUS_BONUS_PER_LEVEL * plus;
+
 export interface WornPiece {
   type: WeaponType;
   rarity: RarityId;
@@ -201,12 +205,13 @@ export interface WornPiece {
   element?: Element;
   roll?: number;
   lines?: GearLine[];
+  plus?: number; // Mejorar level: x(1 + PLUS_BONUS_PER_LEVEL * plus) before the cap
 }
 
 const KEYS = Object.keys(NO_GEAR) as GearKey[];
 const round3 = (x: number) => Math.round(x * 1000) / 1000;
 
-// Sum of one piece's lines (uncapped).
+// Sum of one piece's lines (uncapped), including its Mejorar (+N) bonus.
 function pieceBonus(p: WornPiece): GearBonus {
   const out = { ...NO_GEAR };
   if (!isGearType(p.type)) return out;
@@ -215,6 +220,8 @@ function pieceBonus(p: WornPiece): GearBonus {
   for (const [k, v] of Object.entries(GEAR_BASE[p.type]))
     out[k as GearKey] += (v as number) * m * (own.roll ?? 1);
   for (const l of own.lines ?? []) out[l.stat] += LINE_BASE[l.stat] * m * l.roll;
+  const f = plusFactor(p.plus);
+  if (f !== 1) for (const k of KEYS) out[k] *= f;
   return out;
 }
 

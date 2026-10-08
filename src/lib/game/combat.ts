@@ -24,6 +24,7 @@ import {
   type Skill,
 } from "./skills";
 import { traitTotals } from "./traits";
+import { weaponSpecial } from "./weapons";
 
 export type AttackKey = "attack1" | "attack2";
 export type MoveKey = AttackKey | "attack3"; // attack3 = class skill (skills.ts)
@@ -94,6 +95,7 @@ export interface BattleEvent {
   kind: "hit" | "crit" | "miss" | "buff";
   classId: ClassId;
   move: MoveKey;
+  weapon?: string; // attacker's weapon type (sfx)
   enemy: number; // index in Battle.enemies of the enemy involved
 }
 
@@ -192,7 +194,7 @@ const healMult = (c: Combatant): number => 1 - rulesOf(c).healPenalty;
 export const skillOf = (c: Combatant): Skill | undefined =>
   c.char.skill ? SKILLS[c.char.skill] : undefined;
 
-function attackOf(c: Combatant, key: MoveKey): Attack {
+export function attackOf(c: Combatant, key: MoveKey): Attack {
   if (key === "attack3") {
     const s = skillOf(c);
     if (s)
@@ -204,6 +206,10 @@ function attackOf(c: Combatant, key: MoveKey): Attack {
         heal: 0,
       };
     key = "attack1";
+  }
+  if (key === "attack2") {
+    const sp = weaponSpecial(c.char.weapon?.type);
+    if (sp) return sp;
   }
   return CLASSES[c.char.classId][key];
 }
@@ -565,7 +571,14 @@ function strike(
     ...(key === "attack3" && { cooldown3: a.cooldown + 1 }),
   };
   const ev = (kind: BattleEvent["kind"]) =>
-    events.push({ actor, kind, classId: att.char.classId, move: key, enemy });
+    events.push({
+      actor,
+      kind,
+      classId: att.char.classId,
+      move: key,
+      weapon: att.char.weapon?.type,
+      enemy,
+    });
   if (def.freeHits) {
     log.push(`${def.char.name} esquiva el golpe de ${who}.`);
     return {

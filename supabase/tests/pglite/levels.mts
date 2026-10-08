@@ -11,7 +11,7 @@ import { levelLoot } from "../../../src/lib/game/levelLoot";
 import { heroFromOwned, migrate } from "../../../src/lib/game/profile";
 import { heroRow, playLevelBot } from "../../../src/lib/server/testkit";
 import {
-  doBurn, doChooseSkill, doForge, doPull, finishLevelService, loadMe, startLevelService,
+  doBurn, doChooseSkill, doPull, finishLevelService, loadMe, startLevelService,
 } from "../../../src/lib/server/services";
 import type { Deps } from "../../../src/lib/server/rpc";
 
@@ -54,7 +54,7 @@ const startRaw = (over: Record<string, unknown> = {}) =>
 let REPEAT = false; // level 0 of F is a repeat once it was cleared
 const bankArgs = (run: string, over: Record<string, unknown> = {}) => ({
   p_player: P, p_run_id: run, p_hero_id: HERO, p_rank: "f", p_level: 0, p_asc: 0, p_status: "cleared",
-  p_xp: 500, p_parts: {}, p_pieces: [], p_repeat: REPEAT, ...over,
+  p_xp: 500, p_dados: 0, p_pieces: [], p_repeat: REPEAT, ...over,
 });
 const bank = (run: string, over: Record<string, unknown> = {}) => rpc("bank_level", bankArgs(run, over));
 const reset = () => db.exec(`delete from public.runs`);
@@ -66,18 +66,18 @@ await err(startRaw({ p_asc: 1 }), "ascension_locked", "locked ascension");
 await err(startRaw({ p_asc: 9 }), "level_locked", "asc out of range");
 await err(startRaw({ p_character_id: "c-mago-fuego-ssr" }), "character_not_found");
 await err(as("authenticated", P, () => db.query(`select public.start_level('${P}','${HERO}',1,'{}','f',0,0)`)), "permission denied", "client cannot call start_level");
-await err(as("authenticated", P, () => db.query(`select public.bank_level('${P}','${U(9)}','x','f',0,0,'cleared',0,'{}','[]',false)`)), "permission denied", "client cannot call bank_level");
+await err(as("authenticated", P, () => db.query(`select public.bank_level('${P}','${U(9)}','x','f',0,0,'cleared',0,0,'[]',false)`)), "permission denied", "client cannot call bank_level");
 let run = (await startRaw()).run_id;
 await err(startRaw(), "run_open", "one open attempt");
 
 // 3. first clear pays flat coins, writes progress, grants parts+piece and EXP
 const lootPiece = { type: "espada", element: "agua", rarity: "f", name: "Espada de Agua", roll: 1.1 };
 const c0 = await coins();
-let b = await bank(run, { p_xp: 400, p_parts: { "p-espada-f": 2, "core-agua": 1 }, p_pieces: [lootPiece] });
+let b = await bank(run, { p_xp: 400, p_pieces: [lootPiece] });
 ok(b.cleared && !b.repeat && b.coins === levelCoins("f", 0, false) && b.chest === 0, "pay " + JSON.stringify(b));
 ok((await coins()) === c0 + b.coins, "coins credited");
 ok((await q(`select cleared from public.dungeon_progress where player_id='${P}' and rank='f' and ascension=0`))[0].cleared === 1, "progress 1");
-ok((await q(`select qty from public.part_stock where player_id='${P}' and key='p-espada-f'`))[0].qty === 2, "parts credited");
+ok(b.escamas === 0 && b.dados === 0, "no Escamas in a dungeon F");
 ok((await q(`select roll from public.weapons where player_id='${P}' and key='w-espada-agua-f'`))[0].roll == 1.1, "piece roll stored");
 ok(b.xp === 400, "xp reported");
 const heroNow = (await q(`select level,xp from public.characters where key='${HERO}'`))[0];
@@ -121,8 +121,9 @@ await err(bank(run, { p_pieces: [{ ...lootPiece, roll: 2 }] }), "invalid_items",
 await err(bank(run, { p_pieces: [{ ...lootPiece, lines: [{ stat: "atk", roll: 1 }] }] }), "invalid_items", "lines on a hand weapon");
 await err(bank(run, { p_pieces: [{ type: "casco", element: "agua", rarity: "f", name: "x", roll: 1, lines: [{ stat: "crit", roll: 1 }] }] }), "invalid_items", "more lines than the rank allows");
 await err(bank(run, { p_pieces: Array(31).fill(lootPiece) }), "invalid_items", "too many pieces");
-await err(bank(run, { p_parts: { "p-espada-f": 99, "p-hacha-f": 99 } }), "invalid_items", "parts flood");
-await err(bank(run, { p_parts: { "core-hacker": 1 } }), "invalid_items", "bad part key");
+await err(bank(run, { p_dados: 1 }), "invalid_items", "Dado cargado in a dungeon F");
+await err(bank(run, { p_dados: 2 }), "invalid_args", "two dice");
+await err(bank(run, { p_status: "lost", p_dados: 1 }), "invalid_args", "die on a lost level");
 await err(bank(run, { p_status: "won" }), "invalid_args", "bad status");
 await err(rpc("bank_level", bankArgs(U(5))), "run_not_found", "someone else's run id");
 const before = await coins();
@@ -187,7 +188,7 @@ await reset();
   REPEAT = done0 > 0;
   const many = Array.from({ length: 12 }, (_, i) => ({ type: "casco", element: ["agua", "fuego", "viento", "tierra", "rayo"][i % 5], rarity: i < 5 ? "f" : "e", name: "Casco", roll: 1 }));
   const rid = (await startRaw()).run_id;
-  const bm2 = await bank(rid, { p_pieces: many, p_parts: { "p-espada-f": 3 } });
+  const bm2 = await bank(rid, { p_pieces: many });
   ok(bm2.cleared, "12 dropped pieces are banked: " + JSON.stringify(bm2));
   REPEAT = prevRepeat;
   if (done0 === 0) await db.exec(`delete from public.dungeon_progress where player_id='${P}' and rank='f' and ascension=0`);
@@ -255,14 +256,13 @@ await err(pullW([cas(1.3)]), "invalid_items", "roll 1.3");
 await err(pullW([{ ...cas(1), roll: undefined }]), "invalid_items", "piece without roll");
 await err(pullW([cas(1, [{ stat: "hp", roll: 1 }])]), "invalid_items", "stat outside the pool");
 await err(pullW([cas(1, [{ stat: "crit", roll: 1 }, { stat: "def", roll: 1 }])]), "invalid_items", "2 lines on a C piece");
-// forge grants
-const fv = async () => Number((await q(`select version from public.player_state where player_id='${P}'`))[0].version);
-const forge = async (grant: unknown[]) => rpc("apply_forge", { p_player: P, p_version: await fv(), p_coins: 0, p_spend: {}, p_gain: {}, p_grant: grant, p_remove: [] });
+// grants (the piece path Ascender and the drops share)
+const forge = async (grant: any[]) => { const g = grant[0]; return rpc("grant_piece", { p_player: P, p_type: g.type, p_element: g.element, p_rank: g.rarity, p_name: g.name, p_roll: g.roll, p_lines: g.lines ?? null, p_refund_on_max: false }); };
 await forge([{ type: "peto", element: "agua", rarity: "a", name: "Peto", roll: 1.02, lines: [{ stat: "hp", roll: 1 }, { stat: "regen", roll: 1.1 }] }]);
-ok((await q(`select count(*)::int c from public.weapons where key='w-peto-agua-a' and lines is not null`))[0].c === 1, "forged piece with lines");
+ok((await q(`select count(*)::int c from public.weapons where key='w-peto-agua-a' and lines is not null`))[0].c === 1, "granted piece with lines");
 await err(forge([{ type: "peto", element: "agua", rarity: "a", name: "P", roll: 1, lines: [{ stat: "hp", roll: 1 }, { stat: "hp", roll: 1 }] }]), "invalid_items", "duplicate stat");
 await db.exec(`update public.weapons set stars=5 where key='w-peto-agua-a'`);
-await err(forge([{ type: "peto", element: "agua", rarity: "a", name: "P", roll: 1, lines: [] }]), "max_stars", "forge over max stars");
+await err(forge([{ type: "peto", element: "agua", rarity: "a", name: "P", roll: 1, lines: [] }]), "max_stars", "grant over max stars");
 
 // 11. tower rounds tiebreak
 await rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9, p_rounds: 50 });
@@ -305,7 +305,7 @@ const done = await finishLevelService(deps, P, { runId: info.runId, actions: log
 ok(done.status === "cleared" && done.bank.cleared && done.bank.coins === 25, "service finish cleared " + JSON.stringify(done.bank));
 ok((await coins()) >= coinsBefore + 25, "service paid coins");
 const exp = levelLoot(levelsOf("f")[0], 0, "caballero", info.seed, { repeat: false, payMult: 1 });
-ok(JSON.stringify(done.loot.parts) === JSON.stringify(exp.parts), "service loot = engine loot for the server seed");
+ok(JSON.stringify(done.loot.pieces) === JSON.stringify(exp.pieces), "service loot = engine loot for the server seed");
 ok(done.profile.dungeons.f?.[0] === 1, "profile shows progress");
 await err(finishLevelService(deps, P, { runId: info.runId, actions: log }), "duplicate_run", "service: replay twice");
 const me = await loadMe(deps.rpc, P);
@@ -318,9 +318,6 @@ await setCoins(5000);
 const pr = await doPull(deps, P, { banner: "weapon", count: 10, idempotencyKey: crypto.randomUUID() });
 ok(pr.results!.length === 10, "service weapon pull x10");
 ok((await q(`select count(*)::int c from public.weapons where roll is not null`))[0].c > 0, "pulled pieces have rolls in the DB");
-await db.exec(`insert into public.part_stock values ('${P}','p-espada-f',3),('${P}','core-fuego',1) on conflict (player_id,key) do update set qty=3`);
-await doForge(deps, P, { op: "craft", type: "espada", element: "fuego", rank: "f" });
-ok((await q(`select roll from public.weapons where key='w-espada-fuego-f'`))[0].roll != null, "forged piece has a server roll");
 const bw = (await q(`select key from public.weapons where key not in (select weapon_key from public.equipment) limit 1`))[0].key;
 const dbn = await doBurn(deps, P, "piece", bw);
 ok(dbn.coins > 0, "service burn");

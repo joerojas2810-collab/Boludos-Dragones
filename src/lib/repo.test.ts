@@ -76,7 +76,6 @@ describe("selectRepo", () => {
         coins: 5,
         maxFloor: 2,
         loot: [{ type: "casco", element: "agua", rarity: "f", name: "x" }],
-        parts: { "p-espada-f": 1 },
         clear: { rank: "f", lives: 3 },
       },
     );

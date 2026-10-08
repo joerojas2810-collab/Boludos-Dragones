@@ -5,7 +5,6 @@
 // one shared bar. The party wins when the sum reaches the pool, which scales with
 // the number of players (2 to 7).
 import { step, type Battle } from "./combat";
-import { ELEMENTS, type Element } from "./elements";
 import { floorFight, type Climb } from "./floorFights";
 import type { RarityId } from "./rarity";
 import type { RoomMode } from "./room";
@@ -158,34 +157,27 @@ export function coopTally(
 
 // ---- prizes ----
 // Everybody who hurt the boss is paid, win or lose (keeps light players level);
-// a win pays more and the MVP gets an extra core. Coins and cores go to the account
+// a win pays more and the MVP gets an extra Dado cargado. Coins and dice go to the account
 // (forge), chips to the night ranking. Daily limit per account: see rooms.ts.
 export const COOP_REWARD = {
   winCoins: 150,
   winChips: 50,
   loseCoins: 30,
   loseChips: 10,
-  winCores: 1,
-  mvpCores: 1,
+  winDados: 1,
+  mvpDados: 1,
 } as const;
 
 export interface CoopPrize {
   id: string;
   coins: number;
   chips: number;
-  cores: Element[];
+  dados: number;
   mvp: boolean;
 }
 
-const strHash = (s: string) => {
-  let h = 0;
-  for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return h;
-};
-
-/** Prize of every player with damage (deterministic: cores come from the room seed). */
+/** Prize of every player with damage . */
 export function coopPrizes(
-  roomSeed: number,
   tally: CoopTally,
   damage: Readonly<Record<string, number>>,
 ): CoopPrize[] {
@@ -195,16 +187,12 @@ export function coopPrizes(
     .sort((a, b) => (a[0] < b[0] ? -1 : 1))
     .map(([id]) => {
       const mvp = tally.won && tally.mvp === id;
-      const n = tally.won ? k.winCores + (mvp ? k.mvpCores : 0) : 0;
+      const n = tally.won ? k.winDados + (mvp ? k.mvpDados : 0) : 0;
       return {
         id,
         coins: tally.won ? k.winCoins : k.loseCoins,
         chips: tally.won ? k.winChips : k.loseChips,
-        cores: Array.from(
-          { length: n },
-          (_, i) =>
-            ELEMENTS[hashSeed(roomSeed, strHash(id), i) % ELEMENTS.length],
-        ),
+        dados: n,
         mvp,
       };
     });

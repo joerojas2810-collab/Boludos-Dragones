@@ -35,7 +35,7 @@ describe("piece rolls", () => {
     for (const w of profile.weapons) {
       expect(w.roll).toBeGreaterThanOrEqual(0.85);
       expect(w.roll).toBeLessThanOrEqual(1.15);
-      const n = ["espada", "hacha", "lanza", "arco", "baston", "daga", "maza", "varita", "libro"].includes(w.type)
+      const n = ["espada", "hacha", "arco", "baston", "daga", "maza", "varita", "libro"].includes(w.type)
         ? 0
         : extraLines(w.rarity);
       expect(w.lines?.length ?? 0).toBe(n);

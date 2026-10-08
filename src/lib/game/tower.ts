@@ -1,6 +1,6 @@
 // Weekly tower: everybody climbs the same endless run (the week's seed), in two
 // separate modes with separate rankings and unlimited attempts (best floor counts).
-// No coins, loot or parts from the run itself: only the weekly prizes (SQL tower_settle).
+// No coins or loot from the run itself: only the weekly prizes (SQL tower_settle).
 import { generateCharacter, type Character, type ClassId } from "./characters";
 import {
   advanceClimb,
@@ -39,17 +39,17 @@ export const TOWER_BLURB: Record<TowerMode, string> = {
 // tower_settle in 0022_tower.sql.
 export const TOWER_MIN_FLOOR = 8;
 export const TOWER_PRIZES = [
-  { place: 1, coins: 300, cores: 2 },
-  { place: 2, coins: 200, cores: 1 },
-  { place: 3, coins: 100, cores: 1 },
+  { place: 1, coins: 300, dados: 1 },
+  { place: 2, coins: 200, dados: 1 },
+  { place: 3, coins: 100, dados: 1 },
 ] as const;
 
 // Floor prizes: a 10-floor cycle that repeats; each floor is paid once per week.
 // Daily #1 of each ranking and the "Torre N" badges. Mirror in SQL (tower migration).
 export const TOWER_FLOOR_PRIZES = {
-  normal: { coins: 5, cores: 0 },
-  mid: { coins: 100, cores: 1 }, // floor 5 of the cycle
-  big: { coins: 250, cores: 1 }, // floor 10 of the cycle
+  normal: { coins: 5, dados: 0 },
+  mid: { coins: 150, dados: 0 }, // floor 5 of the cycle
+  big: { coins: 300, dados: 0 }, // floor 10 of the cycle
 } as const;
 export const towerFloorReward = (floor: number) => {
   const f = ((floor - 1) % 10) + 1;
@@ -61,8 +61,7 @@ export const towerFloorReward = (floor: number) => {
 };
 
 export const TOWER_DAILY_PRIZE = {
-  coins: 250,
-  cores: 1,
+  coins: 350,
   title: "Rey de la torre",
 } as const;
 export const TOWER_DAILY_HOUR_ART = 21; // Argentina is UTC-3 all year

@@ -214,7 +214,7 @@ export interface Character {
   stars?: number;
   // Equipped weapon snapshot: element replaces the hero's ATTACK element in
   // combat. atkBonus is informational: heroFromOwned already adds it to stats.atk.
-  weapon?: { element: Element; atkBonus: number };
+  weapon?: { element: Element; atkBonus: number; type?: string };
   // Worn gear bonus, already folded into stats (kept so nivelado can undo it).
   gear?: GearBonus;
   // Third skill: the hero's pick (saved in the collection; see skills.heroSkill).

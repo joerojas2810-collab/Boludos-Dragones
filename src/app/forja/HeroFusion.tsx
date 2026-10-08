@@ -9,7 +9,7 @@ import { heroPower, type OwnedCharacter, type Profile } from "@/lib/game/profile
 import { RARITIES, RARITY_IDS, type RarityId } from "@/lib/game/rarity";
 import { characterView } from "@/lib/viewModels";
 
-// Fusionar héroes: a self-contained, guided panel (rank -> base hero -> materials -> result).
+// Ascender héroes: a self-contained, guided panel (rank -> base hero -> materials -> result).
 export function HeroFusionPanel({
   profile,
   busy,
@@ -71,7 +71,7 @@ export function HeroFusionPanel({
         : null;
 
   return (
-    <Panel title="Fusionar héroes" className="space-y-3">
+    <Panel title="Ascender héroes" className="space-y-3">
       <div className="space-y-1 border-2 border-yellow-300/50 bg-yellow-300/10 p-2 text-sm">
         <p>
           <b className="text-yellow-300">Qué hace:</b> junta varios héroes del <b>mismo rango</b> en
@@ -106,7 +106,7 @@ export function HeroFusionPanel({
                 onClick={() => pickRank(r)}
                 title={
                   ok
-                    ? "Puedes fusionar este rango."
+                    ? "Puedes ascender este rango."
                     : have < HERO_FUSION[r]!.ratio
                       ? `Te faltan ${HERO_FUSION[r]!.ratio - have} héroes de rango ${RARITIES[r].label}.`
                       : `Ningún héroe de rango ${RARITIES[r].label} tiene ${FUSION_STARS}★.`
@@ -192,13 +192,13 @@ export function HeroFusionPanel({
                       : `Rango ${RARITIES[rank].label} → ${RARITIES[result.rarity].label}, queda con ${result.stars}★.`}
                   </div>
                   {dry.fusion.addedTraits.length > 0 && (
-                    <div className="opacity-90">Gana {dry.fusion.addedTraits.length} rasgo(s) nuevo(s) al fusionar.</div>
+                    <div className="opacity-90">Gana {dry.fusion.addedTraits.length} rasgo(s) nuevo(s) al ascender.</div>
                   )}
                   <div>Gastas {rule.ratio - 1} héroes y {rule.coins} monedas.</div>
                 </div>
               </div>
             ) : (
-              <p className="text-sm opacity-80">Aquí verás cómo queda el héroe antes de fusionar.</p>
+              <p className="text-sm opacity-80">Aquí verás cómo queda el héroe antes de ascender.</p>
             )}
             {invested.length > 0 && (
               <p className="text-sm text-amber-300">
@@ -206,7 +206,7 @@ export function HeroFusionPanel({
                 pierden.
               </p>
             )}
-            {status ? <p className="text-sm text-red-300">{status}</p> : <p className="text-sm text-green-300">Listo para fusionar.</p>}
+            {status ? <p className="text-sm text-red-300">{status}</p> : <p className="text-sm text-green-300">Listo para ascender.</p>}
           </div>
 
           <button
@@ -214,7 +214,7 @@ export function HeroFusionPanel({
             disabled={busy || !!status}
             onClick={() => base && onFuse(base.id, picked)}
           >
-            Fusionar héroes
+            Ascender héroes
           </button>
         </>
       )}

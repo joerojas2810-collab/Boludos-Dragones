@@ -28,7 +28,8 @@ export class FakeDb {
   pity = { character: 0, weapon: 0 };
   pitySsr = { character: 0, weapon: 0 };
   rows: Row[] = [];
-  parts: Record<string, number> = {};
+  escamas = 0;
+  dados = 0;
   forged: Args[] = [];
   idem = new Map<string, unknown>();
   calls: { name: string; args: Args }[] = [];
@@ -86,7 +87,8 @@ export class FakeDb {
           coins: this.coins,
           pity: this.pity,
           pitySsr: this.pitySsr,
-          parts: this.parts,
+          escamas: this.escamas,
+          dados: this.dados,
           characters: this.rows
             .filter((r) => r.kind === "char")
             .map((r) => ({
@@ -141,6 +143,8 @@ export class FakeDb {
           levelsGained: 0,
           newLevel: 1,
           dungeonDone: false,
+          escamas: 0,
+          dados: a.p_dados,
           verdict: a.p_verdict,
         });
       case "grant_hero_xp":
@@ -202,10 +206,10 @@ export class FakeDb {
         this.idem.set(idem, res);
         return this.okv(res);
       }
-      case "apply_forge":
+      case "apply_ascend":
+      case "apply_upgrade":
         if (a.p_version !== this.version) return this.err("conflict");
-        this.forged.push(a);
-        this.coins -= Number(a.p_coins);
+        this.forged.push({ name, ...a });
         this.version++;
         return this.okv({ coins: this.coins, version: this.version });
       case "bank_run":
@@ -226,7 +230,7 @@ export class FakeDb {
         return this.okv({
           week: "2026-10-05",
           max_floor: a.p_floor,
-          prize: { floors: Number(a.p_floor), coins: 5, cores: 0 },
+          prize: { floors: Number(a.p_floor), coins: 5, dados: 0 },
         });
       case "tower_state":
         return this.okv({ week: "2026-10-05", modes: {}, last: {} });
@@ -248,7 +252,7 @@ export class FakeDb {
         return this.okv(this.bestRank);
       case "mission_claim":
         this.missionClaims.push(a);
-        return this.okv({ coins: 0, cores: 0, parts: 0, pieces: 0, claimed: a.p_reached });
+        return this.okv({ coins: 0, dados: 0, pieces: 0, claimed: a.p_reached });
       case "sync_tutorial":
         return this.okv(7);
       case "get_streak":

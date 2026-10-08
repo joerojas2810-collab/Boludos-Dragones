@@ -5,7 +5,7 @@ import { burn as burnItem, burnMany } from "../game/burn";
 import { fuseHeroes } from "../game/heroFusion";
 import { isLevelUnlocked, isRankUnlocked } from "../game/dungeonProgress";
 import { missionDeltas } from "../game/missions";
-import { levelLoot, type LevelLoot } from "../game/levelLoot";
+import { levelLoot, rollDado, type LevelLoot } from "../game/levelLoot";
 import { LEVELS_PER_RANK, levelsOf } from "../game/levels";
 import {
   chooseHeroSkill,
@@ -28,7 +28,8 @@ import {
   towerXp,
   type TowerMode,
 } from "../game/tower";
-import { applyForge, type ForgeOp } from "../game/forge";
+import { ascendPiece } from "../game/ascend";
+import { upgradePiece } from "../game/upgrade";
 import { RARITY_IDS, type RarityId } from "../game/rarity";
 import { createRng } from "../game/rng";
 import { isSkillId } from "../game/skills";
@@ -63,7 +64,9 @@ interface RawProfile {
   pitySsr?: { character: number; weapon: number };
   dungeons?: Record<string, number[]>;
   levelsDay?: { day: string; n: number } | null;
-  parts?: Record<string, number>;
+  escamas?: number;
+  dados?: number;
+  dadosDay?: { day: string; n: number } | null;
   characters: {
     id: string;
     classId: string;
@@ -100,7 +103,9 @@ export function toMe(raw: RawProfile): Me {
     pity: raw.pity,
     dungeons: raw.dungeons,
     levelsDay: raw.levelsDay,
-    parts: raw.parts,
+    escamas: raw.escamas,
+    dados: raw.dados,
+    dadosDay: raw.dadosDay,
     pitySsr: raw.pitySsr,
     bestFloor: raw.bestFloor,
     equipped: raw.equipped,
@@ -510,11 +515,11 @@ export async function submitRunService(
     });
     // Tower ranking: only a fully verified log counts; the best floor of the week stays,
     // and at equal floors the climb with fewer battle rounds wins.
-    let towerPrize: { floors: number; coins: number; cores: number } | undefined;
+    let towerPrize: { floors: number; coins: number; dados: number } | undefined;
     if (verdict === "accepted") {
       // tower_record also pays the floors not paid yet this week (once per floor and mode).
       const rec = await call<{
-        prize: { floors: number; coins: number; cores: number };
+        prize: { floors: number; coins: number; dados: number };
       }>(d.rpc, "tower_record", {
         p_player: playerId,
         p_mode: tower,
@@ -623,6 +628,8 @@ interface LevelBankRaw {
   repeat: boolean;
   coins: number;
   chest: number;
+  escamas?: number;
+  dados?: number;
   refund?: number;
   xp: number;
   levelsGained: number;
@@ -632,7 +639,7 @@ interface LevelBankRaw {
   capped?: boolean;
 }
 
-const EMPTY_LOOT: LevelLoot = { parts: {}, pieces: [] };
+const EMPTY_LOOT: LevelLoot = { escamas: 0, dados: 0, pieces: [] };
 
 /**
  * Replays the whole level from the persisted hero snapshot, rolls the loot with the
@@ -711,7 +718,7 @@ export async function finishLevelService(
     await bank({
       p_status: "lost",
       p_xp: 0,
-      p_parts: {},
+      p_dados: 0,
       p_pieces: [],
       p_repeat: false,
       p_log: body.actions.length <= 2000 ? body.actions : null,
@@ -755,11 +762,16 @@ export async function finishLevelService(
     : null;
 
   let out: { raw: LevelBankRaw; loot: LevelLoot } | null = null;
+  // The Dado is rolled HERE with a server-only rng, never from row.seed (the client knows that one).
+  const dadoRng = createRng(d.randomSeed());
   for (let attempt = 0; !out; attempt++) {
     const me = attempt === 0 && me0 ? me0 : await loadMe(d.rpc, playerId);
     const opts = lootOptions(me.profile, r, lv, ascension);
     const loot = cleared
-      ? levelLoot(spec, ascension, (hero as Character).classId, row.seed, opts)
+      ? {
+          ...levelLoot(spec, ascension, (hero as Character).classId, row.seed, opts),
+          dados: rollDado(spec, dadoRng, opts.dadoLeft),
+        }
       : EMPTY_LOOT;
     try {
       const raw = await call<LevelBankRaw>(d.rpc, "bank_level", {
@@ -771,7 +783,7 @@ export async function finishLevelService(
         p_asc: ascension,
         p_status: cleared ? "cleared" : "lost",
         p_xp: stage.xp,
-        p_parts: loot.parts,
+        p_dados: loot.dados,
         p_pieces: loot.pieces,
         p_repeat: opts.repeat,
         p_log: cut ? body.actions : null,
@@ -810,7 +822,7 @@ export async function finishLevelService(
       levelsGained: out.raw.levelsGained,
       newLevel: out.raw.newLevel,
     },
-    loot: out.loot,
+    loot: { ...out.loot, escamas: out.raw.escamas ?? 0, dados: out.raw.dados ?? 0 },
     status: cleared ? "cleared" : "lost",
     verdict: out.raw.verdict,
     profile: fresh.profile,
@@ -855,7 +867,10 @@ export async function sweepLevelService(
       "Tu héroe no logró barrer este nivel solo. Pelea tú el nivel.",
     );
   const opts = lootOptions(me.profile, rank, level, asc);
-  const loot = levelLoot(spec, asc, hero.classId, seed, opts);
+  const loot = {
+    ...levelLoot(spec, asc, hero.classId, seed, opts),
+    dados: rollDado(spec, createRng(d.randomSeed()), opts.dadoLeft),
+  };
   try {
     const r = await openRunRow(
       d,
@@ -880,7 +895,7 @@ export async function sweepLevelService(
       p_asc: asc,
       p_status: "cleared",
       p_xp: stage.xp,
-      p_parts: loot.parts,
+      p_dados: loot.dados,
       p_pieces: loot.pieces,
       p_repeat: opts.repeat,
       p_log: null,
@@ -912,7 +927,7 @@ export async function sweepLevelService(
         levelsGained: raw.levelsGained,
         newLevel: raw.newLevel,
       },
-      loot,
+      loot: { ...loot, escamas: raw.escamas ?? 0, dados: raw.dados ?? 0 },
       profile: fresh.profile,
     };
   } catch (e) {
@@ -1044,39 +1059,69 @@ export async function doFuseHeroes(
   return { text: r.text, id: h?.id ?? r.fusion.starTo ?? baseId, profile: fresh.profile };
 }
 
-// ---- forge ----
+// ---- forge (Ascender + Mejorar) ----
 
-// The server runs the same pure forge as the client and persists its diff
-// atomically (apply_forge). Rejected combinations never reach the database.
-export async function doForge(d: Deps, playerId: string, op: ForgeOp) {
+// The server runs the same pure code as the client and persists the result atomically
+// (apply_ascend / apply_upgrade, optimistic version). Rejected inputs never reach the database.
+export async function doAscend(d: Deps, playerId: string, baseId: string, materialIds: string[]) {
   await limit(d.rpc, `forge:${playerId}`, 60, 60);
   const me = await loadMe(d.rpc, playerId);
-  // A real rng for the rolls of new pieces: without it the forge derives them from the
-  // profile state, which a player could steer. The grant carries each piece's roll/lines.
-  const r = applyForge(me.profile, op, createRng(d.randomSeed()));
+  // A real rng for the new piece's roll/lines (a state-derived one could be steered).
+  const r = ascendPiece(me.profile, baseId, materialIds, createRng(d.randomSeed()));
   if (!r.ok) throw new ApiError(400, "forge_invalid", r.error);
+  const made = r.profile.weapons.find((w) => w.id === r.newId);
   try {
-    await call(d.rpc, "apply_forge", {
+    await call(d.rpc, "apply_ascend", {
       p_player: playerId,
       p_version: me.version,
-      p_coins: r.diff.coins,
-      p_spend: r.diff.spend,
-      p_gain: r.diff.gain,
-      p_grant: r.diff.grant,
-      p_remove: r.diff.remove,
+      p_base: baseId,
+      p_materials: materialIds,
+      p_new: {
+        type: made?.type,
+        element: made?.element,
+        rarity: made?.rarity,
+        name: made?.name,
+        roll: made?.roll,
+        lines: made?.lines ?? null,
+      },
     });
   } catch (e) {
     return mapRpcError(e);
   }
   await trackMissions(d.rpc, playerId, { forge: 1 });
-  // Trace of every forge op (what was spent and gained), to check complaints later.
-  await audit(d.rpc, playerId, "forge", {
-    op: op.op,
-    diff: r.diff,
-    text: r.text,
+  await audit(d.rpc, playerId, "ascend", { base: baseId, materials: materialIds, coins: r.coins, result: r.newId });
+  const fresh = await loadMe(d.rpc, playerId);
+  return { ok: true as const, message: r.message, newId: r.newId, profile: fresh.profile };
+}
+
+export async function doUpgrade(d: Deps, playerId: string, pieceId: string, useDado: boolean) {
+  await limit(d.rpc, `forge:${playerId}`, 60, 60);
+  const me = await loadMe(d.rpc, playerId);
+  const r = upgradePiece(me.profile, pieceId, useDado, createRng(d.randomSeed()));
+  if (!r.ok) throw new ApiError(400, "forge_invalid", r.error);
+  try {
+    await call(d.rpc, "apply_upgrade", {
+      p_player: playerId,
+      p_version: me.version,
+      p_key: pieceId,
+      p_use_dado: useDado,
+      p_success: r.success,
+    });
+  } catch (e) {
+    return mapRpcError(e);
+  }
+  await trackMissions(d.rpc, playerId, { forge: 1 });
+  await audit(d.rpc, playerId, "upgrade", {
+    piece: pieceId,
+    useDado,
+    success: r.success,
+    chance: r.chance,
+    spent: r.spent,
+    plus: r.piece.plus ?? 0,
   });
   const fresh = await loadMe(d.rpc, playerId);
-  return { text: r.text, profile: fresh.profile };
+  const piece = fresh.profile.weapons.find((w) => w.id === pieceId) ?? r.piece;
+  return { ok: true as const, success: r.success, piece, chance: r.chance, spent: r.spent, profile: fresh.profile };
 }
 
 // ---- weekly tower ----

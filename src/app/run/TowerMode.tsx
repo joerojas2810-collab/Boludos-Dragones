@@ -76,9 +76,9 @@ export function TowerMode() {
       )
       .then((info) => {
         const tp = info.towerPrize;
-        if (tp && (tp.coins > 0 || tp.cores > 0))
+        if (tp && (tp.coins > 0 || tp.dados > 0))
           pushNotice(
-            `Premio de pisos nuevos: ${rewardText({ coins: tp.coins, cores: tp.cores, parts: 0, pieces: 0 })}.`,
+            `Premio de pisos nuevos: ${rewardText({ coins: tp.coins, dados: tp.dados, pieces: 0 })}.`,
           );
         if (info.verdict === "truncated" || info.verdict === "mismatch")
           pushNotice("El servidor no pudo repetir todas tus jugadas.");

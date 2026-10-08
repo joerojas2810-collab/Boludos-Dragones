@@ -50,7 +50,7 @@ describe("bankLevel", () => {
   it("repeat pays 60% and counts toward the daily decay; last level gives the chest", () => {
     let p = withHero();
     for (let i = 0; i < LEVELS_PER_RANK.f; i++) {
-      const b = bankLevel(p, res(p, { level: i, attemptId: `x${i}`, loot: { parts: {}, pieces: [] } }));
+      const b = bankLevel(p, res(p, { level: i, attemptId: `x${i}`, loot: { escamas: 0, dados: 0, pieces: [] } }));
       p = b.profile;
       if (i === LEVELS_PER_RANK.f - 1) expect(b.chest).toBe(firstClearChest("f", 0));
     }

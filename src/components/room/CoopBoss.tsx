@@ -11,7 +11,6 @@ import { Panel } from "@/components/Panel";
 import { useTargeting } from "@/components/useTargeting";
 import { step, type Action, type Battle } from "@/lib/game/combat";
 import { damageDealt, startCoop } from "@/lib/game/coop";
-import { ELEMENT_LABEL } from "@/lib/game/elements";
 import type { StageAction } from "@/lib/game/stageReplay";
 import type { Rng } from "@/lib/game/rng";
 import type { RoomClient, RoomView } from "@/lib/roomui/types";
@@ -86,10 +85,8 @@ function CoopPrize({ view }: { view: RoomView }) {
       </div>
       <div>
         {mine.coins} <Icon name="system_coin" className="h-4" />
-        {mine.cores.length > 0 &&
-          ` · ${mine.cores.length} núcleo${mine.cores.length > 1 ? "s" : ""} (${mine.cores
-            .map((e) => ELEMENT_LABEL[e as keyof typeof ELEMENT_LABEL] ?? e)
-            .join(", ")})`}
+        {mine.dados > 0 &&
+          ` · ${mine.dados} Dado${mine.dados > 1 ? "s" : ""} cargado${mine.dados > 1 ? "s" : ""}`}
         {` · +${mine.chips} fichas`}
       </div>
       {c.won && mvp && (

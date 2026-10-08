@@ -13,8 +13,7 @@ import { CLASS_ART, ELEMENT_ART } from "@/lib/art";
 import { Tooltip } from "@/components/Tooltip";
 import type { HeroAction } from "@/lib/art/heroes";
 import { Vfx } from "@/components/fx/Vfx";
-import { CLASSES } from "@/lib/game/characters";
-import { enemyIntents, type Battle, type Combatant } from "@/lib/game/combat";
+import { attackOf, enemyIntents, type Battle, type Combatant } from "@/lib/game/combat";
 import { intentTip, type Tip } from "@/lib/game/explain";
 
 // Animation for who attacked / who got hit in the last step, staggered like the sfx.
@@ -307,7 +306,7 @@ export function BattleArena({
                         <Chip key={k} tone="danger" tip={intentTip(it, b, i)}>
                           {it === "defend"
                             ? "Defender"
-                            : `${CLASSES[c.char.classId][it].name}${it === "attack2" ? " ⚠" : ""}`}
+                            : `${attackOf(c, it).name}${it === "attack2" ? " ⚠" : ""}`}
                         </Chip>
                       ))}
                     </div>

@@ -94,12 +94,12 @@ describe("tower", () => {
 });
 
 describe("tower prizes", () => {
-  it("floor cycle pays 5 / 100+core / 250+core", () => {
+  it("floor cycle pays 5 / 150 / 300", () => {
     expect(towerFloorReward(3).coins).toBe(5);
-    expect(towerFloorReward(5)).toEqual({ coins: 100, cores: 1 });
-    expect(towerFloorReward(10).coins).toBe(250);
-    expect(towerFloorReward(25).coins).toBe(100);
-    expect(towerFloorReward(30).coins).toBe(250);
+    expect(towerFloorReward(5)).toEqual({ coins: 150, dados: 0 });
+    expect(towerFloorReward(10).coins).toBe(300);
+    expect(towerFloorReward(25).coins).toBe(150);
+    expect(towerFloorReward(30).coins).toBe(300);
   });
   it("daily window ends at 21:00 ART (00:00 UTC)", () => {
     const w = dailyKingWindow(new Date("2026-10-07T15:00:00Z")); // 12:00 ART

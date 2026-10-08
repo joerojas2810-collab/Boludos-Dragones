@@ -139,6 +139,16 @@ describe("explain: elements, traits, actions", () => {
     ).toContain("No disponible");
   });
 
+  it("attack 2 names the weapon special when equipped", () => {
+    const h = hero("mago", "agua");
+    const plain = text(attackTip(comb(h), "attack2"));
+    expect(plain).toContain("Ataque de la clase");
+    const armed = comb({ ...h, weapon: { element: "agua", atkBonus: 5, type: "varita" } });
+    const t = text(attackTip(armed, "attack2"));
+    expect(t).toContain("Ataque especial de Varita");
+    expect(t).toContain("tu arma");
+  });
+
   it("intents use real numbers", () => {
     const p = hero("caballero", "agua", { dodge: 0.05 });
     const b = withRound(

@@ -70,15 +70,14 @@ export default function MissionsPage() {
     });
     const d = (await r.json()) as {
       coins?: number;
-      cores?: number;
-      parts?: number;
+      dados?: number;
       pieces?: number;
       error?: { message: string };
     };
     if (!r.ok) setMsg(d.error?.message ?? "No se pudo completar.");
     else if (path === "claim")
       setMsg(
-        `Cobraste ${rewardText({ coins: d.coins ?? 0, cores: d.cores ?? 0, parts: d.parts ?? 0, pieces: d.pieces ?? 0 }) || "tus premios"}.`,
+        `Cobraste ${rewardText({ coins: d.coins ?? 0, dados: d.dados ?? 0, pieces: d.pieces ?? 0 }) || "tus premios"}.`,
       );
     const me = await repo.load();
     if (me) replaceProfile(me.profile);

@@ -30,7 +30,7 @@ import {
   type OwnedCharacter,
   type Profile,
 } from "@/lib/game/profile";
-import { RARITIES, RARITY_IDS } from "@/lib/game/rarity";
+import { RARITIES } from "@/lib/game/rarity";
 import {
   CLASS_WEAPONS,
   WEAPON_TYPE_DATA,
@@ -38,6 +38,7 @@ import {
   slotOf,
   type Slot,
 } from "@/lib/game/weapons";
+import { compareGear } from "@/lib/gearSort";
 import { PieceFilterBar } from "@/components/PieceFilterBar";
 import { filterPieces, NO_PIECE_FILTER, type PieceFilter } from "@/lib/pieceFilter";
 import { isPixel } from "@/lib/art/pixel";
@@ -139,7 +140,6 @@ function GearCard({
   );
 }
 
-const rankOrder = (w: Piece) => RARITY_IDS.indexOf(w.rarity);
 
 const DOLL_LEFT: Slot[] = ["casco", "peto", "piernas"];
 const DOLL_RIGHT: Slot[] = ["arma", "zapatos", "collar"];
@@ -270,7 +270,7 @@ export function EquipmentEditor({
       <button
         className="btn btn-gray w-full text-center"
         disabled={wornSlots.length === 0}
-        title="Deja libres todas las piezas del héroe (útil para desmontar)"
+        title="Deja libres todas las piezas del héroe (para ascenderlas o cambiarlas)"
         onClick={() =>
           act(async () => {
             for (const sl of wornSlots) await repo.equip(c.id, null, sl);
@@ -442,9 +442,7 @@ export function EquipmentEditor({
             {free.length > 0 ? (
               <ul className="space-y-2">
                 {filterPieces(free, pf, new Set())
-                  .sort(
-                    (x, y) => rankOrder(y) - rankOrder(x) || y.stars - x.stars,
-                  )
+                  .sort(compareGear)
                   .map((w) => (
                     <li key={w.id}>
                       <GearCard

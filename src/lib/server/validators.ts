@@ -130,41 +130,11 @@ export const marketOfferBody = z
 export const marketIdBody = z.strictObject({ offerId: uuidSchema });
 
 // ---- forge ----
-const element = z.enum(["agua", "fuego", "viento", "tierra", "rayo"]);
-const itemType = z.enum(WEAPON_TYPES);
-const rank = z.enum(RARITY_IDS);
-export const forgeBody = z.discriminatedUnion("op", [
-  z.strictObject({ op: z.literal("craft"), type: itemType, element, rank }),
-  z.strictObject({
-    op: z.literal("combineParts"),
-    type: itemType,
-    rank,
-    core: element,
-  }),
-  z.strictObject({
-    op: z.literal("combinePieces"),
-    ids: z.array(z.string().min(1).max(60)).min(2).max(8),
-    element,
-  }),
-  z.strictObject({
-    op: z.literal("refine"),
-    spend: z.record(z.string().max(40), z.number().int().min(1).max(9)),
-    toType: itemType,
-    rank,
-  }),
-  z.strictObject({ op: z.literal("dismantle"), id: z.string().min(1).max(60) }),
-  // shortcuts (bulk): the server plans them itself, nothing from the client is trusted
-  z.strictObject({ op: z.literal("mergeAll"), rank }),
-  z.strictObject({
-    op: z.literal("chain"),
-    maxRank: rank,
-    refine: z.boolean(),
-  }),
-  z.strictObject({ op: z.literal("refineAll"), rank }),
-  z.strictObject({
-    op: z.literal("dismantleLow"),
-    maxRank: rank,
-    maxStars: z.number().int().min(0).max(5),
-  }),
-  z.strictObject({ op: z.literal("craftMax"), type: itemType, element, rank }),
-]);
+export const ascendBody = z.strictObject({
+  baseId: z.string().min(1).max(100),
+  materialIds: z.array(z.string().min(1).max(100)).min(2).max(5),
+});
+export const upgradeBody = z.strictObject({
+  pieceId: z.string().min(1).max(100),
+  useDado: z.boolean(),
+});

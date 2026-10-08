@@ -8,7 +8,6 @@ import type { Rng } from "./rng";
 export const HAND_TYPES = [
   "espada",
   "hacha",
-  "lanza",
   "arco",
   "baston",
   "daga",
@@ -35,12 +34,12 @@ export const isGearType = (t: WeaponType): t is GearType =>
   (GEAR_TYPES as readonly string[]).includes(t);
 export const slotOf = (t: WeaponType): Slot => (isGearType(t) ? t : "arma");
 
-// Which hand weapon types each class can equip (2-3 per class). Gear has no class limit.
+// Which hand weapon types each class can equip (2 per class). Gear has no class limit.
 export const CLASS_WEAPONS: Record<ClassId, readonly HandType[]> = {
-  caballero: ["espada", "hacha", "lanza"],
-  mago: ["baston", "varita", "libro"],
+  caballero: ["espada", "hacha"],
+  mago: ["baston", "varita"],
   picaro: ["daga", "arco"],
-  clerigo: ["maza", "baston", "libro"],
+  clerigo: ["maza", "libro"],
 };
 export const canUseWeapon = (classId: ClassId, type: WeaponType) =>
   isGearType(type) || CLASS_WEAPONS[classId].includes(type);
@@ -55,90 +54,99 @@ export interface WeaponTypeInfo {
   crit: number; // additive to Stats.crit
   speedMult: number; // multiplies Stats.speed
   noun: string; // used in generated names (with article: "Hacha de ...")
+  // Replaces the class's Ataque 2 while this weapon is equipped (combat.attackOf).
+  special?: WeaponSpecial;
+}
+
+export interface WeaponSpecial {
+  name: string;
+  power: number;
+  accuracy: number;
+  cooldown: number; // same convention as Attack.cooldown
+  heal: number; // fraction of max hp restored on use
 }
 
 // Tune here.
 export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   espada: {
     label: "Espada",
-    description: "Equilibrada, sin extras.",
+    description: "Golpe de escudo: golpe fuerte casi cada turno.",
     atkMult: 1,
     accuracy: 0,
     crit: 0,
     speedMult: 1,
     noun: "Espada",
+    special: { name: "Golpe de escudo", power: 1.8, accuracy: 0.9, cooldown: 1, heal: 0 },
   },
   hacha: {
     label: "Hacha",
-    description: "Golpea fuerte, pero es menos precisa.",
+    description: "Hachazo: golpe enorme, falla más y tarda en recargarse.",
     atkMult: 1.2,
     accuracy: -0.05,
     crit: 0,
     speedMult: 1,
     noun: "Hacha",
-  },
-  lanza: {
-    label: "Lanza",
-    description: "Alcance largo: más precisión.",
-    atkMult: 1,
-    accuracy: 0.05,
-    crit: 0,
-    speedMult: 1,
-    noun: "Lanza",
+    special: { name: "Hachazo", power: 3.2, accuracy: 0.65, cooldown: 3, heal: 0 },
   },
   arco: {
     label: "Arco",
-    description: "Menos daño, más crítico.",
+    description: "Disparo certero: golpe fuerte y seguro, con recarga larga. Más crítico.",
     atkMult: 0.9,
     accuracy: 0,
     crit: 0.05,
     speedMult: 1,
     noun: "Arco",
+    special: { name: "Disparo certero", power: 2.6, accuracy: 0.9, cooldown: 3, heal: 0 },
   },
   baston: {
     label: "Bastón",
-    description: "Menos daño, más velocidad.",
+    description: "Cataclismo: golpe enorme de magia, falla más y tarda en recargarse. Más velocidad.",
     atkMult: 0.9,
     accuracy: 0,
     crit: 0,
     speedMult: 1.1,
     noun: "Bastón",
+    special: { name: "Cataclismo", power: 2.8, accuracy: 0.7, cooldown: 3, heal: 0 },
   },
   daga: {
     label: "Daga",
-    description: "Poco daño, crítico y velocidad.",
+    description: "Puñalada rápida: golpe ágil casi cada turno. Más crítico y velocidad.",
     atkMult: 0.85,
     accuracy: 0,
     crit: 0.05,
     speedMult: 1.05,
     noun: "Daga",
+    special: { name: "Puñalada rápida", power: 1.7, accuracy: 0.95, cooldown: 1, heal: 0 },
   },
   maza: {
     label: "Maza",
-    description: "Golpe pesado y firme: más daño, algo más lenta.",
+    description: "Castigo: golpe fuerte que además te cura un poco.",
     atkMult: 1.1,
     accuracy: 0,
     crit: 0,
     speedMult: 0.95,
     noun: "Maza",
+    special: { name: "Castigo", power: 2.2, accuracy: 0.85, cooldown: 2, heal: 0.06 },
   },
   varita: {
     label: "Varita",
-    description: "Hechizos certeros: más precisión y velocidad.",
+    description: "Rayo arcano: hechizo certero casi cada turno. Más precisión y velocidad.",
     atkMult: 0.85,
     accuracy: 0.05,
     crit: 0,
     speedMult: 1.05,
     noun: "Varita",
+    special: { name: "Rayo arcano", power: 1.8, accuracy: 0.95, cooldown: 1, heal: 0 },
   },
   libro: {
     label: "Libro",
-    description: "Saber arcano: más crítico y precisión.",
+    description: "Plegaria: casi no daña, pero cura mucho. Para sanadores.",
     atkMult: 0.8,
     accuracy: 0.03,
     crit: 0.04,
     speedMult: 1,
     noun: "Libro",
+    special: { name: "Plegaria", power: 0.3, accuracy: 1, cooldown: 2, heal: 0.13 },
   },
   casco: {
     label: "Casco",
@@ -199,6 +207,8 @@ export interface Weapon {
   roll?: number;
   lines?: GearLine[];
   legacy?: boolean; // existed before profile v5 (burns at the legacy rate)
+  plus?: number; // Mejorar level 0..10 (upgrade.ts); absent = 0
+  plusStreak?: number; // consecutive failed upgrades at the current level (+5% each)
 }
 
 const ADJECTIVES = [
@@ -263,3 +273,6 @@ export function generateWeapon(rng: Rng, rarity: RarityId): Weapon {
     atkBonus: weaponAtk(rarity, 0, type),
   };
 }
+
+export const weaponSpecial = (type: string | undefined): WeaponSpecial | undefined =>
+  type && isWeaponType(type) ? WEAPON_TYPE_DATA[type].special : undefined;

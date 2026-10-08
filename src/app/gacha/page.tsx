@@ -27,7 +27,7 @@ import {
 import { claimedToday, dayKey } from "@/lib/game/streak";
 import { WEAPON_TYPES } from "@/lib/game/weapons";
 import { repo, useProfile } from "@/lib/useProfile";
-import { resultView, summarizePull } from "@/lib/viewModels";
+import { resultView, specialLine, summarizePull } from "@/lib/viewModels";
 
 // Views of a pull, marking the pity-guaranteed ones by replaying the SSR counter
 // (guaranteed at PITY_SSR_THRESHOLD, reset on a hit).
@@ -138,13 +138,14 @@ export default function GachaPage() {
                 />
               ))
             : WEAPON_TYPES.map((t, i) => (
-                <WeaponSprite
-                  key={t}
-                  type={t}
-                  element={ELEMENTS[i % ELEMENTS.length]}
-                  rarity="a"
-                  className="w-14 sm:w-[min(6rem,8vh)]"
-                />
+                <span key={t} title={specialLine(t)}>
+                  <WeaponSprite
+                    type={t}
+                    element={ELEMENTS[i % ELEMENTS.length]}
+                    rarity="a"
+                    className="w-14 sm:w-[min(6rem,8vh)]"
+                  />
+                </span>
               ))}
         </div>
         <p className="mb-2 text-center text-base text-[#d9d2ca]">{b.text}</p>

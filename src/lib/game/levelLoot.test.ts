@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { levelLoot, levelPoints } from "./levelLoot";
+import { levelEscamas, levelLoot, rollDado } from "./levelLoot";
+import { createRng } from "./rng";
 import { firstClearChest, levelCoins, levelDecay } from "./levelPay";
 import { levelsOf } from "./levels";
 
@@ -36,22 +37,46 @@ describe("level loot", () => {
   });
 
   it("repeats give fewer pieces and fewer materials than a first clear", () => {
-    let first = 0;
-    let rep = 0;
     let fp = 0;
     let rp = 0;
     for (let s = 0; s < 400; s++) {
       const a = levelLoot(three, 0, "mago", s, { repeat: false });
       const b = levelLoot(three, 0, "mago", s, { repeat: true });
-      first += Object.values(a.parts).reduce((x, y) => x + y, 0);
-      rep += Object.values(b.parts).reduce((x, y) => x + y, 0);
       fp += a.pieces.length;
       rp += b.pieces.length;
     }
     expect(rp).toBeLessThan(fp);
     expect(rp).toBeGreaterThan(fp / 3); // still generous: sweeps are repeats
-    expect(rep).toBeLessThan(first);
-    expect(levelPoints(three, 3)).toBeGreaterThan(levelPoints(three, 0));
+  });
+
+  it("Escamas: only S+ (2/3/4), +10% per ascension; repeats take 0.6 x decay and floor to 0", () => {
+    expect(levelEscamas("a", 0)).toBe(0);
+    expect([levelEscamas("s", 0), levelEscamas("ss", 0), levelEscamas("ssr", 0)]).toEqual([2, 3, 4]);
+    expect(levelEscamas("ssr", 5)).toBe(6);
+    expect(levelEscamas("ssr", 0, true, 1)).toBe(2); // floor(4 x 0.6)
+    expect(levelEscamas("ssr", 5, true, 1)).toBe(3); // floor(6 x 0.6)
+    expect(levelEscamas("ssr", 5, true, 0.1)).toBe(0); // heavily decayed repeats (sweep farm) pay nothing
+    expect(levelEscamas("ssr", 5, true, 0.2)).toBe(0);
+    const last = levelsOf("s").find((l) => l.final)!;
+    expect(levelLoot(last, 0, "mago", 1, { repeat: false }).escamas).toBe(2);
+    expect(levelLoot(levelsOf("c")[0], 0, "mago", 1, { repeat: false }).escamas).toBe(0);
+  });
+
+  it("Dado cargado: 5% from the injected server rng, last level of a dungeon S+ only, never without daily room", () => {
+    const last = levelsOf("ss").find((l) => l.final)!;
+    const notLast = levelsOf("ss").find((l) => !l.final)!;
+    const rng = createRng(77);
+    let n = 0;
+    for (let s = 0; s < 4000; s++) {
+      n += rollDado(last, rng, 2);
+      expect(rollDado(notLast, rng, 2)).toBe(0);
+      expect(rollDado(last, rng, 0)).toBe(0);
+    }
+    expect(n / 4000).toBeGreaterThan(0.03);
+    expect(n / 4000).toBeLessThan(0.07);
+    expect(rollDado(levelsOf("a").find((l) => l.final)!, { ...rng, chance: () => true }, 2)).toBe(0);
+    // the run seed decides nothing about it
+    expect(levelLoot(last, 0, "mago", 3, { repeat: false }).dados).toBe(0);
   });
 
   it("pays flat coins, repeats 60% with daily decay", () => {

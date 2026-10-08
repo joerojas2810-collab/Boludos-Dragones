@@ -7,10 +7,11 @@ import { useState } from "react";
 import { Chip } from "@/components/Chip";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
-import { PartsList } from "@/components/PartsList";
+import { MatIcon } from "@/app/forja/Upgrade";
 import { TipHover, Tooltip } from "@/components/Tooltip";
 import { EquipmentEditor } from "@/components/EquipmentEditor";
 import { GameSelect } from "@/components/GameSelect";
+import { compareGear } from "@/lib/gearSort";
 import { PieceFilterBar } from "@/components/PieceFilterBar";
 import { filterPieces, isFiltering, NO_PIECE_FILTER, type PieceFilter } from "@/lib/pieceFilter";
 import {
@@ -219,7 +220,7 @@ export default function CollectionPage() {
       ),
     );
   };
-  const [tab, setTab] = useState<"characters" | "weapons" | "parts">(
+  const [tab, setTab] = useState<"characters" | "weapons" | "materials">(
     "characters",
   );
   const [filter, setFilter] = useState<CollectionFilter>({
@@ -283,7 +284,7 @@ export default function CollectionPage() {
           [
             ["characters", "Personajes"],
             ["weapons", "Equipo"],
-            ["parts", "Partes"],
+            ["materials", "Materiales"],
           ] as const
         ).map(([k, label]) => (
           <button
@@ -298,9 +299,11 @@ export default function CollectionPage() {
         ))}
       </div>
 
-      {tab === "parts" ? (
-        <Panel title="Partes de forja" className="mx-auto w-full max-w-6xl">
-          <PartsList parts={profile.parts} />
+      {tab === "materials" ? (
+        <Panel title="Materiales de forja" className="mx-auto w-full max-w-6xl space-y-2">
+          <p className="flex items-center gap-2"><MatIcon kind="escamas" className="h-8" /> Escamas <b>{profile.escamas}</b></p>
+          <p className="flex items-center gap-2"><MatIcon kind="dado" className="h-8" /> Dados cargados <b>{profile.dados}</b></p>
+          <p className="text-sm opacity-80">Salen de los dungeons S, SS y SSR y se usan en Forja &gt; Mejorar.</p>
         </Panel>
       ) : tab === "characters" ? (
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 md:grid md:grid-cols-[1fr_22rem] lg:grid-cols-[1fr_32rem] md:items-start">
@@ -439,11 +442,7 @@ export default function CollectionPage() {
             )}
             <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] justify-items-center gap-x-2 gap-y-5">
               {[...shownPieces]
-                .sort(
-                  (a, b) =>
-                    RARITY_IDS.indexOf(b.rarity) -
-                      RARITY_IDS.indexOf(a.rarity) || b.stars - a.stars,
-                )
+                .sort(compareGear)
                 .map((w) => {
                   const o = owner(w.id);
                   const worn = Object.values(profile.equipped).includes(w.id);

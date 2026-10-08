@@ -38,7 +38,7 @@ describe("weapon sprites", () => {
 });
 
 describe("weapon types", () => {
-  it("14 types x 5 elements are 32x32, known chars and all distinct", () => {
+  it("13 types x 5 elements are 32x32, known chars and all distinct", () => {
     const hashes = new Set<string>();
     for (const t of WEAPON_TYPES)
       for (const e of elements) {
@@ -51,6 +51,6 @@ describe("weapon types", () => {
         expect(rows.join(""), `${t}/${e}`).toContain("p");
         hashes.add(rows.join(""));
       }
-    expect(hashes.size).toBe(70);
+    expect(hashes.size).toBe(65);
   });
 });

@@ -173,48 +173,6 @@ function buildAxe(element: Element): string[] {
   return outline(g);
 }
 
-// Spear head widths (even, centred) from the tip down.
-const SPEAR: Record<Element, readonly number[]> = {
-  fuego: [2, 2, 4, 4, 6, 4, 6, 6, 4, 4],
-  agua: [2, 4, 6, 6, 8, 8, 6, 6, 4, 2],
-  tierra: [2, 2, 4, 4, 6, 6, 8, 8, 10, 10],
-  rayo: [2, 4, 2, 6, 4, 8, 6, 10, 4, 2],
-  viento: [2, 2, 2, 4, 4, 4, 4, 6, 4, 2],
-};
-function buildSpear(element: Element): string[] {
-  const g = blank();
-  const head = SPEAR[element].flatMap((w, k) => (k % 3 === 2 ? [w, w] : [w]));
-  head.forEach((w, k) => {
-    const l = 16 - w / 2;
-    for (let x = l; x < l + w; x++)
-      put(
-        g,
-        x,
-        1 + k,
-        x === l
-          ? "c"
-          : x === l + w - 1
-            ? "b"
-            : x === l + 1 && k % 4 === 1
-              ? "w"
-              : "a",
-      );
-  });
-  const cy = 1 + head.length;
-  if (element === "viento")
-    stamp(g, 9, cy, ["n..............n", "nnmmmmmmmmmmnnn"]);
-  else stamp(g, 12, cy, ["nmmmmmmm", ".nnnnnn"]);
-  shaft(g, cy + 2, 29);
-  gripDetails(g, [cy + 8, cy + 12]);
-  for (const y of [cy + 7, cy + 13]) {
-    put(g, 15, y, "b");
-    put(g, 16, y, "b");
-  }
-  stamp(g, 14, cy + 2, ["bb", "bb"]); // tassel
-  gem(g, 29);
-  return outline(g);
-}
-
 // Bow: bulging left, string on the right, arrow nocked across the grip.
 function buildBow(element: Element): string[] {
   const g = blank();
@@ -543,7 +501,6 @@ function buildAmulet(e: Element): string[] {
 export const WEAPON_TYPES = [
   "espada",
   "hacha",
-  "lanza",
   "arco",
   "baston",
   "daga",
@@ -560,7 +517,6 @@ export const WEAPON_TYPES = [
 const BUILDERS: Record<WeaponType, (e: Element) => string[]> = {
   espada: buildSword,
   hacha: buildAxe,
-  lanza: buildSpear,
   arco: buildBow,
   baston: buildStaff,
   daga: buildDagger,

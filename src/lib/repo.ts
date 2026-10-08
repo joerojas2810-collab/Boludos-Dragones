@@ -28,7 +28,7 @@ import {
   isRankUnlocked,
   maxAscension,
 } from "./game/dungeonProgress";
-import { levelLoot, type LevelLoot } from "./game/levelLoot";
+import { levelLoot, rollDado, type LevelLoot } from "./game/levelLoot";
 import { levelsOf } from "./game/levels";
 import type { SkillId } from "./game/skills";
 import { levelFights, type Stage } from "./game/stage";
@@ -37,9 +37,10 @@ import { dayPayMult } from "./game/economy";
 import { localWeekSeed, towerHero, type TowerMode } from "./game/tower";
 import { burn as burnItem, burnMany } from "./game/burn";
 import { fuseHeroes } from "./game/heroFusion";
-import { applyForge, type ForgeOp } from "./game/forge";
+import { ascendPiece } from "./game/ascend";
+import { upgradePiece } from "./game/upgrade";
+import type { Weapon } from "./game/weapons";
 import type { RunPiece } from "./game/loot";
-import type { Parts } from "./game/parts";
 import type { RarityId } from "./game/rarity";
 import type { Slot } from "./game/weapons";
 import { ENGINE_VERSION, type StageAction } from "./game/stageReplay";
@@ -87,13 +88,27 @@ export interface LevelOutcome {
   bank: LevelBank; // bank.profile = the profile after the attempt
   loot: LevelLoot;
 }
+export interface AscendOutcome {
+  ok: true;
+  message: string;
+  newId: string;
+  profile: Profile;
+}
+export interface UpgradeOutcome {
+  ok: true;
+  success: boolean;
+  piece: Weapon;
+  chance: number;
+  spent: number;
+  profile: Profile;
+}
 export interface RunBankInfo {
   coinsAdded: number; // total credited, bonus included
   bonus?: number; // first-clear chest part of coinsAdded
   verdict: "accepted" | "truncated" | "mismatch" | "local";
   capped: boolean;
   /** Weekly tower floors paid by this climb (remote mode). */
-  towerPrize?: { floors: number; coins: number; cores: number };
+  towerPrize?: { floors: number; coins: number; dados: number };
 }
 export interface Me {
   name: string;
@@ -128,7 +143,10 @@ export interface ProfileRepo {
     level: number,
     asc: number,
   ): Promise<LevelOutcome & { stage: Stage }>;
-  forge(op: ForgeOp): Promise<{ text: string }>;
+  /** Ascender (Forja): base piece + same-rank materials + coins -> the base one rank up. */
+  ascendPiece(baseId: string, materialIds: string[]): Promise<AscendOutcome>;
+  /** Mejorar (+N): spends Escamas (and a Dado cargado if asked); a failure never loses the piece. */
+  upgradePiece(pieceId: string, useDado: boolean): Promise<UpgradeOutcome>;
   /** Hero fusion (Forja > Héroes): `id` is the resulting hero (new rank, or the one that got +1 star). */
   fuseHeroes(baseId: string, materialIds: string[]): Promise<{ text: string; id: string }>;
   startRun(
@@ -147,7 +165,6 @@ export interface ProfileRepo {
       maxFloor: number;
       loot?: RunPiece[];
       clear?: { rank: RarityId; lives: number; asc?: number }; // local mode only; the server replays
-      parts?: Parts;
     },
     keepalive?: boolean,
   ): Promise<RunBankInfo>;
@@ -249,16 +266,15 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       const owned = p.characters.find((c) => c.id === a.heroId);
       if (!owned)
         throw new RepoError("character_not_found", "Personaje no encontrado.");
+      const opts = lootOptions(p, a.rank, a.level, a.asc);
+      const spec = levelsOf(a.rank)[a.level];
       const loot: LevelLoot =
         a.stage.status === "cleared"
-          ? levelLoot(
-              levelsOf(a.rank)[a.level],
-              a.asc,
-              owned.classId,
-              a.stage.seed,
-              lootOptions(p, a.rank, a.level, a.asc),
-            )
-          : { parts: {}, pieces: [] };
+          ? {
+              ...levelLoot(spec, a.asc, owned.classId, a.stage.seed, opts),
+              dados: rollDado(spec, createRng(Date.now()), opts.dadoLeft),
+            }
+          : { escamas: 0, dados: 0, pieces: [] };
       const bank = bankLevel(p, {
         rank: a.rank,
         level: a.level,
@@ -287,7 +303,11 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
           "sweep_failed",
           "Tu héroe no logró barrer este nivel solo. Pelea tú el nivel.",
         );
-      const loot = levelLoot(spec, asc, hero.classId, seed, lootOptions(p, rank, level, asc));
+      const opts = lootOptions(p, rank, level, asc);
+      const loot = {
+        ...levelLoot(spec, asc, hero.classId, seed, opts),
+        dados: rollDado(spec, createRng(Date.now() + 1), opts.dadoLeft),
+      };
       const bank = bankLevel(p, {
         rank,
         level,
@@ -301,11 +321,18 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       store.update(() => bank.profile);
       return { bank, loot, stage };
     },
-    forge: async (op) => {
-      const r = applyForge(store.get(), op);
+    ascendPiece: async (baseId, materialIds) => {
+      const r = ascendPiece(store.get(), baseId, materialIds);
       if (!r.ok) throw new RepoError("forge_invalid", r.error);
       store.replace(r.profile);
-      return { text: r.text };
+      return { ok: true, message: r.message, newId: r.newId, profile: r.profile };
+    },
+    upgradePiece: async (pieceId, useDado) => {
+      const p = store.get();
+      const r = upgradePiece(p, pieceId, useDado, createRng(Date.now()));
+      if (!r.ok) throw new RepoError("forge_invalid", r.error);
+      store.replace(r.profile);
+      return r;
     },
     fuseHeroes: async (baseId, materialIds) => {
       const r = fuseHeroes(store.get(), { baseId, materialIds });
@@ -367,7 +394,6 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
           claimed.maxFloor,
           runId,
           claimed.loot,
-          claimed.parts,
         ),
       );
       return {
@@ -520,10 +546,15 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       const stage = sweepStage(r.seed, r.hero, levelFights(levelsOf(rank)[level], asc), asc);
       return { bank: { ...r.bank, profile: r.profile }, loot: r.loot, stage };
     },
-    forge: async (op) => {
-      const r = await api<{ text: string; profile: Profile }>("/api/forge", op);
+    ascendPiece: async (baseId, materialIds) => {
+      const r = await api<AscendOutcome>("/api/forge/ascend", { baseId, materialIds });
       store.replace(r.profile);
-      return { text: r.text };
+      return r;
+    },
+    upgradePiece: async (pieceId, useDado) => {
+      const r = await api<UpgradeOutcome>("/api/forge/upgrade", { pieceId, useDado });
+      store.replace(r.profile);
+      return r;
     },
     fuseHeroes: async (baseId, materialIds) => {
       const r = await api<{ text: string; id: string; profile: Profile }>(

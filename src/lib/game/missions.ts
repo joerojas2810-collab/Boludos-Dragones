@@ -6,7 +6,6 @@
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "./elements";
 import { rollGear } from "./gear";
 import type { RunPiece } from "./loot";
-import { addParts, partKey, type Parts } from "./parts";
 import type { RarityId } from "./rarity";
 import { createRng, hashSeed, type Rng } from "./rng";
 import { isGearType, WEAPON_TYPE_DATA, WEAPON_TYPES } from "./weapons";
@@ -117,9 +116,8 @@ const POINTS = 30; // every mission is worth the same; tiers fall at 1, 2 and 3 
 export interface MissionTier {
   points: number;
   coins: number;
-  cores: number;
-  /** Random parts at the rank of the player's best cleared dungeon (F if none). */
-  parts: number;
+  /** Dado cargado (Mejorar, docs/FORJA_V9.md). */
+  dados: number;
   /** Gear pieces (random type/element) at the rank of the player's best cleared dungeon. */
   pieces: number;
 }
@@ -127,7 +125,7 @@ const tier = (
   points: number,
   coins: number,
   o: Partial<Omit<MissionTier, "points" | "coins">> = {},
-): MissionTier => ({ points, coins, cores: 0, parts: 0, pieces: 0, ...o });
+): MissionTier => ({ points, coins, dados: 0, pieces: 0, ...o });
 
 /**
  * Mission rewards per scope and tier. MUST be mirrored in SQL (`mission_claim`): any
@@ -135,21 +133,20 @@ const tier = (
  * (one pull), weekly 700, event 550.
  */
 export const SCOPE_TIERS: Record<MissionScope, readonly MissionTier[]> = {
-  daily: [tier(30, 0, { parts: 2 }), tier(60, 0, { cores: 1 }), tier(90, 250)],
+  daily: [tier(30, 20), tier(60, 30), tier(90, 250)],
   weekly: [
-    tier(30, 100, { parts: 3 }),
+    tier(30, 120),
     tier(60, 100, { pieces: 1 }),
-    tier(90, 500, { cores: 1 }),
+    tier(90, 500, { dados: 1 }),
   ],
-  event: [tier(30, 50), tier(60, 100), tier(90, 400, { cores: 1 })],
+  event: [tier(30, 50), tier(60, 100), tier(90, 400, { dados: 1 })],
 };
 
 /** Short Spanish description of a tier reward ("250 monedas · 1 núcleo"). */
 export function rewardText(t: Omit<MissionTier, "points">): string {
   const out: string[] = [];
   if (t.coins) out.push(`${t.coins} monedas`);
-  if (t.parts) out.push(`${t.parts} partes`);
-  if (t.cores) out.push(`${t.cores} ${t.cores === 1 ? "núcleo" : "núcleos"}`);
+  if (t.dados) out.push(`${t.dados} ${t.dados === 1 ? "Dado cargado" : "Dados cargados"}`);
   if (t.pieces)
     out.push(`${t.pieces} ${t.pieces === 1 ? "pieza" : "piezas"}`);
   return out.join(" · ");
@@ -298,26 +295,21 @@ export function claimTiers(
   return {
     state: { ...s, claimed: Math.max(s.claimed, reached) },
     coins: fresh.reduce((a, t) => a + t.coins, 0),
-    cores: fresh.reduce((a, t) => a + t.cores, 0),
-    parts: fresh.reduce((a, t) => a + t.parts, 0),
+    dados: fresh.reduce((a, t) => a + t.dados, 0),
     pieces: fresh.reduce((a, t) => a + t.pieces, 0),
   };
 }
 
 /**
- * Parts and pieces of a claim, rolled by the server (SQL cannot roll gear): random type and
+ * Pieces of a claim, rolled by the server (SQL cannot roll gear): random type and
  * element at `rank` (the rank of the player's best cleared dungeon, F if none). SQL checks
  * the counts, the rank cap and every piece (grant_piece).
  */
 export function rollMissionRewards(
   rng: Rng,
   rank: RarityId,
-  nParts: number,
   nPieces: number,
-): { parts: Parts; pieces: RunPiece[] } {
-  let parts: Parts = {};
-  for (let i = 0; i < nParts; i++)
-    parts = addParts(parts, { [partKey(rng.pick(WEAPON_TYPES), rank)]: 1 });
+): { pieces: RunPiece[] } {
   const pieces: RunPiece[] = [];
   for (let i = 0; i < nPieces; i++) {
     const type = rng.pick(WEAPON_TYPES);
@@ -332,7 +324,7 @@ export function rollMissionRewards(
         : { roll: rollGear(rng, "casco", rank).roll }),
     });
   }
-  return { parts, pieces };
+  return { pieces };
 }
 
 /** Free reroll of one daily/weekly slot, once per period and only if it is not done. */

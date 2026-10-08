@@ -415,15 +415,15 @@ describe("weapons", () => {
     expect(weaponAtk("c", 0, "espada")).toBe(6);
     expect(weaponAtk("f", 0, "hacha")).toBe(4.8);
   });
-  it("key space is 14 types x 5 elements x 9 ranks = 630", () => {
-    expect(WEAPON_KEY_SPACE).toBe(630);
+  it("key space is 13 types x 5 elements x 9 ranks = 585", () => {
+    expect(WEAPON_KEY_SPACE).toBe(585);
     const rng = createRng(77);
     const keys = new Set<string>();
     for (let i = 0; i < 20000; i++)
       keys.add(generateWeapon(rng, RARITY_IDS[i % 9]).id);
-    expect(keys.size).toBe(630);
+    expect(keys.size).toBe(585);
     expect(weaponKey("daga", "rayo", "a")).toBe("w-daga-rayo-a");
-    expect(WEAPON_TYPES.length * ELEMENTS.length * RARITY_IDS.length).toBe(630);
+    expect(WEAPON_TYPES.length * ELEMENTS.length * RARITY_IDS.length).toBe(585);
   });
   it("secondary effect is applied exactly once", () => {
     const base = rich();
@@ -483,7 +483,7 @@ describe("weapons", () => {
     p = equipWeapon(p, c.id, w.id);
     const armed = heroFromOwned(p, c.id)!;
     expect(armed.stats.atk).toBeCloseTo(plain.stats.atk + w.atkBonus, 1);
-    expect(armed.weapon).toEqual({ element: w.element, atkBonus: w.atkBonus });
+    expect(armed.weapon).toEqual({ element: w.element, atkBonus: w.atkBonus, type: w.type });
     // attacker element = weapon element
     const foe = generateCharacter(createRng(2), "caballero");
     const b = startBattle(armed, foe, createRng(1));

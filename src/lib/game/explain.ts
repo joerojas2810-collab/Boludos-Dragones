@@ -41,8 +41,10 @@ import {
   type Intent,
   type MoveKey,
   TRAIT_CAPS,
+  attackOf,
 } from "./combat";
 import { AUTO_STOP_HP } from "./auto";
+import { WEAPON_TYPE_DATA, weaponSpecial, type WeaponType } from "./weapons";
 import { BURN_RATE, LEGACY_BURN_RATE } from "./burn";
 import { DAY_LEVEL_TIERS, REPEAT_COIN_MULT } from "./levelPay";
 import {
@@ -478,7 +480,7 @@ export function statTip(
       if (foe) {
         const a = CLASSES[foe.char.classId];
         lines.push(
-          `Ahora, ${a.attack1.name} de ${foeName}: ${pct(hitChance(foe, c, "attack1"))} de acierto; ${a.attack2.name}: ${pct(hitChance(foe, c, "attack2"))}.`,
+          `Ahora, ${a.attack1.name} de ${foeName}: ${pct(hitChance(foe, c, "attack1"))} de acierto; ${attackOf(foe, "attack2").name}: ${pct(hitChance(foe, c, "attack2"))}.`,
         );
       }
       break;
@@ -563,14 +565,20 @@ export function skillTip(c: Combatant, foe?: Combatant): Tip {
 
 export function attackTip(c: Combatant, key: MoveKey, foe?: Combatant): Tip {
   if (key === "attack3") return skillTip(c, foe);
-  const a = CLASSES[c.char.classId][key];
+  const a = attackOf(c, key);
   const st = c.char.stats;
+  const wType = c.char.weapon?.type;
+  const special = key === "attack2" ? weaponSpecial(wType) : undefined;
   const lines: string[] = [
     key === "attack1"
       ? "Ataque seguro: sin recarga, lo puedes usar siempre."
       : `Ataque arriesgado: pega más pero falla más. Tras usarlo queda en recarga ${cdText(a.cooldown)}.`,
     `Poder x${n1(a.power)}: usa ${pct(a.power)} de tu ATQ (${n1(st.atk)}).`,
   ];
+  if (special)
+    lines.push(
+      `Este golpe lo da tu arma (${WEAPON_TYPE_DATA[wType as WeaponType].label}) y reemplaza el Ataque 2 de la clase.`,
+    );
   if (foe) {
     const hit = hitChance(c, foe, key);
     const em = attackElementMultiplier(c, foe);
@@ -608,7 +616,9 @@ export function attackTip(c: Combatant, key: MoveKey, foe?: Combatant): Tip {
     title: `${a.name} · ${ATTACK_NUMBER[key]}`,
     kind: "damage",
     lines,
-    source: `Ataque de la clase ${CLASSES[c.char.classId].name}`,
+    source: special
+      ? `Ataque especial de ${WEAPON_TYPE_DATA[wType as WeaponType].label}`
+      : `Ataque de la clase ${CLASSES[c.char.classId].name}`,
   };
 }
 
@@ -639,7 +649,7 @@ export function defendTip(b: Battle): Tip {
       slot.intent,
     );
     lines.push(
-      `${CLASSES[e.char.classId][slot.intent].name} de ${e.char.name} te haría ~${def} en vez de ~${base}.`,
+      `${attackOf(e, slot.intent).name} de ${e.char.name} te haría ~${def} en vez de ~${base}.`,
     );
   }
   return {
@@ -666,7 +676,7 @@ export function intentTip(intent: Intent, b: Battle, idx?: number): Tip {
       ],
       source: "Intención anunciada por el rival",
     };
-  const a = CLASSES[e.char.classId][intent];
+  const a = attackOf(e, intent);
   const lines = [
     `Acierta ${pct(hitChance(e, p, intent))} de las veces contra ti (tu ESQ ya está descontado).`,
     `Daño: ~${estimateDamage(e, p, intent)} si acierta (sin crítico; ${pct(e.char.stats.crit)} de crítico).`,
@@ -695,7 +705,7 @@ export function targetTip(
   const em = attackElementMultiplier(p, e);
   const lines = [
     `Vida ${Math.round(e.hp)} de ${Math.round(e.char.stats.hp)}${e.shield ? ` (+${Math.round(e.shield)} de escudo)` : ""}.`,
-    `${CLASSES[p.char.classId][key === "attack3" ? "attack1" : key].name}: ${pct(hitChance(p, e, key))} de acierto, ~${estimateDamage(p, e, key)} de daño.`,
+    `${attackOf(p, key === "attack3" ? "attack1" : key).name}: ${pct(hitChance(p, e, key))} de acierto, ~${estimateDamage(p, e, key)} de daño.`,
     em !== 1
       ? `Elemento: x${em.toFixed(2)} (${em > 1 ? "ventaja" : "desventaja"}).`
       : "Elemento: neutro.",

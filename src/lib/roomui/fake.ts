@@ -295,7 +295,7 @@ export class FakeRoomClient implements RoomClient {
     const t = coopTally(pool, damage);
     return {
       ...t,
-      prizes: coopPrizes(s.roundSeed, t, damage),
+      prizes: coopPrizes(t, damage),
       bossName: coopNode(s.roundSeed, rank).enemies[0].name,
       players: [...this.coopDmg].map(([id, c]) => ({ id, ...c })),
     };

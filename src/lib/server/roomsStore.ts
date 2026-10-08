@@ -166,7 +166,7 @@ export interface RoomStore {
       player: string;
       coins: number;
       chips: number;
-      cores: string[];
+      dados: number;
     }[],
   ): Promise<void>;
   /** Keeps the better of the stored and the new damage. */

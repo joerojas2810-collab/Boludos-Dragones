@@ -18,9 +18,9 @@ await rpc("join_room", { p_player: U(3), p_code: "COOP" });
 for (const u of [1, 2, 3])
   await db.exec(`insert into public.room_coop (room_id, player_id, damage, finished) values ('${R}','${U(u)}', ${100 * u}, true)`);
 const rows = [
-  { player: U(1), coins: 150, chips: 50, cores: ["fuego", "agua"] },
-  { player: U(2), coins: 150, chips: 50, cores: ["rayo"] },
-  { player: U(3), coins: 30, chips: 10, cores: [] },
+  { player: U(1), coins: 150, chips: 50, dados: 2 },
+  { player: U(2), coins: 150, chips: 50, dados: 1 },
+  { player: U(3), coins: 30, chips: 10, dados: 0 },
 ];
 // Not before the boss phase is over.
 await db.exec(`update public.room_state set phase='coop_boss' where room_id='${R}'`);
@@ -28,12 +28,12 @@ await err(rpc("coop_pay", { p_room: R, p_rows: rows }), "wrong_phase");
 await db.exec(`update public.room_state set phase='night_summary' where room_id='${R}'`);
 // Bounds are enforced even though the caller is the server.
 await err(rpc("coop_pay", { p_room: R, p_rows: [{ ...rows[0], coins: 5000 }] }), "invalid_args");
-await err(rpc("coop_pay", { p_room: R, p_rows: [{ ...rows[0], cores: ["oro"] }] }), "invalid_items");
+await err(rpc("coop_pay", { p_room: R, p_rows: [{ ...rows[0], dados: 9 }] }), "invalid_args");
 const c0 = (await one(`select coins from public.player_state where player_id='${U(1)}'`)).coins;
 const h0 = (await one(`select chips from public.room_players where room_id='${R}' and player_id='${U(1)}'`)).chips;
 ok((await rpc("coop_pay", { p_room: R, p_rows: rows })).paid === 3, "pays 3 players");
 ok((await one(`select coins from public.player_state where player_id='${U(1)}'`)).coins === c0 + 150, "coins credited");
-ok((await one(`select qty from public.part_stock where player_id='${U(1)}' and key='core-fuego'`)).qty === 1, "core credited");
+ok((await one(`select dados from public.player_state where player_id='${U(1)}'`)).dados === 2, "dice credited");
 ok((await one(`select chips from public.room_players where room_id='${R}' and player_id='${U(1)}'`)).chips === h0 + 50, "chips credited");
 ok((await one(`select count(*)::int n from public.chip_ledger where room_id='${R}' and reason='coop_prize'`)).n === 3, "ledger rows");
 // Idempotent: a second call pays nobody.
@@ -51,12 +51,13 @@ for (let k = 0; k < 4; k++) {
 const coinsOf = async () => (await one(`select coins from public.player_state where player_id='${U(1)}'`)).coins;
 for (let k = 0; k < 2; k++) {
   const b0 = await coinsOf();
-  await rpc("coop_pay", { p_room: rooms[k], p_rows: [{ player: U(1), coins: 150, chips: 10, cores: [] }] });
+  await rpc("coop_pay", { p_room: rooms[k], p_rows: [{ player: U(1), coins: 150, chips: 10, dados: 0 }] });
   ok((await coinsOf()) === b0 + 150, `room ${k + 1} pays coins`);
 }
 const b4 = await coinsOf();
-await rpc("coop_pay", { p_room: rooms[2], p_rows: [{ player: U(1), coins: 150, chips: 10, cores: ["agua"] }] });
+await rpc("coop_pay", { p_room: rooms[2], p_rows: [{ player: U(1), coins: 150, chips: 10, dados: 1 }] });
 ok((await coinsOf()) === b4, "3rd extra room within 24 h pays no coins");
+ok((await one(`select dados from public.player_state where player_id='${U(1)}'`)).dados === 2, "...and no dice either");
 ok((await one(`select chips from public.room_players where room_id='${rooms[2]}' and player_id='${U(1)}'`)).chips === 110, "...but still pays chips");
 // Locked down: anon / authenticated cannot call it.
 await as("authenticated", U(1), async () => { try { await db.query(`select public.coop_pay('${R}', '[]'::jsonb)`); fail++; console.log("FAIL: authenticated can call coop_pay"); } catch { pass++; } });
