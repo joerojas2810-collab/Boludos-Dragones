@@ -76,8 +76,6 @@ const fight = (
     playerActions,
   );
 
-const hpOf = (b: Battle) => b.enemies.map((e) => e.hp);
-
 describe("perfect guard", () => {
   const hero = unit("mago", { hp: 1000, speed: 10 });
   const foe = unit("picaro", { atk: 30, speed: 10 });
@@ -293,17 +291,19 @@ describe("class skills (Ataque 3)", () => {
     expect(s2.log.filter((l) => l.includes("contraataca"))).toHaveLength(1);
   });
 
-  it("Escudo arcano adds a shield instead of attacking", () => {
-    const b = fight(withSkill("mago", "escudoArcano", { hp: 100 }), three(), [
+  it("Drenar maná heals the hero for a share of the damage dealt", () => {
+    const b0 = fight(withSkill("mago", "drenarMana", { hp: 100 }), three(), [
       [],
       [],
       [],
     ]);
+    const b = { ...b0, player: { ...b0.player, hp: 40 } };
     const s = step(b, "attack3", always);
-    expect(s.player.shield).toBe(
-      Math.round(100 * (SKILLS.escudoArcano.shield ?? 0)),
+    const dealt = b.enemies[0].hp - s.enemies[0].hp;
+    expect(dealt).toBeGreaterThan(0);
+    expect(s.player.hp).toBe(
+      40 + Math.round(dealt * (SKILLS.drenarMana.lifesteal ?? 0)),
     );
-    expect(hpOf(s)).toEqual(hpOf(b));
   });
 
   it("Golpe doble strikes the target twice", () => {

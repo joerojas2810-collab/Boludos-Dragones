@@ -50,7 +50,7 @@ describe("skill unlock", () => {
   it("heroSkill: none if locked, pick if valid, else class default", () => {
     expect(heroSkill("mago", "f", 0)).toBeUndefined();
     expect(heroSkill("mago", "c", 0)).toBe("tormenta");
-    expect(heroSkill("mago", "c", 0, "escudoArcano")).toBe("escudoArcano");
+    expect(heroSkill("mago", "c", 0, "drenarMana")).toBe("drenarMana");
     expect(heroSkill("mago", "c", 0, "castigo")).toBe("tormenta");
   });
 });

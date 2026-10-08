@@ -11,7 +11,8 @@ export const STORM_POWER = 0.8; // Tormenta: damage vs EACH enemy
 export const COUNTER_ROUNDS = 2; // Contraataque lasts this many round ends
 export const COUNTER_TAKEN = 0.5; // damage taken by the hero while it is up
 export const COUNTER_REFLECT = 1; // x the unreduced hit, sent back
-export const ARCANE_SHIELD = 0.4; // Escudo arcano: shield, fraction of max hp
+export const DRAIN_POWER = 1.15; // Drenar maná: single-target strike
+export const DRAIN_LIFESTEAL = 0.5; // fraction of damage dealt healed
 export const DOUBLE_STRIKE_POWER = 0.85; // per hit (two hits)
 export const EXECUTE_POWER = 1.4;
 export const EXECUTE_BELOW = 0.4; // target hp fraction
@@ -24,7 +25,7 @@ export type SkillId =
   | "barrido"
   | "contraataque"
   | "tormenta"
-  | "escudoArcano"
+  | "drenarMana"
   | "golpeDoble"
   | "ejecutar"
   | "santuario"
@@ -86,16 +87,16 @@ export const SKILLS: Record<SkillId, Skill> = {
     accuracy: 0.8,
     area: true,
   },
-  escudoArcano: {
-    id: "escudoArcano",
+  drenarMana: {
+    id: "drenarMana",
     classId: "mago",
-    name: "Escudo arcano",
-    blurb: "Escudo mágico",
-    description: `Te cubres con un escudo de ${pc(ARCANE_SHIELD)} de tu vida máxima.`,
+    name: "Drenar maná",
+    blurb: "Daño y cura",
+    description: `Arrancas energía al rival (${pc(DRAIN_POWER)} de poder) y recuperas ${pc(DRAIN_LIFESTEAL)} del daño que haces.`,
     cooldown: 3,
-    power: 0,
-    accuracy: 1,
-    shield: ARCANE_SHIELD,
+    power: DRAIN_POWER,
+    accuracy: 0.95,
+    lifesteal: DRAIN_LIFESTEAL,
   },
   golpeDoble: {
     id: "golpeDoble",
@@ -147,7 +148,7 @@ export const SKILLS: Record<SkillId, Skill> = {
 
 export const SKILLS_BY_CLASS: Record<ClassId, readonly [SkillId, SkillId]> = {
   caballero: ["barrido", "contraataque"],
-  mago: ["tormenta", "escudoArcano"],
+  mago: ["tormenta", "drenarMana"],
   picaro: ["golpeDoble", "ejecutar"],
   clerigo: ["santuario", "castigo"],
 };
