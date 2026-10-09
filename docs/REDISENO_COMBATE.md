@@ -162,6 +162,14 @@ Ataque 1 = golpe seguro de la clase. Ataque 2 = habilidad de clase (1 de 2). Ata
 
 Caballero: se mantiene el personaje (velocidad, Reflejo en la Guardia perfecta, Barrido); solo cambia el Contraataque (recibes el daño completo y devuelves el 120 % del golpe recibido). Barrido y Tormenta siguen compartiendo el área; se mide en simulación antes de tocarlos.
 
+## 4c. Armas: nombres y balance [DECIDIDO 2026-10-09]
+
+**Nombre unificado** (`weaponName`): `<Sustantivo> <epíteto de rango> de <Elemento>`, p. ej. "Espada Oxidada de Fuego", "Grebas Divinas de Agua". Epítetos por rango: F Oxidado, E Gastado, D Corriente, C Templado, B Noble, A Heroico, S Legendario, SS Mítico, SSR Divino (con género). El nombre se deriva al cargar el perfil: las piezas viejas se renombran solas. Se acabó el adjetivo al azar y el "Inicial" del tutorial.
+
+**Balance de armas** (daño promedio por ronda, sin crítico ni velocidad): se bajó Martillo (ATQ ×1,2 → ×1,0), Mandoble (×1,1 → ×0,95) y Hacha (×1,2 → ×1,1), y se subió Bastón (×0,9 → ×1,0), Daga (×0,85 → ×0,95), Varita (×0,85 → ×0,9) y Arco (×0,9 → ×0,95). Objetivo: fuertes ~1,35 y débiles ~1,2. Simulación rango S (8 héroes): Espada 74 %, Hacha 70 %, Bastón 64 %, Varita 64 %, Daga 69 %, Arco 68 %, Maza 76 %, Libro 85 %, Mandoble 64 %, Martillo 66 %. El Libro (curación) y el Clérigo siguen altos.
+
+Pendiente: "Rayo arcano" (Varita) se confunde con el elemento Rayo; el Ataque 2 base de cada clase repite el nombre de un especial de arma (solo se ve sin arma).
+
 ## 5. Jefes
 
 Reglas: la tabla elemental es universal para jefes. La mecánica del jefe es lo que lo distingue. Reutilizar patrones comunes, no 9 sistemas distintos.

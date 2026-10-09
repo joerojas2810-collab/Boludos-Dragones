@@ -85,7 +85,7 @@ export function createStarterHero(
   const rolled = rollPiece(rng, type, "f");
   const weapon: OwnedWeapon = {
     id: weaponKey(type, base.element, "f"),
-    name: weaponName(type, base.element, "Inicial"),
+    name: weaponName(type, base.element, "f"),
     type,
     element: base.element,
     rarity: "f",

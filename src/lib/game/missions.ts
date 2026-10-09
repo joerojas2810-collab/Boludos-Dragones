@@ -3,12 +3,12 @@
 // table needed); only progress and claimed tiers are stored. The server derives progress
 // events from already-verified actions (see missionDeltas, forge, pulls, rooms). Rewards
 // (SCOPE_TIERS) are mirrored in SQL.
-import { ELEMENT_LABEL, ELEMENTS, type Element } from "./elements";
+import { ELEMENTS, type Element } from "./elements";
 import { rollGear } from "./gear";
 import type { RunPiece } from "./loot";
 import type { RarityId } from "./rarity";
 import { createRng, hashSeed, type Rng } from "./rng";
-import { isGearType, WEAPON_TYPE_DATA, WEAPON_TYPES } from "./weapons";
+import { isGearType, weaponName, WEAPON_TYPES } from "./weapons";
 import { addDays } from "./streak";
 
 export type MissionScope = "daily" | "weekly" | "event";
@@ -319,7 +319,7 @@ export function rollMissionRewards(
       type,
       element,
       rarity: rank,
-      name: `${WEAPON_TYPE_DATA[type].noun} de ${ELEMENT_LABEL[element]}`,
+      name: weaponName(type, element, rank),
       ...(isGearType(type)
         ? rollGear(rng, type, rank)
         : { roll: rollGear(rng, "casco", rank).roll }),

@@ -2,7 +2,7 @@
 // Levels of 3 or 5 fights (and the final) hand out 1 guaranteed piece of the
 // level's slot and element, plus rare extras. Parts and cores come from points.
 import type { ClassId } from "./characters";
-import { ELEMENT_LABEL, ELEMENTS } from "./elements";
+import { ELEMENTS } from "./elements";
 import { rollGear } from "./gear";
 import { levelElement, type LevelSpec } from "./levels";
 import { gachaDropRank, type RunPiece } from "./loot";
@@ -13,7 +13,7 @@ import {
   HAND_TYPES,
   isGearType,
   SLOTS,
-  WEAPON_TYPE_DATA,
+  weaponName,
   type WeaponType,
 } from "./weapons";
 
@@ -78,7 +78,7 @@ function pieceOf(rng: Rng, spec: LevelSpec, asc: number, rarity: RarityId): RunP
     type,
     element,
     rarity,
-    name: `${WEAPON_TYPE_DATA[type].noun} de ${ELEMENT_LABEL[element]}`,
+    name: weaponName(type, element, rarity),
     ...rolled,
   };
 }

@@ -85,7 +85,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   hacha: {
     label: "Hacha",
     description: "Hachazo: golpe enorme, falla más y tarda en recargarse.",
-    atkMult: 1.2,
+    atkMult: 1.1,
     accuracy: -0.05,
     crit: 0,
     speedMult: 1,
@@ -95,7 +95,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   arco: {
     label: "Arco",
     description: "Disparo certero: golpe fuerte y seguro, con recarga larga. Más crítico.",
-    atkMult: 0.9,
+    atkMult: 0.95,
     accuracy: 0,
     crit: 0.05,
     speedMult: 1,
@@ -105,7 +105,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   baston: {
     label: "Bastón",
     description: "Cataclismo: golpe enorme de magia, falla más y tarda en recargarse. Más velocidad.",
-    atkMult: 0.9,
+    atkMult: 1,
     accuracy: 0,
     crit: 0,
     speedMult: 1.1,
@@ -115,7 +115,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   daga: {
     label: "Daga",
     description: "Puñalada rápida: golpe ágil casi cada turno. Más crítico y velocidad.",
-    atkMult: 0.85,
+    atkMult: 0.95,
     accuracy: 0,
     crit: 0.05,
     speedMult: 1.05,
@@ -135,7 +135,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   varita: {
     label: "Varita",
     description: "Rayo arcano: hechizo certero casi cada turno. Más precisión y velocidad.",
-    atkMult: 0.85,
+    atkMult: 0.9,
     accuracy: 0.05,
     crit: 0,
     speedMult: 1.05,
@@ -155,7 +155,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   mandoble: {
     label: "Mandoble",
     description: "Frenesí: golpe brutal que te cuesta parte de tu vida actual.",
-    atkMult: 1.1,
+    atkMult: 0.95,
     accuracy: 0,
     crit: 0,
     speedMult: 1,
@@ -165,7 +165,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   martillo: {
     label: "Martillo",
     description: "Aplastar: golpe explosivo, recarga larga y sin costo de vida.",
-    atkMult: 1.2,
+    atkMult: 1,
     accuracy: -0.05,
     crit: 0,
     speedMult: 0.95,
@@ -235,18 +235,20 @@ export interface Weapon {
   plusStreak?: number; // consecutive failed upgrades at the current level (+5% each)
 }
 
-const ADJECTIVES = [
-  "Ardiente",
-  "Antigua",
-  "Radiante",
-  "Maldita",
-  "Temible",
-  "Olvidada",
-  "Sagrada",
-  "Salvaje",
-  "Silenciosa",
-  "Eterna",
-];
+// Rank epithet [masculine, feminine]: every item name is "<Noun> <epithet> de <Element>".
+const RANK_EPITHET: Record<RarityId, readonly [string, string]> = {
+  f: ["Oxidado", "Oxidada"],
+  e: ["Gastado", "Gastada"],
+  d: ["Corriente", "Corriente"],
+  c: ["Templado", "Templada"],
+  b: ["Noble", "Noble"],
+  a: ["Heroico", "Heroica"],
+  s: ["Legendario", "Legendaria"],
+  ss: ["Mítico", "Mítica"],
+  ssr: ["Divino", "Divina"],
+};
+const FEMININE: readonly WeaponType[] = ["espada", "hacha", "daga", "maza", "varita", "piernas", "zapatos"];
+const PLURAL: readonly WeaponType[] = ["piernas", "zapatos"]; // Grebas, Botas
 
 export const isWeaponType = (v: unknown): v is WeaponType =>
   typeof v === "string" && (WEAPON_TYPES as readonly string[]).includes(v);
@@ -280,8 +282,11 @@ export const weaponSecondary = (type: WeaponType) => {
   return { accuracy, crit, speedMult };
 };
 
-export const weaponName = (type: WeaponType, element: Element, adj: string) =>
-  `${WEAPON_TYPE_DATA[type].noun} de ${ELEMENT_LABEL[element]} ${adj}`;
+export const weaponName = (type: WeaponType, element: Element, rarity: RarityId) => {
+  const [m, f] = RANK_EPITHET[rarity];
+  const epithet = (FEMININE.includes(type) ? f : m) + (PLURAL.includes(type) ? "s" : "");
+  return `${WEAPON_TYPE_DATA[type].noun} ${epithet} de ${ELEMENT_LABEL[element]}`;
+};
 
 // Rarity is rolled by the gacha; this rolls type, element and name.
 export function generateWeapon(rng: Rng, rarity: RarityId): Weapon {
@@ -289,7 +294,7 @@ export function generateWeapon(rng: Rng, rarity: RarityId): Weapon {
   const element = rng.pick(ELEMENTS);
   return {
     id: weaponKey(type, element, rarity),
-    name: weaponName(type, element, rng.pick(ADJECTIVES)),
+    name: weaponName(type, element, rarity),
     type,
     element,
     rarity,

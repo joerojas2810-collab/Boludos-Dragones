@@ -75,6 +75,7 @@ import {
   type Slot,
   weaponAtk,
   weaponKey,
+  weaponName,
   weaponSecondary,
   type Weapon,
 } from "./weapons";
@@ -762,7 +763,7 @@ function parseWeapon(v: unknown, legacyAll: boolean): OwnedWeapon | null {
   const rolled = parseRoll(type, rarity, v.roll, v.lines);
   return {
     id: weaponKey(type, element, rarity),
-    name: str(v.name, "Espada").replace(/^Lanza\b/, "Espada"),
+    name: weaponName(type, element, rarity), // names are derived, old saves get the unified one
     type,
     element,
     rarity,
