@@ -48,7 +48,7 @@ export function Vfx({
       "--pixel-cell-h": `${m.cell[1]}px`,
       "--pixel-cell-aspect": aspect,
     } as CSSProperties;
-    return <div className={`${className} pixel-effect-vfx-box`} style={style}>
+    return <div className={`${className} pixel-effect-vfx-box${m.cell[0] >= 384 ? " pixel-effect-vfx-wide" : ""}`} style={style}>
       {reduced ? <img src={effectSrc(id, true)} alt="" className="pixel-effect-vfx-native" /> : <AnimSheet
         anim={{ src: effectSrc(id, false), frames: m.frames, fps: m.fps, loop: m.loop, aspect }}
         className="pixel-effect-vfx-native"

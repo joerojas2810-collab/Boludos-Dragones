@@ -23,6 +23,8 @@ for (const entry of entries) {
   if (reduced ? entry.frames !== 1 || entry.fps !== 0 || entry.loop !== false : entry.frames !== reference.frames || entry.fps !== reference.fps || entry.loop !== reference.loop || entry.finish !== reference.finish) throw new Error("Changed effect timing: " + entry.file);
   if (reference.glyphRow && JSON.stringify(entry.glyphRow) !== JSON.stringify(reference.glyphRow)) throw new Error("Changed glyph atlas mapping: " + entry.file);
   if (!Number.isInteger(entry.frame_width) || !Number.isInteger(entry.frame_height) || entry.frame_width < 1 || entry.frame_height < 1) throw new Error("Invalid cell size: " + entry.file);
+  if (entry.anchor?.type !== "center" || entry.anchor.x !== entry.frame_width / 2 || entry.anchor.y !== entry.frame_height / 2) throw new Error("Invalid center anchor: " + entry.file);
+  if (reduced && (entry.finish !== "hold" || !["static_signal", "static_marker", "suppress_decorative"].includes(entry.reduced_policy))) throw new Error("Invalid reduced lifecycle: " + entry.file);
   if (!readFileSync(join(source, entry.file)).subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) throw new Error("Expected PNG: " + entry.file);
   const { data, info } = await sharp(join(source, entry.file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   if (info.width !== entry.frame_width * entry.frames || info.height !== entry.frame_height * entry.rows) throw new Error("Invalid sheet dimensions: " + entry.file);
@@ -35,6 +37,8 @@ for (const entry of entries) {
     if (data[p]) colors.add((data[p - 3] << 16) | (data[p - 2] << 8) | data[p - 1]);
   }
   if (colors.size > 96) throw new Error("Palette exceeds 96 colors: " + entry.file);
+  const palette = [...colors].map((color) => "#" + color.toString(16).padStart(6, "0").toUpperCase()).sort();
+  if (!Array.isArray(entry.palette_hex) || JSON.stringify(entry.palette_hex.map((hex) => hex.toUpperCase()).sort()) !== JSON.stringify(palette)) throw new Error("Palette differs from pixels: " + entry.file);
   if (reduced && entry.reduced_policy === "suppress_decorative" ? visible : !visible) throw new Error("Unexpected empty/suppressed effect: " + entry.file);
   if (reference.glyphRow && (!Number.isInteger(entry.advance) || entry.advance < 1 || entry.advance > entry.frame_width)) throw new Error("Invalid glyph advance: " + entry.file);
   if (!reduced) metadata[id] = { frames: entry.frames, fps: entry.fps, loop: entry.loop, finish: entry.finish, cell: [entry.frame_width, entry.frame_height], rows: entry.rows, label: entry.label ?? id, ...(reference.glyphRow ? { glyphRow: entry.glyphRow, advance: entry.advance } : {}) };
