@@ -203,33 +203,14 @@ Los ataques cargados (y con ellos "romper carga") se definen aquí.
 
 ## 6. Dungeons y encuentros
 
-### Dungeons elementales [POR DEFECTO]
-Se mantienen las 9 dungeons y sus niveles. Elemento fijo por encuentro (no aleatorio), con ~60 % del elemento predominante y ~40 % repartido. Probar primero en F, C y S.
+### Dungeons elementales [DECIDIDO 2026-10-09]
+El elemento predominante de cada dungeon es el de su jefe (`DUNGEON_THEMES`): F agua, E fuego, D viento, C tierra, B rayo, A agua, S tierra, SS fuego, SSR viento. Todos los niveles del dungeon lo comparten; las ascensiones lo rotan (`levelElement`). Se mantiene la proporción por rango (`dominantShare`: 60 % en F hasta 80 % en SSR) para no recalibrar `RANK_TUNE`. Efecto secundario: las piezas del botín siguen el elemento del nivel (`levelLoot.ts`), así que cada dungeon favorece un elemento de equipo. Simulación: F 97 %, S 71 % (sin cambio apreciable).
 
-| Rango | Predominante |
-|---|---|
-| F | Tierra |
-| E | Fuego |
-| D | Viento |
-| C | Agua |
-| B | Rayo |
-| A | Fuego |
-| S | Tierra |
-| SS | Agua |
-| SSR | Mixto |
+### Eventos entre combates [DECIDIDO: no se hacen]
+Se mantiene la decisión de v8: sin puertas, reliquias ni tienda.
 
-Falta mapear qué jefe corresponde a qué dungeon (CLAUDE.md solo dice "jefe con nombre en el último nivel").
-
-### Eventos entre combates [POR DEFECTO]
-- 1 o 2 por dungeon, no en cada transición: Descansar (cura ~15 % o limpia un estado), Fortuna (recompensa con riesgo) o Continuar.
-- Ojo: en v8 se quitaron puertas, reliquias y tienda a propósito. Confirmar que esto no choca.
-
-### Formato de encuentros [POR DEFECTO]
-- 1v1 base, 1v2 ocasional, 1v3 solo como **emboscada** rara.
-- La emboscada muestra enemigos, elementos y orden de velocidad antes de la primera acción, y da recompensa extra.
-- Mantener la iniciativa por velocidad (acciones extra por ronda).
-
----
+### Formato de encuentros [DECIDIDO]
+Los tamaños de grupo actuales se mantienen (ya van de 1 a 3 según el rango). Un grupo normal de 3 se anuncia como **Emboscada** en el registro. Sin recompensa extra por ahora (el pago es por nivel, en SQL). Iniciativa por velocidad sin cambios.
 
 ## 7. Progresión y economía
 

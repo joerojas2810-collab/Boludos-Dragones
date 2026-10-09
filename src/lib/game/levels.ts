@@ -96,16 +96,8 @@ export function levelsOf(rank: RarityId): readonly LevelSpec[] {
   const lengths = lengthsFor(rank, n);
   const slots: DropSlot[] = [];
   while (slots.length < n) slots.push(...shuffle(rng, DROP_SLOTS));
-  const elements: Element[] = [];
-  let bag: Element[] = [];
-  for (let i = 0; i < n - 1; i++) {
-    if (bag.length === 0)
-      bag = shuffle(rng, ELEMENTS).filter(
-        (e) => e !== elements[elements.length - 1],
-      );
-    elements.push(bag.shift() as Element);
-  }
-  elements.push(theme.bossElement);
+  // Every level of a dungeon shares the element of its boss (ascensions rotate it, see levelElement).
+  const elements: Element[] = Array<Element>(n).fill(theme.bossElement);
   const out = lengths.map(
     (length, index): LevelSpec => ({
       rank,

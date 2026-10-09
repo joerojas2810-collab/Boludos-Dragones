@@ -513,6 +513,9 @@ export function startBattle(
     status: "ongoing",
     events: [],
     log: [
+      ...(list.length === MAX_ENEMIES && !list.some((c) => c.bossId)
+        ? ["¡Emboscada! Tres enemigos te rodean."]
+        : []),
       ...list
         .slice(0, MAX_ENEMIES)
         .map((c) => `${c.name} (${ELEMENT_LABEL[c.element]}) aparece.`),
