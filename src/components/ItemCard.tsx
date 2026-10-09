@@ -19,6 +19,7 @@ type Base = {
   element: Element;
   lines?: string[]; // small stat lines, e.g. "VID 120 · ATQ 18"
   badge?: string; // "NUEVO", "+1 ★", "REEMBOLSO"
+  copies?: number; // spare copies of this hero / piece: shown as a corner tag
   pity?: "ss" | "ssr"; // this pull was the pity guarantee
 };
 export type ItemView =
@@ -98,6 +99,14 @@ export function ItemCard({
               </div>
             )}
           </div>
+          {!!item.copies && (
+            <span
+              title={`${item.copies} ${item.copies === 1 ? "copia" : "copias"} guardadas`}
+              className={`absolute left-0.5 top-0.5 z-10 rounded-full bg-cyan-300 px-1.5 font-bold leading-4 text-black shadow-[0_1px_3px_#000a] ${big ? "text-xs" : "text-[10px]"}`}
+            >
+              ×{item.copies + 1}
+            </span>
+          )}
           <span className="absolute right-0.5 top-0.5 z-10 drop-shadow-[0_1px_0_#000]">
             <ElementIcon
               element={item.element}
