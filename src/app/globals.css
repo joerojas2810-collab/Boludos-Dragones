@@ -192,6 +192,9 @@ textarea:focus-visible,
   inset: 14% 16%;
   z-index: 14;
 }
+body[data-art="pixel"] .rarity-frame::after {
+  content: none;
+}
 @keyframes frame-glow {
   50% {
     filter: drop-shadow(0 0 7px var(--rc));

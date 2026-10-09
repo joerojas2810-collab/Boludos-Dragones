@@ -99,13 +99,13 @@ export function ItemCard({
               </div>
             )}
           </div>
-          <span className="absolute right-0.5 top-0.5 z-10 drop-shadow-[0_1px_0_#000]">
+          {!isPixel() && <span className="absolute right-0.5 top-0.5 z-10 drop-shadow-[0_1px_0_#000]">
             <ElementIcon
               element={item.element}
               className={big ? "h-6" : "h-4"}
               bare
             />
-          </span>
+          </span>}
           <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-px bg-gradient-to-t from-black/85 via-black/60 to-transparent px-1 pb-1 pt-4 text-center text-white [text-shadow:0_1px_0_#000,0_0_3px_#000]">
             <div
               className={`w-full truncate font-bold ${big ? "text-xs" : "text-[10px]"}`}
@@ -132,6 +132,9 @@ export function ItemCard({
             </span>
           )}
         </div>
+        {isPixel() && <span className="absolute right-1 top-0.5 z-20 drop-shadow-[0_1px_0_#000]">
+          <ElementIcon element={item.element} className="h-6 w-6 [image-rendering:pixelated]" bare />
+        </span>}
       </RarityFrame>
     </div>
   );

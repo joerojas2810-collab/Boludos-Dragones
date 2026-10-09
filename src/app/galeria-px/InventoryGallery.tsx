@@ -171,6 +171,10 @@ export function InventoryGallery({ lot, zoom, bg }: { lot: "items" | "icons" | "
         </figure>)}
       </div>
       <h2 className="text-lg font-bold">Tarjetas dentro del juego</h2>
+        <div className="flex flex-wrap gap-3">
+          {(["caballero", "mago", "picaro", "clerigo"] as const).map((classId, index) => <ItemCard key={classId} size={96}
+            item={{ kind: "character", classId, name: ["Caballero", "Mago", "Pícaro", "Clérigo"][index], element: (["rayo", "agua", "tierra", "viento"] as const)[index], rarity: "ssr", stars: 3 }} />)}
+        </div>
       <div className="flex flex-wrap gap-3">
         {RARITY_IDS.map((rarity) => <ItemCard key={rarity} size={96}
           item={{ kind: "weapon", type: "espada", name: "Espada de fuego", element: "fuego", rarity, stars: 3 }} />)}
