@@ -1,5 +1,6 @@
 "use client";
 
+import { CLASSES } from "@/lib/game/characters";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { RARITIES, RARITY_IDS, isTopRank } from "@/lib/game/rarity";
@@ -167,10 +168,10 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
               </div>
               </div>
               <h3 className="w-full break-words text-sm font-bold leading-tight text-white">{it.name}</h3>
-              <p className="text-xs text-[#bdcce0]">{it.kind === "character" ? ({ caballero: "Caballero", mago: "Mago", picaro: "Pícaro", clerigo: "Clérigo" }[it.classId]) : WEAPON_TYPE_DATA[it.type ?? "espada"].label} · {ELEMENT_LABEL[it.element]}</p>
+              <p className="text-xs text-[#bdcce0]">{it.kind === "character" ? CLASSES[it.classId].name : WEAPON_TYPE_DATA[it.type ?? "espada"].label} · {ELEMENT_LABEL[it.element]}</p>
               <p className="text-xs font-bold" style={{ color: RARITIES[it.rarity].color }}>Rango {RARITIES[it.rarity].label}{it.pity ? " · Garantizado" : ""}</p>
               <span className={`w-full border px-2 py-1.5 text-xs font-bold ${it.badge?.startsWith("REEMBOLSO") ? "border-[#aa8747] bg-[#382c16] text-[#ffe0a3]" : it.badge?.startsWith("+1") ? "border-[#567faa] bg-[#1c3454] text-[#d3e8ff]" : "border-[#43846b] bg-[#15362d] text-[#baf3d9]"}`}>
-                {it.badge?.startsWith("REEMBOLSO") ? it.badge.replace("REEMBOLSO", "Reembolso") + " monedas" : it.badge?.startsWith("+1") ? "Duplicado · +1 estrella" : it.badge === "NUEVO" ? "Nuevo" : it.badge ?? "Obtenido"}
+                {it.badge?.startsWith("REEMBOLSO") ? it.badge.replace("REEMBOLSO", "Reembolso") + " monedas" : it.badge === "+1 COPIA" ? "Duplicado · copia guardada" : it.badge?.startsWith("+1") ? "Duplicado · +1 estrella" : it.badge === "NUEVO" ? "Nuevo" : it.badge ?? "Obtenido"}
               </span>
             </article>
           ))}

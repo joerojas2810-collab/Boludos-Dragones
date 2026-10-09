@@ -175,12 +175,12 @@ export function InventoryGallery({ lot, zoom, bg }: { lot: "items" | "icons" | "
       <h2 className="text-lg font-bold">Tarjetas dentro del juego</h2>
         <div className="flex flex-wrap gap-3">
           {(["caballero", "mago", "picaro", "clerigo"] as const).map((classId, index) => <ItemCard key={classId} size={96}
-            item={{ kind: "character", classId, name: ["Caballero", "Mago", "Pícaro", "Clérigo"][index], element: (["rayo", "agua", "tierra", "viento"] as const)[index], rarity: "ssr", stars: 3 }} />)}
+            item={{ kind: "character", classId, name: ["Caballero", "Mago", "Pícaro", "Clérigo"][index], element: (["rayo", "agua", "tierra", "viento"] as const)[index], rarity: "s", stars: 3 }} />)}
         </div>
         <h3 className="text-base font-bold">Objetos dentro del juego</h3>
         <div className="flex flex-wrap gap-3">
           {(["espada", "arco", "libro", "varita", "peto", "collar"] as const).map((type, index) => <ItemCard key={type} size={96}
-            item={{ kind: "weapon", type, name: ["Espada", "Arco", "Libro", "Varita", "Peto", "Collar"][index], element: "agua", rarity: "ssr", stars: 3, lines: [index < 4 ? "ATQ +8" : "DEF +8"] }} />)}
+            item={{ kind: "weapon", type, name: ["Espada", "Arco", "Libro", "Varita", "Peto", "Collar"][index], element: "agua", rarity: "s", stars: 3, lines: [index < 4 ? "ATQ +8" : "DEF +8"] }} />)}
         </div>
         <div className="flex flex-wrap gap-3">
           {RARITY_IDS.map((rarity) => <ItemCard key={rarity} size={96}

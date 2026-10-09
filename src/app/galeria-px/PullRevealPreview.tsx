@@ -5,7 +5,7 @@ import { PullReveal } from "@/components/PullReveal";
 import type { ItemView } from "@/components/ItemCard";
 
 const examples: ItemView[] = [
-  { kind: "character", classId: "caballero", name: "Gortha", element: "rayo", rarity: "ssr", stars: 1, badge: "NUEVO" },
+  { kind: "character", classId: "caballero", name: "Gortha", element: "rayo", rarity: "s", stars: 1, badge: "NUEVO" },
   { kind: "character", classId: "mago", name: "Zuren", element: "fuego", rarity: "c", stars: 2, badge: "+1 ★" },
   { kind: "character", classId: "picaro", name: "Sindralo", element: "viento", rarity: "d", stars: 4, badge: "+1 ★" },
   { kind: "character", classId: "clerigo", name: "Katha", element: "agua", rarity: "f", stars: 3, badge: "+1 ★" },
