@@ -170,6 +170,10 @@ Caballero: se mantiene el personaje (velocidad, Reflejo en la Guardia perfecta, 
 
 Renombres [HECHO]: Varita, "Rayo arcano" → **Descarga arcana**. Ataque 2 base de clase sin arma: Caballero "Golpe de escudo" → **Estocada**, Mago "Cataclismo" → **Estallido**, Clérigo "Plegaria" → **Rezo**, para no repetir nombres de especiales de arma.
 
+### Pasada de balance 2026-10-09 (valores de prueba, `scripts/class-synth.ts`)
+
+Medido con héroes S 3★ Nv50 con equipo en el dungeon SSR (30 héroes por nivel): media ~68 % con la política automática. Antes: Detonar ~57 %, Clérigo y Libro ~10 puntos sobre el resto. Cambios: Detonar poder 1,0 → 1,2 y +0,25 → +0,35 por acumulación; Castigo robo de vida 50 → 35 %; Santuario 10 → 8 %; guardia perfecta del Clérigo 8 → 5 %; Plegaria (Libro) 13 → 10 %. Resultado (auto): Caballero 68–74, Mago 63–72, Pícaro 62–68, Clérigo 70–78, Berserker 63–73. En el dungeon S todos quedan en 88–96 %. Quedan Detonar ~5 puntos abajo y Clérigo ~5 arriba: se re-mide con jugadores reales. `class-synth.ts` ahora separa el rango del dungeon (`RANK`, incluye SS y SSR) del rango de los objetos (S como máximo).
+
 ## 5. Jefes
 
 Reglas: la tabla elemental es universal para jefes. La mecánica del jefe es lo que lo distingue. Reutilizar patrones comunes, no 9 sistemas distintos.

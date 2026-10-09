@@ -94,7 +94,7 @@ export const MAX_ENEMIES = 3;
 export const PERFECT_GUARD_FACTOR = 0.25;
 export const GUARD_REFLECT = 0.4; // Caballero: share of the avoided damage sent back
 export const GUARD_CRIT_BONUS = 0.5; // Pícaro: extra crit chance on the next hit
-export const GUARD_HEAL = 0.08; // Clérigo: fraction of max hp healed
+export const GUARD_HEAL = 0.05; // Clérigo: fraction of max hp healed
 export const isStrongIntent = (k: MoveKey | Intent): boolean => k === "attack2";
 
 // Speed -> actions ("acciones acumuladas"). Per (hero, enemy) pair the slower

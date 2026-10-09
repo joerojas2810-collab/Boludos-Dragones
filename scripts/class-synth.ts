@@ -7,7 +7,7 @@ import { CLASS_IDS, generateCharacter, type ClassId } from "../src/lib/game/char
 import { step, livingEnemies, type Battle } from "../src/lib/game/combat";
 import { applyGear, gearBonus, rollGear } from "../src/lib/game/gear";
 import { levelsOf } from "../src/lib/game/levels";
-import { scaleStats, type RarityId } from "../src/lib/game/rarity";
+import { scaleStats, type DungeonId, type RarityId } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
 import { SKILLS_BY_CLASS, type SkillId } from "../src/lib/game/skills";
 import { createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
@@ -32,7 +32,8 @@ const N = Number(process.argv[2] ?? 30);
 const ASC = Number(process.argv[3] ?? 0);
 const STARS = Number(process.env.STARS ?? 3);
 const LEVEL = Number(process.env.LEVEL ?? 20);
-const rank = (process.env.RANK ?? "ssr") as RarityId;
+const rank = (process.env.RANK ?? "ssr") as DungeonId; // the dungeon tier (SS and SSR drop S items)
+const itemRank: RarityId = rank === "ss" || rank === "ssr" ? "s" : rank; // the heroes' and gear's rank
 const GEAR = Number(process.env.GEAR ?? 1);
 const POL = process.env.POLICY ?? "both";
 
@@ -40,12 +41,12 @@ function hero(classId: ClassId, skill: SkillId, seed: number, wt: HandType) {
   const rng = createRng(seed);
   const c = generateCharacter(rng, classId);
   const pieces = GEAR
-    ? GEAR_TYPES.map((type) => ({ type, rarity: rank, stars: 0, element: c.element, ...rollGear(rng, type, rank) }))
+    ? GEAR_TYPES.map((type) => ({ type, rarity: itemRank, stars: 0, element: c.element, ...rollGear(rng, type, itemRank) }))
     : [];
-  const g = applyGear(scaleStats(c.stats, rank, STARS, LEVEL), gearBonus(pieces));
+  const g = applyGear(scaleStats(c.stats, itemRank, STARS, LEVEL), gearBonus(pieces));
   const sec = weaponSecondary(wt);
-  const atkBonus = weaponAtk(rank, 0, wt);
-  return { ...c, rarity: rank, stars: STARS, level: LEVEL, skill, weapon: { element: c.element, atkBonus, type: wt }, stats: { ...g, atk: Math.round((g.atk + atkBonus) * 10) / 10, accuracy: g.accuracy + sec.accuracy, crit: Math.min(0.6, g.crit + sec.crit), speed: Math.round(g.speed * sec.speedMult * 10) / 10 } };
+  const atkBonus = weaponAtk(itemRank, 0, wt);
+  return { ...c, rarity: itemRank, stars: STARS, level: LEVEL, skill, weapon: { element: c.element, atkBonus, type: wt }, stats: { ...g, atk: Math.round((g.atk + atkBonus) * 10) / 10, accuracy: g.accuracy + sec.accuracy, crit: Math.min(0.6, g.crit + sec.crit), speed: Math.round(g.speed * sec.speedMult * 10) / 10 } };
 }
 
 function greedy(b: Battle): AutoPick {

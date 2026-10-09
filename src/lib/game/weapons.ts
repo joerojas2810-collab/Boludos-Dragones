@@ -150,7 +150,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0.04,
     speedMult: 1,
     noun: "Libro",
-    special: { name: "Plegaria", power: 0.3, accuracy: 1, cooldown: 2, heal: 0.13 },
+    special: { name: "Plegaria", power: 0.3, accuracy: 1, cooldown: 2, heal: 0.1 },
   },
   mandoble: {
     label: "Mandoble",
