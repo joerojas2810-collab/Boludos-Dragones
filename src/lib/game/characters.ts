@@ -107,7 +107,7 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
     },
     attack1: { name: "Tajo", power: 1, accuracy: 0.95, cooldown: 0, heal: 0 },
     attack2: {
-      name: "Golpe de escudo",
+      name: "Estocada",
       power: 2.1,
       accuracy: 0.75,
       cooldown: 2,
@@ -141,7 +141,7 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
       heal: 0,
     },
     attack2: {
-      name: "Cataclismo",
+      name: "Estallido",
       power: 2.6,
       accuracy: 0.7,
       cooldown: 2,
@@ -203,7 +203,7 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
     },
     attack1: { name: "Maza", power: 1, accuracy: 0.95, cooldown: 0, heal: 0 },
     attack2: {
-      name: "Plegaria",
+      name: "Rezo",
       power: 0.6,
       accuracy: 0.9,
       cooldown: 2,

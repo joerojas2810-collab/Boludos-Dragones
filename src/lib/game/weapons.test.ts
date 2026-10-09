@@ -17,7 +17,7 @@ describe("weapon special (Ataque 2)", () => {
     const armed = { ...base, weapon: { element: base.element, atkBonus: 0, type: "hacha" } };
     const c = (ch: typeof base) => ({ char: ch }) as unknown as Parameters<typeof attackOf>[0];
     expect(attackOf(c(armed), "attack2").name).toBe("Hachazo");
-    expect(attackOf(c(base), "attack2").name).toBe("Golpe de escudo");
+    expect(attackOf(c(base), "attack2").name).toBe("Estocada");
     expect(attackOf(c(armed), "attack1").name).toBe("Tajo");
   });
 });

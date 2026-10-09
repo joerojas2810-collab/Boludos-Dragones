@@ -134,13 +134,13 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   },
   varita: {
     label: "Varita",
-    description: "Rayo arcano: hechizo certero casi cada turno. Más precisión y velocidad.",
+    description: "Descarga arcana: hechizo certero casi cada turno. Más precisión y velocidad.",
     atkMult: 0.9,
     accuracy: 0.05,
     crit: 0,
     speedMult: 1.05,
     noun: "Varita",
-    special: { name: "Rayo arcano", power: 1.8, accuracy: 0.95, cooldown: 1, heal: 0 },
+    special: { name: "Descarga arcana", power: 1.8, accuracy: 0.95, cooldown: 1, heal: 0 },
   },
   libro: {
     label: "Libro",

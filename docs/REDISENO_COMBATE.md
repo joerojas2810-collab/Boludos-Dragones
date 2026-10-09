@@ -168,7 +168,7 @@ Caballero: se mantiene el personaje (velocidad, Reflejo en la Guardia perfecta, 
 
 **Balance de armas** (daño promedio por ronda, sin crítico ni velocidad): se bajó Martillo (ATQ ×1,2 → ×1,0), Mandoble (×1,1 → ×0,95) y Hacha (×1,2 → ×1,1), y se subió Bastón (×0,9 → ×1,0), Daga (×0,85 → ×0,95), Varita (×0,85 → ×0,9) y Arco (×0,9 → ×0,95). Objetivo: fuertes ~1,35 y débiles ~1,2. Simulación rango S (8 héroes): Espada 74 %, Hacha 70 %, Bastón 64 %, Varita 64 %, Daga 69 %, Arco 68 %, Maza 76 %, Libro 85 %, Mandoble 64 %, Martillo 66 %. El Libro (curación) y el Clérigo siguen altos.
 
-Pendiente: "Rayo arcano" (Varita) se confunde con el elemento Rayo; el Ataque 2 base de cada clase repite el nombre de un especial de arma (solo se ve sin arma).
+Renombres [HECHO]: Varita, "Rayo arcano" → **Descarga arcana**. Ataque 2 base de clase sin arma: Caballero "Golpe de escudo" → **Estocada**, Mago "Cataclismo" → **Estallido**, Clérigo "Plegaria" → **Rezo**, para no repetir nombres de especiales de arma.
 
 ## 5. Jefes
 
@@ -306,6 +306,8 @@ Reemplazar en "Reglas del juego":
 5. Rasgos: camino intermedio (ver sección 7).
 
 ## 11. Preguntas abiertas
+
+0. **Rarezas de héroes y armamento** [duda del usuario 2026-10-09]: los rangos bajos se sienten como rareza plana que ya aporta poco; idea de reducir a S, SS y SSR. Va de la mano con la fusión de héroes (`heroFusion.ts`: base 3★ + materiales del mismo rango sube un rango) y con la conversación sobre fusión que falta traer a este documento. Afecta dungeons (9 rangos, `levels.ts`), economía, gacha (probabilidades), equipo, SQL y arte. Sin decidir.
 
 1. ¿Qué ataques llevan el elemento y aplican efecto? (sección 2)
 2. ¿9 rangos o 7? (sección 7)
