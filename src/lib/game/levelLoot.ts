@@ -6,7 +6,7 @@ import { ELEMENT_LABEL, ELEMENTS } from "./elements";
 import { rollGear } from "./gear";
 import { levelDecay } from "./levelPay";
 import { levelElement, type LevelSpec } from "./levels";
-import { dropRank, type RunPiece } from "./loot";
+import { gachaDropRank, type RunPiece } from "./loot";
 import { RARITY_IDS, type RarityId } from "./rarity";
 import { createRng, hashSeed, type Rng } from "./rng";
 import { FIGHT_XP } from "./stage";
@@ -18,14 +18,18 @@ import {
   type WeaponType,
 } from "./weapons";
 
-// Tune here. Every piece is random now: slot (6), element and rank. A level rolls
-// PIECE_ROLLS_PER_FIGHT per fight; ranks run from the dungeon's rank down to F with a flat
-// decay, and a small chance of one rank above. Escamas and the Dado cargado (Mejorar, docs/FORJA_V9.md)
-// drop only in dungeons S and above.
+// Tune here. Every piece is random: slot (6), element and rank. A level rolls
+// PIECE_ROLLS_PER_FIGHT per fight (quantity stays generous); the RANK is what is delicate and it is
+// resolved for the LEVEL as a whole, not piece by piece:
+//  - one roll per level (TOP_PIECE_CHANCE) decides if the level hands out ONE piece of the dungeon's
+//    own rank (the "premio mayor"); it never gives two;
+//  - every other piece follows the gacha odds capped one rank BELOW the dungeon (gachaDropRank), so the
+//    dungeon's own rank only comes from that single roll and nothing is ever above it.
+// Escamas and the Dado cargado (Mejorar, docs/FORJA_V9.md) drop only in dungeons S and above.
 export const PIECE_ROLLS_PER_FIGHT = 3;
 export const PIECE_CHANCE = 0.6; // per roll
-export const PIECE_RANK_DECAY = 0.7; // flatter than the old directed drop (0.5)
-export const UP_CHANCE = { normal: 0.05, final: 0.1 } as const; // piece one rank above
+export const TOP_PIECE_CHANCE = 0.05; // per level (first clear); repeats scale it like the piece count
+export const PIECE_RANK_TILT = 1; // 1 = gacha odds for the rest; > 1 leans toward the cap
 export const PIECE_ELEMENT_LEVEL_SHARE = 0.4; // else any element
 export const REPEAT_PIECE_MULT = 0.75; // repeat clears (and sweeps) keep most of the piece drops
 // Keep in sync with bank_level / level_escamas in SQL (0041).
@@ -62,18 +66,12 @@ function roundRandom(rng: Rng, x: number): number {
   return n + (rng.chance(x - n) ? 1 : 0);
 }
 
-function pieceOf(
-  rng: Rng,
-  spec: LevelSpec,
-  asc: number,
-  up: number,
-): RunPiece {
+function pieceOf(rng: Rng, spec: LevelSpec, asc: number, rarity: RarityId): RunPiece {
   const lvEl = levelElement(spec, asc);
   const element = rng.chance(PIECE_ELEMENT_LEVEL_SHARE) ? lvEl : rng.pick(ELEMENTS);
   const slot = rng.pick(SLOTS);
   // Any weapon type: the hero you run with does not decide what drops.
   const type: WeaponType = slot === "arma" ? rng.pick(HAND_TYPES) : slot;
-  const rarity = dropRank(rng, spec.rank, up, PIECE_RANK_DECAY);
   const rolled = isGearType(type)
     ? rollGear(rng, type, rarity)
     : { roll: rollGear(rng, "casco", rarity).roll };
@@ -95,13 +93,17 @@ export function levelLoot(
   opts: { repeat: boolean; payMult?: number },
 ): LevelLoot {
   const rng = createRng(hashSeed(seed, spec.index, asc, 9201));
-  const up = spec.final ? UP_CHANCE.final : UP_CHANCE.normal;
   const pieces: RunPiece[] = [];
   const pieceMult = (opts.repeat ? REPEAT_PIECE_MULT : 1) * (opts.payMult ?? 1);
   // Counts are the expected value with random rounding (no per-roll variance).
   const count = roundRandom(rng, spec.length * PIECE_ROLLS_PER_FIGHT * PIECE_CHANCE * pieceMult);
-  const ups = roundRandom(rng, count * up);
-  for (let i = 0; i < count; i++) pieces.push(pieceOf(rng, spec, asc, i < ups ? 1 : 0));
+  // The level's single roll for a piece of the dungeon's own rank (replaces one of the pieces).
+  const topAt = count > 0 && rng.chance(TOP_PIECE_CHANCE * pieceMult) ? rng.int(0, count - 1) : -1;
+  const below = RARITY_IDS[Math.max(0, RARITY_IDS.indexOf(spec.rank) - 1)];
+  for (let i = 0; i < count; i++)
+    pieces.push(
+      pieceOf(rng, spec, asc, i === topAt ? spec.rank : gachaDropRank(rng, below, PIECE_RANK_TILT)),
+    );
   return {
     escamas: levelEscamas(spec.rank, asc, opts.repeat, opts.payMult ?? 1),
     dados: 0, // rolled by the caller at bank time (rollDado)

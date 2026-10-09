@@ -38,6 +38,22 @@ export function dropRank(
   return RARITY_IDS[top - (d < 0 ? 0 : d)];
 }
 
+/**
+ * Rank of one dungeon piece, anchored to the gacha: the pull odds of the ranks up to the
+ * dungeon's, renormalized, so a rank-R dungeon NEVER drops above R and its own rank is as
+ * rare as in a pull (S dungeon: S 3 %, A 6 %, ... F 31 %; SSR dungeon: SSR 0.5 %). `tilt` > 1
+ * leans toward the top (weight x tilt^index); 1 = exactly the gacha odds.
+ */
+export function gachaDropRank(rng: Rng, rank: RarityId, tilt = 1): RarityId {
+  const top = RARITY_IDS.indexOf(rank);
+  const weights: number[] = [];
+  for (let i = 0, f = 1; i <= top; i++, f *= tilt) // no ** (engine determinism)
+    weights.push(RARITIES[RARITY_IDS[i]].probability * f);
+  let r = rng.next() * weights.reduce((a, b) => a + b, 0);
+  const i = weights.findIndex((w) => (r -= w) < 0);
+  return RARITY_IDS[i < 0 ? top : i];
+}
+
 // One-line description: gear shows its bonuses, a weapon its attack and effect.
 export function pieceSummary(p: RunPiece): string {
   const info = WEAPON_TYPE_DATA[p.type];
