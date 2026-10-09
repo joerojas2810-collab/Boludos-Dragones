@@ -159,20 +159,25 @@ async function grantStarter(rpc: Rpc, playerId: string, me: Me): Promise<boolean
 
 export async function loadMe(rpc: Rpc, playerId: string): Promise<Me> {
   try {
+    // Three independent round trips go together (each is a hop to the database): the profile,
+    // the streak and the stored tutorial step (read only; seeded below when it is still empty).
     const get = async () =>
       toMe(await call<RawProfile>(rpc, "get_profile", { p_player: playerId }));
-    // get_streak does not depend on the profile: run both round trips together.
     const dailyP = call<DailyState | null>(rpc, "get_streak", { p_player: playerId });
-    let me = await get().catch((e) => (dailyP.catch(() => {}), Promise.reject(e)));
+    const stepP = call<number | null>(rpc, "sync_tutorial", { p_player: playerId }).catch(() => undefined);
+    let me = await get().catch((e) => (dailyP.catch(() => {}), stepP, Promise.reject(e)));
     // Until 0031 is applied the rpcs are missing: skip the tutorial instead of breaking login.
     if (!me.profile.characters.length && (await grantStarter(rpc, playerId, me).catch(() => false)))
       me = await get();
     const daily = await dailyP;
-    const tutorial = await call<number | null>(rpc, "sync_tutorial", {
-      p_player: playerId,
-      p_init: me.profile.characters.length ? 1 : 4,
-    }).catch(() => null);
-    const withTut = { ...me, profile: { ...me.profile, tutorial: tutorial ?? TUTORIAL_DONE } };
+    let step = await stepP;
+    // First load of an account (or the starter was just granted): seed the step once.
+    if (step === null)
+      step = await call<number | null>(rpc, "sync_tutorial", {
+        p_player: playerId,
+        p_init: me.profile.characters.length ? 1 : 4,
+      }).catch(() => undefined);
+    const withTut = { ...me, profile: { ...me.profile, tutorial: step ?? TUTORIAL_DONE } };
     return daily ? migrateDaily(withTut, daily) : withTut;
   } catch (e) {
     return mapRpcError(e);
