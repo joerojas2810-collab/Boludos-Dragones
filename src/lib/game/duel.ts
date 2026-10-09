@@ -181,7 +181,7 @@ export function duelRound(
     }
     let dealt = 0;
     for (let h = 0; h < (sk?.hits ?? 1) && def.hp > 0 && att.hp > 0; h++) {
-      const r = strike(att, def, key, rng, log, events, actor, 0);
+      const r = strike(att, def, key, rng, log, events, actor, 0, 1, true);
       att = r.attacker;
       def = r.defender;
       dealt += r.dmg;

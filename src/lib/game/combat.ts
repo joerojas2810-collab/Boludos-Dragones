@@ -764,6 +764,7 @@ export function strike(
   actor: BattleEvent["actor"],
   enemy: number,
   dmgFactor = 1,
+  asHero = actor === "player", // duels: both sides are heroes (class special, statuses, overload)
 ): Strike {
   const a = attackOf(att, key);
   const skill = key === "attack3" ? skillOf(att) : undefined;
@@ -826,17 +827,16 @@ export function strike(
   // hits when flagged (elites, bosses). Mago's perfect guard doubles the stacks.
   const element = att.char.weapon?.element ?? att.char.element;
   // The class special applies statuses, except Detonar, which only consumes them.
-  const classMove = actor === "player" && key === "attack3" && !skill?.detonate;
-  const canApply =
-    actor === "player" ? classMove : !!att.applies && isStrongIntent(key);
+  const classMove = asHero && key === "attack3" && !skill?.detonate;
+  const canApply = asHero ? classMove : !!att.applies && isStrongIntent(key);
   const guardBoost = att.riposte && att.char.classId === "mago" ? 2 : 1;
   const stacks = guardBoost * (classMove ? CLASS_STACKS : 1);
   // Rayo: any landed hit charges, the overload is spent by the class special.
   let charge = att.charge ?? 0;
   let overload = false;
-  if (element === "rayo" && (actor === "player" || canApply)) {
+  if (element === "rayo" && (asHero || canApply)) {
     charge = Math.min(OVERLOAD_EVERY, charge + guardBoost);
-    if (charge >= OVERLOAD_EVERY && (classMove || actor === "enemy")) {
+    if (charge >= OVERLOAD_EVERY && (classMove || !asHero)) {
       overload = true;
       charge -= OVERLOAD_EVERY;
     }

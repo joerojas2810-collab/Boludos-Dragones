@@ -105,4 +105,14 @@ describe("duel", () => {
     const rng: Rng = createRng(1);
     expect(duelRound(d, "attack1", "attack1", rng)).toBe(d);
   });
+
+  it("is side-symmetric: a mirror matchup is a coin flip (both sides apply statuses and the class special)", () => {
+    for (const c of CLASS_IDS) {
+      let a = 0;
+      const N = 160;
+      for (let seed = 1; seed <= N; seed++) if (play(c, c, seed).status === "a") a++;
+      expect(a / N).toBeGreaterThan(0.35);
+      expect(a / N).toBeLessThan(0.65);
+    }
+  });
 });
