@@ -126,8 +126,8 @@ export interface ProfileRepo {
     weaponId: string | null,
     slot?: Slot,
   ): Promise<void>;
-  burn(kind: "hero" | "piece", id: string): Promise<{ coins: number }>;
-  burnMany(kind: "hero" | "piece", ids: string[]): Promise<{ coins: number; count: number }>;
+  burn(id: string): Promise<{ coins: number }>;
+  burnMany(ids: string[]): Promise<{ coins: number; count: number }>;
   chooseSkill(characterId: string, skill: SkillId): Promise<void>;
   startLevel(
     heroId: string,
@@ -242,14 +242,14 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       store.update((p) =>
         w ? equipWeapon(p, c, w) : unequipWeapon(p, c, slot),
       ),
-    burn: async (kind, id) => {
-      const r = burnItem(store.get(), { kind, id });
-      if (!r) throw new RepoError("burn_invalid", "No se puede quemar (¿está equipado o es tu único héroe?).");
+    burn: async (id) => {
+      const r = burnItem(store.get(), id);
+      if (!r) throw new RepoError("burn_invalid", "No se puede quemar (¿está equipada?).");
       store.replace(r.profile);
       return { coins: r.coins };
     },
-    burnMany: async (kind, ids) => {
-      const r = burnMany(store.get(), kind, ids);
+    burnMany: async (ids) => {
+      const r = burnMany(store.get(), ids);
       if (r.count === 0) throw new RepoError("burn_invalid", "No hay nada que se pueda quemar.");
       store.replace(r.profile);
       return { coins: r.coins, count: r.count };
@@ -489,18 +489,18 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         weaponId,
         ...(slot ? { slot } : {}),
       }),
-    burn: async (kind, id) => {
+    burn: async (id) => {
       const r = await api<{ coins: number; profile: Profile }>(
         "/api/collection/burn",
-        { kind, id },
+        { id },
       );
       store.replace(r.profile);
       return { coins: r.coins };
     },
-    burnMany: async (kind, ids) => {
+    burnMany: async (ids) => {
       const r = await api<{ coins: number; count: number; profile: Profile }>(
         "/api/collection/burn-many",
-        { kind, ids },
+        { ids },
       );
       store.replace(r.profile);
       return { coins: r.coins, count: r.count };

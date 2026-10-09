@@ -942,9 +942,9 @@ export const burnTip = (): Tip => ({
   title: "Quemar",
   kind: "info",
   lines: [
-    `Convierte un héroe o pieza en monedas: ${pct(BURN_RATE)} de su valor de intercambio. Siempre pierdes frente a invocar.`,
+    `Convierte una pieza en monedas: ${pct(BURN_RATE)} de su valor de intercambio. Siempre pierdes frente a invocar.`,
     `Lo anterior al cambio (marcado «legado») rinde ${pct(LEGACY_BURN_RATE)}.`,
-    "No se puede quemar lo equipado ni tu único héroe.",
+    "No se puede quemar lo equipado. Los héroes no se queman: se mejoran en la Forja o se intercambian.",
   ],
   source: "Colección",
 });

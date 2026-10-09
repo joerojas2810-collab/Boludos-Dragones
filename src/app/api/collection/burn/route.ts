@@ -8,5 +8,5 @@ export const runtime = "nodejs";
 export const POST = route(async (req) => {
   const id = await requireUser();
   const b = await readJson(req, burnBody);
-  return ok(await doBurn(realDeps(), id, b.kind, b.id));
+  return ok(await doBurn(realDeps(), id, b.id));
 });

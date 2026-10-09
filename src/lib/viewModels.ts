@@ -24,7 +24,7 @@ export function characterView(
     element: c.element,
     classId: c.classId,
     traits: c.traits,
-    lines: [statLine(stats), ...(opts.lines ?? [])],
+    lines: [statLine(stats), ...(c.copies?.length ? [`${c.copies.length} copia${c.copies.length > 1 ? "s" : ""}`] : []), ...(opts.lines ?? [])],
     badge: opts.badge,
   };
 }

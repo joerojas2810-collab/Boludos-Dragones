@@ -195,15 +195,9 @@ await reset();
   await reset();
 }
 // 8. burn
-const legacyKey = second.key;
-await db.exec(`update public.characters set legacy=true where key='${legacyKey}'`);
 const v0 = Number((await q(`select version from public.player_state where player_id='${P}'`))[0].version);
-await err(rpc("burn_hero", { p_player: P, p_version: v0 + 5, p_key: legacyKey }), "conflict", "stale version");
-const cb = await coins();
-let br = await rpc("burn_hero", { p_player: P, p_version: v0, p_key: legacyKey });
-ok(br.gained === burnValue("c", true) && (await coins()) === cb + br.gained, "legacy hero burns at 50%: " + br.gained);
-await err(rpc("burn_hero", { p_player: P, p_version: br.version, p_key: HERO }), "only_hero", "last hero");
-await err(rpc("burn_hero", { p_player: P, p_version: br.version, p_key: "c-mago-fuego-ssr" }), "not_owned");
+await err(rpc("burn_hero", { p_player: P, p_version: v0, p_key: second.key }), "burn_hero", "heroes are not burned any more (0050)");
+let br: { version: number; gained?: number } = { version: v0 };
 await err(rpc("burn_item", { p_player: P, p_version: br.version, p_key: "w-nada-nada-nada;" }), "invalid_args");
 await err(rpc("burn_item", { p_player: U(2), p_version: 0, p_key: "w-espada-agua-f" }), "not_owned", "burn someone else's piece");
 await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,slot) values ('${P}','${HERO}','w-espada-agua-f','arma')`);
@@ -215,9 +209,9 @@ ok(br.gained === burnValue("f", false) && br.gained === 33, "piece burns at 4%: 
 await db.exec(`insert into public.weapons(player_id,type,element,rarity) values ('${P}','hacha','agua','f'),('${P}','lanza','agua','f'),('${P}','arco','agua','f')`);
 await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,slot) values ('${P}','${HERO}','w-arco-agua-f','arma')`);
 const vBefore = Number((await q(`select version from public.player_state where player_id='${P}'`))[0].version);
-const bm = await rpc("burn_many", { p_player: P, p_version: vBefore, p_kind: "piece", p_keys: '{"w-hacha-agua-f","w-lanza-agua-f","w-arco-agua-f","w-nada-nada-f"}' });
+const bm = await rpc("burn_many", { p_player: P, p_version: vBefore, p_keys: '{"w-hacha-agua-f","w-lanza-agua-f","w-arco-agua-f","w-nada-nada-f"}' });
 ok(bm.burned === 2 && bm.gained === 2 * burnValue("f", false) && bm.version === vBefore + 1, "burn_many burns 2, skips equipped/unknown: " + JSON.stringify(bm));
-await err(rpc("burn_many", { p_player: P, p_version: vBefore, p_kind: "piece", p_keys: '{"w-hacha-agua-f"}' }), "conflict", "burn_many stale version");
+await err(rpc("burn_many", { p_player: P, p_version: vBefore, p_keys: '{"w-hacha-agua-f"}' }), "conflict", "burn_many stale version");
 await db.exec(`delete from public.equipment where weapon_key='w-arco-agua-f'`);
 await db.exec(`delete from public.weapons where key='w-arco-agua-f'`);
 br = { ...br, version: bm.version };
@@ -317,7 +311,7 @@ const pr = await doPull(deps, P, { banner: "weapon", count: 10, idempotencyKey: 
 ok(pr.results!.length === 10, "service weapon pull x10");
 ok((await q(`select count(*)::int c from public.weapons where roll is not null`))[0].c > 0, "pulled pieces have rolls in the DB");
 const bw = (await q(`select key from public.weapons where key not in (select weapon_key from public.equipment) limit 1`))[0].key;
-const dbn = await doBurn(deps, P, "piece", bw);
+const dbn = await doBurn(deps, P, bw);
 ok(dbn.coins > 0, "service burn");
 
 console.log(`levels: pass ${pass} fail ${fail}`);

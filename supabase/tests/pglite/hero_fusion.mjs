@@ -92,11 +92,8 @@ ok((await row("c-clerigo-tierra-d")).copies.join() === "terco", "seller lost tha
 await rpc("market_move", { p_from: U, p_to: V, p_kind: "character", p_key: "c-clerigo-tierra-d" });
 ok((await db.query(`select copies from public.characters where player_id='${V}'`)).rows[0].copies.join() === "terco", "owner got a copy added");
 await err(rpc("market_move", { p_from: U, p_to: V, p_kind: "character", p_key: "c-clerigo-tierra-d" }), "not_owned");
-// burn is 4% now: F trade value 830 -> 33
-const b = await state();
-await give("clerigo", "agua", "f");
-const burnt = await rpc("burn_hero", { p_player: U, p_version: b.version, p_key: "c-clerigo-agua-f" });
-ok(burnt.gained === 33, "burn 4%: " + JSON.stringify(burnt));
+// heroes are not burned any more (0050): the function is gone
+await err(rpc("burn_hero", { p_player: U, p_version: (await state()).version, p_key: "c-clerigo-tierra-d" }), "burn_hero");
 // 0039: leftover fragments are paid once as coins (40 each) and removed; spend_fragments is gone
 import fs from "fs";
 const c0 = (await state()).coins;

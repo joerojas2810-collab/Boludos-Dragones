@@ -7,7 +7,7 @@ export type Guide = {
   steps: string[]; // short tutorial, start to finish
 };
 
-export const GUIDE: Record<"ascend" | "upgrade", Guide> = {
+export const GUIDE: Record<"ascend" | "heroes" | "upgrade", Guide> = {
   ascend: {
     title: "Ascender",
     what: "Subes de rango una pieza de equipo o un héroe gastando repetidos.",
@@ -20,7 +20,23 @@ export const GUIDE: Record<"ascend" | "upgrade", Guide> = {
       "Paso 2: marca otras piezas del mismo rango como material. Sirve cualquier tipo y elemento, pero no las equipadas. El contador te dice cuántas faltan.",
       "Paso 3: revisa el resultado y pulsa Ascender. Las de material desaparecen.",
       "Ojo: la base vuelve a 0★ y +0. Por eso conviene ascender primero, y completar estrellas y mejorar al final.",
-      "Los héroes se ascienden igual, con la sección Héroes.",
+      "Los héroes tienen su propia sección: Héroes.",
+    ],
+  },
+  heroes: {
+    title: "Héroes",
+    what: "Tu héroe crece de tres formas: estrellas, rango y rasgo.",
+    needs: "Material = héroes del mismo rango (1 unidad cada uno) y copias sobrantes (1 unidad cada una).",
+    gives: "★: +1★ por 3 unidades. Rango: sube al siguiente y conserva rasgo y nivel. Rasgo: cambia el principal por el de una copia.",
+    example: "3 héroes B cualesquiera → tu B pasa de 1★ a 2★. 4 héroes B + 320 monedas → tu B pasa a rango A.",
+    steps: [
+      "Una tirada repetida no sube la estrella sola: queda como copia y guarda el rasgo que le tocó.",
+      "Rasgos: si te gusta más el rasgo de una copia, úsalo como principal. El que tenías pasa a ser una copia, así que no se pierde.",
+      "Subir ★: elige el héroe y 3 unidades de material. El material desaparece (las copias primero; un héroe se va solo cuando gastas todas sus unidades).",
+      "Subir de rango: elige el héroe y el material que pide el rango. El héroe conserva clase, elemento, nombre, rasgo, nivel y habilidad; sus ★ se convierten (mira la tabla).",
+      "Si ya tienes a ese héroe en el rango siguiente, se fusionan: tú eliges qué rasgo queda y te quedas con las ★ más altas.",
+      "Ojo: gastar un héroe que ya tiene ★ o nivel pierde esa inversión. La pantalla te avisa.",
+      "El rango S es el techo: ahí solo se suben ★.",
     ],
   },
   upgrade: {

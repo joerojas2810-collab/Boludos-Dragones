@@ -7,6 +7,7 @@ import {
   autoEquipPlan,
   createProfile,
   equipWeapon,
+  unequipWeapon,
   grantPiece,
   heroFromOwned,
   migrate,
@@ -120,19 +121,18 @@ describe("burn", () => {
     expect(ev).toBeLessThan(tenPullPerItem * 0.9);
     expect(ev).toBeLessThan(PULL_COST_CHARACTER);
   });
-  it("refuses equipped pieces and the only hero; burning a hero unequips its gear", () => {
+  it("refuses equipped pieces and heroes; an unequipped piece burns for coins", () => {
     let p = pullCharacter(rich(), createRng(3), 2)!.profile;
     const [a] = p.characters;
     p = grantPiece(p, mk("casco", "f"));
     const id = p.weapons[0].id;
     p = equipWeapon(p, a.id, id);
-    expect(burn(p, { kind: "piece", id })).toBeNull();
-    const r = burn(p, { kind: "hero", id: a.id })!;
-    expect(r.profile.characters).toHaveLength(1);
-    expect(Object.keys(r.profile.equipped)).toHaveLength(0);
+    expect(burn(p, id)).toBeNull();
+    expect(burn(p, a.id)).toBeNull(); // a hero id is not a piece
+    p = unequipWeapon(p, a.id, "casco");
+    const r = burn(p, id)!;
+    expect(r.profile.weapons).toHaveLength(0);
     expect(r.profile.coins).toBe(p.coins + r.coins);
-    expect(burn(r.profile, { kind: "hero", id: r.profile.characters[0].id })).toBeNull();
-    expect(burn(r.profile, { kind: "piece", id })!.profile.weapons).toHaveLength(0);
   });
   it("rollQuality exists for ordering", () => {
     expect(rollQuality({ roll: 1.1 })).toBeGreaterThan(rollQuality({ roll: 0.9 }));

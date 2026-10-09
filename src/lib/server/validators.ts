@@ -63,11 +63,9 @@ export const levelStartBody = z.strictObject({
   ascension: z.number().int().min(0).max(5),
 });
 export const burnBody = z.strictObject({
-  kind: z.enum(["hero", "piece"]),
   id: z.string().min(1).max(100),
 });
 export const burnManyBody = z.strictObject({
-  kind: z.enum(["hero", "piece"]),
   ids: z.array(z.string().min(1).max(100)).min(1).max(100),
 });
 const heroMaterial = z.strictObject({ id: z.string().min(1).max(100), n: z.number().int().min(1).max(51) });

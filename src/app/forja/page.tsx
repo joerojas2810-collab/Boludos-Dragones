@@ -16,7 +16,7 @@ import { MatIcon, Upgrade } from "./Upgrade";
 type Tab = "ascend" | "heroes" | "upgrade";
 const TABS: [Tab, string][] = [
   ["ascend", "Ascender equipo"],
-  ["heroes", "Ascender héroes"],
+  ["heroes", "Héroes"],
   ["upgrade", "Mejorar"],
 ];
 
@@ -131,7 +131,9 @@ export default function ForgePage() {
             <HeroFusionPanel
               profile={profile}
               busy={busy}
-              onFuse={(b, m) => void act("Ascender héroe", () => repo.fuseHeroes(b, m.map((id) => ({ id, n: 1 }))), ["forge_merge", "forge_success"])}
+              onStarUp={(b, m) => void act("Subir ★", () => repo.starUpHero(b, m), ["forge_merge", "forge_success"])}
+              onFuse={(b, m, keep) => void act("Subir de rango", () => repo.fuseHeroes(b, m, keep), ["forge_merge", "forge_success"])}
+              onSwap={(id, i) => void act("Cambiar de rasgo", () => repo.swapTrait(id, i), ["forge_craft", "forge_success"])}
             />
           )}
           {tab === "upgrade" && (
@@ -174,7 +176,7 @@ export default function ForgePage() {
             </p>
           </Panel>
         </div>
-        <GuidePanel tab={tab === "heroes" ? "ascend" : tab} />
+        <GuidePanel tab={tab} />
       </main>
     </TipHover>
   );

@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { burnMany, burnValue } from "./burn";
 describe("burnMany", () => {
-  it("burns what it can, skips equipped pieces and keeps the last hero", () => {
+  it("burns what it can and skips equipped pieces", () => {
     const p = {
       coins: 0,
       characters: [{ id: "c-a", rarity: "f", legacy: false }],
@@ -12,9 +12,9 @@ describe("burnMany", () => {
       ],
       equipped: { "c-a": "w-2" },
     } as never;
-    const r = burnMany(p, "piece", ["w-1", "w-2", "w-nope"]);
+    const r = burnMany(p, ["w-1", "w-2", "w-nope"]);
     expect(r.count).toBe(1);
     expect(r.coins).toBe(burnValue("f"));
-    expect(burnMany(p, "hero", ["c-a"]).count).toBe(0);
+    expect(burnMany(p, ["c-a"]).count).toBe(0); // heroes are not burned
   });
 });

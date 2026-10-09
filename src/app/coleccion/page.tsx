@@ -175,6 +175,14 @@ function Detail({
               </Chip>
             ))}
           </div>
+          {c.copies?.length ? (
+            <div className="text-sm">
+              {c.stars}★ · {c.copies.length} {c.copies.length === 1 ? "copia" : "copias"} (rasgos:{" "}
+              {c.copies.map((t) => TRAITS[t].name).join(", ")})
+            </div>
+          ) : (
+            <div className="text-sm">{c.stars}★</div>
+          )}
         </div>
       </div>
       <p className="text-sm italic text-[#d9d2ca]">“{c.catchphrase}”</p>
@@ -193,15 +201,10 @@ function Detail({
 
       <EquipmentEditor c={c} profile={profile} act={act} />
 
-      <BurnButton
-        label={`Quemar héroe (+${burnValue(c.rarity, c.legacy)} monedas)`}
-        what={`a ${c.name} (${RARITIES[c.rarity].label}, ${c.stars}★)`}
-        disabled={profile.characters.length <= 1}
-        run={() => act(async () => {
-            const r = await repo.burn("hero", c.id);
-            toast(`${c.name} quemado: +${r.coins} monedas.`);
-          })}
-      />
+      <p className="text-sm text-[#d9d2ca]">
+        Para mejorarlo: <Link href="/forja" className="text-cyan-300 underline">Forja &gt; Héroes</Link> (subir ★, subir de rango o
+        cambiar de rasgo).
+      </p>
     </Panel>
   );
 }
@@ -227,7 +230,7 @@ export default function CollectionPage() {
   });
   const [selected, setSelected] = useState<string | null>(null);
   const [pf, setPf] = useState<PieceFilter>(NO_PIECE_FILTER);
-  const [burnInvested, setBurnInvested] = useState(false); // include heroes and pieces with stars (or levels)
+  const [burnInvested, setBurnInvested] = useState(false); // include pieces with stars
 
   if (!ready || !profile) return null;
   const list = filterSortCharacters(profile.characters, filter);
@@ -241,9 +244,6 @@ export default function CollectionPage() {
   const burnablePieces = shownPieces
     .filter((w) => !worn.has(w.id) && (burnInvested || w.stars === 0))
     .map((w) => w.id);
-  const burnableHeroes = list
-    .filter((c) => burnInvested || (c.stars === 0 && c.level <= 1))
-    .map((c) => c.id);
   const owner = (wid: string) =>
     profile.characters.find((c) => profile.equipped[c.id] === wid);
   const empty = (what: string) => (
@@ -338,30 +338,6 @@ export default function CollectionPage() {
                     ]}
                   />
                 </div>
-                {(filter.classId !== "all" || filter.rarity !== "all") && (
-                  <label className="mb-2 flex items-center gap-2 text-xs text-[#d9d2ca]">
-                    <input
-                      type="checkbox"
-                      checked={burnInvested}
-                      onChange={(e) => setBurnInvested(e.target.checked)}
-                    />
-                    Incluir héroes con estrellas o nivel
-                  </label>
-                )}
-                {(filter.classId !== "all" || filter.rarity !== "all") && (
-                  <BurnShown
-                    noun="héroes"
-                    count={burnableHeroes.length}
-                    shown={list.length}
-                    coins={burnMany(profile, "hero", burnableHeroes).coins}
-                    run={() =>
-                      act(async () => {
-                        const r = await repo.burnMany("hero", burnableHeroes);
-                        toast(`Quema realizada: ${r.count} ${r.count === 1 ? "héroe" : "héroes"}, +${r.coins} monedas.`);
-                      })
-                    }
-                  />
-                )}
                 {list.length === 0 && (
                   <p className="py-4 text-center">
                     Ninguno coincide con el filtro.
@@ -425,10 +401,10 @@ export default function CollectionPage() {
                 noun="piezas"
                 count={burnablePieces.length}
                 shown={shownPieces.length}
-                coins={burnMany(profile, "piece", burnablePieces).coins}
+                coins={burnMany(profile, burnablePieces).coins}
                 run={() =>
                   act(async () => {
-                    const r = await repo.burnMany("piece", burnablePieces);
+                    const r = await repo.burnMany(burnablePieces);
                     toast(`Quema realizada: ${r.count} ${r.count === 1 ? "pieza" : "piezas"}, +${r.coins} monedas.`);
                   })
                 }
@@ -460,7 +436,7 @@ export default function CollectionPage() {
                       what={`${w.name} (${RARITIES[w.rarity].label})`}
                       disabled={worn}
                       run={() => act(async () => {
-                        const r = await repo.burn("piece", w.id);
+                        const r = await repo.burn(w.id);
                         toast(`${w.name} quemada: +${r.coins} monedas.`);
                       })}
                     />

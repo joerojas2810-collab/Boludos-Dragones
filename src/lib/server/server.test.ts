@@ -820,20 +820,23 @@ describe("burn / skill / profile mapping (fake DB)", () => {
   const h0 = generateCharacter(createRng(5), "mago");
   it("burn runs the pure rules first, then asks SQL with the profile version", async () => {
     const db = new FakeDb();
-    db.rows.push(heroRow(h0, "f"), heroRow(generateCharacter(createRng(6), "picaro"), "e"));
-    const key = db.rows[0].key;
-    const r = await doBurn(db.deps, "u1", "hero", key);
+    db.rows.push(heroRow(h0, "f"), {
+      key: "w-espada-fuego-f",
+      kind: "weap",
+      a: "espada",
+      element: "fuego",
+      rarity: "f",
+      stars: 0,
+      data: { name: "Espada" },
+    });
+    const r = await doBurn(db.deps, "u1", "w-espada-fuego-f");
     expect(r.coins).toBe(33); // 4% of 830
-    expect(db.burned[0]).toMatchObject({ name: "burn_hero", p_key: key, p_version: 0 });
-    // the only hero left cannot be burned: SQL is never reached
+    expect(db.burned[0]).toMatchObject({ name: "burn_item", p_key: "w-espada-fuego-f", p_version: 0 });
+    // heroes are not burned and unknown pieces do not exist: SQL is never reached
     const n = db.burned.length;
-    expect(
-      await catchErr(doBurn(db.deps, "u1", "hero", db.rows[0].key)),
-    ).toMatchObject({ code: "burn_invalid" });
+    for (const id of [db.rows[0].key, "w-espada-fuego-f"])
+      expect(await catchErr(doBurn(db.deps, "u1", id))).toMatchObject({ code: "burn_invalid" });
     expect(db.burned).toHaveLength(n);
-    expect(
-      await catchErr(doBurn(db.deps, "u1", "piece", "w-espada-fuego-f")),
-    ).toMatchObject({ code: "burn_invalid" });
   });
   it("choose skill validates ownership and class before SQL, at any rank", async () => {
     const db = new FakeDb();

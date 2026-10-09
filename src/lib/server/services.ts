@@ -940,20 +940,14 @@ export async function sweepLevelService(
 export async function doBurn(
   d: Deps,
   playerId: string,
-  kind: "hero" | "piece",
   id: string,
 ) {
   await limit(d.rpc, `burn:${playerId}`, 30, 60);
   const me = await loadMe(d.rpc, playerId);
-  const r = burnItem(me.profile, { kind, id });
-  if (!r)
-    throw new ApiError(
-      409,
-      "burn_invalid",
-      "No se puede quemar (¿está equipado o es tu único héroe?).",
-    );
+  const r = burnItem(me.profile, id);
+  if (!r) throw new ApiError(409, "burn_invalid", "No se puede quemar (¿está equipada?).");
   try {
-    await call(d.rpc, kind === "hero" ? "burn_hero" : "burn_item", {
+    await call(d.rpc, "burn_item", {
       p_player: playerId,
       p_version: me.version,
       p_key: id,
@@ -961,7 +955,7 @@ export async function doBurn(
   } catch (e) {
     return mapRpcError(e);
   }
-  await audit(d.rpc, playerId, "burn", { kind, id, coins: r.coins });
+  await audit(d.rpc, playerId, "burn", { id, coins: r.coins });
   const fresh = await loadMe(d.rpc, playerId);
   return { coins: r.coins, profile: fresh.profile };
 }
@@ -969,25 +963,23 @@ export async function doBurn(
 export async function doBurnMany(
   d: Deps,
   playerId: string,
-  kind: "hero" | "piece",
   ids: string[],
 ) {
   await limit(d.rpc, `burnmany:${playerId}`, 20, 60);
   const me = await loadMe(d.rpc, playerId);
-  if (burnMany(me.profile, kind, ids).count === 0)
+  if (burnMany(me.profile, ids).count === 0)
     throw new ApiError(409, "burn_invalid", "No hay nada que se pueda quemar.");
   let raw: { burned: number; gained: number };
   try {
     raw = await call(d.rpc, "burn_many", {
       p_player: playerId,
       p_version: me.version,
-      p_kind: kind,
       p_keys: ids,
     });
   } catch (e) {
     return mapRpcError(e);
   }
-  await audit(d.rpc, playerId, "burn_many", { kind, n: raw.burned, coins: raw.gained });
+  await audit(d.rpc, playerId, "burn_many", { n: raw.burned, coins: raw.gained });
   const fresh = await loadMe(d.rpc, playerId);
   return { count: raw.burned, coins: raw.gained, profile: fresh.profile };
 }
