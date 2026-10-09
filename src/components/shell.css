@@ -468,20 +468,22 @@ body[data-art="pixel"] .doll-hero {
 
 /* Pixel chrome uses the same native 9-slice cuts as the exported kit. */
 body[data-art="pixel"] :is(.shell-top, .shell-nav) { background: #20293d; border-image: none; border-color: #7894af; box-shadow: none; }
+body[data-art="pixel"] .shell-coins { color: #d3af62; }
+body[data-art="pixel"] .shell-tab[data-active="true"] { color: #f2d18e; }
 body[data-art="pixel"] .shell-brand img { height: 32px; filter: none; image-rendering: pixelated; }
 body[data-art="pixel"] :is(.shell-icon, .shell-tab, .doll-slot, .pity-bar) { image-rendering: pixelated; border-radius: 0; }
-body[data-art="pixel"] .shell-icon { border-width: 6px 8px; border-image: url("/art/ui-px/button_secondary_normal.png") 6 8 fill / 6px 8px stretch; color: #e7eeea; }
+body[data-art="pixel"] .shell-icon { border-width: 6px 8px; border-image: url("/art/ui-px/button_secondary_normal.png") var(--px-slice-button-secondary-normal, 6 8) fill / 6px 8px stretch; color: #e7eeea; }
 body[data-art="pixel"] .shell-icon:hover { border-image-source: url("/art/ui-px/button_secondary_hover.png"); }
 body[data-art="pixel"] .shell-icon:active { border-image-source: url("/art/ui-px/button_secondary_pressed.png"); }
 body[data-art="pixel"] .shell-icon:focus-visible { border-image-source: url("/art/ui-px/button_secondary_focus.png"); }
 body[data-art="pixel"] .shell-icon:disabled { border-image-source: url("/art/ui-px/button_secondary_disabled.png"); }
-body[data-art="pixel"] .shell-tab { border-width: 6px 8px; border-image: url("/art/ui-px/tab_normal.png") 6 8 fill / 6px 8px stretch; }
+body[data-art="pixel"] .shell-tab { border-width: 6px 8px; border-image: url("/art/ui-px/tab_normal.png") var(--px-slice-tab-normal, 6 8) fill / 6px 8px stretch; }
 body[data-art="pixel"] .shell-tab:hover:not([data-disabled]) { border-image-source: url("/art/ui-px/tab_hover.png"); }
 body[data-art="pixel"] .shell-tab[data-active="true"] { border-image-source: url("/art/ui-px/tab_active.png"); }
 body[data-art="pixel"] .shell-tab:focus-visible { border-image-source: url("/art/ui-px/tab_focus.png"); }
 body[data-art="pixel"] .shell-tab[data-disabled] { border-image-source: url("/art/ui-px/tab_disabled.png"); }
-body[data-art="pixel"] .doll-slot { border-width: 6px; border-image: url("/art/ui-px/slot_normal.png") 6 fill / 6px stretch; }
+body[data-art="pixel"] .doll-slot { border-width: 6px; border-image: url("/art/ui-px/slot_normal.png") var(--px-slice-slot-normal, 6) fill / 6px stretch; }
 body[data-art="pixel"] .doll-slot[aria-pressed="true"] { border-image-source: url("/art/ui-px/slot_selected.png"); }
 body[data-art="pixel"] .doll-slot:hover:not([aria-pressed="true"]) { border-image-source: url("/art/ui-px/slot_hover.png"); }
 body[data-art="pixel"] .doll-slot:disabled { border-image-source: url("/art/ui-px/slot_disabled.png"); }
-body[data-art="pixel"] .pity-bar { border-width: 4px; border-image: url("/art/ui-px/bar_track.png") 4 fill / 4px stretch; }
+body[data-art="pixel"] .pity-bar { border-width: 4px; border-image: url("/art/ui-px/bar_track.png") var(--px-slice-bar-track, 4) fill / 4px stretch; }

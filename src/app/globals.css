@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../lib/art/pixel-ui.generated.css";
 
 :root {
   --bg: #2b2420;
@@ -797,17 +798,19 @@ body[data-art="pixel"] {
   --panel: #20293d;
   --surface-raised: #33455f;
   --edge: #101522;
-  --trim: #7894af;
+  --trim: #d3af62;
+  --focus: #f2d18e;
   --text: #e7eeea;
   --muted: #abc1d3;
   background: #101522;
 }
 body[data-art="pixel"] :is(.panel-art, .title-art, .btn, .bar-track, .bar-fill, .tile-art, .pixel-frame, .game-title-text, progress, input, select, textarea, hr, .separator) { image-rendering: pixelated; }
 body[data-art="pixel"] img[src*="/art/ui-px/"] { image-rendering: pixelated; }
-body[data-art="pixel"] .panel-art { border-width: 8px; border-image: url("/art/ui-px/panel_default.png") 8 fill / 8px stretch; }
-body[data-art="pixel"] :is(.pixel-frame, .game-title-text) { border-width: 8px; border-image: url("/art/ui-px/panel_raised.png") 8 fill / 8px stretch; }
-body[data-art="pixel"] .panel-float.panel-art { border-image: url("/art/ui-px/panel_default.png") 8 / 8px stretch; border-radius: 0; }
-body[data-art="pixel"] .title-art { border-width: 6px 8px; border-image: url("/art/ui-px/title_tab.png") 6 8 fill / 6px 8px stretch; }
+body[data-art="pixel"] :is(.title-art, .game-title-text) { color: #d3af62; }
+body[data-art="pixel"] .panel-art { border-width: 8px; border-image: url("/art/ui-px/panel_default.png") var(--px-slice-panel-default, 8) fill / 8px stretch; }
+body[data-art="pixel"] :is(.pixel-frame, .game-title-text) { border-width: 8px; border-image: url("/art/ui-px/panel_raised.png") var(--px-slice-panel-raised, 8) fill / 8px stretch; }
+body[data-art="pixel"] .panel-float.panel-art { border-image: url("/art/ui-px/panel_default.png") var(--px-slice-panel-default, 8) / 8px stretch; border-radius: 0; }
+body[data-art="pixel"] .title-art { border-width: 6px 8px; border-image: url("/art/ui-px/title_tab.png") var(--px-slice-title-tab, 6 8) fill / 6px 8px stretch; }
 body[data-art="pixel"] .btn {
   --px-normal: url("/art/ui-px/button_primary_normal.png");
   --px-hover: url("/art/ui-px/button_primary_hover.png");
@@ -815,30 +818,37 @@ body[data-art="pixel"] .btn {
   --px-focus: url("/art/ui-px/button_primary_focus.png");
   --px-disabled: url("/art/ui-px/button_primary_disabled.png");
   border-width: 6px 8px;
-  border-image: var(--px-normal) 6 8 fill / 6px 8px stretch;
-  color: #e7eeea; text-shadow: none; border-radius: 0;
+  border-image: var(--px-normal) var(--px-button-cuts, var(--px-slice-button-primary-normal, 6 8)) fill / 6px 8px stretch;
+  color: #101522; text-shadow: none; border-radius: 0;
 }
 body[data-art="pixel"] .btn-gray {
+  color: #e7eeea;
+  --px-button-cuts: var(--px-slice-button-secondary-normal, 6 8);
   --px-normal: url("/art/ui-px/button_secondary_normal.png"); --px-hover: url("/art/ui-px/button_secondary_hover.png");
   --px-pressed: url("/art/ui-px/button_secondary_pressed.png"); --px-focus: url("/art/ui-px/button_secondary_focus.png"); --px-disabled: url("/art/ui-px/button_secondary_disabled.png");
 }
 body[data-art="pixel"] .btn-danger {
+  color: #e7eeea;
+  --px-button-cuts: var(--px-slice-button-danger-normal, 6 8);
   --px-normal: url("/art/ui-px/button_danger_normal.png"); --px-hover: url("/art/ui-px/button_danger_hover.png");
   --px-pressed: url("/art/ui-px/button_danger_pressed.png"); --px-focus: url("/art/ui-px/button_danger_focus.png"); --px-disabled: url("/art/ui-px/button_danger_disabled.png");
 }
 body[data-art="pixel"] .btn-gold {
+  --px-button-cuts: var(--px-slice-button-gold-normal, 6 8);
   --px-normal: url("/art/ui-px/button_gold_normal.png"); --px-hover: url("/art/ui-px/button_gold_hover.png");
   --px-pressed: url("/art/ui-px/button_gold_pressed.png"); --px-focus: url("/art/ui-px/button_gold_focus.png"); --px-disabled: url("/art/ui-px/button_gold_disabled.png");
 }
 body[data-art="pixel"] .btn-neutral {
+  color: #e7eeea;
+  --px-button-cuts: var(--px-slice-button-neutral-normal, 6 8);
   --px-normal: url("/art/ui-px/button_neutral_normal.png"); --px-hover: url("/art/ui-px/button_neutral_hover.png");
   --px-pressed: url("/art/ui-px/button_neutral_pressed.png"); --px-focus: url("/art/ui-px/button_neutral_focus.png"); --px-disabled: url("/art/ui-px/button_neutral_disabled.png");
 }
 body[data-art="pixel"] .btn:hover:not(:disabled) { border-image-source: var(--px-hover); }
 body[data-art="pixel"] .btn:active:not(:disabled) { border-image-source: var(--px-pressed); }
 body[data-art="pixel"] .btn:focus-visible { border-image-source: var(--px-focus); }
-body[data-art="pixel"] .btn:disabled { border-image-source: var(--px-disabled); color: #7894af; }
-body[data-art="pixel"] .bar-track { border-width: 4px; border-image: url("/art/ui-px/bar_track.png") 4 fill / 4px stretch; }
+body[data-art="pixel"] .btn:disabled { border-image-source: var(--px-disabled); color: #abc1d3; }
+body[data-art="pixel"] .bar-track { border-width: 4px; border-image: url("/art/ui-px/bar_track.png") var(--px-slice-bar-track, 4) fill / 4px stretch; }
 body[data-art="pixel"] .bar-fill { background-image: url("/art/ui-px/bar_fill_health.png"); }
 body[data-art="pixel"] .bar-fill[data-fill="health_low"] { background-image: url("/art/ui-px/bar_fill_health_low.png"); }
 body[data-art="pixel"] .bar-fill[data-fill="xp"] { background-image: url("/art/ui-px/bar_fill_xp.png"); }
@@ -850,13 +860,13 @@ body[data-art="pixel"] progress { background-image: url("/art/ui-px/bar_track.pn
 body[data-art="pixel"] progress::-webkit-progress-value { background-image: url("/art/ui-px/bar_fill_xp.png"); }
 body[data-art="pixel"] progress::-moz-progress-bar { background-image: url("/art/ui-px/bar_fill_xp.png"); }
 body[data-art="pixel"] input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"]),
-body[data-art="pixel"] textarea { border-width: 6px 8px; border-image: url("/art/ui-px/input_normal.png") 6 8 fill / 6px 8px stretch; color: #e7eeea; }
+body[data-art="pixel"] textarea { border-width: 6px 8px; border-image: url("/art/ui-px/input_normal.png") var(--px-slice-input-normal, 6 8) fill / 6px 8px stretch; color: #e7eeea; -webkit-text-fill-color: #e7eeea; caret-color: #e7eeea; }
 body[data-art="pixel"] input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"]):focus,
 body[data-art="pixel"] textarea:focus { border-image-source: url("/art/ui-px/input_focus.png"); }
 body[data-art="pixel"] input:disabled:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"]),
 body[data-art="pixel"] textarea:disabled { border-image-source: url("/art/ui-px/input_disabled.png"); }
 body[data-art="pixel"] :is(input, textarea)[aria-invalid="true"] { border-image-source: url("/art/ui-px/input_error.png"); }
-body[data-art="pixel"] select { border-width: 6px 8px; border-image: url("/art/ui-px/select_normal.png") 6 8 fill / 6px 8px stretch; background-image: url("/art/ui-px/glyph_down.png"); }
+body[data-art="pixel"] select { border-width: 6px 8px; border-image: url("/art/ui-px/select_normal.png") var(--px-slice-select-normal, 6 8) fill / 6px 8px stretch; background-image: url("/art/ui-px/glyph_down.png"); }
 body[data-art="pixel"] select:focus { border-image-source: url("/art/ui-px/select_focus.png"); }
 body[data-art="pixel"] select:disabled { border-image-source: url("/art/ui-px/select_disabled.png"); }
 body[data-art="pixel"] select[aria-invalid="true"] { border-image-source: url("/art/ui-px/select_error.png"); }
@@ -875,11 +885,11 @@ body[data-art="pixel"] input[type="radio"]:focus-visible:checked { outline: 1px 
 body[data-art="pixel"] input[type="radio"]:disabled { background-image: url("/art/ui-px/radio_disabled_off.png"); }
 body[data-art="pixel"] input[type="radio"]:disabled:checked { background-image: url("/art/ui-px/radio_disabled_on.png"); }
 body[data-art="pixel"]::-webkit-scrollbar-track,
-body[data-art="pixel"] ::-webkit-scrollbar-track { border-width: 4px 2px; border-image: url("/art/ui-px/scrollbar_track.png") 4 2 fill / 4px 2px stretch; }
+body[data-art="pixel"] ::-webkit-scrollbar-track { border-width: 4px 2px; border-image: url("/art/ui-px/scrollbar_track.png") var(--px-slice-scrollbar-track, 4 2) fill / 4px 2px stretch; }
 body[data-art="pixel"]::-webkit-scrollbar-thumb,
-body[data-art="pixel"] ::-webkit-scrollbar-thumb { border-width: 4px 2px; border-image: url("/art/ui-px/scrollbar_thumb.png") 4 2 fill / 4px 2px stretch; }
+body[data-art="pixel"] ::-webkit-scrollbar-thumb { border-width: 4px 2px; border-image: url("/art/ui-px/scrollbar_thumb.png") var(--px-slice-scrollbar-thumb, 4 2) fill / 4px 2px stretch; }
 body[data-art="pixel"] :is(hr, .separator) { background-image: url("/art/ui-px/separator.png"); }
-body[data-art="pixel"] .tile-art { border-width: 6px; border-image: url("/art/ui-px/slot_normal.png") 6 fill / 6px stretch; }
+body[data-art="pixel"] .tile-art { border-width: 6px; border-image: url("/art/ui-px/slot_normal.png") var(--px-slice-slot-normal, 6) fill / 6px stretch; }
 body[data-art="pixel"] .tile-art:hover { border-image-source: url("/art/ui-px/slot_hover.png"); }
 body[data-art="pixel"] .tile-art[aria-pressed="true"] { border-image-source: url("/art/ui-px/slot_selected.png"); }
 body[data-art="pixel"] .tile-art:disabled { border-image-source: url("/art/ui-px/slot_disabled.png"); }
@@ -922,6 +932,16 @@ body[data-art="pixel"] .game-title-word { display: block; margin: 0 auto; width:
 }
 .game-select-btn:focus-visible,
 .game-select-btn[aria-expanded="true"] { border-image-source: url("/art/ui/select_focus.webp"); }
+
+body[data-art="pixel"] .game-select-btn {
+  border-width: 7px 16px;
+  border-image: url("/art/ui-px/select_normal.png") var(--px-slice-select-normal, 6 8) fill / 7px 16px stretch;
+  background-image: url("/art/ui-px/glyph_down.png");
+  color: #e7eeea;
+  image-rendering: pixelated;
+}
+body[data-art="pixel"] .game-select-btn:focus-visible,
+body[data-art="pixel"] .game-select-btn[aria-expanded="true"] { border-image-source: url("/art/ui-px/select_focus.png"); }
 
 /* Tooltip "?" badge: the only way to open a tip. Sits on the wrapper's top-right corner. */
 .tip-q {

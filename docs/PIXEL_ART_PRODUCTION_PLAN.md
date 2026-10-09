@@ -1,6 +1,6 @@
 # Continuación de producción pixel art
 
-Plan de trabajo mediante bases compartidas y exportaciones automatizadas. Las siete fases originales están completadas; las secciones históricas conservan sus cantidades y decisiones. Héroes, enemigos, fondos de combate y objetos ya fueron adaptados a HD. La actualización más reciente corresponde a Fase 3: armas, equipo, partes, núcleos y marcos.
+Plan de trabajo mediante bases compartidas y exportaciones automatizadas. Las siete fases originales están completadas; las secciones históricas conservan sus cantidades y decisiones. Héroes, enemigos, fondos de combate, objetos e interfaz ya fueron adaptados a HD. La actualización más reciente corresponde a Fase 5, con la dirección Acero y Oro elegida por el usuario. Quedan por adaptar los íconos de Fase 4 y los efectos de Fase 7; esperar la siguiente autorización.
 
 ## Reglas de trabajo
 
@@ -86,3 +86,17 @@ Reutilizar bases para los cinco golpes elementales, las aperturas y revelaciones
 ## Cierre
 
 Al completar cada fase: ejecutar las pruebas de código, revisar la integración y actualizar el traspaso con cantidades verificadas. La aprobación para convertir el pixel art en la línea principal permanece como un paso separado al terminar la producción y revisión.
+
+## Actualización de Fase 5: interfaz HD — Acero y Oro
+
+Completada el 8 de octubre de 2026 con la primera dirección elegida por el usuario. Kit de 130 PNG con los nombres existentes: 25 botones, seis paneles, cinco casillas, cinco pestañas, cuatro campos, cuatro selectores, ocho barras, seis checkbox, seis radio, cuatro interruptores, cuatro deslizadores, dos barras de desplazamiento, 18 marcos cuadrados de rango, 14 símbolos, tres cofres, cuatro logos, nueve favicons, un separador, un título y un fondo de modal. Se conservan las nueve cartas HD de Fase 3 en el manifiesto acumulado de 139 entradas.
+
+120 texturas duplican su tamaño nativo: botones 128×48, paneles 128×128 y casillas 64×64; `display_scale: 0.5` conserva las dimensiones visibles de los controles. Los nueve favicons mantienen la dimensión de su nombre y el modal sigue en 8×8. Los 80 recursos 9-slice tienen cortes de fuente duplicados, independientes del grosor visible: panel 16→8 px y botón 12/16→6/8 px. El importador prevalida el catálogo entero, centro, escala, alfa y cortes antes de copiar; genera el JSON y `pixel-ui.generated.css`, consumidos por estilos y galería. Los controles GameSelect también usan el skin pixel.
+
+Estilo: acero azul, interiores navy, ribetes dorados y luz arriba a la izquierda; texto oscuro en botones principales y de oro, blanco cálido en acero/neutro/peligro, gris legible al deshabilitar. Foco cyan, oro para pestañas activas y selección. Los ornamentos de rango difieren por forma dentro de las esquinas fijas. Cofre 1 cerrado, cofres 2 azul y 3 dorado abiertos para conservar la señal de premio reclamado. Los logos conservan el dragón, escudo y espadas originales, con el nombre Boludos & Dragones y Alegreya ExtraBold local de licencia OFL.
+
+Todos los PNG declaran un cuadro, fps 0, loop falso, centro y paleta exacta (máximo 76 colores por archivo). Alfa binario y RGB transparente cero; única excepción, scrim uniforme 192. PNG de entrega e importación idénticos; cartas anteriores verificadas contra el ZIP de Fase 3 y sin cambios en frames-px. Paquete externo `Pedido de Arte Pixel Art/phase_5_ui.zip`: 130 PNG y manifiesto filtrado, 131 entradas, 847.917 bytes. SHA-256 `b71923e74e13e87c69b8e1a517f08af9cb13855114bc12425368054077fe58f4`. Integridad, dimensiones, paletas, centros, escalas y 80 cortes aprobados. Fuentes, prompts, atlas y capturas de trabajo fuera de la entrega y del repositorio.
+
+Revisión visual: los 130 recursos cargan en galería; paneles a 320 y 640 px, textos con tildes y ñ, selección y checkbox operativos, comparación de 25 estados. Galería y colección revisadas en 1920×1080, 2560×1440 y 390×844; galería también a 320 px, sin desbordamiento horizontal. Respaldo pintado comprobado al alternar el interruptor. No se cambian gameplay, héroes, enemigos, objetos, fondos ni otras fases. Main actualizado hasta `ed70b6b`, conservando la actualización remota de salas.
+
+TypeScript y ESLint aprobados. Vitest: 50 archivos / 458 pruebas aprobadas; tres pruebas nuevas protegen catálogo, dimensiones visibles y los 80 cortes CSS. Tras los últimos ajustes de ornamentos y cofres se repitió la validación exhaustiva de recursos; la prueba específica de UI también pasó después del cambio de ornamentos. Fase lista para commit y push a main. Quedan por adaptar Fase 4 (íconos) y Fase 7 (efectos); esperar autorización del usuario.

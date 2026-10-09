@@ -1,1132 +1,1262 @@
 [
   {
     "file": "bar_fill_health_low.png",
-    "width": 32,
-    "height": 8,
+    "width": 64,
+    "height": 16,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 2,
-      "right": 2,
-      "bottom": 2,
-      "left": 2
+      "top": 4,
+      "right": 4,
+      "bottom": 4,
+      "left": 4
     }
   },
   {
     "file": "bar_fill_health.png",
-    "width": 32,
-    "height": 8,
+    "width": 64,
+    "height": 16,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 2,
-      "right": 2,
-      "bottom": 2,
-      "left": 2
+      "top": 4,
+      "right": 4,
+      "bottom": 4,
+      "left": 4
     }
   },
   {
     "file": "bar_fill_pity_ss.png",
-    "width": 32,
-    "height": 8,
+    "width": 64,
+    "height": 16,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 2,
-      "right": 2,
-      "bottom": 2,
-      "left": 2
+      "top": 4,
+      "right": 4,
+      "bottom": 4,
+      "left": 4
     }
   },
   {
     "file": "bar_fill_pity_ssr.png",
-    "width": 32,
-    "height": 8,
+    "width": 64,
+    "height": 16,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 2,
-      "right": 2,
-      "bottom": 2,
-      "left": 2
+      "top": 4,
+      "right": 4,
+      "bottom": 4,
+      "left": 4
     }
   },
   {
     "file": "bar_fill_shield.png",
-    "width": 32,
-    "height": 8,
+    "width": 64,
+    "height": 16,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 2,
-      "right": 2,
-      "bottom": 2,
-      "left": 2
+      "top": 4,
+      "right": 4,
+      "bottom": 4,
+      "left": 4
     }
   },
   {
     "file": "bar_fill_turn.png",
-    "width": 32,
-    "height": 8,
+    "width": 64,
+    "height": 16,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 2,
-      "right": 2,
-      "bottom": 2,
-      "left": 2
+      "top": 4,
+      "right": 4,
+      "bottom": 4,
+      "left": 4
     }
   },
   {
     "file": "bar_fill_xp.png",
-    "width": 32,
-    "height": 8,
+    "width": 64,
+    "height": 16,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 2,
-      "right": 2,
-      "bottom": 2,
-      "left": 2
+      "top": 4,
+      "right": 4,
+      "bottom": 4,
+      "left": 4
     }
   },
   {
     "file": "bar_track.png",
-    "width": 64,
-    "height": 12,
+    "width": 128,
+    "height": 24,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 4,
-      "right": 4,
-      "bottom": 4,
-      "left": 4
+      "top": 8,
+      "right": 8,
+      "bottom": 8,
+      "left": 8
     }
   },
   {
     "file": "button_danger_disabled.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_danger_focus.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_danger_hover.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_danger_normal.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_danger_pressed.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_gold_disabled.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_gold_focus.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_gold_hover.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_gold_normal.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_gold_pressed.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_neutral_disabled.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_neutral_focus.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_neutral_hover.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_neutral_normal.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_neutral_pressed.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_primary_disabled.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_primary_focus.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_primary_hover.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_primary_normal.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_primary_pressed.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_secondary_disabled.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_secondary_focus.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_secondary_hover.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_secondary_normal.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "button_secondary_pressed.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "checkbox_disabled_off.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "checkbox_disabled_on.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "checkbox_focus.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "checkbox_mixed.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "checkbox_off.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "checkbox_on.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "chest_tier1.png",
-    "width": 32,
-    "height": 32
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5
   },
   {
     "file": "chest_tier2.png",
-    "width": 32,
-    "height": 32
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5
   },
   {
     "file": "chest_tier3.png",
-    "width": 32,
-    "height": 32
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5
   },
   {
     "file": "favicon_128.png",
     "width": 128,
-    "height": 128
+    "height": 128,
+    "display_scale": 1
   },
   {
     "file": "favicon_16.png",
     "width": 16,
-    "height": 16
+    "height": 16,
+    "display_scale": 1
   },
   {
     "file": "favicon_180.png",
     "width": 180,
-    "height": 180
+    "height": 180,
+    "display_scale": 1
   },
   {
     "file": "favicon_192.png",
     "width": 192,
-    "height": 192
+    "height": 192,
+    "display_scale": 1
   },
   {
     "file": "favicon_256.png",
     "width": 256,
-    "height": 256
+    "height": 256,
+    "display_scale": 1
   },
   {
     "file": "favicon_32.png",
     "width": 32,
-    "height": 32
+    "height": 32,
+    "display_scale": 1
   },
   {
     "file": "favicon_48.png",
     "width": 48,
-    "height": 48
+    "height": 48,
+    "display_scale": 1
   },
   {
     "file": "favicon_512.png",
     "width": 512,
-    "height": 512
+    "height": 512,
+    "display_scale": 1
   },
   {
     "file": "favicon_64.png",
     "width": 64,
-    "height": 64
+    "height": 64,
+    "display_scale": 1
   },
   {
     "file": "frame_rank_a_compact.png",
-    "width": 32,
-    "height": 32,
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 6,
-      "bottom": 6,
-      "left": 6
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "frame_rank_a.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "frame_rank_b_compact.png",
-    "width": 32,
-    "height": 32,
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 6,
-      "bottom": 6,
-      "left": 6
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "frame_rank_b.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "frame_rank_c_compact.png",
-    "width": 32,
-    "height": 32,
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 6,
-      "bottom": 6,
-      "left": 6
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "frame_rank_c.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "frame_rank_d_compact.png",
-    "width": 32,
-    "height": 32,
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 6,
-      "bottom": 6,
-      "left": 6
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "frame_rank_d.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "frame_rank_e_compact.png",
-    "width": 32,
-    "height": 32,
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 6,
-      "bottom": 6,
-      "left": 6
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "frame_rank_e.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "frame_rank_f_compact.png",
-    "width": 32,
-    "height": 32,
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 6,
-      "bottom": 6,
-      "left": 6
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "frame_rank_f.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "frame_rank_s_compact.png",
-    "width": 32,
-    "height": 32,
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 6,
-      "bottom": 6,
-      "left": 6
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "frame_rank_s.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "frame_rank_ss_compact.png",
-    "width": 32,
-    "height": 32,
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 6,
-      "bottom": 6,
-      "left": 6
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "frame_rank_ss.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "frame_rank_ssr_compact.png",
-    "width": 32,
-    "height": 32,
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 6,
-      "bottom": 6,
-      "left": 6
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "frame_rank_ssr.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "glyph_add.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "glyph_back.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "glyph_check.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "glyph_close.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "glyph_down.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "glyph_help.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "glyph_info.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "glyph_menu.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "glyph_next.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "glyph_refresh.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "glyph_settings.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "glyph_subtract.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "glyph_up.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "glyph_warning.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "input_disabled.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "input_error.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "input_focus.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "input_normal.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "logo_emblem.png",
-    "width": 64,
-    "height": 64
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5
   },
   {
     "file": "logo_primary.png",
-    "width": 320,
-    "height": 96
+    "width": 640,
+    "height": 192,
+    "display_scale": 0.5
   },
   {
     "file": "logo_stacked.png",
-    "width": 192,
-    "height": 192
+    "width": 384,
+    "height": 384,
+    "display_scale": 0.5
   },
   {
     "file": "logo_wordmark.png",
-    "width": 256,
-    "height": 64
+    "width": 512,
+    "height": 128,
+    "display_scale": 0.5
   },
   {
     "file": "modal_scrim.png",
     "width": 8,
-    "height": 8
+    "height": 8,
+    "display_scale": 1
   },
   {
     "file": "panel_default.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "panel_inset.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "panel_modal.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "panel_raised.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "panel_sidebar.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "panel_tooltip.png",
-    "width": 64,
-    "height": 64,
+    "width": 128,
+    "height": 128,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 8,
-      "right": 8,
-      "bottom": 8,
-      "left": 8
+      "top": 16,
+      "right": 16,
+      "bottom": 16,
+      "left": 16
     }
   },
   {
     "file": "radio_disabled_off.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "radio_disabled_on.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "radio_focus.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "radio_mixed.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "radio_off.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "radio_on.png",
-    "width": 16,
-    "height": 16
+    "width": 32,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "scrollbar_thumb.png",
-    "width": 8,
-    "height": 24,
+    "width": 16,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 4,
-      "right": 2,
-      "bottom": 4,
-      "left": 2
-    }
-  },
-  {
-    "file": "scrollbar_track.png",
-    "width": 8,
-    "height": 32,
-    "nine_slice": {
-      "top": 4,
-      "right": 2,
-      "bottom": 4,
-      "left": 2
-    }
-  },
-  {
-    "file": "select_disabled.png",
-    "width": 64,
-    "height": 24,
-    "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
-    }
-  },
-  {
-    "file": "select_error.png",
-    "width": 64,
-    "height": 24,
-    "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
-    }
-  },
-  {
-    "file": "select_focus.png",
-    "width": 64,
-    "height": 24,
-    "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
-    }
-  },
-  {
-    "file": "select_normal.png",
-    "width": 64,
-    "height": 24,
-    "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
-    }
-  },
-  {
-    "file": "separator.png",
-    "width": 64,
-    "height": 8,
-    "nine_slice": {
-      "top": 0,
-      "right": 8,
-      "bottom": 0,
-      "left": 8
-    }
-  },
-  {
-    "file": "slider_thumb_disabled.png",
-    "width": 12,
-    "height": 16
-  },
-  {
-    "file": "slider_thumb_focus.png",
-    "width": 12,
-    "height": 16
-  },
-  {
-    "file": "slider_thumb_normal.png",
-    "width": 12,
-    "height": 16
-  },
-  {
-    "file": "slider_track.png",
-    "width": 64,
-    "height": 8,
-    "nine_slice": {
-      "top": 3,
+      "top": 8,
       "right": 4,
-      "bottom": 3,
+      "bottom": 8,
       "left": 4
     }
   },
   {
-    "file": "slot_disabled.png",
-    "width": 32,
+    "file": "scrollbar_track.png",
+    "width": 16,
+    "height": 64,
+    "display_scale": 0.5,
+    "nine_slice": {
+      "top": 8,
+      "right": 4,
+      "bottom": 8,
+      "left": 4
+    }
+  },
+  {
+    "file": "select_disabled.png",
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
+    "nine_slice": {
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
+    }
+  },
+  {
+    "file": "select_error.png",
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
+    "nine_slice": {
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
+    }
+  },
+  {
+    "file": "select_focus.png",
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
+    "nine_slice": {
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
+    }
+  },
+  {
+    "file": "select_normal.png",
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
+    "nine_slice": {
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
+    }
+  },
+  {
+    "file": "separator.png",
+    "width": 128,
+    "height": 16,
+    "display_scale": 0.5,
+    "nine_slice": {
+      "top": 0,
+      "right": 16,
+      "bottom": 0,
+      "left": 16
+    }
+  },
+  {
+    "file": "slider_thumb_disabled.png",
+    "width": 24,
     "height": 32,
+    "display_scale": 0.5
+  },
+  {
+    "file": "slider_thumb_focus.png",
+    "width": 24,
+    "height": 32,
+    "display_scale": 0.5
+  },
+  {
+    "file": "slider_thumb_normal.png",
+    "width": 24,
+    "height": 32,
+    "display_scale": 0.5
+  },
+  {
+    "file": "slider_track.png",
+    "width": 128,
+    "height": 16,
+    "display_scale": 0.5,
     "nine_slice": {
       "top": 6,
-      "right": 6,
+      "right": 8,
       "bottom": 6,
-      "left": 6
+      "left": 8
+    }
+  },
+  {
+    "file": "slot_disabled.png",
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
+    "nine_slice": {
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "slot_hover.png",
-    "width": 32,
-    "height": 32,
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 6,
-      "bottom": 6,
-      "left": 6
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "slot_locked.png",
-    "width": 32,
-    "height": 32,
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 6,
-      "bottom": 6,
-      "left": 6
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "slot_normal.png",
-    "width": 32,
-    "height": 32,
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 6,
-      "bottom": 6,
-      "left": 6
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "slot_selected.png",
-    "width": 32,
-    "height": 32,
+    "width": 64,
+    "height": 64,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 6,
-      "bottom": 6,
-      "left": 6
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
     }
   },
   {
     "file": "tab_active.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "tab_disabled.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "tab_focus.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "tab_hover.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "tab_normal.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "title_tab.png",
-    "width": 64,
-    "height": 24,
+    "width": 128,
+    "height": 48,
+    "display_scale": 0.5,
     "nine_slice": {
-      "top": 6,
-      "right": 8,
-      "bottom": 6,
-      "left": 8
+      "top": 12,
+      "right": 16,
+      "bottom": 12,
+      "left": 16
     }
   },
   {
     "file": "toggle_disabled.png",
-    "width": 32,
-    "height": 16
+    "width": 64,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "toggle_focus.png",
-    "width": 32,
-    "height": 16
+    "width": 64,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "toggle_off.png",
-    "width": 32,
-    "height": 16
+    "width": 64,
+    "height": 32,
+    "display_scale": 0.5
   },
   {
     "file": "toggle_on.png",
-    "width": 32,
-    "height": 16
+    "width": 64,
+    "height": 32,
+    "display_scale": 0.5
   }
 ]
