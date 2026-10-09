@@ -94,7 +94,7 @@ describe("hero fusion ratios", () => {
     expect(ratios).toHaveLength(RARITY_IDS.length - 1); // every rank but the top one
     expect(HERO_FUSION.s).toBeUndefined();
     for (let i = 1; i < ratios.length; i++) expect(ratios[i]).toBeLessThanOrEqual(ratios[i - 1]);
-    expect(ratios[ratios.length - 1]).toBeLessThanOrEqual(3); // A -> S must be reachable
+    expect(ratios[ratios.length - 1]).toBeLessThanOrEqual(4); // A -> S must be reachable
   });
 
   it("fusing everything pulled adds S on top of the pulled S, about +70%", () => {

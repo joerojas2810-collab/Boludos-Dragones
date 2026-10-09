@@ -262,7 +262,7 @@ Implementación: `traits.ts` (catálogo y reglas), `combat.ts` (estado por comba
 
 ## 7c. Rangos: F a S [DECIDIDO 2026-10-09]
 
-- **Rangos de objeto (héroes y equipo): 7, de F a S.** SS y SSR salen de gacha, héroes, equipo y forja. Probabilidades: 30/22/16/12/9/6/**5** % (S absorbe el 5 % que sumaban S, SS y SSR); multiplicador de S ×2,6 (antes 2,35); equipo S ×3,4. Valor de trueque de S: 5000 (250 / 5 %).
+- **Rangos de objeto (héroes y equipo): 7, de F a S.** SS y SSR salen de gacha, héroes, equipo y forja. Probabilidades: 31/22,5/16,5/12/9/6/**3** % (S queda en 3 %: una S cada ~1,75 días a ~19 tiradas diarias; el 2 % sobrante de los tres altos se reparte entre F, E y D); multiplicador de S ×2,6 (antes 2,35); equipo S ×3,4. Valor de trueque de S: 8330 (250 / 3 %). Fusionar todo lo que se tira da ~+70 % de S extra (proporciones F 5, E 5, D 4, C 4, B 4, A 4).
 - **Sin pity.** Se eliminó el pity de 250; `apply_pull` ya no lo exige (migración 0049). Los contadores `pity`/`pitySsr` siguen en el perfil siempre en 0 por compatibilidad con la firma SQL.
 - **Dungeons: 9, como niveles de dificultad** (`DungeonId`, ids f..ssr sin cambios; `levels.ts` intacto). Los tres últimos (S, SS, SSR) sueltan objetos S: el top de la pieza es S y el resto sube hasta S en SS y SSR. La fuerza de los enemigos conserva la escala de 9 (`DUNGEON_MULT`); `RANK_TUNE` recalibrado para S (2,85), SS (2,79) y SSR (2,62) con héroes S de referencia (objetivo 62 / 48 / 35 %).
 - **Identidad de los rangos altos (equipo):** líneas extra C 1, A 2, S 3, más una **línea capstone** exclusiva de S (casco y peto: daño recibido; piernas, zapatos y collar: daño infligido). Cada pieza S trae hasta 4 líneas.

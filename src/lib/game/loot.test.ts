@@ -51,10 +51,10 @@ describe("gachaDropRank (dungeon loot rarity)", () => {
         );
     for (let i = 0; i < 50; i++) expect(gachaDropRank(rng, "f")).toBe("f");
   });
-  it("its own rank is as rare as in a pull (S ~5 %)", () => {
+  it("its own rank is as rare as in a pull (S ~3 %)", () => {
     const s = share("s");
-    expect(s("s")).toBeGreaterThan(0.03);
-    expect(s("s")).toBeLessThan(0.07);
+    expect(s("s")).toBeGreaterThan(0.015);
+    expect(s("s")).toBeLessThan(0.05);
     expect(s("f")).toBeGreaterThan(0.2); // mostly low ranks
   });
   it("tilt leans toward the top", () => {

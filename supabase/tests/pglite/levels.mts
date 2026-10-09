@@ -225,7 +225,7 @@ for (const r of RARITY_IDS) for (const lg of [false, true]) {
   const sqlv = (await q(`select (public.trade_value('c-mago-fuego-${r}') * ${lg ? 50 : 4} / 100) v`))[0].v;
   if (sqlv !== burnValue(r, lg)) { fail++; console.log("FAIL burn parity", r, lg, sqlv, burnValue(r, lg)); } else pass++;
 }
-ok((await q(`select public.trade_value('c-mago-fuego-s') v`))[0].v === 5000, "trade_value s 5000");
+ok((await q(`select public.trade_value('c-mago-fuego-s') v`))[0].v === 8330, "trade_value s 8330");
 
 // 9. hero skill
 await err(rpc("choose_hero_skill", { p_player: P, p_character_id: HERO, p_skill: "tormenta" }), "invalid_skill", "other class skill");

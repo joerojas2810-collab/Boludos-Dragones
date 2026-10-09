@@ -45,13 +45,13 @@ export interface RarityInfo {
 
 // Tune here.
 export const RARITIES: Record<RarityId, RarityInfo> = {
-  f: { label: "F", color: "#9ca3af", probability: 0.3, multiplier: 1.0 },
-  e: { label: "E", color: "#4ade80", probability: 0.22, multiplier: 1.15 },
-  d: { label: "D", color: "#2dd4bf", probability: 0.16, multiplier: 1.3 },
+  f: { label: "F", color: "#9ca3af", probability: 0.31, multiplier: 1.0 },
+  e: { label: "E", color: "#4ade80", probability: 0.225, multiplier: 1.15 },
+  d: { label: "D", color: "#2dd4bf", probability: 0.165, multiplier: 1.3 },
   c: { label: "C", color: "#60a5fa", probability: 0.12, multiplier: 1.5 },
   b: { label: "B", color: "#818cf8", probability: 0.09, multiplier: 1.75 },
   a: { label: "A", color: "#c084fc", probability: 0.06, multiplier: 2.0 },
-  s: { label: "S", color: "#fbbf24", probability: 0.05, multiplier: 2.6 },
+  s: { label: "S", color: "#fbbf24", probability: 0.03, multiplier: 2.6 },
 };
 
 // Old 5-rarity ids (saved profiles, DB rows) -> new rank. See docs/DUNGEONS_FORJA.md.

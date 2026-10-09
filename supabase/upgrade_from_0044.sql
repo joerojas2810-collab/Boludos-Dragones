@@ -240,13 +240,13 @@ begin
   end loop;
 end $$;
 
--- 4) Trade value follows the new top rank: S is worth 250 / 5% = 5000 (burn and the market derive from it).
+-- 4) Trade value follows the new top rank: S is worth 250 / 3% = 8330 (burn and the market derive from it).
 create or replace function public.trade_value(p_key text) returns int
 language sql immutable set search_path = ''
 as $$
   select case substring(p_key from '[^-]+$')
     when 'f' then 830 when 'e' then 1140 when 'd' then 1560 when 'c' then 2080
-    when 'b' then 2780 when 'a' then 4170 when 's' then 5000 else 0 end
+    when 'b' then 2780 when 'a' then 4170 when 's' then 8330 else 0 end
 $$;
 update public.market_offers set status = 'cancelled', closed_at = now()
  where status = 'open' and not public.trade_fair(give_key, want_key, coins);

@@ -64,8 +64,8 @@ describe("market keys", () => {
 describe("equivalent trades (+-25% in value)", () => {
   it("values follow the gacha price of each rank", () => {
     expect(TRADE_VALUE.f).toBe(830);
-    expect(TRADE_VALUE.s).toBe(5000);
-    // value = coins a pull of that rank costs: price / odds (250 / 0.30 ~ 830; 250 / 0.05 = 5000)
+    expect(TRADE_VALUE.s).toBe(8330);
+    // value = coins a pull of that rank costs: price / odds (250 / 0.30 ~ 830; 250 / 0.03 = 8330)
     expect(TRADE_VALUE.f).toBeCloseTo(PULL_COST_CHARACTER / 0.3, -1);
     expect(TRADE_VALUE.s).toBeCloseTo(PULL_COST_CHARACTER / RARITIES.s.probability, -1);
     const v = Object.values(TRADE_VALUE);
