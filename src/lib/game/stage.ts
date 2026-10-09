@@ -40,15 +40,15 @@ export const KIND_POWER: Record<FightRole, number> = {
 };
 // Per-rank difficulty tuning (scripts/stage-tune.ts bisects these to hit the target clear rates).
 export const RANK_TUNE: Record<DungeonId, number> = {
-  f: 1.23,
+  f: 1.25,
   e: 1.54,
-  d: 1.47,
+  d: 1.51,
   c: 1.59,
-  b: 1.86,
-  a: 2.06,
-  s: 3.09,
-  ss: 2.92,
-  ssr: 2.69,
+  b: 1.89,
+  a: 2.12,
+  s: 3.14,
+  ss: 3.01,
+  ssr: 2.73,
 };
 export const LEVEL_STEP = 0.05; // enemy power grows this much per level index
 export const ASC_HP_STEP = 0.12; // per ascension level
@@ -114,12 +114,12 @@ function groupSize(
   let size = 1;
   if (role === "normal") {
     const r = rng.next();
-    const p3 = 0.35 * hi;
-    const p2 = 0.2 + 0.3 * hi;
+    const p3 = 0.12 * hi; // 1v3 is rare: with statuses in play it gets chaotic
+    const p2 = 0.25 + 0.25 * hi;
     size = r < p3 ? 3 : r < p3 + p2 ? 2 : 1;
     if (asc >= 3) size = Math.min(3, size + 1);
   } else if (role === "elite") size = rng.chance(0.2 + 0.4 * hi) ? 2 : 1;
-  else size = 1 + (hi > 0.3 ? 1 : 0) + (hi > 0.7 ? 1 : 0);
+  else size = 1 + (hi > 0.3 ? 1 : 0) + (hi > 0.9 ? 1 : 0); // boss + escorts; two escorts only in SSR
   return size;
 }
 
