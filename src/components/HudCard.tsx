@@ -16,6 +16,7 @@ import {
   freeHitsTip,
   passiveTip,
   reflectTip,
+  bossBadge,
   riposteTip,
   statusTip,
   shieldTip,
@@ -96,6 +97,8 @@ export function HudCard({
     (c.shield ?? 0) > 0 ||
     c.riposte ||
     !!c.statuses?.length ||
+    !!c.boss ||
+    (c.healCut ?? 0) > 0 ||
     (c.reflect ?? 0) > 0 ||
     (c.freeHits ?? 0) > 0 ||
     (!you && turn > ENRAGE_AFTER_TURN) ||
@@ -156,6 +159,22 @@ export function HudCard({
           {c.riposte && (
             <Chip tip={riposteTip(c)} tone="heal">
               Guardia perfecta
+            </Chip>
+          )}
+          {(() => {
+            const bb = bossBadge(c);
+            return bb ? (
+              <Chip tip={bb.tip} tone="danger">
+                {bb.label}
+              </Chip>
+            ) : null;
+          })()}
+          {(c.healCut ?? 0) > 0 && (
+            <Chip
+              tip={{ title: "Curas a la mitad", kind: "info", lines: ["El ritual marchito reduce todas tus curas durante unas rondas."] }}
+              tone="danger"
+            >
+              Curas ½
             </Chip>
           )}
           {c.statuses?.map((s) => (

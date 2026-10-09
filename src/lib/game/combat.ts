@@ -40,6 +40,32 @@ import {
   tickStatuses,
   type StatusEffect,
 } from "./statuses";
+import {
+  ADAPT_AFTER,
+  ADAPT_FACTOR,
+  ARMOR_FRACTION,
+  ARMOR_REGROW,
+  ARMOR_TAKEN,
+  BROKEN_ROUNDS,
+  BROKEN_TAKEN,
+  HEAD_HEAL,
+  HEAD_THRESHOLDS,
+  HUNGER_BELOW,
+  HUNGER_STEAL,
+  NEW_BOSS,
+  PLAGUE_LOSS,
+  PRESSURE_MAX,
+  PRESSURE_STEP,
+  RAMP_MAX,
+  RAMP_STEP,
+  RITUAL_EVERY,
+  RITUAL_HEAL_CUT,
+  RITUAL_ROUNDS,
+  ruleOf,
+  stanceFor,
+  STANCES,
+  type BossState,
+} from "./bossRules";
 import { traitTotals } from "./traits";
 import { weaponSpecial } from "./weapons";
 
@@ -137,6 +163,8 @@ export interface Combatant {
   perks?: Perks;
   statuses?: StatusEffect[]; // elemental effects (statuses.ts)
   charge?: number; // Rayo hits since the last overload
+  boss?: BossState; // dungeon boss mechanic state (bossRules.ts)
+  healCut?: number; // rounds left with the heals cut (Reina Marchita ritual)
   applies?: boolean; // enemies: strong hits apply their element's status (elites, bosses)
 }
 
@@ -192,13 +220,16 @@ export const passiveReduction = (c: Combatant): number =>
 
 // Fraction of damage absorbed by defense (0..DEF_CAP).
 export const defReduction = (att: Combatant, def: Combatant): number => {
-  const d = def.char.stats.def * defMult(def.statuses);
+  const d =
+    def.char.stats.def *
+    defMult(def.statuses) *
+    (def.boss && ruleOf(def) === "posturas" ? STANCES[def.boss.stance].def : 1);
   return Math.min(DEF_CAP, d / Math.max(1e-6, d + DEF_K * att.char.stats.atk));
 };
 
 // Speed after Escarcha / Impulso.
 export const speedOf = (c: Combatant): number =>
-  c.char.stats.speed * speedMult(c.statuses);
+  c.char.stats.speed * speedMult(c.statuses) * (1 + RAMP_STEP * (c.boss?.ramp ?? 0));
 
 // Passive healing per round as a fraction of max hp: class blessing plus gear
 // and perk regen, with the global cap.
@@ -214,7 +245,8 @@ export const lifestealOf = (c: Combatant): number =>
   Math.min(LIFESTEAL_CAP, c.char.stats.lifesteal + (c.perks?.lifesteal ?? 0));
 
 // Every heal (attack heal, skills, lifesteal, regen, Clérigo blessing).
-export const healMult = (c: Combatant): number => 1 - rulesOf(c).healPenalty;
+export const healMult = (c: Combatant): number =>
+  (1 - rulesOf(c).healPenalty) * ((c.healCut ?? 0) > 0 ? RITUAL_HEAL_CUT : 1);
 
 // Berserker Furia: damage bonus by hp threshold.
 export const furyBonus = (c: Combatant): number =>
@@ -370,11 +402,15 @@ function planRound(
   lines: string[];
 } {
   const live = enemies.flatMap((e, i) => (e.hp > 0 ? [i] : []));
-  const counts = enemies.map((e) =>
-    e.hp > 0
-      ? actionCounts(speedOf(player), speedOf(e), e.carry ?? 0)
-      : null,
-  );
+  // Bosses: Hidra heads and a starving Devorador add actions on top of the speed ones.
+  const extra = (e: Combatant) =>
+    (e.boss?.heads ?? 0) +
+    (ruleOf(e) === "hambre" && e.hp < e.char.stats.hp * HUNGER_BELOW ? 1 : 0);
+  const counts = enemies.map((e) => {
+    if (e.hp <= 0) return null;
+    const c = actionCounts(speedOf(player), speedOf(e), e.carry ?? 0);
+    return { ...c, enemy: Math.min(MAX_ACTIONS_PER_ROUND + 1, c.enemy + extra(e)) };
+  });
   const intents: Intent[][] = enemies.map((e, i) =>
     counts[i] ? pickIntents(e, counts[i].enemy, rng) : [],
   );
@@ -388,6 +424,13 @@ function planRound(
     lines.push(
       `${player.char.name} es más veloz: actúa ${playerActions} veces.`,
     );
+  for (const i of live) {
+    const e = enemies[i];
+    if (ruleOf(e) === "posturas")
+      lines.push(`${e.char.name} adopta la postura ${stanceFor(turn)}.`);
+    if (ruleOf(e) === "marchitar" && turn % RITUAL_EVERY === 0)
+      lines.push(`${e.char.name} prepara un ritual: defiende con guardia perfecta para anularlo.`);
+  }
   for (const i of live)
     if ((counts[i]?.enemy ?? 1) > 1)
       lines.push(
@@ -400,6 +443,7 @@ function planRound(
       ...e,
       carry: counts[i]?.carry ?? e.carry,
       defending: intents[i].includes("defend"),
+      ...(e.boss && ruleOf(e) === "posturas" && { boss: { ...e.boss, stance: stanceFor(turn) } }),
     })),
     lines,
   };
@@ -446,6 +490,8 @@ export function startBattle(
   const es = list.slice(0, MAX_ENEMIES).map((c) => {
     const e = newCombatant(c);
     if (opts.enemyStatus) e.applies = true;
+    if (ruleOf(e)) e.boss = { ...NEW_BOSS };
+    if (ruleOf(e) === "armadura") e.shield = Math.round(c.stats.hp * ARMOR_FRACTION);
     if (mods.includes("escudo"))
       e.shield = Math.round(c.stats.hp * SHIELD_FRACTION);
     return e;
@@ -499,6 +545,20 @@ function selfFactor(att: Combatant, key: MoveKey): number {
     : 1;
 }
 
+// Boss mechanics on damage: what a boss deals and what it takes.
+function bossDealtMult(att: Combatant): number {
+  if (!att.boss) return 1;
+  const r = ruleOf(att);
+  if (r === "presion") return 1 + PRESSURE_STEP * att.boss.pressure;
+  if (r === "posturas") return STANCES[att.boss.stance].dmg;
+  return 1;
+}
+function bossTakenMult(def: Combatant): number {
+  if (!def.boss || ruleOf(def) !== "armadura") return 1;
+  if ((def.shield ?? 0) > 0) return ARMOR_TAKEN;
+  return def.boss.broken > 0 ? BROKEN_TAKEN : 1;
+}
+
 // Detonar: extra damage per status stack on the target.
 function detonateFactor(att: Combatant, def: Combatant, key: MoveKey): number {
   const d = key === "attack3" ? skillOf(att)?.detonate : undefined;
@@ -541,6 +601,8 @@ export function estimateDamage(
         executeFactor(att, def, key) *
         selfFactor(att, key) *
         detonateFactor(att, def, key) *
+        bossDealtMult(att) *
+        bossTakenMult(def) *
         (1 + furyBonus(att)),
     ),
   );
@@ -616,6 +678,50 @@ export function statusTick(c: Combatant, log: string[]): Combatant {
     hp: Math.max(0, c.hp - burn),
     statuses: tickStatuses(c.statuses),
   };
+}
+
+// End-of-round upkeep of a boss: pressure and speed grow, the armor comes back.
+function bossRoundEnd(c: Combatant, turn: number, log: string[]): Combatant {
+  if (!c.boss) return c;
+  const rule = ruleOf(c);
+  const boss = { ...c.boss };
+  let out = c;
+  if (rule === "presion") boss.pressure = Math.min(PRESSURE_MAX, boss.pressure + 1);
+  if (rule === "velocidad" && turn % 2 === 0) boss.ramp = Math.min(RAMP_MAX, boss.ramp + 1);
+  if (rule === "armadura") {
+    boss.broken = Math.max(0, boss.broken - 1);
+    if (boss.regrow > 0 && --boss.regrow === 0) {
+      boss.broken = 0;
+      out = { ...c, shield: Math.round(c.char.stats.hp * ARMOR_FRACTION) };
+      log.push(`${c.char.name} recompone su armadura.`);
+    }
+  }
+  return { ...out, boss };
+}
+
+// A boss reacts to the hit it just took: the armor breaks, the hydra grows a head.
+function bossOnHit(before: Combatant, after: Combatant, log: string[]): Combatant {
+  const rule = ruleOf(after);
+  if (!after.boss || !rule) return after;
+  if (rule === "armadura" && (before.shield ?? 0) > 0 && (after.shield ?? 0) <= 0) {
+    log.push(`¡La armadura de ${after.char.name} se rompe! Queda Roto.`);
+    return { ...after, boss: { ...after.boss, broken: BROKEN_ROUNDS, regrow: ARMOR_REGROW } };
+  }
+  if (rule === "cabezas" && after.hp > 0) {
+    const max = after.char.stats.hp;
+    const crossed = HEAD_THRESHOLDS.filter(
+      (t) => before.hp > t * max && after.hp <= t * max,
+    ).length;
+    if (crossed > 0) {
+      log.push(`A ${after.char.name} le brota otra cabeza: se cura y ataca más.`);
+      return {
+        ...after,
+        hp: Math.min(max, after.hp + Math.round(max * HEAD_HEAL * crossed)),
+        boss: { ...after.boss, heads: after.boss.heads + crossed },
+      };
+    }
+  }
+  return after;
 }
 
 export interface Strike {
@@ -725,13 +831,18 @@ export function strike(
   if (absorbed > 0)
     log.push(`El escudo de ${def.char.name} absorbe ${absorbed}.`);
   const steal = Math.round(
-    dmg * (lifestealOf(att) + (skill?.lifesteal ?? 0)) * healMult(att),
+    dmg *
+      (lifestealOf(att) +
+        (skill?.lifesteal ?? 0) +
+        (ruleOf(att) === "hambre" ? HUNGER_STEAL : 0)) *
+      healMult(att),
   );
   let defender: Combatant = {
     ...def,
     hp: Math.max(0, def.hp - (dmg - absorbed)),
     ...(def.shield !== undefined && { shield: def.shield - absorbed }),
   };
+  defender = bossOnHit(def, defender, log);
   if (skill?.detonate && defender.statuses?.length) {
     log.push(`${def.char.name} detona: se borran sus estados.`);
     defender = { ...defender, statuses: [] };
@@ -828,7 +939,20 @@ export function step(
   let end: Status | null = null;
 
   // The hero's move. Strikes update `player` and `enemies` in place.
+  // Vigía Eterno: it reads a hero who repeats the same action.
+  const adapted = (i: number) => {
+    const last = enemies[i].boss?.last ?? [];
+    return (
+      ruleOf(enemies[i]) === "aprende" &&
+      last.length >= ADAPT_AFTER &&
+      last.every((a) => a === action)
+    );
+  };
   const hit = (i: number, key: MoveKey, factor = 1) => {
+    if (adapted(i)) {
+      factor *= ADAPT_FACTOR;
+      log.push(`${enemies[i].char.name} te lee: tu golpe repetido le hace menos.`);
+    }
     const r = strike(
       player,
       enemies[i],
@@ -904,6 +1028,13 @@ export function step(
       playerActed = true;
       if (playerDone++ > 0) log.push(`${player.char.name} actúa de nuevo.`);
       if (action !== "defend") playMove();
+      enemies.forEach((e, i) => {
+        if (e.boss && ruleOf(e) === "aprende")
+          enemies[i] = {
+            ...e,
+            boss: { ...e.boss, last: [...e.boss.last, action].slice(-ADAPT_AFTER) },
+          };
+      });
     } else if (enemies[slot.e].hp > 0) {
       let foe = enemies[slot.e];
       if (slot.n > 0) log.push(`${foe.char.name} actúa de nuevo.`);
@@ -923,6 +1054,17 @@ export function step(
       );
       foe = r.attacker;
       player = r.defender;
+      if (
+        foe.boss &&
+        ruleOf(foe) === "presion" &&
+        isStrongIntent(slot.intent) &&
+        player.guard &&
+        player.defending &&
+        foe.boss.pressure > 0
+      ) {
+        foe = { ...foe, boss: { ...foe.boss, pressure: 0 } };
+        log.push(`La guardia perfecta apaga la presión de ${foe.char.name}.`);
+      }
       if (b.mods?.includes("dobleAtaque") && player.hp > 0 && foe.hp > 0) {
         const x = strike(
           foe,
@@ -968,8 +1110,10 @@ export function step(
     };
 
   // ---- end of round ----
+  const guarded = !!player.guard; // perfect guard earned this round (Reina Marchita ritual)
   player = {
     ...player,
+    healCut: Math.max(0, (player.healCut ?? 0) - 1),
     defending: false,
     guard: false,
     cooldown: Math.max(0, player.cooldown - 1),
@@ -977,6 +1121,24 @@ export function step(
     reflect: Math.max(0, (player.reflect ?? 0) - 1),
   };
   player = statusTick(passiveHeal(player, log), log);
+  const bosses = enemies.filter((e) => e.hp > 0 && e.boss);
+  const bossRule = (r: string) => bosses.some((e) => ruleOf(e) === r);
+  if (bossRule("plaga")) {
+    const loss = Math.round(player.char.stats.hp * PLAGUE_LOSS);
+    player = { ...player, hp: Math.max(0, player.hp - loss) };
+    log.push(`La plaga te consume ${loss} de vida.`);
+  }
+  if (bossRule("marchitar") && b.turn % RITUAL_EVERY === 0) {
+    if (guarded) log.push("Tu guardia perfecta anula el ritual marchito.");
+    else {
+      player = {
+        ...player,
+        healCut: RITUAL_ROUNDS,
+        statuses: addStatus(player.statuses, "ruptura", 1, undefined, player.char.stats.resist),
+      };
+      log.push("El ritual te marchita: Ruptura y curas a la mitad.");
+    }
+  }
   const turn = b.turn + 1;
   const next = enemies.map((e): Combatant => {
     if (e.hp <= 0) return e;
@@ -990,6 +1152,7 @@ export function step(
       log.push(`${c.char.name} cae.`);
       return c;
     }
+    if (c.boss) c = bossRoundEnd(c, b.turn, log);
     if (b.mods?.includes("regeneracion")) {
       const hp = Math.min(
         c.char.stats.hp,

@@ -74,6 +74,23 @@ import {
 import { MODIFIER_FLOORS } from "./floorFights";
 import { CLEAR_XP_BONUS, FIGHT_XP, GAFE_LOSS_XP, SEDIENTO_HEAL } from "./stage";
 import { BURN_CAP, STATUS_DATA, type StatusEffect, type StatusId } from "./statuses";
+import {
+  ADAPT_AFTER,
+  ADAPT_FACTOR,
+  ARMOR_FRACTION,
+  ARMOR_TAKEN,
+  BROKEN_TAKEN,
+  HEAD_THRESHOLDS,
+  HUNGER_BELOW,
+  HUNGER_STEAL,
+  PLAGUE_LOSS,
+  PRESSURE_STEP,
+  RAMP_STEP,
+  RITUAL_EVERY,
+  ruleOf,
+  STANCES,
+  type BossRule,
+} from "./bossRules";
 import { TOWER_XP_FACTOR } from "./tower";
 import { TRAITS, type TraitId, type TraitMods } from "./traits";
 
@@ -719,6 +736,33 @@ export const statusTip = (s: StatusEffect): Tip => ({
   ],
   source: "Efecto elemental",
 });
+
+// Boss mechanic shown as a HUD chip (label + tooltip); null when it has nothing to show.
+const BOSS_TEXT: Record<BossRule, { title: string; line: string }> = {
+  plaga: { title: "Plaga", line: `Al final de cada ronda pierdes ${pct(PLAGUE_LOSS)} de tu vida máxima.` },
+  presion: { title: "Presión", line: `Cada ronda hace +${pct(PRESSURE_STEP)} de daño. Una guardia perfecta contra su golpe fuerte la reinicia.` },
+  aprende: { title: "Te lee", line: `Si repites la misma acción ${ADAPT_AFTER} veces seguidas, la siguiente hace ${pct(1 - ADAPT_FACTOR)} menos.` },
+  armadura: { title: "Armadura", line: `Barra del ${pct(ARMOR_FRACTION)} de su vida: recibe ${pct(1 - ARMOR_TAKEN)} menos de daño. Al romperla queda Roto (+${pct(BROKEN_TAKEN - 1)} de daño recibido) y la recompone después.` },
+  velocidad: { title: "Aceleración", line: `Cada 2 rondas gana +${pct(RAMP_STEP)} de velocidad. La Escarcha lo frena.` },
+  cabezas: { title: "Cabezas", line: `Al bajar del ${HEAD_THRESHOLDS.map((t) => pct(t)).join(", ")} de vida se cura y gana una acción por ronda.` },
+  marchitar: { title: "Ritual", line: `Cada ${RITUAL_EVERY} rondas te aplica Ruptura y reduce tus curas a la mitad. Una guardia perfecta lo anula.` },
+  posturas: { title: "Postura", line: `Alterna cada 2 rondas: ofensiva (+${pct(STANCES.ofensiva.dmg - 1)} daño, −${pct(1 - STANCES.ofensiva.def)} DEF) y defensiva (−${pct(1 - STANCES.defensiva.dmg)} daño, +${pct(STANCES.defensiva.def - 1)} DEF).` },
+  hambre: { title: "Hambre", line: `Se cura ${pct(HUNGER_STEAL)} del daño que hace y con menos del ${pct(HUNGER_BELOW)} de vida actúa una vez más.` },
+};
+
+export function bossBadge(c: Combatant): { label: string; tip: Tip } | null {
+  const rule = ruleOf(c);
+  if (!rule || !c.boss) return null;
+  const t = BOSS_TEXT[rule];
+  const label =
+    rule === "presion" ? `Presión ×${c.boss.pressure}`
+    : rule === "velocidad" ? `Aceleración ×${c.boss.ramp}`
+    : rule === "cabezas" ? `Cabezas ×${1 + c.boss.heads}`
+    : rule === "posturas" ? `Postura ${c.boss.stance}`
+    : rule === "armadura" ? ((c.shield ?? 0) > 0 ? "Armadura" : c.boss.broken > 0 ? `Roto ${c.boss.broken}` : "Sin armadura")
+    : t.title;
+  return { label, tip: { title: t.title, kind: "info", lines: [t.line], source: "Mecánica de jefe" } };
+}
 
 export const reflectTip = (c: Combatant): Tip => ({
   title: "Contraataque activo",

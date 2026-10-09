@@ -166,10 +166,22 @@ Caballero: se mantiene el personaje (velocidad, Reflejo en la Guardia perfecta, 
 
 Reglas: la tabla elemental es universal para jefes. La mecánica del jefe es lo que lo distingue. Reutilizar patrones comunes, no 9 sistemas distintos.
 
-### Pilotos [DECIDIDO salvo el 3.º]
-1. **Coloso Hueco: barra de armadura.** Armadura del 30 % de su vida máx. Mientras dura, recibe −50 % de daño. Al agotarla queda Roto 3 turnos (+25 % de daño recibido) y la armadura vuelve a los 6 turnos.
-2. **Rey del Trueno: velocidad creciente.** +10 % de velocidad cada 2 turnos (máx. +40 %). Escarcha e Impulso son su contra natural.
-3. **Rey de Ceniza: presión** [POR DEFECTO]. Gana +6 % de daño por turno (máx. +30 %). Una Guardia perfecta contra su golpe fuerte lo reinicia.
+### Mecánicas de los 9 jefes [DECIDIDO 2026-10-09, valores de prueba; `bossRules.ts`]
+El mapa jefe ↔ dungeon y el elemento fijo ya existían en `levels.ts` (`DUNGEON_THEMES`): se conservan. Nombre: Vigía Eterno.
+
+| Dungeon | Jefe (elemento) | Mecánica |
+|---|---|---|
+| F | Señor de las Moscas (agua) | Plaga: pierdes 1,5 % de tu vida máxima al final de cada ronda. |
+| E | Rey de Ceniza (fuego) | Presión: +6 % de daño por ronda (máx. +30 %); una guardia perfecta contra su golpe fuerte la reinicia. |
+| D | Vigía Eterno (viento) | Aprende: si repites la misma acción 2 veces seguidas, la siguiente le hace 25 % menos. |
+| C | Coloso Hueco (tierra) | Armadura del 30 % de su vida (−50 % de daño recibido); al romperla queda Roto 3 rondas (+25 %) y se recompone a las 6. |
+| B | Rey del Trueno (rayo) | Velocidad: +10 % cada 2 rondas (máx. +40 %). |
+| A | Madre Hidra (agua) | Cabezas: al bajar del 75, 50 y 25 % de vida se cura 10 % y gana una acción por ronda. |
+| S | Reina Marchita (tierra) | Ritual cada 3 rondas, anunciado: Ruptura y curas a la mitad 2 rondas; se anula con guardia perfecta. |
+| SS | El Sin Rostro (fuego) | Posturas cada 2 rondas: ofensiva (+30 % daño, −20 % DEF) / defensiva (−30 % daño, +30 % DEF). |
+| SSR | Gran Devorador (viento) | Hambre: se cura 10 % del daño que hace; bajo 30 % de vida actúa una vez más. |
+
+Los jefes aplican el estado de su elemento en golpes fuertes. La mecánica se activa por `bossId`, así que también vale en torre y salas.
 
 ### Afinidad fija por jefe [POR DEFECTO]
 Hoy los 9 jefes tienen 5 versiones visuales (una por elemento) asignadas al azar y sin efecto. Se propone una afinidad fija por jefe, con la variante visual correspondiente. Las otras variantes quedan para desafíos futuros.
