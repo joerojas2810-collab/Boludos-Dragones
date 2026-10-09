@@ -534,6 +534,7 @@ export function startBattle(
 
 // No dodge in engine v11: only accuracy decides a hit.
 export function hitChance(att: Combatant, key: MoveKey): number {
+  if (key === "attack1") return 1; // the basic attack is the safe one; accuracy is the risk of the others
   const retry = att.missed ? rulesOf(att).retryAccuracy : 0; // Terco insists after a miss
   return clamp(attackOf(att, key).accuracy + att.char.stats.accuracy + retry, 0.05, 1);
 }

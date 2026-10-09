@@ -132,7 +132,7 @@ export function ActionPanel({
         />
       );
     const name = a?.name ?? skill?.name ?? "Ataque 2";
-    const hits = `~${estimateDamage(b.player, foe, k)} daño · ${pct(hitChance(b.player, k))} acierto`;
+    const hits = `~${estimateDamage(b.player, foe, k)} daño · ${k === "attack1" ? "seguro" : `${pct(hitChance(b.player, k))} acierto`}`;
     const stats =
       k === "attack3" && skill
         ? skill.power === 0

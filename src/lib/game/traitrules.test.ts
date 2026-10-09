@@ -185,8 +185,9 @@ describe("trait rules: personality traits", () => {
   it("Terco: the hit after a miss has +10 accuracy", () => {
     const b = open(hero(["terco"], "mago", { accuracy: -0.3 }), foe());
     const retry = { ...b.player, missed: true };
-    expect(hitChance(retry, "attack1")).toBeCloseTo(hitChance(b.player, "attack1") + 0.1);
-    expect(hitChance({ ...hero([], "mago", { accuracy: -0.3 }) && b.player, missed: false }, "attack1")).toBe(hitChance(b.player, "attack1"));
+    expect(hitChance(retry, "attack2")).toBeCloseTo(hitChance(b.player, "attack2") + 0.1);
+    expect(hitChance({ ...b.player, missed: false }, "attack2")).toBe(hitChance(b.player, "attack2"));
+    expect(hitChance(retry, "attack1")).toBe(1); // the basic attack never misses
   });
 
   it("Orgulloso: +8% ATQ above half hp, -8% below", () => {

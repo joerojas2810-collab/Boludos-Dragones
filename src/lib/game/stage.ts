@@ -20,7 +20,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 11;
+export const ENGINE_VERSION = 12; // 12: the basic attack never misses
 
 export type FightRole = "normal" | "elite" | "final";
 

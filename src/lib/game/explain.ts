@@ -616,7 +616,9 @@ export function attackTip(c: Combatant, key: MoveKey, foe?: Combatant): Tip {
       ? ` ${st.accuracy > 0 ? "+" : "−"} ${pct(Math.abs(st.accuracy))} de tu stat de precisión`
       : "";
     lines.push(
-      `Acierto ${pct(hit)} = precisión ${pct(a.accuracy)}${accBonus}.`,
+      key === "attack1"
+        ? "El ataque básico nunca falla."
+        : `Acierto ${pct(hit)} = precisión ${pct(a.accuracy)}${accBonus}.`,
       damageLine(c, foe, key),
     );
     if (em !== 1)
@@ -708,7 +710,7 @@ export function intentTip(intent: Intent, b: Battle, idx?: number): Tip {
     };
   const a = attackOf(e, intent);
   const lines = [
-    `Acierta ${pct(hitChance(e, intent))} de las veces contra ti.`,
+    intent === "attack1" ? "Su ataque básico nunca falla." : `Acierta ${pct(hitChance(e, intent))} de las veces contra ti.`,
     `Daño: ~${estimateDamage(e, p, intent)} si acierta (sin crítico; ${pct(e.char.stats.crit)} de crítico).`,
     `Es su ${intent === "attack2" ? "golpe fuerte: arriesgado, con recarga" : "Ataque 1: el ataque seguro"}.`,
   ];
