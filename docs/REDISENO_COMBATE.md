@@ -204,7 +204,7 @@ Los ataques cargados (y con ellos "romper carga") se definen aquí.
 ## 6. Dungeons y encuentros
 
 ### Dungeons elementales [DECIDIDO 2026-10-09]
-El elemento predominante de cada dungeon es el de su jefe (`DUNGEON_THEMES`): F agua, E fuego, D viento, C tierra, B rayo, A agua, S tierra, SS fuego, SSR viento. Todos los niveles del dungeon lo comparten; las ascensiones lo rotan (`levelElement`). Se mantiene la proporción por rango (`dominantShare`: 60 % en F hasta 80 % en SSR) para no recalibrar `RANK_TUNE`. Efecto secundario: las piezas del botín siguen el elemento del nivel (`levelLoot.ts`), así que cada dungeon favorece un elemento de equipo. Simulación: F 97 %, S 71 % (sin cambio apreciable).
+El elemento predominante de cada dungeon es el de su jefe (`DUNGEON_THEMES`): F agua, E fuego, D viento, C tierra, B rayo, A agua, S tierra, SS fuego, SSR viento. Todos los niveles del dungeon lo comparten; las ascensiones lo rotan (`levelElement`). Proporción fija `DOMINANT_SHARE = 0.5` en todos los rangos (el resto es un sorteo entre los 5 elementos, así que el predominante real ronda el 60 %); antes subía de 60 % a 80 % por rango y quitaba variedad. En ascensiones cambia el elemento del nivel y del jefe final, no su identidad ni su mecánica. Efecto secundario: las piezas del botín siguen el elemento del nivel (`levelLoot.ts`), así que cada dungeon favorece un elemento de equipo. Simulación (8 héroes, ruido ±6): F 97 %, S 70 %, SSR 30 % (objetivo de `CLAUDE.md`: 96 % y 34 % en los extremos), sin necesidad de recalibrar.
 
 ### Eventos entre combates [DECIDIDO: no se hacen]
 Se mantiene la decisión de v8: sin puertas, reliquias ni tienda.

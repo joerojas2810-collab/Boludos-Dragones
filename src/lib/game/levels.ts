@@ -123,5 +123,6 @@ export function levelElement(spec: LevelSpec, ascension: number): Element {
   return el;
 }
 
-// Share of fights using the level's dominant element: 60% (F) -> 80% (SSR).
-export const dominantShare = (rank: RarityId) => 0.6 + 0.025 * rankIndex(rank);
+// Share of fights drawn as the level's dominant element; the rest is a free draw over
+// the 5 elements (which can also land on it), so the real share is ~60% at every rank.
+export const DOMINANT_SHARE = 0.5;

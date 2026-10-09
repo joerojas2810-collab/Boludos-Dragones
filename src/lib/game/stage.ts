@@ -10,7 +10,7 @@ import { ELEMENTS, type Element } from "./elements";
 import { startBattle, type Battle, type EnemyMod } from "./combat";
 import {
   DUNGEON_THEMES,
-  dominantShare,
+  DOMINANT_SHARE,
   levelElement,
   type LevelSpec,
 } from "./levels";
@@ -132,7 +132,7 @@ function makeFight(
   const { rank } = spec;
   const rng = createRng(hashSeed(rankIdx(rank), spec.index, fightIdx, 9104));
   const dom = levelElement(spec, asc);
-  const share = dominantShare(rank);
+  const share = DOMINANT_SHARE;
   const size = groupSize(rng, role, rank, asc);
   const hasBoss = role !== "normal";
   const levelPower = 1 + LEVEL_STEP * spec.index;
