@@ -212,7 +212,7 @@ Falta mapear qué jefe corresponde a qué dungeon (CLAUDE.md solo dice "jefe con
 | Estrellas y fusión | [POR DEFECTO] | Se mantiene lo actual (estrellas por copias exactas; fusión base 3★ + materiales del mismo rango). Re-medir con la economía. |
 | Pity | [POR DEFECTO] | Se elimina el pity de 250 tiradas. Probabilidades 30/22/16/12/9/6/3/1,5/0,5 % hasta recalcular. |
 | Mejorar equipo | [POR DEFECTO] | Se mantiene el sistema actual con riesgo de fallo y protección acumulativa (`plusStreak`: +5 % por fallo consecutivo). Pendiente si el Dado cargado suma puntos o es relativo (leer `docs/FORJA_V9.md`). |
-| Rasgos | [POR DEFECTO] | No se tocan en este rediseño. Se revisan tras el balance. |
+| Rasgos | **[DECIDIDO]** | Se quitan los 20 rasgos de números y se conservan los de regla de run (hoy 4). Se definen rasgos de regla nuevos que encajen con estados, guardia y elementos. Paso aparte: migración de perfiles, fusión (`heroFusion.ts`), arte por rasgo y cantidad por rango. Hasta entonces los rasgos actuales quedan como están (los de esquive, casi inertes). |
 
 ---
 
@@ -256,6 +256,14 @@ Reemplazar en "Reglas del juego":
 
 ---
 
+## 10b. Decisiones cerradas en la revisión del 2026-10-09 [DECIDIDO]
+
+1. Enemigos que aplican efecto elemental: solo élites y jefes, en golpes fuertes.
+2. Resistencia a estados reemplaza al esquive en las líneas de equipo (acorta Escarcha, Quemadura y Ruptura, mínimo 1 ronda).
+3. Pícaro: resistencia base 0.
+4. Quemadura: tope 6 % de la vida máxima por ronda para todos, a medir.
+5. Rasgos: camino intermedio (ver sección 7).
+
 ## 11. Preguntas abiertas
 
 1. ¿Qué ataques llevan el elemento y aplican efecto? (sección 2)
@@ -267,3 +275,4 @@ Reemplazar en "Reglas del juego":
 7. Mapa jefe ↔ dungeon. (sección 6)
 8. ¿Se retoma el Invocador o se sustituye por el Monje? (sección 3)
 9. Los otros 6 jefes y los ataques cargados. (sección 5)
+10. Rasgos de regla nuevos: cuáles y cuántos, y cantidad por rango sin los de números. (sección 7)
