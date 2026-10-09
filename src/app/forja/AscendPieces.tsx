@@ -49,11 +49,33 @@ export function PieceRow({
   );
 }
 
-const SLOT_LABEL: Record<string, string> = { arma: "Arma", casco: "Casco", peto: "Peto", piernas: "Piernas", zapatos: "Zapatos", collar: "Collar" };
+const SLOT_LABEL: Record<string, string> = {
+  arma: "Arma",
+  casco: "Casco",
+  peto: "Peto",
+  piernas: "Piernas",
+  zapatos: "Zapatos",
+  collar: "Collar",
+};
 
 // Pieces grouped under collapsible "<Slot> · <Rank>" headers (input must be sorted by compareGear).
-function Grouped({ pieces, isOn, onPick, block }: { pieces: OwnedWeapon[]; isOn: (w: OwnedWeapon) => boolean; onPick: (w: OwnedWeapon) => void; block?: (w: OwnedWeapon) => string | undefined }) {
-  const groups: { key: string; slot: string; rank: RarityId; items: OwnedWeapon[] }[] = [];
+function Grouped({
+  pieces,
+  isOn,
+  onPick,
+  block,
+}: {
+  pieces: OwnedWeapon[];
+  isOn: (w: OwnedWeapon) => boolean;
+  onPick: (w: OwnedWeapon) => void;
+  block?: (w: OwnedWeapon) => string | undefined;
+}) {
+  const groups: {
+    key: string;
+    slot: string;
+    rank: RarityId;
+    items: OwnedWeapon[];
+  }[] = [];
   for (const w of pieces) {
     const slot = slotOf(w.type);
     const key = `${slot}-${w.rarity}`;
@@ -99,9 +121,12 @@ export function AscendPieces({
   const need = rule ? rule.total - 1 : 0;
   const picked = mats.filter((id) => id !== baseId);
   const pool = base
-    ? profile.weapons.filter((w) => w.id !== base.id && w.rarity === base.rarity && !equipped.has(w.id)).sort(byPieceOrder)
+    ? profile.weapons.filter((w) => w.id !== base.id && w.rarity === base.rarity && !equipped.has(w.id) && !w.plus).sort(byPieceOrder)
     : [];
-  const allBases = profile.weapons.filter((w) => ASCEND[w.rarity] && !equipped.has(w.id));
+  // Only bases with enough free materials (same rank, unequipped, no +N) to ascend.
+  const free = profile.weapons.filter((w) => ASCEND[w.rarity] && !equipped.has(w.id));
+  const freeCount = (r: RarityId) => free.filter((w) => w.rarity === r && !w.plus).length;
+  const allBases = free.filter((w) => freeCount(w.rarity) - (w.plus ? 0 : 1) >= ASCEND[w.rarity]!.total - 1);
   const ranksHere = RARITY_IDS.filter((r) => allBases.some((w) => w.rarity === r));
   const bases = allBases
     .filter((w) => (slotF === "all" || slotOf(w.type) === slotF) && (rankF === "all" || w.rarity === rankF))
@@ -121,9 +146,7 @@ export function AscendPieces({
 
   return (
     <Panel title="Ascender equipo" className="space-y-3">
-      <p className="text-sm opacity-80">
-        Sube de rango una pieza gastando otras del mismo rango (cualquier tipo o elemento).
-      </p>
+      <p className="text-sm opacity-80">Sube de rango una pieza gastando otras del mismo rango (cualquier tipo o elemento).</p>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="space-y-1.5">
           <h4 className="text-sm font-semibold text-yellow-300">1. Pieza base</h4>
@@ -142,7 +165,7 @@ export function AscendPieces({
             ))}
           </div>
           <div className="max-h-80 overflow-y-auto pr-1">
-            {bases.length === 0 && <p className="text-sm">No hay piezas con ese filtro.</p>}
+            {bases.length === 0 && <p className="text-sm">No hay piezas que puedas ascender (faltan materiales del mismo rango).</p>}
             <Grouped
               pieces={bases}
               isOn={(w) => w.id === baseId}
@@ -164,8 +187,7 @@ export function AscendPieces({
           </h4>
           <div className="max-h-80 overflow-y-auto pr-1">
             {!base && <p className="text-sm opacity-70">Primero elige la base.</p>}
-            {base && pool.length === 0 && <p className="text-sm">No tienes más piezas libres de ese rango.</p>}
-            <Grouped pieces={pool} isOn={(w) => picked.includes(w.id)} onPick={(w) => toggle(w.id)} block={(w) => ((w.plus ?? 0) > 0 ? "Tiene +N: no sirve de material." : undefined)} />
+            <Grouped pieces={pool} isOn={(w) => picked.includes(w.id)} onPick={(w) => toggle(w.id)} />
           </div>
         </div>
       </div>

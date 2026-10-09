@@ -13,21 +13,26 @@ import { GuidePanel } from "./GuidePanel";
 import { HeroFusionPanel } from "./HeroFusion";
 import { MatIcon, Upgrade } from "./Upgrade";
 
-type Tab = "ascend" | "upgrade";
+type Tab = "ascend" | "heroes" | "upgrade";
 const TABS: [Tab, string][] = [
-  ["ascend", "Ascender"],
+  ["ascend", "Ascender equipo"],
+  ["heroes", "Ascender héroes"],
   ["upgrade", "Mejorar"],
 ];
 
 export default function ForgePage() {
   const { profile, ready } = useProfile();
   const [tab, setTab] = useState<Tab>("ascend");
-  const [msg, setMsg] = useState<{ ok: boolean; title: string; text: string } | null>(null);
+  const [msg, setMsg] = useState<{
+    ok: boolean;
+    title: string;
+    text: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   // Painted effect of the last action (re-keyed by n so it replays).
   const [fx, setFx] = useState<{ n: number; ids: string[] } | null>(null);
 
-  // Keyboard: 1-2 switch tabs (ignored while typing in a field).
+  // Keyboard: 1-3 switch tabs (ignored while typing in a field).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
@@ -108,40 +113,58 @@ export default function ForgePage() {
           </div>
 
           {tab === "ascend" && (
-            <>
-              <AscendPieces
-                profile={profile}
-                busy={busy}
-                onAscend={(b, m) => void act("Ascender equipo", async () => ({ text: (await repo.ascendPiece(b, m)).message }), ["forge_merge", "forge_success"])}
-              />
-              <HeroFusionPanel
-                profile={profile}
-                busy={busy}
-                onFuse={(b, m) => void act("Ascender héroe", () => repo.fuseHeroes(b, m), ["forge_merge", "forge_success"])}
-              />
-            </>
+            <AscendPieces
+              profile={profile}
+              busy={busy}
+              onAscend={(b, m) =>
+                void act(
+                  "Ascender equipo",
+                  async () => ({
+                    text: (await repo.ascendPiece(b, m)).message,
+                  }),
+                  ["forge_merge", "forge_success"],
+                )
+              }
+            />
+          )}
+          {tab === "heroes" && (
+            <HeroFusionPanel
+              profile={profile}
+              busy={busy}
+              onFuse={(b, m) => void act("Ascender héroe", () => repo.fuseHeroes(b, m), ["forge_merge", "forge_success"])}
+            />
           )}
           {tab === "upgrade" && (
             <Upgrade
               profile={profile}
               busy={busy}
-              onUpgrade={(id, dado) => void act("Mejorar equipo", async () => {
-                  const r = await repo.upgradePiece(id, dado);
-                  return {
-                    success: r.success,
-                    text: r.success
-                      ? `¡Éxito! ${r.piece.name} ahora es +${r.piece.plus ?? 0}.`
-                      : "Fallaste: pierdes las Escamas, la pieza queda como estaba.",
-                  };
-                }, ["forge_craft", "forge_success"])}
+              onUpgrade={(id, dado) =>
+                void act(
+                  "Mejorar equipo",
+                  async () => {
+                    const r = await repo.upgradePiece(id, dado);
+                    return {
+                      success: r.success,
+                      text: r.success
+                        ? `¡Éxito! ${r.piece.name} ahora es +${r.piece.plus ?? 0}.`
+                        : "Fallaste: pierdes las Escamas, la pieza queda como estaba.",
+                    };
+                  },
+                  ["forge_craft", "forge_success"],
+                )
+              }
             />
           )}
 
           <Panel title="Tu inventario" className="space-y-2">
             <p className="flex flex-wrap items-center gap-4 text-sm">
               <span>Monedas: {profile.coins}</span>
-              <span className="flex items-center gap-1"><MatIcon kind="escamas" /> Escamas <b>{profile.escamas}</b></span>
-              <span className="flex items-center gap-1"><MatIcon kind="dado" /> Dados cargados <b>{profile.dados}</b></span>
+              <span className="flex items-center gap-1">
+                <MatIcon kind="escamas" /> Escamas <b>{profile.escamas}</b>
+              </span>
+              <span className="flex items-center gap-1">
+                <MatIcon kind="dado" /> Dados cargados <b>{profile.dados}</b>
+              </span>
             </p>
             <p className="text-sm opacity-80">
               Las Escamas y los Dados salen de los dungeons altos.{" "}
@@ -151,7 +174,7 @@ export default function ForgePage() {
             </p>
           </Panel>
         </div>
-        <GuidePanel tab={tab} />
+        <GuidePanel tab={tab === "heroes" ? "ascend" : tab} />
       </main>
     </TipHover>
   );

@@ -33,7 +33,7 @@ export function Upgrade({
 }) {
   const [id, setId] = useState<string | null>(null);
   const [dado, setDado] = useState(false);
-  const pieces = [...profile.weapons].sort(byPieceOrder);
+  const pieces = profile.weapons.filter((w) => canUpgrade(w).ok).sort(byPieceOrder);
   const sel = pieces.find((w) => w.id === id) ?? null;
   const plus = sel?.plus ?? 0;
   const lvl = plus + 1;
@@ -53,7 +53,7 @@ export function Upgrade({
       </p>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="max-h-80 space-y-1 overflow-y-auto pr-1">
-          {pieces.length === 0 && <p className="text-sm">No tienes piezas.</p>}
+          {pieces.length === 0 && <p className="text-sm">No tienes piezas mejorables (S o más, con 5★, menos de +10).</p>}
           {pieces.map((w) => {
             const why = reasonOf(canUpgrade(w));
             return <PieceRow key={w.id} w={w} on={w.id === id} disabled={!!why} note={why ?? undefined} onClick={() => setId(w.id === id ? null : w.id)} />;
