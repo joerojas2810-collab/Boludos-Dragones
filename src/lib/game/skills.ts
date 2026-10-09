@@ -1,9 +1,7 @@
 import type { ClassId } from "./characters";
-import { RARITY_IDS, type RarityId } from "./rarity";
 
-// Third skill ("Ataque 3"): the hero picks (and can change) 1 of the 2 skills of
-// its class. Unlocked by rank (C and above) or by 3 stars (F-D). Data-driven: combat.ts reads these fields only.
-export const SKILL_LEVEL = 5;
+// Class skill ("Ataque 2"): the hero picks (and can change, outside a run) 1 of the 2
+// skills of its class from level 1. Data-driven: combat.ts reads these fields only.
 
 // ---- tuning (scripts/run-sim.ts) ----
 export const SWEEP_POWER = 1; // Barrido: damage vs EACH enemy
@@ -155,19 +153,11 @@ export const SKILLS_BY_CLASS: Record<ClassId, readonly [SkillId, SkillId]> = {
 
 export const isSkillId = (s: string): s is SkillId => s in SKILLS;
 
-export const SKILL_UNLOCK_STARS = 3;
-export const skillUnlocked = (rank: RarityId, stars: number): boolean =>
-  RARITY_IDS.indexOf(rank) >= RARITY_IDS.indexOf("c") ||
-  stars >= SKILL_UNLOCK_STARS;
 // The skill a hero fights with: its saved pick, else the class's first option.
 export const heroSkill = (
   classId: ClassId,
-  rank: RarityId,
-  stars: number,
   picked?: SkillId,
-): SkillId | undefined =>
-  !skillUnlocked(rank, stars)
-    ? undefined
-    : picked && SKILLS_BY_CLASS[classId].includes(picked)
-      ? picked
-      : SKILLS_BY_CLASS[classId][0];
+): SkillId =>
+  picked && SKILLS_BY_CLASS[classId].includes(picked)
+    ? picked
+    : SKILLS_BY_CLASS[classId][0];

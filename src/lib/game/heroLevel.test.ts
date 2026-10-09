@@ -6,7 +6,7 @@ import {
   levelMult,
   xpToNextLevel,
 } from "./heroLevel";
-import { heroSkill, skillUnlocked } from "./skills";
+import { heroSkill } from "./skills";
 
 describe("hero level", () => {
   it("cap is 20 + 10 per star", () => {
@@ -40,17 +40,10 @@ describe("hero level", () => {
   });
 });
 
-describe("skill unlock", () => {
-  it("C+ always, F-D at 3 stars", () => {
-    expect(skillUnlocked("c", 0)).toBe(true);
-    expect(skillUnlocked("ssr", 0)).toBe(true);
-    expect(skillUnlocked("d", 2)).toBe(false);
-    expect(skillUnlocked("f", 3)).toBe(true);
-  });
-  it("heroSkill: none if locked, pick if valid, else class default", () => {
-    expect(heroSkill("mago", "f", 0)).toBeUndefined();
-    expect(heroSkill("mago", "c", 0)).toBe("tormenta");
-    expect(heroSkill("mago", "c", 0, "drenarMana")).toBe("drenarMana");
-    expect(heroSkill("mago", "c", 0, "castigo")).toBe("tormenta");
+describe("class skill", () => {
+  it("heroSkill: pick if valid, else class default (any rank)", () => {
+    expect(heroSkill("mago")).toBe("tormenta");
+    expect(heroSkill("mago", "drenarMana")).toBe("drenarMana");
+    expect(heroSkill("mago", "castigo")).toBe("tormenta");
   });
 });

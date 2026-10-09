@@ -229,7 +229,6 @@ ok((await q(`select public.trade_value('c-mago-fuego-ssr') v`))[0].v === 36000, 
 
 // 9. hero skill
 await err(rpc("choose_hero_skill", { p_player: P, p_character_id: HERO, p_skill: "tormenta" }), "invalid_skill", "other class skill");
-await err(rpc("choose_hero_skill", { p_player: P, p_character_id: HERO, p_skill: "barrido" }), "skill_locked", "rank F, 0 stars");
 await db.exec(`update public.characters set stars=3 where key='${HERO}'`);
 await rpc("choose_hero_skill", { p_player: P, p_character_id: HERO, p_skill: "contraataque" });
 ok((await q(`select skill from public.characters where key='${HERO}'`))[0].skill === "contraataque", "skill saved");

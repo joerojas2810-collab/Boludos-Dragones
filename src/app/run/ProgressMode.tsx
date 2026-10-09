@@ -68,10 +68,8 @@ import {
 } from "@/lib/game/stageReplay";
 import {
   heroSkill,
-  skillUnlocked,
   SKILLS,
   SKILLS_BY_CLASS,
-  SKILL_UNLOCK_STARS,
   type SkillId,
 } from "@/lib/game/skills";
 import { SLOTS, WEAPON_TYPE_DATA, type Slot } from "@/lib/game/weapons";
@@ -950,10 +948,7 @@ function Prep({
       </Shell>
     );
 
-  const skillsOpen = sel ? skillUnlocked(sel.rarity, sel.stars) : false;
-  const cur = sel
-    ? heroSkill(sel.classId, sel.rarity, sel.stars, sel.skill)
-    : undefined;
+  const cur = sel ? heroSkill(sel.classId, sel.skill) : undefined;
   return (
     <Shell>
       <Notice />
@@ -1031,9 +1026,8 @@ function Prep({
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[#d9d2ca]">Ataque 3:</span>
-              {skillsOpen ? (
-                SKILLS_BY_CLASS[sel.classId].map((id: SkillId) => (
+              <span className="text-[#d9d2ca]">Ataque 2:</span>
+              {SKILLS_BY_CLASS[sel.classId].map((id: SkillId) => (
                   <Tooltip
                     key={id}
                     tip={{
@@ -1055,12 +1049,7 @@ function Prep({
                       {SKILLS[id].name}
                     </button>
                   </Tooltip>
-                ))
-              ) : (
-                <span className="text-[#d9d2ca]">
-                  se abre con rango C o {SKILL_UNLOCK_STARS}★
-                </span>
-              )}
+                ))}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {SLOTS.map((slot) => {

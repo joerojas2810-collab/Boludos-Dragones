@@ -42,7 +42,7 @@ function hero(rank: RarityId, seed: number) {
     rarity: rank,
     stars,
     level,
-    skill: heroSkill(c.classId, rank, stars),
+    skill: heroSkill(c.classId),
     stats: { ...geared, atk: Math.round((geared.atk + watk) * 10) / 10 },
   };
 }

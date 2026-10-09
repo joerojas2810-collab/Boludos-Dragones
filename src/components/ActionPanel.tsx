@@ -24,7 +24,6 @@ import {
   skillTip,
   type Tip,
 } from "@/lib/game/explain";
-import { SKILL_UNLOCK_STARS } from "@/lib/game/skills";
 
 type Props = {
   b: Battle;
@@ -128,11 +127,11 @@ export function ActionPanel({
           tip={skillTip(b.player, foe)}
           disabled
           onClick={() => undefined}
-          title="Ataque 3"
-          sub={`Rango C o ${SKILL_UNLOCK_STARS}★`}
+          title="Ataque 2"
+          sub="Sin habilidad"
         />
       );
-    const name = a?.name ?? skill?.name ?? "Ataque 3";
+    const name = a?.name ?? skill?.name ?? "Ataque 2";
     const hits = `~${estimateDamage(b.player, foe, k)} daño · ${pct(hitChance(b.player, k))} acierto`;
     const stats =
       k === "attack3" && skill
@@ -219,8 +218,8 @@ export function ActionPanel({
           className={`grid grid-cols-2 gap-2 ${side ? (float ? "md:grid-cols-2" : "md:grid-cols-1") : "md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]"}`}
         >
           {attack("attack1")}
-          {attack("attack2")}
           {attack("attack3")}
+          {attack("attack2")}
           <ActionButton
             left={float}
             tip={defendTip(b)}

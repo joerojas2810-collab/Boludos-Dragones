@@ -171,12 +171,12 @@ export function filterSortCharacters(
 }
 
 // Hover/tap card of one piece: what it gives and what sets it apart from the others of its slot.
-// "Reemplaza tu Ataque 2: ..." for hand weapons; undefined for armor.
+// "Es tu Ataque 3: ..." for hand weapons; undefined for armor.
 export const specialLine = (type: WeaponType): string | undefined => {
   const sp = isGearType(type) ? undefined : WEAPON_TYPE_DATA[type].special;
   return (
     sp &&
-    `Reemplaza tu Ataque 2: ${sp.name} (poder ×${sp.power}, acierto ${Math.round(sp.accuracy * 100)}%, recarga ${sp.cooldown}${sp.heal ? `, cura ${Math.round(sp.heal * 100)}%` : ""}).`
+    `Es tu Ataque 3: ${sp.name} (poder ×${sp.power}, acierto ${Math.round(sp.accuracy * 100)}%, recarga ${sp.cooldown}${sp.heal ? `, cura ${Math.round(sp.heal * 100)}%` : ""}).`
   );
 };
 

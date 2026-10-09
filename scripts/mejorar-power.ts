@@ -31,7 +31,7 @@ function hero(rank: RarityId, seed: number, mult: number) {
   const g = { ...sum };
   for (const k of KEYS) { g[k] = Math.min(sum[k], GEAR_CAP[k]); if (k === "atk" || k === "hp" || k === "def") { sat += g[k] / GEAR_CAP[k]; satN++; } }
   const s = applyGear(scaleStats(c.stats, rank, STARS, LEVEL), g);
-  return { ...c, rarity: rank, stars: STARS, level: LEVEL, skill: heroSkill(c.classId, rank, STARS), stats: { ...s, atk: Math.round((s.atk + weaponAtk(rank, STARS, CLASS_WEAPONS[c.classId][0])) * 10) / 10 } };
+  return { ...c, rarity: rank, stars: STARS, level: LEVEL, skill: heroSkill(c.classId), stats: { ...s, atk: Math.round((s.atk + weaponAtk(rank, STARS, CLASS_WEAPONS[c.classId][0])) * 10) / 10 } };
 }
 
 function rate(rank: RarityId, mult: number): number {

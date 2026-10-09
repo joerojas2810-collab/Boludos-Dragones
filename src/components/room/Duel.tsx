@@ -380,7 +380,7 @@ function MatchFight({
       {side && !over && (
         <>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {(["attack1", "attack2", "attack3", "defend"] as Action[])
+            {(["attack1", "attack3", "attack2", "defend"] as Action[])
               .filter((a) => a !== "attack3" || skill)
               .map((a) => {
                 const cd = a === "attack2" ? f.cooldown[side] : a === "attack3" ? f.cooldown3[side] : 0;

@@ -26,7 +26,7 @@ for (let i = 0; i < n; i++) {
     rarity: rank,
     stars,
     level,
-    skill: heroSkill(c.classId, rank, stars),
+    skill: heroSkill(c.classId),
     stats: scaleStats(c.stats, rank, stars, level),
   };
   const hero = normalizeHero(owned, mode === "nivelado" ? "nivelado" : "completo");

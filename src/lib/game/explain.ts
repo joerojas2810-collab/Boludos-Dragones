@@ -63,7 +63,7 @@ import {
   xpToNextLevel,
 } from "./heroLevel";
 import { PITY_SSR_THRESHOLD } from "./rarity";
-import { COUNTER_TAKEN, SKILL_UNLOCK_STARS } from "./skills";
+import { COUNTER_TAKEN } from "./skills";
 import {
   ADVANTAGE_BONUS,
   ELEMENTS,
@@ -117,8 +117,8 @@ const FRACTION_STATS: readonly (keyof Stats)[] = ["hp", "atk", "def", "speed"];
 
 export const ATTACK_NUMBER: Record<MoveKey, string> = {
   attack1: "Ataque 1",
-  attack2: "Ataque 2",
-  attack3: "Ataque 3",
+  attack2: "Ataque 3", // weapon special
+  attack3: "Ataque 2", // class skill
 };
 
 export const MOD_LABEL: Record<EnemyMod, string> = {
@@ -511,15 +511,15 @@ const riposteLine = (c: Combatant) =>
     ? `Guardia perfecta lista: ${GUARD_BONUS_TEXT[c.char.classId]} (ya contado).`
     : null;
 
-// Ataque 3: the class skill picked at SKILL_LEVEL.
+// Ataque 2: the class skill (1 of 2, picked in the squad screen).
 export function skillTip(c: Combatant, foe?: Combatant): Tip {
   const sk = skillOf(c);
   if (!sk)
     return {
-      title: "Ataque 3",
+      title: "Ataque 2",
       kind: "info",
       lines: [
-        `Se desbloquea con rango C o superior, o con ${SKILL_UNLOCK_STARS} estrellas en rangos F a D. Eliges 1 de 2 habilidades de tu clase y puedes cambiarla.`,
+        "Eliges 1 de 2 habilidades de tu clase en la pantalla de armado y puedes cambiarla fuera de una run.",
       ],
     };
   const lines = [sk.description];
@@ -546,7 +546,7 @@ export function skillTip(c: Combatant, foe?: Combatant): Tip {
     `Recarga: ${cdText(sk.cooldown)} tras usarla.${(c.cooldown3 ?? 0) > 0 ? ` Faltan ${cdText(c.cooldown3 ?? 0)}.` : ""}`,
   );
   return {
-    title: `${sk.name} · Ataque 3`,
+    title: `${sk.name} · Ataque 2`,
     kind: sk.power > 0 ? "damage" : "heal",
     lines,
     source: `Habilidad de la clase ${CLASSES[c.char.classId].name}`,
@@ -567,7 +567,7 @@ export function attackTip(c: Combatant, key: MoveKey, foe?: Combatant): Tip {
   ];
   if (special)
     lines.push(
-      `Este golpe lo da tu arma (${WEAPON_TYPE_DATA[wType as WeaponType].label}) y reemplaza el Ataque 2 de la clase.`,
+      `Este golpe lo da tu arma (${WEAPON_TYPE_DATA[wType as WeaponType].label}) y es tu Ataque 3.`,
     );
   if (foe) {
     const hit = hitChance(c, key);
@@ -613,7 +613,7 @@ export function attackTip(c: Combatant, key: MoveKey, foe?: Combatant): Tip {
 }
 
 export const guardRule = (classId?: ClassId): string =>
-  `Guardia perfecta: si el rival anuncia un golpe fuerte (Ataque 2) y defiendes, ese golpe hace ${pct(1 - PERFECT_GUARD_FACTOR)} menos (en vez de ${pct(1 - DEFEND_FACTOR)})${classId ? ` y ${GUARD_BONUS_TEXT[classId]}` : " y tu clase gana un bono"}.`;
+  `Guardia perfecta: si el rival anuncia un golpe fuerte y defiendes, ese golpe hace ${pct(1 - PERFECT_GUARD_FACTOR)} menos (en vez de ${pct(1 - DEFEND_FACTOR)})${classId ? ` y ${GUARD_BONUS_TEXT[classId]}` : " y tu clase gana un bono"}.`;
 
 export function defendTip(b: Battle): Tip {
   const perfect = strongPending(b);
@@ -670,7 +670,7 @@ export function intentTip(intent: Intent, b: Battle, idx?: number): Tip {
   const lines = [
     `Acierta ${pct(hitChance(e, intent))} de las veces contra ti.`,
     `Daño: ~${estimateDamage(e, p, intent)} si acierta (sin crítico; ${pct(e.char.stats.crit)} de crítico).`,
-    `Es su ${ATTACK_NUMBER[intent]}${intent === "attack2" ? ": arriesgado, con recarga" : ": el ataque seguro"}.`,
+    `Es su ${intent === "attack2" ? "golpe fuerte: arriesgado, con recarga" : "Ataque 1: el ataque seguro"}.`,
   ];
   if (intent === "attack2")
     lines.push(

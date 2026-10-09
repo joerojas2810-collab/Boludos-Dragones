@@ -61,7 +61,6 @@ import {
   heroSkill,
   isSkillId,
   SKILLS_BY_CLASS,
-  skillUnlocked,
   type SkillId,
 } from "./skills";
 import { TRAIT_IDS, type TraitId } from "./traits";
@@ -586,8 +585,7 @@ export function chooseHeroSkill(
   const c = p.characters.find((x) => x.id === ownedId);
   if (
     !c ||
-    !SKILLS_BY_CLASS[c.classId].includes(skillId) ||
-    !skillUnlocked(c.rarity, c.stars)
+    !SKILLS_BY_CLASS[c.classId].includes(skillId)
   )
     return null;
   return {
@@ -609,7 +607,7 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
   if (!c) return null;
   const level = Math.min(Math.max(1, c.level), levelCap(c.stars));
   const stats = scaleStats(c.stats, c.rarity, c.stars, level);
-  const skill = heroSkill(c.classId, c.rarity, c.stars, c.skill);
+  const skill = heroSkill(c.classId, c.skill);
   const w = p.weapons.find((x) => x.id === p.equipped[c.id]);
   const worn = GEAR_TYPES.flatMap((t) => {
     const g = p.weapons.find((x) => x.id === p.equipped[slotKey(c.id, t)]);
