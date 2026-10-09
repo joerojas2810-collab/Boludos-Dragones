@@ -125,7 +125,7 @@ function BurnShown({
           <button className="btn btn-gray text-center text-sm" onClick={() => setAsk(false)}>
             Cancelar
           </button>
-          <span className="text-xs text-[#d9d2ca]">Se conservan las equipadas y las que tienen estrellas (en héroes: con estrellas o nivel superior a 1), salvo que marques la casilla.</span>
+          <span className="text-xs text-[#d9d2ca]">Se conservan las equipadas y las que tienen estrellas, salvo que marques la casilla.</span>
         </>
       )}
     </div>

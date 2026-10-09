@@ -104,7 +104,7 @@ export default function ForgePage() {
                 key={k}
                 role="tab"
                 aria-selected={tab === k}
-                className={`btn flex-1 text-center ${tab === k ? "" : "btn-gray"}`}
+                className={`btn min-w-0 flex-1 !px-2 text-center text-sm sm:text-base ${tab === k ? "" : "btn-gray"}`}
                 onClick={() => setTab(k)}
               >
                 {label}
