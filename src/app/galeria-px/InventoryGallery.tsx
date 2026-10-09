@@ -1,5 +1,5 @@
 import { ItemCard } from "@/components/ItemCard";
-import { PIXEL_ICON_NAMES } from "@/lib/art/pixel";
+import { PIXEL_ICON_NAMES, pixelIconSize } from "@/lib/art/pixel";
 import { RARITY_IDS } from "@/lib/game/rarity";
 import { DUNGEON_THEMES as DUNGEONS } from "@/lib/game/levels";
 import artIds from "@/lib/artIds.json";
@@ -129,7 +129,8 @@ const DOOR_LABELS: Record<string, string> = {
 function PixelImage({ path, label, zoom, width = 32, height = width, bg }: {
   path: string; label: string; zoom: number; width?: number; height?: number; bg: string;
 }) {
-  const native = NATIVE_SIZES[path] ?? { width, height };
+  const iconSize = path.startsWith("icons-px/icon_") ? pixelIconSize(path.slice("icons-px/icon_".length)) : undefined;
+  const native = NATIVE_SIZES[path] ?? iconSize ?? { width, height };
   return (
     <div className="flex items-center justify-center p-2" style={{ background: bg }}>
       {/* Native PNG shown only at integer zoom in the development gallery. */}
