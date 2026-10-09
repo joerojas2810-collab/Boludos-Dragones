@@ -63,9 +63,9 @@ export function Upgrade({
           {sel && !reason && row ? (
             <>
               <p>
-                <b style={{ color: RARITIES[sel.rarity].color }}>{sel.name}</b>: <b>+{plus}</b> → <b>+{lvl}</b> (bono actual +{Math.round(plus * PLUS_BONUS_PER_LEVEL * 100)}%)
+                <b style={{ color: RARITIES[sel.rarity].color }}>{sel.name}</b>: <b>+{plus}</b> → <b>+{lvl}</b> (ahora la pieza da +{Math.round(plus * PLUS_BONUS_PER_LEVEL * 100)}% a sus stats; con +{lvl} dará +{Math.round(lvl * PLUS_BONUS_PER_LEVEL * 100)}%)
               </p>
-              <p>Éxito base: {pct(row.chance * 100)}{lvl === 1 ? " (nunca falla)" : ""}</p>
+              <p>Éxito base: {pct(row.chance)}{lvl === 1 ? " (nunca falla)" : ""}</p>
               <p className="flex items-center gap-1">
                 Costo: {cost} <MatIcon kind="escamas" /> Escamas
               </p>
