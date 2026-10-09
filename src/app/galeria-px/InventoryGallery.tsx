@@ -1,4 +1,5 @@
 import { ItemCard } from "@/components/ItemCard";
+import { PullRevealPreview } from "./PullRevealPreview";
 import { PIXEL_ICON_NAMES, pixelIconSize } from "@/lib/art/pixel";
 import { RARITY_IDS } from "@/lib/game/rarity";
 import { DUNGEON_THEMES as DUNGEONS } from "@/lib/game/levels";
@@ -164,6 +165,7 @@ export function InventoryGallery({ lot, zoom, bg }: { lot: "items" | "icons" | "
   if (lot === "frames") return (
     <section className="space-y-5">
       <h2 className="text-lg font-bold">Marcos de tarjeta</h2>
+      <PullRevealPreview />
       <div className="flex flex-wrap gap-3">
         {RARITY_IDS.map((rank) => <figure key={rank}>
           <PixelImage path={`frames-px/card_${rank}`} label={"Rango " + rank.toUpperCase()} width={60} height={80} zoom={zoom} bg={bg} />
