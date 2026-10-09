@@ -8,6 +8,7 @@ import {
   ENRAGE_STEP,
   healMult,
   earnGuard,
+  guardFree,
   speedOf,
   statusTick,
   isStrongIntent,
@@ -147,6 +148,8 @@ export function duelRound(
     const sk = key === "attack3" ? skillOf(s[x]) : undefined;
     let att = s[x];
     let def = s[y];
+    const free = guardFree(att) && key !== "attack1"; // Berserker guard bonus
+    const keepGuard = guardFree(att) && key === "attack1";
     if (sk && sk.power === 0) {
       const m = att.char.stats.hp;
       const bits: string[] = [];
@@ -183,8 +186,9 @@ export function duelRound(
       def = r.defender;
       dealt += r.dmg;
     }
-    if (sk) att = { ...att, cooldown3: sk.cooldown + 1 };
-    if (dealt > 0) att = { ...att, riposte: false };
+    if (sk) att = { ...att, cooldown3: sk.cooldown + 1 - (free ? 1 : 0) };
+    if (dealt > 0 && !keepGuard)
+      att = { ...att, riposte: false };
     s[x] = att;
     s[y] = def;
   };

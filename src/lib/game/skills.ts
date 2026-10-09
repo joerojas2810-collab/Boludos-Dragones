@@ -18,6 +18,11 @@ export const EXECUTE_MULT = 2;
 export const SANCTUARY_HEAL = 0.10; // fraction of max hp
 export const SMITE_POWER = 1.55;
 export const SMITE_LIFESTEAL = 0.5; // fraction of damage dealt
+export const RIP_POWER = 1.2; // Desgarro
+export const RIP_LIFESTEAL = 0.25;
+export const ANNIHILATE_POWER = 1.6; // Aniquilación
+export const ANNIHILATE_BELOW = 0.33; // own hp fraction
+export const ANNIHILATE_MULT = 2.5 / 1.6; // 250% total
 
 export type SkillId =
   | "barrido"
@@ -27,7 +32,9 @@ export type SkillId =
   | "golpeDoble"
   | "ejecutar"
   | "santuario"
-  | "castigo";
+  | "castigo"
+  | "desgarro"
+  | "aniquilacion";
 
 export interface Skill {
   id: SkillId;
@@ -47,6 +54,8 @@ export interface Skill {
   guard?: boolean; // acts as Defender this round (also perfect guard)
   counter?: boolean; // reflect the next hit
   lifesteal?: number; // fraction of damage dealt healed
+  selfBelow?: number; // own hp fraction under which selfMult applies (Aniquilación)
+  selfMult?: number;
 }
 
 const pc = (v: number) => `${Math.round(v * 100)}%`;
@@ -142,6 +151,29 @@ export const SKILLS: Record<SkillId, Skill> = {
     accuracy: 0.9,
     lifesteal: SMITE_LIFESTEAL,
   },
+  desgarro: {
+    id: "desgarro",
+    classId: "berserker",
+    name: "Desgarro",
+    blurb: "Sed de sangre",
+    description: `Golpe de ${pc(RIP_POWER)} de poder que te cura ${pc(RIP_LIFESTEAL)} del daño que hace.`,
+    cooldown: 2,
+    power: RIP_POWER,
+    accuracy: 0.9,
+    lifesteal: RIP_LIFESTEAL,
+  },
+  aniquilacion: {
+    id: "aniquilacion",
+    classId: "berserker",
+    name: "Aniquilación",
+    blurb: "Más fuerte herido",
+    description: `Golpe de ${pc(ANNIHILATE_POWER)} de poder; llega a ${pc(ANNIHILATE_POWER * ANNIHILATE_MULT)} si tu vida está por debajo del ${pc(ANNIHILATE_BELOW)}.`,
+    cooldown: 3,
+    power: ANNIHILATE_POWER,
+    accuracy: 0.85,
+    selfBelow: ANNIHILATE_BELOW,
+    selfMult: ANNIHILATE_MULT,
+  },
 };
 
 export const SKILLS_BY_CLASS: Record<ClassId, readonly [SkillId, SkillId]> = {
@@ -149,6 +181,7 @@ export const SKILLS_BY_CLASS: Record<ClassId, readonly [SkillId, SkillId]> = {
   mago: ["tormenta", "drenarMana"],
   picaro: ["golpeDoble", "ejecutar"],
   clerigo: ["santuario", "castigo"],
+  berserker: ["desgarro", "aniquilacion"],
 };
 
 export const isSkillId = (s: string): s is SkillId => s in SKILLS;

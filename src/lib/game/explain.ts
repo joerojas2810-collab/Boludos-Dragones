@@ -510,6 +510,7 @@ const GUARD_BONUS_TEXT: Record<ClassId, string> = {
   mago: "tu próximo golpe aplica 2 acumulaciones del efecto elemental",
   picaro: `tu próximo golpe tiene +${pct(GUARD_CRIT_BONUS)} de probabilidad de crítico`,
   clerigo: `curas el ${pct(GUARD_HEAL)} de tu vida máxima`,
+  berserker: "tu próxima habilidad (Ataque 2 o 3) no cuesta vida y recarga 1 ronda antes",
 };
 
 const riposteLine = (c: Combatant) =>

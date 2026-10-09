@@ -14,6 +14,8 @@ export const HAND_TYPES = [
   "maza",
   "varita",
   "libro",
+  "mandoble",
+  "martillo",
 ] as const;
 export const GEAR_TYPES = [
   "casco",
@@ -40,6 +42,7 @@ export const CLASS_WEAPONS: Record<ClassId, readonly HandType[]> = {
   mago: ["baston", "varita"],
   picaro: ["daga", "arco"],
   clerigo: ["maza", "libro"],
+  berserker: ["mandoble", "martillo"],
 };
 export const canUseWeapon = (classId: ClassId, type: WeaponType) =>
   isGearType(type) || CLASS_WEAPONS[classId].includes(type);
@@ -64,6 +67,7 @@ export interface WeaponSpecial {
   accuracy: number;
   cooldown: number; // same convention as Attack.cooldown
   heal: number; // fraction of max hp restored on use
+  selfCost?: number; // fraction of CURRENT hp the user pays (never kills)
 }
 
 // Tune here.
@@ -147,6 +151,26 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     speedMult: 1,
     noun: "Libro",
     special: { name: "Plegaria", power: 0.3, accuracy: 1, cooldown: 2, heal: 0.13 },
+  },
+  mandoble: {
+    label: "Mandoble",
+    description: "Frenesí: golpe brutal que te cuesta parte de tu vida actual.",
+    atkMult: 1.1,
+    accuracy: 0,
+    crit: 0,
+    speedMult: 1,
+    noun: "Mandoble",
+    special: { name: "Frenesí", power: 2.6, accuracy: 0.9, cooldown: 2, heal: 0, selfCost: 0.08 },
+  },
+  martillo: {
+    label: "Martillo",
+    description: "Aplastar: golpe explosivo, recarga larga y sin costo de vida.",
+    atkMult: 1.2,
+    accuracy: -0.05,
+    crit: 0,
+    speedMult: 0.95,
+    noun: "Martillo",
+    special: { name: "Aplastar", power: 3, accuracy: 0.85, cooldown: 3, heal: 0 },
   },
   casco: {
     label: "Casco",

@@ -176,7 +176,7 @@ export const specialLine = (type: WeaponType): string | undefined => {
   const sp = isGearType(type) ? undefined : WEAPON_TYPE_DATA[type].special;
   return (
     sp &&
-    `Es tu Ataque 3: ${sp.name} (poder ×${sp.power}, acierto ${Math.round(sp.accuracy * 100)}%, recarga ${sp.cooldown}${sp.heal ? `, cura ${Math.round(sp.heal * 100)}%` : ""}).`
+    `Es tu Ataque 3: ${sp.name} (poder ×${sp.power}, acierto ${Math.round(sp.accuracy * 100)}%, recarga ${sp.cooldown}${sp.heal ? `, cura ${Math.round(sp.heal * 100)}%` : ""}${sp.selfCost ? `, cuesta ${Math.round(sp.selfCost * 100)}% de tu vida actual` : ""}).`
   );
 };
 

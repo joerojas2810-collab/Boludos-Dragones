@@ -8,7 +8,7 @@ const HALF = SPRITE_SIZE / 2;
 // mirrored. Rows are bottom-aligned with a 1px margin.
 // o outline, a/b/c element main/dark/light, m/n metal light/dark,
 // s/d skin light/shadow, h hair, w white, y gold, . transparent
-export const HALF_SPRITES: Record<ClassId, readonly string[]> = {
+const HALF_SPRITES_BASE: Record<Exclude<ClassId, "berserker">, readonly string[]> = {
   caballero: [
     "..............oo",
     ".............oac",
@@ -134,6 +134,8 @@ export const HALF_SPRITES: Record<ClassId, readonly string[]> = {
     "..oooooooooooooo",
   ],
 };
+// ponytail: provisional, the Berserker reuses the Knight art until it has its own.
+export const HALF_SPRITES: Record<ClassId, readonly string[]> = { ...HALF_SPRITES_BASE, berserker: HALF_SPRITES_BASE.caballero };
 
 const padLeft = (r: string) => ".".repeat(HALF - r.length) + r;
 // Light comes from the top-left: element highlights (c) turn into the main
@@ -159,7 +161,7 @@ const vertical = (
     (_, i) => [row0 + i, col, px] as const,
   );
 
-export const OVERLAYS: Record<ClassId, readonly Patch[]> = {
+const OVERLAYS_BASE: Record<Exclude<ClassId, "berserker">, readonly Patch[]> = {
   // sword (right), round shield (left), plume tail (behind the helm)
   caballero: [
     [5, 8, "ooaa"],
@@ -250,6 +252,8 @@ export const OVERLAYS: Record<ClassId, readonly Patch[]> = {
     [18, 15, "..y.."],
   ],
 };
+// ponytail: provisional, the Berserker reuses the Knight art until it has its own.
+export const OVERLAYS: Record<ClassId, readonly Patch[]> = { ...OVERLAYS_BASE, berserker: OVERLAYS_BASE.caballero };
 
 export const FULL_SPRITES = Object.fromEntries(
   Object.entries(HALF_SPRITES).map(([k, rows]) => {

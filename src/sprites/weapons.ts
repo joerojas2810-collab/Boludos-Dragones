@@ -523,6 +523,8 @@ const BUILDERS: Record<WeaponType, (e: Element) => string[]> = {
   maza: buildMace,
   varita: buildWand,
   libro: buildTome,
+  mandoble: buildSword,
+  martillo: buildAxe,
   casco: buildHelm,
   peto: buildChest,
   piernas: buildGreaves,

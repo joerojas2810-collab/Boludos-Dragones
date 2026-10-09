@@ -47,6 +47,7 @@ export const CLASS_ART: Record<ClassId, string> = {
   mago: "mage",
   picaro: "rogue",
   clerigo: "cleric",
+  berserker: "knight", // provisional: Knight sheets until the Berserker has its own
 };
 export const HAND_ART: Record<HandType, string> = {
   espada: "sword",
@@ -57,6 +58,8 @@ export const HAND_ART: Record<HandType, string> = {
   maza: "mace",
   varita: "wand",
   libro: "book",
+  mandoble: "sword", // provisional icons
+  martillo: "axe",
 };
 export const handIconSrc = (t: HandType, e: Element) =>
   isPixel()

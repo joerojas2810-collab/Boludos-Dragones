@@ -24,6 +24,7 @@ const PX_IDLE_BOUNDS: Record<ClassId, readonly [number, number, number, number]>
   mago: [13, 13, 113, 167],
   picaro: [16, 33, 112, 147],
   clerigo: [10, 25, 107, 155],
+  berserker: [10, 25, 121, 155], // Knight sheets for now
 };
 
 type Props = {

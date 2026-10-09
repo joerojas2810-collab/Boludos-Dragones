@@ -18,6 +18,7 @@ const PAIRS: Record<ClassId, [HandType, HandType]> = {
   caballero: ["espada", "hacha"],
   mago: ["baston", "varita"],
   picaro: ["daga", "arco"],
+  berserker: ["mandoble", "martillo"],
   clerigo: ["maza", "libro"],
 };
 

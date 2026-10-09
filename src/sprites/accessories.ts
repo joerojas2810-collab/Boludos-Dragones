@@ -30,7 +30,7 @@ type Anchor =
   | "pR"; // ground dust puffs
 
 type Pos = readonly [number, number];
-const ANCHORS: Record<ClassId, Record<Anchor, Pos>> = {
+const ANCHORS_BASE: Record<Exclude<ClassId, "berserker">, Record<Anchor, Pos>> = {
   caballero: {
     tl: [7, 9],
     tr: [7, 22],
@@ -132,6 +132,8 @@ const ANCHORS: Record<ClassId, Record<Anchor, Pos>> = {
     pR: [27, 26],
   },
 };
+// ponytail: provisional, the Berserker reuses the Knight anchors.
+const ANCHORS: Record<ClassId, Record<Anchor, Pos>> = { ...ANCHORS_BASE, berserker: ANCHORS_BASE.caballero };
 
 const pad = [
   [0, 0, ".hhh."],

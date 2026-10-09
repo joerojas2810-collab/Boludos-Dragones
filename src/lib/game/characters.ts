@@ -15,12 +15,13 @@ import {
   type TraitMods,
 } from "./traits";
 
-export type ClassId = "caballero" | "mago" | "picaro" | "clerigo";
+export type ClassId = "caballero" | "mago" | "picaro" | "clerigo" | "berserker";
 export const CLASS_IDS: readonly ClassId[] = [
   "caballero",
   "mago",
   "picaro",
   "clerigo",
+  "berserker",
 ];
 
 export interface Stats {
@@ -42,9 +43,15 @@ export interface Attack {
   accuracy: number;
   cooldown: number;
   heal: number; // fraction of max hp restored on use
+  selfCost?: number; // fraction of CURRENT hp the user pays (never kills)
 }
 
-export type PassiveId = "muralla" | "focoArcano" | "filoMortal" | "bendicion";
+export type PassiveId =
+  | "muralla"
+  | "focoArcano"
+  | "filoMortal"
+  | "bendicion"
+  | "furia";
 
 export interface Passive {
   id: PassiveId;
@@ -58,6 +65,11 @@ export const CLASS_PASSIVE_ADVANTAGE_BONUS = 0.55; // Mago: replaces ADVANTAGE_B
 export const CLASS_PASSIVE_CRIT_MULT = 2; // Pícaro: base crit damage multiplier
 export const CLASS_PASSIVE_MAGE_CRIT = 0.1; // Mago: extra crit chance
 export const CLASS_PASSIVE_MAGE_REDUCTION = 0.05; // Mago: incoming damage
+// Berserker Furia: damage bonus by thresholds of missing hp (highest threshold met wins).
+export const CLASS_PASSIVE_FURY: readonly { below: number; bonus: number }[] = [
+  { below: 0.33, bonus: 0.3 },
+  { below: 0.66, bonus: 0.15 },
+];
 export const BASE_CRIT_DMG = 1.5;
 export const CLASS_PASSIVE_REGEN = 0.005; // Clérigo: max hp per turn
 
@@ -196,6 +208,34 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
       accuracy: 0.9,
       cooldown: 2,
       heal: 0.09,
+    },
+  },
+  berserker: {
+    name: "Berserker",
+    passive: {
+      id: "furia",
+      name: "Furia",
+      description: `Hace ${pct(CLASS_PASSIVE_FURY[1].bonus)} más de daño con menos del 66% de vida y ${pct(CLASS_PASSIVE_FURY[0].bonus)} más con menos del 33%.`,
+    },
+    stats: {
+      hp: 105,
+      atk: 17,
+      def: 5,
+      crit: 0.05,
+      resist: 0,
+      accuracy: 0,
+      speed: 10,
+      critDmg: BASE_CRIT_DMG,
+      regen: 0,
+      lifesteal: 0,
+    },
+    attack1: { name: "Tajo salvaje", power: 1, accuracy: 0.95, cooldown: 0, heal: 0 },
+    attack2: {
+      name: "Embestida",
+      power: 2,
+      accuracy: 0.8,
+      cooldown: 2,
+      heal: 0,
     },
   },
 };

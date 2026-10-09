@@ -1,6 +1,7 @@
 import {
   CLASS_PASSIVE_ADVANTAGE_BONUS,
   CLASS_PASSIVE_DMG_REDUCTION,
+  CLASS_PASSIVE_FURY,
   CLASS_PASSIVE_MAGE_CRIT,
   CLASS_PASSIVE_MAGE_REDUCTION,
   CLASS_PASSIVE_REGEN,
@@ -213,6 +214,16 @@ export const lifestealOf = (c: Combatant): number =>
 
 // Every heal (attack heal, skills, lifesteal, regen, Clérigo blessing).
 export const healMult = (c: Combatant): number => 1 - rulesOf(c).healPenalty;
+
+// Berserker Furia: damage bonus by hp threshold.
+export const furyBonus = (c: Combatant): number =>
+  c.char.classId !== "berserker"
+    ? 0
+    : (CLASS_PASSIVE_FURY.find((t) => c.hp / c.char.stats.hp < t.below)?.bonus ?? 0);
+
+// Berserker perfect guard: the next Ataque 2 / 3 costs no hp and recharges 1 round sooner.
+export const guardFree = (c: Combatant): boolean =>
+  !!c.riposte && c.char.classId === "berserker";
 
 export const skillOf = (c: Combatant): Skill | undefined =>
   c.char.skill ? SKILLS[c.char.skill] : undefined;
@@ -478,6 +489,15 @@ const stanceFactor = (def: Combatant, key: MoveKey): number =>
       ? PERFECT_GUARD_FACTOR
       : DEFEND_FACTOR;
 
+// Skill bonus while the user is hurt (Aniquilación).
+function selfFactor(att: Combatant, key: MoveKey): number {
+  const s = key === "attack3" ? skillOf(att) : undefined;
+  return s?.selfBelow !== undefined &&
+    att.hp < att.char.stats.hp * s.selfBelow
+    ? (s.selfMult ?? 1)
+    : 1;
+}
+
 // Skill bonus vs a weakened target (Ejecutar).
 function executeFactor(att: Combatant, def: Combatant, key: MoveKey): number {
   const s = key === "attack3" ? skillOf(att) : undefined;
@@ -511,7 +531,9 @@ export function estimateDamage(
         (1 - passiveReduction(def)) *
         (1 + (att.char.gear?.dmgDealt ?? 0)) *
         ((def.reflect ?? 0) > 0 ? COUNTER_TAKEN : 1) *
-        executeFactor(att, def, key),
+        executeFactor(att, def, key) *
+        selfFactor(att, key) *
+        (1 + furyBonus(att)),
     ),
   );
 }
@@ -556,10 +578,11 @@ const GUARD_TEXT: Record<ClassId, string> = {
   mago: "potenciará su próximo golpe",
   picaro: "afinará su puntería",
   clerigo: "se purifica",
+  berserker: "se enciende: su próxima habilidad sale gratis",
 };
 export function earnGuard(c: Combatant, log: string[]): Combatant {
   let out: Combatant = { ...c, guard: true };
-  if (c.char.classId === "mago" || c.char.classId === "picaro") out.riposte = true;
+  if (["mago", "picaro", "berserker"].includes(c.char.classId)) out.riposte = true;
   if (c.char.classId === "clerigo") {
     const hp = Math.min(
       c.char.stats.hp,
@@ -609,6 +632,15 @@ export function strike(
   const who = att.char.name;
   const on = actor === "player" ? ` sobre ${def.char.name}` : "";
   let hp = att.hp;
+  const free = guardFree(att) && key !== "attack1";
+  if (a.selfCost && !free) {
+    // The price of Frenesí: a share of the CURRENT hp, never lethal.
+    const cost = Math.min(hp - 1, Math.round(hp * a.selfCost));
+    if (cost > 0) {
+      hp -= cost;
+      log.push(`${who} se desangra ${cost} al usar ${a.name}.`);
+    }
+  }
   if (a.heal > 0) {
     hp = Math.min(
       att.char.stats.hp,
@@ -619,8 +651,8 @@ export function strike(
   const attacker: Combatant = {
     ...att,
     hp,
-    ...(key === "attack2" && { cooldown: a.cooldown + 1 }),
-    ...(key === "attack3" && { cooldown3: a.cooldown + 1 }),
+    ...(key === "attack2" && { cooldown: a.cooldown + 1 - (free ? 1 : 0) }),
+    ...(key === "attack3" && { cooldown3: a.cooldown + 1 - (free ? 1 : 0) }),
   };
   const ev = (kind: BattleEvent["kind"]) =>
     events.push({
@@ -797,11 +829,12 @@ export function step(
   const playMove = () => {
     if (action === "attack1" || action === "attack2") {
       const dealt = hit(tIdx, action);
-      if (dealt > 0) player.riposte = false;
+      if (dealt > 0 && !(guardFree(player) && action === "attack1"))
+        player.riposte = false;
       return;
     }
     if (!skill) return;
-    const cd = skill.cooldown + 1;
+    const cd = skill.cooldown + 1 - (guardFree(player) ? 1 : 0);
     if (skill.power === 0) {
       player.cooldown3 = cd;
       const m = player.char.stats.hp;

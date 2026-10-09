@@ -52,7 +52,7 @@ export const equipBody = z.strictObject({
 });
 // Weekly tower only (dungeon levels use levelStartBody).
 export const runStartBody = z.strictObject({
-  classId: z.enum(["caballero", "mago", "picaro", "clerigo"]),
+  classId: z.enum(["caballero", "mago", "picaro", "clerigo", "berserker"]),
   characterId: z.string().min(1).max(100).nullable(),
   tower: z.enum(["nivelado", "coleccion"]),
 });
