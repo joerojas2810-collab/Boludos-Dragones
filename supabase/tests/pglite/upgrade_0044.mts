@@ -25,6 +25,10 @@ await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,s
 await db.exec(`update public.gacha_state set pity=90, pity_ssr=200 where player_id='${U}'`);
 await db.exec(`update public.player_state set coins=12345 where player_id='${U}'`);
 await db.exec(`insert into public.market_offers(seller_id,kind,give_key,coins,expires_at) values ('${U}','character','c-caballero-tierra-c',2080, now() + interval '1 day')`);
+await h("mago", "fuego", "s", 1, ["glotón"]);          // S twin of the SS mago
+await h("clerigo", "viento", "ssr", 3, ["terco"]);   // no twin: just changes rank
+await db.exec(`insert into public.weapons(player_id,type,element,rarity,stars,data) values ('${U}','espada','fuego','s',1,'{}'),('${U}','maza','viento','ssr',0,'{}')`);
+await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,slot) values ('${U}','c-clerigo-viento-ssr','w-maza-viento-ssr','arma')`);
 const before = await rpc("get_profile", { p_player: U });
 console.log("before: heroes", before.characters.length, "pieces", before.weapons.length);
 await db.exec(fs.readFileSync(root + "upgrade_from_0044.sql", "utf8"));
@@ -40,11 +44,17 @@ const v = (await db.query(`select version from public.player_state where player_
 const pr = await rpc("apply_pull", { p_player: U, p_version: v.version, p_idem: "probe-0001", p_banner: "character", p_cost: 250, p_pity: 0, p_pity_ssr: 0, p_seed: 1, p_daily: false, p_items: [{ class: "clerigo", element: "rayo", rarity: "f", data: { name: "x", traits: ["terco"] } }] }).catch((e) => ({ error: String(e.message) }));
 console.log("pull on old data:", JSON.stringify(pr).slice(0, 200));
 
-ok(me.profile.characters.length === 2, "SS/SSR rows are invisible to the game (they stay in the database)");
+const ids = me.profile.characters.map((c) => c.id).sort().join();
+ok(ids === "c-caballero-tierra-c,c-clerigo-rayo-f,c-clerigo-viento-s,c-mago-fuego-s,c-picaro-agua-s", "SS/SSR heroes became S (merged with a twin or just re-ranked): " + ids);
+const mg = me.profile.characters.find((c) => c.id === "c-mago-fuego-s")!;
+ok(mg.stars === 2 && mg.copies?.join() === "terco", "twin merged: higher stars, the SS trait kept as a copy " + JSON.stringify([mg.stars, mg.copies]));
+ok(me.profile.weapons.find((w) => w.id === "w-espada-fuego-s")?.stars === 2, "piece twin got +1 star");
+ok(me.profile.equipped["c-clerigo-viento-s"] === "w-maza-viento-s", "gear followed the re-ranked hero: " + JSON.stringify(me.profile.equipped));
 ok(me.profile.characters.find((c) => c.id === "c-caballero-tierra-c")?.traits.join() === "terco", "first valid trait kept");
 ok(me.profile.weapons.find((w) => w.id === "w-casco-agua-s")?.lines?.[0]?.stat === "resist", "dodge line became resist");
 ok(me.profile.coins === 12345, "coins untouched");
 ok(((await db.query(`select count(*)::int n from public.market_offers where status='open'`)).rows[0] as { n: number }).n === 0, "stale hero offers cancelled");
 ok(JSON.stringify(pr).includes('"status":"copy"'), "a repeated pull is a copy");
+await db.exec(fs.readFileSync(root + "upgrade_from_0044.sql", "utf8")).then(() => ok(true, ""), (e) => ok(false, "second run of the upgrade file failed: " + e.message));
 console.log(fail ? `upgrade_0044: ${fail} FAILED` : "upgrade_0044: all ok");
 process.exit(fail ? 1 : 0);

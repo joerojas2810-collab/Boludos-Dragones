@@ -21,6 +21,7 @@ begin
      where n.nspname = 'public' and p.proname = 'get_profile'
   loop
     v_def := pg_get_functiondef(r.oid);
+    continue when v_def like '%to_jsonb(c.copies)%'; -- already patched (re-run)
     v_new := replace(v_def,
       'c.data || jsonb_build_object(''level'', c.level, ''xp'', c.xp, ''legacy'', c.legacy)',
       'c.data || jsonb_build_object(''level'', c.level, ''xp'', c.xp, ''legacy'', c.legacy, ''copies'', to_jsonb(c.copies))');
@@ -38,6 +39,7 @@ begin
      where n.nspname = 'public' and p.proname = 'apply_pull'
   loop
     v_def := pg_get_functiondef(r.oid);
+    continue when v_def like '%v_status := ''copy''%'; -- already patched (re-run)
     v_new := replace(v_def, E'  v_stars int;\n', E'  v_stars int;\n  v_ncopies int;\n  v_trait text;\n');
     v_new := replace(v_new,
 E'      select stars into v_stars from public.characters
@@ -205,6 +207,7 @@ begin
      where n.nspname = 'public' and p.proname = 'market_create'
   loop
     v_def := pg_get_functiondef(r.oid);
+    continue when v_def like '%cardinality(copies) into v_stars%'; -- already patched (re-run)
     v_new := replace(v_def,
       'select stars into v_stars from public.characters where player_id = p_player and key = p_give;',
       'select cardinality(copies) into v_stars from public.characters where player_id = p_player and key = p_give;');
