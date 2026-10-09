@@ -120,9 +120,11 @@ export function resultView(r: PullResult): ItemView | null {
   const badge =
     r.status === "refund"
       ? `REEMBOLSO +${r.refund}`
-      : r.status === "star"
-        ? "+1 ★"
-        : "NUEVO";
+      : r.status === "copy"
+        ? "+1 COPIA"
+        : r.status === "star"
+          ? "+1 ★"
+          : "NUEVO";
   if (r.character) return characterView(r.character, { badge });
   if (r.weapon) return weaponView(r.weapon, { badge });
   return null;
@@ -141,6 +143,7 @@ export function summarizePull(rs: PullResult[]): string {
   const refund = rs.reduce((a, r) => a + r.refund, 0);
   return [
     `${n((r) => r.status === "new")} nuevos`,
+    `${n((r) => r.status === "copy")} copias`,
     `${n((r) => r.status === "star")} estrellas`,
     ...(refund ? [`${refund} monedas de reembolso`] : []),
     `Mejor: ${RARITIES[best].label}`,

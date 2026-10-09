@@ -335,10 +335,10 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       return r;
     },
     fuseHeroes: async (baseId, materialIds) => {
-      const r = fuseHeroes(store.get(), { baseId, materialIds });
+      const r = fuseHeroes(store.get(), { baseId, materials: materialIds.map((id) => ({ id, n: 1 })) });
       if (!r.ok) throw new RepoError("fusion_invalid", r.error);
       store.replace(r.profile);
-      return { text: r.text, id: r.fusion.hero?.id ?? r.fusion.starTo ?? baseId };
+      return { text: r.text, id: r.fusion.hero.id };
     },
     startRun: async (
       classId,

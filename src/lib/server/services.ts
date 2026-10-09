@@ -1031,7 +1031,7 @@ export async function doFuseHeroes(
 ) {
   await limit(d.rpc, `fuse:${playerId}`, 30, 60);
   const me = await loadMe(d.rpc, playerId);
-  const r = fuseHeroes(me.profile, { baseId, materialIds });
+  const r = fuseHeroes(me.profile, { baseId, materials: materialIds.map((id) => ({ id, n: 1 })) });
   if (!r.ok) throw new ApiError(400, "fusion_invalid", r.error);
   const h = r.fusion.hero;
   try {
@@ -1041,10 +1041,10 @@ export async function doFuseHeroes(
       p_base: baseId,
       p_materials: materialIds,
       p_coins: r.fusion.coins,
-      p_data: h ? { name: h.name, stats: h.stats, traits: h.traits, catchphrase: h.catchphrase } : {},
-      p_level: h?.level ?? 1,
-      p_xp: h?.xp ?? 0,
-      p_stars: h?.stars ?? 0,
+      p_data: { name: h.name, stats: h.stats, traits: h.traits, catchphrase: h.catchphrase },
+      p_level: h.level,
+      p_xp: h.xp,
+      p_stars: h.stars,
     });
   } catch (e) {
     return mapRpcError(e);
@@ -1053,10 +1053,10 @@ export async function doFuseHeroes(
     base: baseId,
     materials: materialIds,
     coins: r.fusion.coins,
-    result: h?.id ?? r.fusion.starTo,
+    result: h.id,
   });
   const fresh = await loadMe(d.rpc, playerId);
-  return { text: r.text, id: h?.id ?? r.fusion.starTo ?? baseId, profile: fresh.profile };
+  return { text: r.text, id: h.id, profile: fresh.profile };
 }
 
 // ---- forge (Ascender + Mejorar) ----

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
 import { CLASSES } from "@/lib/game/characters";
-import { FUSION_STARS, HERO_FUSION, fuseHeroes } from "@/lib/game/heroFusion";
+import { HERO_FUSION, fuseHeroes } from "@/lib/game/heroFusion";
 import { heroPower, type OwnedCharacter, type Profile } from "@/lib/game/profile";
 import { RARITIES, RARITY_IDS, type RarityId } from "@/lib/game/rarity";
 import { characterView } from "@/lib/viewModels";
@@ -20,10 +20,8 @@ export function HeroFusionPanel({
   onFuse: (baseId: string, materialIds: string[]) => void;
 }) {
   const byRank = (r: RarityId) => profile.characters.filter((c) => c.rarity === r);
-  // Only ranks that can ascend now: enough heroes and a base with the needed stars.
-  const ranks = RARITY_IDS.filter(
-    (r) => HERO_FUSION[r] && byRank(r).length >= HERO_FUSION[r]!.ratio && byRank(r).some((c) => c.stars >= FUSION_STARS),
-  );
+  // Only ranks that can ascend now: enough heroes.
+  const ranks = RARITY_IDS.filter((r) => HERO_FUSION[r] && byRank(r).length >= HERO_FUSION[r]!.ratio);
   const [picker, setRank] = useState<RarityId | null>(null);
   const rank = picker && ranks.includes(picker) ? picker : (ranks[0] ?? "f");
   const [baseId, setBaseId] = useState<string | null>(null);
@@ -40,9 +38,9 @@ export function HeroFusionPanel({
   const picked = mats.filter((id) => id !== baseId && pool.some((c) => c.id === id));
   const next = RARITY_IDS[RARITY_IDS.indexOf(rank) + 1];
 
-  const dry = base && picked.length === need ? fuseHeroes(profile, { baseId: base.id, materialIds: picked }) : null;
+  const dry = base && picked.length === need ? fuseHeroes(profile, { baseId: base.id, materials: picked.map((id) => ({ id, n: 1 })) }) : null;
   const result =
-    dry?.ok === true ? (dry.profile.characters.find((c) => c.id === (dry.fusion.hero?.id ?? dry.fusion.starTo)) ?? null) : null;
+    dry?.ok === true ? dry.fusion.hero : null;
   const invested = picked
     .map((id) => pool.find((c) => c.id === id))
     .filter((c): c is OwnedCharacter => !!c && (c.stars > 0 || c.level > 1));
@@ -82,11 +80,10 @@ export function HeroFusionPanel({
           cuesta lo ves en el paso 1.
         </p>
         <p>
-          El base <b>conserva</b> clase, elemento, nombre, nivel, habilidad y rasgos, y <b>gana</b> los rasgos del rango nuevo.{" "}
-          <b>Necesita {FUSION_STARS}★ y las gasta</b>: con 4★ le queda 1★, con 5★ le quedan 2★. Los héroes de material se pierden (su equipo
-          vuelve a tu colección).
+          El base <b>conserva</b> clase, elemento, nombre, nivel, habilidad y rasgo. Sus ★ se convierten según el rango. Los héroes de
+          material se pierden (su equipo vuelve a tu colección).
         </p>
-        <p className="opacity-80">Si ya tienes a ese héroe en el rango nuevo, en vez de crear otro le suma 1 estrella.</p>
+        <p className="opacity-80">Si ya tienes a ese héroe en el rango nuevo, se fusionan.</p>
       </div>
 
       <div className="space-y-1.5">
@@ -112,15 +109,15 @@ export function HeroFusionPanel({
 
       {ranks.length === 0 ? (
         <p className="text-sm text-red-300">
-          No puedes ascender ningún héroe todavía: necesitas varios del mismo rango y uno con {FUSION_STARS}★. Consíguelos en el gacha.
+          No puedes ascender ningún héroe todavía: necesitas varios héroes del mismo rango. Consíguelos en el gacha.
         </p>
       ) : (
         <>
           <div className="space-y-1.5">
-            <h4 className="text-sm font-semibold text-yellow-300">2. Elige el héroe base: el que se queda (necesita {FUSION_STARS}★)</h4>
+            <h4 className="text-sm font-semibold text-yellow-300">2. Elige el héroe base: el que se queda</h4>
             {
               <HeroGrid
-                heroes={pool.filter((c) => c.stars >= FUSION_STARS)}
+                heroes={pool}
                 isOn={(c) => c.id === baseId}
                 onPick={(c) => {
                   setBaseId(c.id);
@@ -161,8 +158,8 @@ export function HeroFusionPanel({
                     {result.name} · {CLASSES[result.classId].name}
                   </div>
                   <div>
-                    {dry.fusion.starTo
-                      ? `Ya lo tenías en rango ${RARITIES[result.rarity].label}: sube a ${result.stars}★.`
+                    {dry.fusion.merged
+                      ? `Ya lo tenías en rango ${RARITIES[result.rarity].label}: se fusionan y queda con ${result.stars}★.`
                       : `Rango ${RARITIES[rank].label} → ${RARITIES[result.rarity].label}, queda con ${result.stars}★.`}
                   </div>
                   <div>

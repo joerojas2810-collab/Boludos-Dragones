@@ -89,7 +89,8 @@ export const PULL_COST_CHARACTER = 250;
 export const PULL_COST_WEAPON = 250;
 export const MULTI_PULL = 10;
 export const MULTI_PULL_DISCOUNT = 0.1;
-export const DUPLICATE_REFUND = 0.5; // of the single-pull cost, at max stars
+export const DUPLICATE_REFUND = 0.5; // of the single-pull cost, at max copies
+export const MAX_COPIES = 50; // spare copies one hero can hold; more come back as a refund
 // Old saves still holding hero fragments (removed in 0039) are paid this much each, once.
 export const FRAGMENT_REFUND = 40;
 
@@ -97,6 +98,9 @@ export type OwnedCharacter = Character & {
   id: string; // = characterKey
   rarity: RarityId;
   stars: number;
+  // Spare copies from repeated pulls: each keeps the trait it rolled (swapTrait picks the main one).
+  // A copy is also one unit of material for starring up and ranking up (heroFusion.ts).
+  copies?: TraitId[];
   legacy?: boolean; // existed before PROFILE_VERSION 5 (burns at LEGACY_BURN_RATE)
 };
 export type OwnedWeapon = Weapon;
@@ -158,10 +162,10 @@ export const canAfford = (p: Profile, banner: Banner, count = 1) =>
   p.coins >= pullCost(banner, count);
 
 export interface PullResult {
-  // new: added to collection; star: EXACT duplicate (same class+element+rarity
-  // / same weapon key) gave +1 star; refund: exact duplicate already at max
-  // stars, coins returned.
-  status: "new" | "star" | "refund";
+  // new: added to collection; copy: EXACT duplicate hero (same class+element+rarity) stored as a
+  // spare copy; star: EXACT duplicate weapon gave +1 star; refund: duplicate already at max
+  // copies / stars, coins returned.
+  status: "new" | "copy" | "star" | "refund";
   banner: Banner;
   id: string;
   rarity: RarityId;
@@ -199,8 +203,15 @@ function pull(
       const owned = p.characters.find((x) => x.id === id);
       let item: OwnedCharacter = { ...c, id, rarity, stars: 0 };
       if (owned) {
-        item = { ...owned, stars: Math.min(MAX_STARS, owned.stars + 1) };
-        status = owned.stars >= MAX_STARS ? "refund" : "star";
+        const spare = owned.copies ?? [];
+        const trait = c.traits[0];
+        if (trait && spare.length < MAX_COPIES) {
+          item = { ...owned, copies: [...spare, trait] };
+          status = "copy";
+        } else {
+          item = owned;
+          status = "refund";
+        }
         p = {
           ...p,
           characters: p.characters.map((x) => (x.id === id ? item : x)),
@@ -716,6 +727,9 @@ function parseCharacter(v: unknown, legacyAll: boolean): OwnedCharacter | null {
   const traits = (Array.isArray(v.traits) ? v.traits : [])
     .filter((t): t is TraitId => (TRAIT_IDS as readonly unknown[]).includes(t))
     .slice(0, 1); // one trait per hero
+  const copies = (Array.isArray(v.copies) ? v.copies : [])
+    .filter((t): t is TraitId => (TRAIT_IDS as readonly unknown[]).includes(t))
+    .slice(0, MAX_COPIES);
   return {
     id: characterKey(classId, element, rarity),
     name: str(v.name, "Sin nombre"),
@@ -728,6 +742,7 @@ function parseCharacter(v: unknown, legacyAll: boolean): OwnedCharacter | null {
     xp: nat(v.xp),
     rarity,
     stars: nat(v.stars, MAX_STARS),
+    ...(copies.length ? { copies } : {}),
     ...(legacyAll || v.legacy === true ? { legacy: true } : {}),
     ...(typeof v.skill === "string" &&
     isSkillId(v.skill) &&

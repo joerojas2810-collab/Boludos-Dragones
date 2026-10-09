@@ -27,8 +27,10 @@ import {
   pullWeapon,
   unequipWeapon,
   PULL_COST_CHARACTER,
+  MAX_COPIES,
   type Profile,
 } from "./profile";
+import { TRAIT_IDS } from "./traits";
 import { createRng } from "./rng";
 import {
   generateWeapon,
@@ -183,18 +185,31 @@ describe("pulls", () => {
     for (const w of p.weapons)
       expect(w.atkBonus).toBe(weaponAtk(w.rarity, w.stars, w.type, w.roll));
   });
-  it("character duplicate keeps traits/stats and uses class+element+rarity key", () => {
+  it("a character duplicate becomes a spare copy with its own trait; stars do not move", () => {
     let p = rich();
     const rng = createRng(21);
-    const seen = new Map<string, number>();
     for (let i = 0; i < 400; i++) {
       p = pullCharacter(p, rng)!.profile;
     }
-    for (const c of p.characters) seen.set(c.id, c.stars);
-    expect(new Set(p.characters.map((c) => c.id)).size).toBe(
-      p.characters.length,
-    );
-    expect(p.characters.some((c) => c.stars > 0)).toBe(true);
+    expect(new Set(p.characters.map((c) => c.id)).size).toBe(p.characters.length);
+    expect(p.characters.every((c) => c.stars === 0)).toBe(true);
+    const withCopies = p.characters.filter((c) => c.copies?.length);
+    expect(withCopies.length).toBeGreaterThan(0);
+    for (const c of withCopies) for (const t of c.copies!) expect(TRAIT_IDS).toContain(t);
+  });
+  it("a hero with the maximum of copies refunds 50% instead", () => {
+    const seed = pullCharacter(rich(), createRng(5))!.profile;
+    const full: Profile = {
+      ...seed,
+      characters: seed.characters.map((c) => ({ ...c, copies: Array(MAX_COPIES).fill(c.traits[0]) })),
+    };
+    let p: Profile = full;
+    const rng = createRng(5); // same first roll: an exact duplicate
+    const r = pullCharacter(p, rng)!;
+    p = r.profile;
+    expect(r.results[0].status).toBe("refund");
+    expect(r.results[0].refund).toBe(PULL_COST_CHARACTER / 2);
+    expect(p.characters[0].copies).toHaveLength(MAX_COPIES);
   });
 });
 
