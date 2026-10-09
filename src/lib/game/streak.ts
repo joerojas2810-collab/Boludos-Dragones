@@ -4,7 +4,7 @@
 export const GAME_TZ = "America/Argentina/Buenos_Aires";
 export const STREAK_CYCLE = 7;
 // position in the 7-day cycle -> bonus coins (the cycle repeats)
-export const STREAK_BONUS: Record<number, number> = { 3: 50, 7: 100 };
+export const STREAK_BONUS: Record<number, number> = { 3: 500, 7: 1500 };
 
 export interface DailyState {
   day: string; // last claimed day

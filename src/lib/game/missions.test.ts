@@ -42,12 +42,12 @@ describe("missions", () => {
     for (const m of ms.slice(0, 2))
       s = addProgress(s, m.kind, m.target, m.param);
     const first = claimTiers("daily", s, ms);
-    expect(first.coins).toBe(50); // tiers 1 + 2: 20 + 30
+    expect(first.coins).toBe(400); // tiers 1 + 2: 150 + 250
     expect(first.dados).toBe(0);
     expect(claimTiers("daily", first.state, ms).coins).toBe(0);
     s = first.state;
     s = addProgress(s, ms[2].kind, ms[2].target, ms[2].param);
-    expect(claimTiers("daily", s, ms).coins).toBe(250);
+    expect(claimTiers("daily", s, ms).coins).toBe(700);
   });
 
   it("rerolls once, swaps one slot and refuses a finished mission", () => {
@@ -67,10 +67,10 @@ describe("missions", () => {
     expect(reroll("daily", day, done, 0)).toBeNull();
   });
 
-  it("reward table matches the design (daily 300, weekly 720, event 550 coins)", () => {
+  it("reward table matches the design (daily 1100, weekly 2800, event 1800 coins)", () => {
     const sum = (k: "daily" | "weekly" | "event") =>
       SCOPE_TIERS[k].reduce((a, t) => a + t.coins, 0);
-    expect([sum("daily"), sum("weekly"), sum("event")]).toEqual([300, 720, 550]);
+    expect([sum("daily"), sum("weekly"), sum("event")]).toEqual([1100, 2800, 1800]);
     expect(SCOPE_TIERS.weekly[1].pieces).toBe(1);
   });
 

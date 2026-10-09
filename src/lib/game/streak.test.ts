@@ -25,7 +25,7 @@ describe("daily streak", () => {
   });
   it("pays on day 3 and 7 and repeats the cycle", () => {
     expect([1, 2, 3, 4, 7, 8, 10, 14].map(streakBonus)).toEqual([
-      0, 0, 50, 0, 100, 0, 50, 100,
+      0, 0, 500, 0, 1500, 0, 500, 1500,
     ]);
   });
 });

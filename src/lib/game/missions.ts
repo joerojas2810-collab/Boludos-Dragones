@@ -131,17 +131,17 @@ const tier = (
 
 /**
  * Mission rewards per scope and tier. MUST be mirrored in SQL (`mission_claim`): any
- * change here needs the same change in the migration. Totals in coins: daily 250
- * (one pull), weekly 700, event 550.
+ * change here needs the same change in the migration. Totals in coins: daily 1100
+ * (~4 pulls, about a fifth of a day's income), weekly 2800, event 1800.
  */
 export const SCOPE_TIERS: Record<MissionScope, readonly MissionTier[]> = {
-  daily: [tier(30, 20), tier(60, 30), tier(90, 250)],
+  daily: [tier(30, 150), tier(60, 250), tier(90, 700)],
   weekly: [
-    tier(30, 120),
-    tier(60, 100, { pieces: 1 }),
-    tier(90, 500, { dados: 1 }),
+    tier(30, 500),
+    tier(60, 800, { pieces: 1 }),
+    tier(90, 1500, { dados: 1 }),
   ],
-  event: [tier(30, 50), tier(60, 100), tier(90, 400, { dados: 1 })],
+  event: [tier(30, 300), tier(60, 500), tier(90, 1000, { dados: 1 })],
 };
 
 /** Short Spanish description of a tier reward ("250 monedas · 1 núcleo"). */
