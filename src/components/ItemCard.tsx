@@ -83,13 +83,13 @@ export function ItemCard({
                 element={item.element}
                 traits={item.traits}
                 className={isPixel()
-                  ? "absolute inset-x-0 bottom-[24%] top-[2%]"
+                  ? "absolute inset-x-0 bottom-[24%] top-5"
                   : "absolute bottom-0 left-1/2 aspect-square h-full -translate-x-1/2"}
                 crop
               />
             ) : (
               // Pieces: keep the icon above the info strip so the text never covers it.
-              <div className="absolute inset-x-0 bottom-[34%] top-[8%] flex items-center justify-center">
+              <div className={`absolute inset-x-0 bottom-[34%] ${isPixel() ? "top-5" : "top-[8%]"} flex items-center justify-center`}>
                 <WeaponSprite
                   type={item.type}
                   element={item.element}
@@ -99,13 +99,13 @@ export function ItemCard({
               </div>
             )}
           </div>
-          {!isPixel() && <span className="absolute right-0.5 top-0.5 z-10 drop-shadow-[0_1px_0_#000]">
+          <span className="absolute right-0.5 top-0.5 z-10 drop-shadow-[0_1px_0_#000]">
             <ElementIcon
               element={item.element}
-              className={big ? "h-6" : "h-4"}
+              className={isPixel() ? "h-4 w-4 [image-rendering:pixelated]" : big ? "h-6" : "h-4"}
               bare
             />
-          </span>}
+          </span>
           <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-px bg-gradient-to-t from-black/85 via-black/60 to-transparent px-1 pb-1 pt-4 text-center text-white [text-shadow:0_1px_0_#000,0_0_3px_#000]">
             <div
               className={`w-full truncate font-bold ${big ? "text-xs" : "text-[10px]"}`}
@@ -132,9 +132,6 @@ export function ItemCard({
             </span>
           )}
         </div>
-        {isPixel() && <span className="absolute right-1 top-0.5 z-20 drop-shadow-[0_1px_0_#000]">
-          <ElementIcon element={item.element} className="h-6 w-6 [image-rendering:pixelated]" bare />
-        </span>}
       </RarityFrame>
     </div>
   );
