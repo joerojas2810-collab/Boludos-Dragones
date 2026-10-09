@@ -174,6 +174,10 @@ Renombres [HECHO]: Varita, "Rayo arcano" → **Descarga arcana**. Ataque 2 base 
 
 Medido con héroes S 3★ Nv50 con equipo en el dungeon SSR (30 héroes por nivel): media ~68 % con la política automática. Antes: Detonar ~57 %, Clérigo y Libro ~10 puntos sobre el resto. Cambios: Detonar poder 1,0 → 1,2 y +0,25 → +0,35 por acumulación; Castigo robo de vida 50 → 35 %; Santuario 10 → 8 %; guardia perfecta del Clérigo 8 → 5 %; Plegaria (Libro) 13 → 10 %. Resultado (auto): Caballero 68–74, Mago 63–72, Pícaro 62–68, Clérigo 70–78, Berserker 63–73. En el dungeon S todos quedan en 88–96 %. Quedan Detonar ~5 puntos abajo y Clérigo ~5 arriba: se re-mide con jugadores reales. `class-synth.ts` ahora separa el rango del dungeon (`RANK`, incluye SS y SSR) del rango de los objetos (S como máximo).
 
+### Duelos balanceados [DECIDIDO 2026-10-09, `duel.ts`]
+- Corregido un sesgo: el lado b del duelo se trataba como enemigo y no aplicaba el especial de clase, los estados ni la Sobrecarga. Ahora ambos lados son héroes (`strike(..., asHero)`); un duelo espejo es 50/50 (test en `duel.test.ts`).
+- `DUEL_TUNE` (hp y ATQ por clase) iguala las clases en el modo balanceado: Caballero ×0,95/0,97, Mago ×1,03/1, Pícaro ×1,10/1,03, Clérigo ×1,08/1,08, Berserker ×0,97/0,96. Medido con `scripts/duel-sim.ts` (400 duelos, `DUEL_SKILLS` = la mejor habilidad de cada clase): victorias medias 49–54 % para las cinco clases. Santuario como habilidad de duelo sigue siendo una elección floja (a propósito: es una habilidad de apoyo).
+
 ## 5. Jefes
 
 Reglas: la tabla elemental es universal para jefes. La mecánica del jefe es lo que lo distingue. Reutilizar patrones comunes, no 9 sistemas distintos.

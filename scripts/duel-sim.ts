@@ -5,8 +5,11 @@ import { CLASS_IDS, type ClassId } from "../src/lib/game/characters";
 import type { Action } from "../src/lib/game/combat";
 import { balancedHero, canAct, duelRound, startDuel, type Duel } from "../src/lib/game/duel";
 import { createRng, type Rng } from "../src/lib/game/rng";
+import type { SkillId } from "../src/lib/game/skills";
 
 const N = Number(process.argv[2] ?? 400);
+// The skill each class duels with (DUEL_SKILLS="clerigo=castigo,picaro=ejecutar"); default = first of the class.
+const DUEL_SKILLS: Record<string, SkillId> = Object.fromEntries((process.env.DUEL_SKILLS ?? "").split(",").filter(Boolean).map((x) => x.split("=")));
 type Policy = (d: Duel, side: "a" | "b", rng: Rng) => Action;
 const mix: Policy = (d, side, rng) => {
   const c = d[side];
@@ -25,7 +28,7 @@ function winRate(a: ClassId, b: ClassId, pol: Policy): number {
   let w = 0;
   for (let i = 0; i < N; i++) {
     const rng = createRng(i + 1);
-    let d = startDuel(balancedHero(a, "fuego"), balancedHero(b, "fuego"));
+    let d = startDuel(balancedHero(a, "fuego", DUEL_SKILLS[a]), balancedHero(b, "fuego", DUEL_SKILLS[b]));
     for (let k = 0; k < 200 && d.status === "ongoing"; k++)
       d = duelRound(d, pol(d, "a", rng), pol(d, "b", rng), rng);
     w += d.status === "a" ? 1 : d.status === "draw" ? 0.5 : 0;
