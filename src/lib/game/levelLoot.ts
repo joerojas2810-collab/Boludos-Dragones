@@ -29,9 +29,9 @@ import {
 export const PIECE_ROLLS_PER_FIGHT = 3;
 export const PIECE_CHANCE = 0.6; // per roll
 export const TOP_PIECE_CHANCE = 0.05; // per level (first clear); repeats scale it like the piece count
-export const PIECE_RANK_TILT = 1; // 1 = gacha odds for the rest; > 1 leans toward the cap
+export const PIECE_RANK_TILT = 1.3; // 1 = gacha odds for the rest; > 1 leans toward the cap (1.3: best piece of an S sweep is an A ~6 times in 10)
 export const PIECE_ELEMENT_LEVEL_SHARE = 0.4; // else any element
-export const REPEAT_PIECE_MULT = 0.75; // repeat clears (and sweeps) keep most of the piece drops
+export const REPEAT_PIECE_MULT = 0.75; // repeat clears (and sweeps) keep most of the piece drops; no daily decay
 // Keep in sync with bank_level / level_escamas in SQL (0041).
 export const ESCAMAS_PER_LEVEL: Partial<Record<RarityId, number>> = { s: 2, ss: 3, ssr: 4 };
 export const ESCAMAS_ASC_STEP = 0.1; // +10% per ascension level
@@ -94,7 +94,8 @@ export function levelLoot(
 ): LevelLoot {
   const rng = createRng(hashSeed(seed, spec.index, asc, 9201));
   const pieces: RunPiece[] = [];
-  const pieceMult = (opts.repeat ? REPEAT_PIECE_MULT : 1) * (opts.payMult ?? 1);
+  // Pieces ignore the daily decay (payMult): only coins and Escamas decay (SQL computes those).
+  const pieceMult = opts.repeat ? REPEAT_PIECE_MULT : 1;
   // Counts are the expected value with random rounding (no per-roll variance).
   const count = roundRandom(rng, spec.length * PIECE_ROLLS_PER_FIGHT * PIECE_CHANCE * pieceMult);
   // The level's single roll for a piece of the dungeon's own rank (replaces one of the pieces).

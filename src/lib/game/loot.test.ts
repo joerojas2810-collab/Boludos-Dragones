@@ -83,12 +83,23 @@ describe("levelLoot: the top rank is one roll per level", () => {
     expect(withTop / N).toBeGreaterThan(0.035);
     expect(withTop / N).toBeLessThan(0.065);
   });
-  it("repeats scale the chance down; the rest of the pieces stay below the dungeon", () => {
+  it("repeats keep 75% of the top chance; the rest of the pieces stay below the dungeon", () => {
     let top = 0;
     for (let i = 0; i < 6000; i++) {
-      const l = levelLoot(spec("ssr"), 0, "mago", i, { repeat: true, payMult: 0.5 });
+      const l = levelLoot(spec("ssr"), 0, "mago", i, { repeat: true });
       top += l.pieces.filter((p) => p.rarity === "ssr").length;
     }
-    expect(top / 6000).toBeLessThan(0.025);
+    expect(top / 6000).toBeGreaterThan(0.025);
+    expect(top / 6000).toBeLessThan(0.05);
+  });
+  it("the daily decay (payMult) does not touch the pieces, only Escamas", () => {
+    for (let i = 0; i < 200; i++) {
+      const full = levelLoot(spec("ss"), 0, "mago", i, { repeat: true, payMult: 1 });
+      const decayed = levelLoot(spec("ss"), 0, "mago", i, { repeat: true, payMult: 0.1 });
+      expect(decayed.pieces).toEqual(full.pieces);
+    }
+    const a = levelLoot(spec("ss"), 0, "mago", 1, { repeat: true, payMult: 1 });
+    const b = levelLoot(spec("ss"), 0, "mago", 1, { repeat: true, payMult: 0.1 });
+    expect(b.escamas).toBeLessThanOrEqual(a.escamas);
   });
 });
