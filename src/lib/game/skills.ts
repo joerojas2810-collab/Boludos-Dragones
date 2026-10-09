@@ -7,7 +7,7 @@ import type { ClassId } from "./characters";
 export const SWEEP_POWER = 1; // Barrido: damage vs EACH enemy
 export const STORM_POWER = 1.3; // Tormenta: damage vs EACH enemy
 export const COUNTER_ROUNDS = 2; // Contraataque lasts this many round ends
-export const COUNTER_TAKEN = 0.5; // damage taken by the hero while it is up
+export const COUNTER_TAKEN = 1; // damage taken by the hero while it is up (1 = full: it is not a guard)
 export const COUNTER_REFLECT = 1.2; // x the unreduced hit, sent back
 export const DRAIN_POWER = 1; // Drenar maná: single-target strike
 export const DRAIN_LIFESTEAL = 0.25; // fraction of damage dealt healed
@@ -77,7 +77,7 @@ export const SKILLS: Record<SkillId, Skill> = {
     classId: "caballero",
     name: "Contraataque",
     blurb: "Devuelve el próximo golpe",
-    description: `Recibes ${pc(1 - COUNTER_TAKEN)} menos del próximo golpe y lo devuelves al atacante (dura ${COUNTER_ROUNDS} rondas).`,
+    description: `Aguantas el próximo golpe sin reducirlo y devuelves ${pc(COUNTER_REFLECT)} del daño al atacante, después de recibirlo (dura ${COUNTER_ROUNDS} rondas).`,
     cooldown: 3,
     power: 0,
     accuracy: 1,

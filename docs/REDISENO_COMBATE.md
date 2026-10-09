@@ -153,13 +153,13 @@ Ataque 1 = golpe seguro de la clase. Ataque 2 = habilidad de clase (1 de 2). Ata
 
 | Clase | Identidad | Ataque 2 (elige 1) | Ataque 3 (arma) |
 |---|---|---|---|
-| Caballero [DECIDIDO el concepto] | Más lento, defensa alta, recibe el golpe y lo devuelve (no es una guardia) | **Contraataque** (se queda: recibe el golpe de verdad, devuelve el daño recibido) · **Represalia** [PROPUESTA] (golpe de poder 1,3 que suma +10 % por golpe recibido desde tu última acción, hasta +40 %) | Espada: Golpe de escudo · Hacha: Hachazo |
+| Caballero [DECIDIDO] | Sin cambios de personaje: defensa alta, pasivo Muralla | **Barrido** · **Contraataque** (cambia: no reduce el golpe recibido, lo aguantas completo y lo devuelves ×1,2 después de recibirlo; dura 2 rondas) | Espada: Golpe de escudo · Hacha: Hachazo |
 | Mago [DECIDIDO] | Especialista en estados | **Tormenta** (a todos, poder ×1,3, aplica 2 acumulaciones) · **Detonar** (reemplaza a Drenar maná: poder 1,0 al objetivo, +25 % por acumulación de estado que tenga, y se las borra; recarga 3) | Bastón: Cataclismo · Varita: Rayo arcano |
 | Pícaro [sin cambios] | Críticos ×2 | Golpe doble · Ejecutar | Daga: Puñalada rápida · Arco: Disparo certero |
 | Clérigo [DECIDIDO] | Sanador-castigador | **Santuario** · **Castigo** | Maza: **Golpe sagrado** (renombrada; era Castigo) · Libro: Plegaria |
 | Berserker [DECIDIDO] | Convierte el peligro en daño | Desgarro · Aniquilación | Mandoble: Frenesí · Martillo: Aplastar |
 
-Cambios derivados del Caballero [PROPUESTA]: velocidad base menor (de 9,5 a ~8,5, a medir); el Reflejo de su Guardia perfecta se sustituye por un escudo del 8 % de su vida máxima, para no duplicar el Contraataque. Barrido sale de su lista. El Mago pasa a ser el único con habilidad de área (Tormenta).
+Caballero: se mantiene el personaje (velocidad, Reflejo en la Guardia perfecta, Barrido); solo cambia el Contraataque (recibes el daño completo y devuelves el 120 % del golpe recibido). Barrido y Tormenta siguen compartiendo el área; se mide en simulación antes de tocarlos.
 
 ## 5. Jefes
 
