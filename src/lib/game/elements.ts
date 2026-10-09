@@ -1,4 +1,4 @@
-// Each element beats the next two in this circular list.
+// Each element beats only the next one in this circular list and loses to the previous one.
 export const ELEMENTS = ["agua", "fuego", "viento", "tierra", "rayo"] as const;
 export type Element = (typeof ELEMENTS)[number];
 
@@ -14,7 +14,7 @@ export const ADVANTAGE_BONUS = 0.25;
 
 function beats(a: Element, b: Element): boolean {
   const i = ELEMENTS.indexOf(a);
-  return b === ELEMENTS[(i + 1) % 5] || b === ELEMENTS[(i + 2) % 5];
+  return b === ELEMENTS[(i + 1) % 5];
 }
 
 export function elementMultiplier(
