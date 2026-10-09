@@ -31,6 +31,8 @@ export const STATUS_DATA: Record<
   ruptura: { label: "Ruptura", max: 3, turns: 3, per: 0.08, negative: true },
 };
 
+// Only the class special (Ataque 2) applies statuses, CLASS_STACKS per use.
+export const CLASS_STACKS = 2;
 export const OVERLOAD_EVERY = 3; // Rayo: every 3rd own hit
 export const OVERLOAD_BONUS = 0.4;
 export const BURN_CAP = 0.06; // a burn never takes more than this share of max hp per round

@@ -28,6 +28,7 @@ import {
   addStatus,
   BURN_CAP,
   burnDamage,
+  CLASS_STACKS,
   cleanse,
   defMult,
   OVERLOAD_BONUS,
@@ -687,14 +688,20 @@ export function strike(
   // Elemental effects: the player always applies them, enemies only on strong
   // hits when flagged (elites, bosses). Mago's perfect guard doubles the stacks.
   const element = att.char.weapon?.element ?? att.char.element;
-  const canApply = actor === "player" || (att.applies && isStrongIntent(key));
-  const stacks = att.riposte && att.char.classId === "mago" ? 2 : 1;
+  const classMove = actor === "player" && key === "attack3";
+  const canApply =
+    actor === "player" ? classMove : !!att.applies && isStrongIntent(key);
+  const guardBoost = att.riposte && att.char.classId === "mago" ? 2 : 1;
+  const stacks = guardBoost * (classMove ? CLASS_STACKS : 1);
+  // Rayo: any landed hit charges, the overload is spent by the class special.
   let charge = att.charge ?? 0;
   let overload = false;
-  if (canApply && element === "rayo") {
-    charge += stacks;
-    overload = charge >= OVERLOAD_EVERY;
-    if (overload) charge -= OVERLOAD_EVERY;
+  if (element === "rayo" && (actor === "player" || canApply)) {
+    charge = Math.min(OVERLOAD_EVERY, charge + guardBoost);
+    if (charge >= OVERLOAD_EVERY && (classMove || actor === "enemy")) {
+      overload = true;
+      charge -= OVERLOAD_EVERY;
+    }
   }
   const dmg = Math.round(
     estimateDamage(att, def, key, crit) *

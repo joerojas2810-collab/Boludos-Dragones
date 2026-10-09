@@ -80,8 +80,9 @@ El multiplicador y el efecto especial son sistemas separados: tener ventaja no g
 
 Riesgos a medir en simulación: Agua y Viento dependen de la velocidad (la velocidad ya da acciones extra); equipo con ambos podría dominar.
 
-### Preguntas de implementación [PENDIENTE]
-- **Qué ataques llevan el elemento y aplican efecto.** Hoy "el arma fija el elemento del ataque" (del Ataque 2). Con la nueva estructura hay que decidir. Propuesta por defecto: Ataque 1, 2 y 3 usan el elemento del arma y aplican 1 acumulación.
+### Preguntas de implementación
+- **[DECIDIDO 2026-10-09] Qué ataques aplican efecto:** solo el Ataque 2 (especial de clase), con 2 acumulaciones por uso; Ataque 1 y Ataque 3 (arma) no aplican estados. La Sobrecarga de Rayo cuenta cualquier golpe propio y la gasta el especial de clase. Las habilidades sin golpe (Santuario, Contraataque) no aplican estados. Simulación (rango S, 8 héroes): –3 puntos de clear en promedio frente a aplicar con todos los ataques; sin clase dominante.
+- (Antes pendiente) **Qué ataques llevan el elemento y aplican efecto.** Hoy "el arma fija el elemento del ataque" (del Ataque 2). Con la nueva estructura hay que decidir. Propuesta por defecto: Ataque 1, 2 y 3 usan el elemento del arma y aplican 1 acumulación.
 - **Enemigos que aplican efectos al jugador** [POR DEFECTO]: solo élites y jefes, con 1 acumulación por golpe fuerte. Los enemigos normales no.
 
 ---
