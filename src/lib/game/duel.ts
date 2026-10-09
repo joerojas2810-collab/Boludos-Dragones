@@ -8,6 +8,8 @@ import {
   ENRAGE_STEP,
   healMult,
   earnGuard,
+  speedOf,
+  statusTick,
   isStrongIntent,
   passiveHeal,
   skillOf,
@@ -121,12 +123,12 @@ export function duelRound(
 
   // Initiative: faster side first, then alternate; extra actions are Ataque 1.
   const counts = actionCounts(
-    d.a.char.stats.speed,
-    d.b.char.stats.speed,
+    speedOf(d.a),
+    speedOf(d.b),
     d.carry,
   );
-  const ra = d.a.char.stats.speed * (0.7 + 0.6 * rng.next());
-  const rb = d.b.char.stats.speed * (0.7 + 0.6 * rng.next());
+  const ra = speedOf(d.a) * (0.7 + 0.6 * rng.next());
+  const rb = speedOf(d.b) * (0.7 + 0.6 * rng.next());
   const left = { a: counts.player, b: counts.enemy };
   const used = { a: 0, b: 0 };
   const slots: { x: DuelSide; k: number }[] = [];
@@ -212,7 +214,7 @@ export function duelRound(
       cooldown3: Math.max(0, (c.cooldown3 ?? 0) - 1),
       reflect: Math.max(0, (c.reflect ?? 0) - 1),
     };
-    n = passiveHeal(n, log);
+    n = statusTick(passiveHeal(n, log), log);
     if (turn > ENRAGE_AFTER_TURN) {
       n = {
         ...n,
@@ -227,6 +229,7 @@ export function duelRound(
   };
   const a = end(s.a);
   const b = end(s.b);
+  status = decide(a, b);
   if (turn > DUEL_MAX_TURN) {
     const fa = a.hp / a.char.stats.hp;
     const fb = b.hp / b.char.stats.hp;

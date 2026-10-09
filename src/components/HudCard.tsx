@@ -1,5 +1,6 @@
 "use client";
 
+import { STATUS_DATA } from "@/lib/game/statuses";
 import { iconFor } from "@/lib/art";
 import { useState, type ReactNode } from "react";
 import { Chip } from "@/components/Chip";
@@ -16,6 +17,7 @@ import {
   passiveTip,
   reflectTip,
   riposteTip,
+  statusTip,
   shieldTip,
   skillTip,
   statTip,
@@ -91,6 +93,7 @@ export function HudCard({
   const hasStatus =
     (c.shield ?? 0) > 0 ||
     c.riposte ||
+    !!c.statuses?.length ||
     (c.reflect ?? 0) > 0 ||
     (c.freeHits ?? 0) > 0 ||
     (!you && turn > ENRAGE_AFTER_TURN) ||
@@ -153,6 +156,15 @@ export function HudCard({
               Guardia perfecta
             </Chip>
           )}
+          {c.statuses?.map((s) => (
+            <Chip
+              key={s.id}
+              tip={statusTip(s)}
+              tone={STATUS_DATA[s.id].negative ? "danger" : "heal"}
+            >
+              {STATUS_DATA[s.id].label} ×{s.stacks}
+            </Chip>
+          ))}
           {(c.reflect ?? 0) > 0 && (
             <Chip tip={reflectTip(c)} tone="info">
               Contraataque

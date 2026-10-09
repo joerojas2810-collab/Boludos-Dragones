@@ -252,6 +252,7 @@ export function startFight(st: Stage): { battle: Battle; rng: Rng } {
   const battle = startBattle(st.hero, f.enemies, rng, {
     playerHp: st.hp,
     mods: f.mods,
+    enemyStatus: f.role !== "normal",
   });
   return { battle, rng };
 }

@@ -23,6 +23,21 @@ import {
   SKILLS,
   type Skill,
 } from "./skills";
+import {
+  addStatus,
+  BURN_CAP,
+  burnDamage,
+  cleanse,
+  defMult,
+  OVERLOAD_BONUS,
+  OVERLOAD_EVERY,
+  speedMult,
+  stacksOf,
+  STATUS_DATA,
+  STATUS_OF_ELEMENT,
+  tickStatuses,
+  type StatusEffect,
+} from "./statuses";
 import { traitTotals } from "./traits";
 import { weaponSpecial } from "./weapons";
 
@@ -90,6 +105,7 @@ export interface BattleOptions {
   playerShield?: number;
   freeHits?: number; // enemy attacks the player evades automatically
   mods?: EnemyMod[];
+  enemyStatus?: boolean; // enemies apply their element status on strong hits (elites, bosses)
 }
 
 export interface BattleEvent {
@@ -117,6 +133,9 @@ export interface Combatant {
   shield?: number;
   freeHits?: number;
   perks?: Perks;
+  statuses?: StatusEffect[]; // elemental effects (statuses.ts)
+  charge?: number; // Rayo hits since the last overload
+  applies?: boolean; // enemies: strong hits apply their element's status (elites, bosses)
 }
 
 // A round is a queue of action slots (see buildQueue). `step` resolves one
@@ -170,12 +189,14 @@ export const passiveReduction = (c: Combatant): number =>
   );
 
 // Fraction of damage absorbed by defense (0..DEF_CAP).
-export const defReduction = (att: Combatant, def: Combatant): number =>
-  Math.min(
-    DEF_CAP,
-    def.char.stats.def /
-      Math.max(1e-6, def.char.stats.def + DEF_K * att.char.stats.atk),
-  );
+export const defReduction = (att: Combatant, def: Combatant): number => {
+  const d = def.char.stats.def * defMult(def.statuses);
+  return Math.min(DEF_CAP, d / Math.max(1e-6, d + DEF_K * att.char.stats.atk));
+};
+
+// Speed after Escarcha / Impulso.
+export const speedOf = (c: Combatant): number =>
+  c.char.stats.speed * speedMult(c.statuses);
 
 // Passive healing per round as a fraction of max hp: class blessing plus gear
 // and perk regen, with the global cap.
@@ -320,7 +341,7 @@ function enemySlots(
 }
 
 const roll = (c: Combatant, rng: Rng) =>
-  c.char.stats.speed * (0.7 + 0.6 * rng.next());
+  speedOf(c) * (0.7 + 0.6 * rng.next());
 
 // Rolls everything announced for a new round. An enemy's Defender (if any of
 // its intents is one) is active from the start, so shown estimates stay honest.
@@ -339,7 +360,7 @@ function planRound(
   const live = enemies.flatMap((e, i) => (e.hp > 0 ? [i] : []));
   const counts = enemies.map((e) =>
     e.hp > 0
-      ? actionCounts(player.char.stats.speed, e.char.stats.speed, e.carry ?? 0)
+      ? actionCounts(speedOf(player), speedOf(e), e.carry ?? 0)
       : null,
   );
   const intents: Intent[][] = enemies.map((e, i) =>
@@ -412,6 +433,7 @@ export function startBattle(
   const list: readonly Character[] = "name" in foes ? [foes] : foes;
   const es = list.slice(0, MAX_ENEMIES).map((c) => {
     const e = newCombatant(c);
+    if (opts.enemyStatus) e.applies = true;
     if (mods.includes("escudo"))
       e.shield = Math.round(c.stats.hp * SHIELD_FRACTION);
     return e;
@@ -543,10 +565,26 @@ export function earnGuard(c: Combatant, log: string[]): Combatant {
       c.char.stats.hp,
       c.hp + Math.round(c.char.stats.hp * GUARD_HEAL * healMult(c)),
     );
-    out = { ...out, hp };
+    out = { ...out, hp, statuses: cleanse(c.statuses) };
   }
   log.push(`¡Guardia perfecta! ${c.char.name} ${GUARD_TEXT[c.char.classId]}.`);
   return out;
+}
+
+// End of round: the burn bites (capped at BURN_CAP of max hp), then every status
+// loses a round.
+export function statusTick(c: Combatant, log: string[]): Combatant {
+  if (!c.statuses?.length) return c;
+  const burn = Math.min(
+    burnDamage(c.statuses),
+    Math.round(c.char.stats.hp * BURN_CAP),
+  );
+  if (burn > 0) log.push(`${c.char.name} se quema: ${burn} de daño.`);
+  return {
+    ...c,
+    hp: Math.max(0, c.hp - burn),
+    statuses: tickStatuses(c.statuses),
+  };
 }
 
 export interface Strike {
@@ -614,15 +652,28 @@ export function strike(
   // Apostador: one extra draw per landed hit, only for gamblers (old streams intact).
   const spread = rulesOf(att).spread;
   const gamble = spread > 0 ? 1 + spread * (2 * rng.next() - 1) : 1;
+  // Elemental effects: the player always applies them, enemies only on strong
+  // hits when flagged (elites, bosses). Mago's perfect guard doubles the stacks.
+  const element = att.char.weapon?.element ?? att.char.element;
+  const canApply = actor === "player" || (att.applies && isStrongIntent(key));
+  const stacks = att.riposte && att.char.classId === "mago" ? 2 : 1;
+  let charge = att.charge ?? 0;
+  let overload = false;
+  if (canApply && element === "rayo") {
+    charge += stacks;
+    overload = charge >= OVERLOAD_EVERY;
+    if (overload) charge -= OVERLOAD_EVERY;
+  }
   const dmg = Math.round(
     estimateDamage(att, def, key, crit) *
       (crit ? critMultiplier(att) : 1) *
       dmgFactor *
-      gamble,
+      gamble *
+      (overload ? 1 + OVERLOAD_BONUS : 1),
   );
   ev(crit ? "crit" : "hit");
   log.push(
-    `${who} usa ${a.name}${on}: ${dmg} de daño${crit ? " (¡crítico!)" : ""}.`,
+    `${who} usa ${a.name}${on}: ${dmg} de daño${crit ? " (¡crítico!)" : ""}${overload ? " ¡Sobrecarga!" : ""}.`,
   );
   const absorbed = Math.min(def.shield ?? 0, dmg);
   if (absorbed > 0)
@@ -635,6 +686,20 @@ export function strike(
     hp: Math.max(0, def.hp - (dmg - absorbed)),
     ...(def.shield !== undefined && { shield: def.shield - absorbed }),
   };
+  let ownStatuses = attacker.statuses;
+  const sid = canApply ? STATUS_OF_ELEMENT[element] : undefined;
+  if (sid === "impulso") ownStatuses = addStatus(ownStatuses, sid, stacks);
+  else if (sid)
+    defender = {
+      ...defender,
+      statuses: addStatus(
+        defender.statuses,
+        sid,
+        stacks,
+        sid === "quemadura" ? Math.round(dmg * STATUS_DATA.quemadura.per) : undefined,
+      ),
+    };
+  if (sid) log.push(`${sid === "impulso" ? who : def.char.name}: ${STATUS_DATA[sid].label} ×${stacksOf(sid === "impulso" ? ownStatuses : defender.statuses, sid)}.`);
   let back = 0;
   if ((def.reflect ?? 0) > 0) {
     // Contraataque: the hit was already reduced; the attacker eats it in full.
@@ -657,6 +722,8 @@ export function strike(
     attacker: {
       ...attacker,
       hp: Math.max(0, Math.min(att.char.stats.hp, attacker.hp + steal) - back),
+      ...(ownStatuses && { statuses: ownStatuses }),
+      ...(charge !== (att.charge ?? 0) && { charge }),
     },
     defender,
     dmg,
@@ -857,7 +924,7 @@ export function step(
     cooldown3: Math.max(0, (player.cooldown3 ?? 0) - 1),
     reflect: Math.max(0, (player.reflect ?? 0) - 1),
   };
-  player = passiveHeal(player, log);
+  player = statusTick(passiveHeal(player, log), log);
   const turn = b.turn + 1;
   const next = enemies.map((e): Combatant => {
     if (e.hp <= 0) return e;
@@ -866,7 +933,11 @@ export function step(
       defending: false,
       cooldown: Math.max(0, e.cooldown - 1),
     };
-    c = passiveHeal(c, log);
+    c = statusTick(passiveHeal(c, log), log);
+    if (c.hp <= 0) {
+      log.push(`${c.char.name} cae.`);
+      return c;
+    }
     if (b.mods?.includes("regeneracion")) {
       const hp = Math.min(
         c.char.stats.hp,
@@ -893,6 +964,26 @@ export function step(
     }
     return c;
   });
+  const burned: Status | null = next.every((e) => e.hp <= 0)
+    ? "won"
+    : player.hp <= 0
+      ? "lost"
+      : null;
+  if (burned) {
+    if (burned === "lost") log.push(`${player.char.name} cae.`);
+    return {
+      ...b,
+      player,
+      enemies: next,
+      queue: [],
+      turn,
+      actions,
+      status: burned,
+      events,
+      guardEarned,
+      log: [...b.log, ...log],
+    };
+  }
   const plan = planRound(player, next, turn, rng);
   return {
     ...b,

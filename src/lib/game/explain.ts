@@ -73,6 +73,7 @@ import {
 } from "./elements";
 import { MODIFIER_FLOORS } from "./floorFights";
 import { CLEAR_XP_BONUS, FIGHT_XP, GAFE_LOSS_XP, SEDIENTO_HEAL } from "./stage";
+import { BURN_CAP, STATUS_DATA, type StatusEffect, type StatusId } from "./statuses";
 import { TOWER_XP_FACTOR } from "./tower";
 import { TRAITS, type TraitId, type TraitMods } from "./traits";
 
@@ -693,6 +694,23 @@ export const riposteTip = (c: Combatant): Tip => ({
     "Se gasta al acertar con un ataque (o con tu habilidad).",
   ],
   source: "Guardia perfecta",
+});
+
+const STATUS_RULE: Record<StatusId, string> = {
+  escarcha: `Cada acumulación quita ${pct(STATUS_DATA.escarcha.per)} de velocidad (máx. ${STATUS_DATA.escarcha.max}).`,
+  quemadura: `Cada ronda sufre ${pct(STATUS_DATA.quemadura.per)} del golpe que la causó por acumulación (máx. ${STATUS_DATA.quemadura.max}), con tope de ${pct(BURN_CAP)} de la vida máxima.`,
+  impulso: `Cada acumulación da +${pct(STATUS_DATA.impulso.per)} de velocidad propia (máx. ${STATUS_DATA.impulso.max}).`,
+  ruptura: `Cada acumulación quita ${pct(STATUS_DATA.ruptura.per)} de DEF (máx. ${STATUS_DATA.ruptura.max}).`,
+};
+
+export const statusTip = (s: StatusEffect): Tip => ({
+  title: `${STATUS_DATA[s.id].label} ×${s.stacks}`,
+  kind: "info",
+  lines: [
+    STATUS_RULE[s.id],
+    `Dura ${plural(s.turns, "ronda más", "rondas más")}; cada golpe del mismo elemento la renueva.`,
+  ],
+  source: "Efecto elemental",
 });
 
 export const reflectTip = (c: Combatant): Tip => ({
