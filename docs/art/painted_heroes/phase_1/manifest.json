@@ -1,0 +1,40 @@
+{
+  "phase": 1,
+  "status": "approved",
+  "approval_date": "2026-10-09",
+  "assets": [
+    {
+      "filename": "concept_assassin_fire.png",
+      "sha256": "7c5a0bb0d8b564772492f008fefeb4045223d5ee39bdfa9b4955f37f5c9ca3f0",
+      "size": [
+        1312,
+        1199
+      ]
+    },
+    {
+      "filename": "concept_cleric_fire.png",
+      "sha256": "5ade8bcca66755dc85fe1e6e78b5b7cad639e4fa8950482f4fb8f6312c665f6b",
+      "size": [
+        1312,
+        1199
+      ]
+    },
+    {
+      "filename": "concept_knight_fire.png",
+      "sha256": "9b6dabd3b49f50bfe19e16e18ea9ff1d16ebc50352420e332dde3d27047b923f",
+      "size": [
+        1199,
+        1312
+      ]
+    },
+    {
+      "filename": "concept_mage_fire.png",
+      "sha256": "a7f6f8008850847bb47c759d2a124a56323cdbd4c139eaf7ce68bb0669e58f69",
+      "size": [
+        1024,
+        1536
+      ]
+    }
+  ],
+  "prompts": "retained in local delivery; excluded from repo per CLAUDE.md"
+}
