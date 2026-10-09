@@ -11,7 +11,7 @@ import { ActionPanel } from "@/components/ActionPanel";
 import { BattleArena } from "@/components/BattleArena";
 import { Chip } from "@/components/Chip";
 import { EnemySprite } from "@/components/EnemySprite";
-import { FightLog, LogPanel } from "@/components/LogPanel";
+import { LogPanel } from "@/components/LogPanel";
 import { ItemCard } from "@/components/ItemCard";
 import { MuteButton } from "@/components/MuteButton";
 import { Notice } from "@/components/Notice";
@@ -248,7 +248,7 @@ export function TowerMode() {
         </div>
       </div>
       <div className="mx-auto flex w-full max-w-[min(100rem,calc((100vh-15rem)*1.78+23rem))] flex-col gap-3 md:min-h-0 md:min-w-[48rem] md:flex-1">
-        <div className="flex min-w-0 flex-1 flex-col gap-3 md:min-h-0 md:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 md:min-h-0">
           <div className="flex min-w-0 flex-1 flex-col md:min-h-0">
             <BattleArena
               bleed
@@ -287,9 +287,8 @@ export function TowerMode() {
               }
             />
           </div>
-          <div className="flex flex-col gap-2 max-md:contents md:min-h-0 md:w-[22rem]">
+          <div className="flex flex-col gap-2 max-md:contents">
             <ActionPanel
-              side
               float
               b={b}
               target={targeting.target}
@@ -315,7 +314,6 @@ export function TowerMode() {
                 </>
               )}
             </ActionPanel>
-            <FightLog lines={b.log} />
           </div>
         </div>
         <LogPanel lines={b.log}>

@@ -25,6 +25,11 @@
 .fxn-heal {
   color: #69db7c;
 }
+.fxn-miss {
+  color: #cfe0f0;
+  font-size: 1.9rem;
+  font-style: italic;
+}
 .fxn-crit {
   font-size: 2.4rem;
   color: #ffa94d;

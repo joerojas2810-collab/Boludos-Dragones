@@ -259,11 +259,9 @@ export function FxLayer({ t, k }: { t?: TargetFx; k: number }) {
         />
       )}
       {t.dodge !== undefined && (
-        <Vfx
-          id="dodge"
-          delay={t.dodge}
-          className="absolute left-1/2 top-[10%] w-28 -translate-x-1/2"
-        />
+        <span className="fxn fxn-miss" style={{ animationDelay: `${t.dodge}s` }}>
+          ¡Falla!
+        </span>
       )}
       {t.extras?.map((x, i) => (
         <Vfx
