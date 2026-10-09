@@ -46,10 +46,12 @@ export const MAX_ENEMIES = 3;
 // Perfect guard: choosing Defender while at least one STRONG hit (Ataque 2) is
 // still announced this round. That strong hit is cut to PERFECT_GUARD_FACTOR of
 // its damage (instead of DEFEND_FACTOR; it replaces it, it does not stack) and
-// the hero's next damaging action deals +GUARD_COUNTER_BONUS. Weaker hits in the
+// the guard earns a bonus of the hero's class (see earnGuard). Weaker hits in the
 // same round still get the normal DEFEND_FACTOR.
 export const PERFECT_GUARD_FACTOR = 0.25;
-export const GUARD_COUNTER_BONUS = 0.5;
+export const GUARD_REFLECT = 0.4; // Caballero: share of the avoided damage sent back
+export const GUARD_CRIT_BONUS = 0.5; // Pícaro: extra crit chance on the next hit
+export const GUARD_HEAL = 0.08; // Clérigo: fraction of max hp healed
 export const isStrongIntent = (k: MoveKey | Intent): boolean => k === "attack2";
 
 // Speed -> actions ("acciones acumuladas"). Per (hero, enemy) pair the slower
@@ -109,7 +111,7 @@ export interface Combatant {
   defending: boolean; // lasts until the end of the round
   // (an enemy's Defender is active from round start: it is announced)
   guard?: boolean; // perfect guard earned this round (see PERFECT_GUARD_FACTOR)
-  riposte?: boolean; // next damaging action gets GUARD_COUNTER_BONUS
+  riposte?: boolean; // Mago / Pícaro guard bonus, spent by the next damaging action
   reflect?: number; // rounds left of Contraataque
   carry?: number; // enemies: speed remainder against the hero
   shield?: number;
@@ -487,7 +489,6 @@ export function estimateDamage(
         (1 - passiveReduction(def)) *
         (1 + (att.char.gear?.dmgDealt ?? 0)) *
         ((def.reflect ?? 0) > 0 ? COUNTER_TAKEN : 1) *
-        (att.riposte ? 1 + GUARD_COUNTER_BONUS : 1) *
         executeFactor(att, def, key),
     ),
   );
@@ -525,6 +526,27 @@ export function passiveHeal(c: Combatant, log: string[]): Combatant {
   );
   if (hp > c.hp) log.push(`${c.char.name} se recupera ${hp - c.hp}.`);
   return { ...c, hp };
+}
+
+// Perfect guard earned: flags the combatant and grants its class bonus.
+const GUARD_TEXT: Record<ClassId, string> = {
+  caballero: "devolverá parte del golpe",
+  mago: "potenciará su próximo golpe",
+  picaro: "afinará su puntería",
+  clerigo: "se purifica",
+};
+export function earnGuard(c: Combatant, log: string[]): Combatant {
+  let out: Combatant = { ...c, guard: true };
+  if (c.char.classId === "mago" || c.char.classId === "picaro") out.riposte = true;
+  if (c.char.classId === "clerigo") {
+    const hp = Math.min(
+      c.char.stats.hp,
+      c.hp + Math.round(c.char.stats.hp * GUARD_HEAL * healMult(c)),
+    );
+    out = { ...out, hp };
+  }
+  log.push(`¡Guardia perfecta! ${c.char.name} ${GUARD_TEXT[c.char.classId]}.`);
+  return out;
 }
 
 export interface Strike {
@@ -584,7 +606,11 @@ export function strike(
     ev("miss");
     return { attacker, defender: def, dmg: 0 };
   }
-  const crit = rng.chance(att.char.stats.crit + (att.char.classId === "mago" ? CLASS_PASSIVE_MAGE_CRIT : 0));
+  const crit = rng.chance(
+    att.char.stats.crit +
+      (att.char.classId === "mago" ? CLASS_PASSIVE_MAGE_CRIT : 0) +
+      (att.riposte && att.char.classId === "picaro" ? GUARD_CRIT_BONUS : 0),
+  );
   // Apostador: one extra draw per landed hit, only for gamblers (old streams intact).
   const spread = rulesOf(att).spread;
   const gamble = spread > 0 ? 1 + spread * (2 * rng.next() - 1) : 1;
@@ -615,6 +641,12 @@ export function strike(
     back = Math.round((dmg / COUNTER_TAKEN) * COUNTER_REFLECT);
     defender = { ...defender, reflect: 0 };
     log.push(`${def.char.name} contraataca y devuelve ${back} a ${who}.`);
+  }
+  if (def.guard && def.defending && isStrongIntent(key) && def.char.classId === "caballero") {
+    // Reflejo: part of the damage the perfect guard avoided goes back, no hit roll.
+    const reflected = Math.round(dmg * (1 / PERFECT_GUARD_FACTOR - 1) * GUARD_REFLECT);
+    back += reflected;
+    log.push(`${def.char.name} refleja ${reflected} a ${who}.`);
   }
   const thorns = Math.round(dmg * rulesOf(def).thorns);
   if (thorns > 0) {
@@ -668,13 +700,7 @@ export function step(
   if (action === "defend" || skill?.guard) {
     player.defending = true;
     if (action === "defend") log.push(`${player.char.name} se defiende.`);
-    if (!player.guard && strongPending(b)) {
-      player.guard = true;
-      player.riposte = true;
-      log.push(
-        `¡Guardia perfecta! ${player.char.name} resistirá el golpe fuerte y contraatacará.`,
-      );
-    }
+    if (!player.guard && strongPending(b)) player = earnGuard(player, log);
   }
 
   const guardEarned = log.some((l) => l.startsWith("¡Guardia perfecta!"));

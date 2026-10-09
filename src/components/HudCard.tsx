@@ -149,7 +149,7 @@ export function HudCard({
             </Chip>
           )}
           {c.riposte && (
-            <Chip tip={riposteTip()} tone="heal">
+            <Chip tip={riposteTip(c)} tone="heal">
               Guardia perfecta
             </Chip>
           )}

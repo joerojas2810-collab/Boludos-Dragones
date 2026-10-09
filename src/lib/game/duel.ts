@@ -7,6 +7,7 @@ import {
   ENRAGE_AFTER_TURN,
   ENRAGE_STEP,
   healMult,
+  earnGuard,
   isStrongIntent,
   passiveHeal,
   skillOf,
@@ -113,12 +114,8 @@ export function duelRound(
     s[x].defending = true;
     if (pick[x] === "defend") log.push(`${s[x].char.name} se defiende.`);
     if (isStrongIntent(pick[other(x)])) {
-      s[x].guard = true;
-      s[x].riposte = true;
+      s[x] = earnGuard(s[x], log);
       guard[x] = true;
-      log.push(
-        `¡Guardia perfecta! ${s[x].char.name} resistirá el golpe fuerte y contraatacará.`,
-      );
     }
   }
 

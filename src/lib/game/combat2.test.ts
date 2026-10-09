@@ -11,7 +11,6 @@ import {
   DEFEND_FACTOR,
   ENRAGE_AFTER_TURN,
   estimateDamage,
-  GUARD_COUNTER_BONUS,
   livingEnemies,
   MAX_ACTIONS_PER_ROUND,
   pendingIntents,
@@ -143,29 +142,6 @@ describe("perfect guard", () => {
     );
     // the guard itself ends with the round
     expect(s.player.guard).toBe(false);
-  });
-
-  it("the next attack deals +GUARD_COUNTER_BONUS once, then it is spent", () => {
-    const base = fight(hero, [unit("caballero", { atk: 1 })], [["defend"]]);
-    const plain = step(base, "attack1", always);
-    const armed = step(
-      { ...base, player: { ...base.player, riposte: true } },
-      "attack1",
-      always,
-    );
-    const d0 = base.enemies[0].hp - plain.enemies[0].hp;
-    const d1 = base.enemies[0].hp - armed.enemies[0].hp;
-    expect(d1).toBe(
-      Math.round(
-        estimateDamage(
-          { ...base.player, riposte: true },
-          base.enemies[0],
-          "attack1",
-        ),
-      ),
-    );
-    expect(d1).toBeGreaterThan(d0 * (1 + GUARD_COUNTER_BONUS) - 2);
-    expect(armed.player.riposte).toBe(false);
   });
 
   it("a normal attack announcement stays a normal defend (no guard, no bonus)", () => {

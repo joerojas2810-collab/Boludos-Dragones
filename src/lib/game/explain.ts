@@ -29,7 +29,9 @@ import {
   MAX_ACTIONS_PER_ROUND,
   REGEN_FRACTION,
   SHIELD_FRACTION,
-  GUARD_COUNTER_BONUS,
+  GUARD_CRIT_BONUS,
+  GUARD_HEAL,
+  GUARD_REFLECT,
   livingEnemies,
   pendingIntents,
   PERFECT_GUARD_FACTOR,
@@ -495,9 +497,17 @@ const damageLine = (c: Combatant, foe: Combatant, key: MoveKey) => {
   return `Daño: ~${d} si acierta (sin crítico). Con crítico (${pct(c.char.stats.crit)} de probabilidad): ~${Math.round(d * critMultiplier(c))}.`;
 };
 
+// Class bonus of a perfect guard (combat.ts earnGuard).
+const GUARD_BONUS_TEXT: Record<ClassId, string> = {
+  caballero: `devuelves el ${pct(GUARD_REFLECT)} del daño evitado al atacante`,
+  mago: "tu próximo golpe aplica 2 acumulaciones del efecto elemental",
+  picaro: `tu próximo golpe tiene +${pct(GUARD_CRIT_BONUS)} de probabilidad de crítico`,
+  clerigo: `curas el ${pct(GUARD_HEAL)} de tu vida máxima`,
+};
+
 const riposteLine = (c: Combatant) =>
   c.riposte
-    ? `Guardia perfecta lista: este ataque hace +${pct(GUARD_COUNTER_BONUS)} (ya contado).`
+    ? `Guardia perfecta lista: ${GUARD_BONUS_TEXT[c.char.classId]} (ya contado).`
     : null;
 
 // Ataque 3: the class skill picked at SKILL_LEVEL.
@@ -601,8 +611,8 @@ export function attackTip(c: Combatant, key: MoveKey, foe?: Combatant): Tip {
   };
 }
 
-export const guardRule = (): string =>
-  `Guardia perfecta: si el rival anuncia un golpe fuerte (Ataque 2) y defiendes, ese golpe hace ${pct(1 - PERFECT_GUARD_FACTOR)} menos (en vez de ${pct(1 - DEFEND_FACTOR)}) y tu próximo ataque hace +${pct(GUARD_COUNTER_BONUS)}.`;
+export const guardRule = (classId?: ClassId): string =>
+  `Guardia perfecta: si el rival anuncia un golpe fuerte (Ataque 2) y defiendes, ese golpe hace ${pct(1 - PERFECT_GUARD_FACTOR)} menos (en vez de ${pct(1 - DEFEND_FACTOR)})${classId ? ` y ${GUARD_BONUS_TEXT[classId]}` : " y tu clase gana un bono"}.`;
 
 export function defendTip(b: Battle): Tip {
   const perfect = strongPending(b);
@@ -663,7 +673,7 @@ export function intentTip(intent: Intent, b: Battle, idx?: number): Tip {
   ];
   if (intent === "attack2")
     lines.push(
-      `Golpe fuerte: si eliges Defender esta ronda, haces guardia perfecta (~${estimateDamage(e, { ...p, defending: true, guard: true }, intent)} en vez de ~${estimateDamage(e, { ...p, defending: false }, intent)}) y tu próximo ataque pega +${pct(GUARD_COUNTER_BONUS)}.`,
+      `Golpe fuerte: si eliges Defender esta ronda, haces guardia perfecta (~${estimateDamage(e, { ...p, defending: true, guard: true }, intent)} en vez de ~${estimateDamage(e, { ...p, defending: false }, intent)}) y ${GUARD_BONUS_TEXT[p.char.classId]}.`,
     );
   return {
     title: `${foe} usará ${a.name}`,
@@ -675,11 +685,11 @@ export function intentTip(intent: Intent, b: Battle, idx?: number): Tip {
 
 // Tip for choosing an enemy as the target.
 
-export const riposteTip = (): Tip => ({
+export const riposteTip = (c: Combatant): Tip => ({
   title: "Guardia perfecta lista",
   kind: "damage",
   lines: [
-    `Resististe un golpe fuerte: tu próximo ataque hace +${pct(GUARD_COUNTER_BONUS)} de daño.`,
+    `Resististe un golpe fuerte: ${GUARD_BONUS_TEXT[c.char.classId]}.`,
     "Se gasta al acertar con un ataque (o con tu habilidad).",
   ],
   source: "Guardia perfecta",
