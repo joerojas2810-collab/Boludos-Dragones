@@ -441,17 +441,9 @@ export function startBattle(
   };
 }
 
-export function hitChance(
-  att: Combatant,
-  def: Combatant,
-  key: MoveKey,
-): number {
-  return clamp(
-    (attackOf(att, key).accuracy + att.char.stats.accuracy) *
-      (1 - def.char.stats.dodge),
-    0.05,
-    1,
-  );
+// No dodge in engine v11: only accuracy decides a hit.
+export function hitChance(att: Combatant, key: MoveKey): number {
+  return clamp(attackOf(att, key).accuracy + att.char.stats.accuracy, 0.05, 1);
 }
 
 // Damage multiplier of the defender's stance against this move.
@@ -587,7 +579,7 @@ export function strike(
       dmg: 0,
     };
   }
-  if (!rng.chance(hitChance(att, def, key))) {
+  if (!rng.chance(hitChance(att, key))) {
     if (a.heal === 0) log.push(`${who} usa ${a.name}${on} y falla.`);
     ev("miss");
     return { attacker, defender: def, dmg: 0 };

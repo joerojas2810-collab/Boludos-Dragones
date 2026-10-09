@@ -133,7 +133,7 @@ export function ActionPanel({
         />
       );
     const name = a?.name ?? skill?.name ?? "Ataque 3";
-    const hits = `~${estimateDamage(b.player, foe, k)} daño · ${pct(hitChance(b.player, foe, k))} acierto`;
+    const hits = `~${estimateDamage(b.player, foe, k)} daño · ${pct(hitChance(b.player, k))} acierto`;
     const stats =
       k === "attack3" && skill
         ? skill.power === 0
@@ -141,7 +141,7 @@ export function ActionPanel({
           : skill.area
             ? `A todos · ~${estimateDamage(b.player, foe, k)} c/u`
             : skill.hits && skill.hits > 1
-              ? `${pct(hitChance(b.player, foe, k))} · ~${estimateDamage(b.player, foe, k)} ×${skill.hits}`
+              ? `${pct(hitChance(b.player, k))} · ~${estimateDamage(b.player, foe, k)} ×${skill.hits}`
               : hits
         : hits;
     return (

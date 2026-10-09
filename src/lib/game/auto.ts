@@ -37,7 +37,7 @@ export interface AutoOptions {
 }
 
 const ev = (att: Combatant, def: Combatant, key: MoveKey) =>
-  hitChance(att, def, key) * estimateDamage(att, def, key);
+  hitChance(att, key) * estimateDamage(att, def, key);
 
 // Expected damage per slot this enemy still has this round.
 function incoming(b: Battle, only?: (k: string) => boolean): number {

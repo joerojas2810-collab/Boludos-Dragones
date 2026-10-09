@@ -178,8 +178,8 @@ describe("trait rules: combat", () => {
   it("Apostador: same mean, wide spread, same visible accuracy", () => {
     const b = open(hero(["apostador"]), foe());
     const plain = open(hero([]), foe());
-    expect(hitChance(b.player, b.enemies[0], "attack1")).toBe(
-      hitChance(plain.player, plain.enemies[0], "attack1"),
+    expect(hitChance(b.player, "attack1")).toBe(
+      hitChance(plain.player, "attack1"),
     );
     const est = estimateDamage(b.player, b.enemies[0], "attack1");
     const rng = createRng(11);

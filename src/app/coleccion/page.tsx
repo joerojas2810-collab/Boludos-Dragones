@@ -53,7 +53,6 @@ const STAT_ORDER: (keyof Stats)[] = [
   "def",
   "speed",
   "crit",
-  "dodge",
   "accuracy",
 ];
 const FRACTION = ["hp", "atk", "def", "speed"];

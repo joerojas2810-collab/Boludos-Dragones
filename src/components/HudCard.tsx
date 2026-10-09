@@ -81,7 +81,6 @@ export function HudCard({
             value: pct(s.crit),
             hot: true,
           },
-          { stat: "dodge" as const, label: "ESQ", value: pct(s.dodge) },
         ]),
   ];
   if (!compact && s.accuracy)

@@ -21,7 +21,7 @@ function choose(b: Battle): Action {
   const enemy = b.enemies[0];
   if (player.cooldown > 0) return "attack1";
   const ev = (k: "attack1" | "attack2") =>
-    hitChance(player, enemy, k) * estimateDamage(player, enemy, k);
+    hitChance(player, k) * estimateDamage(player, enemy, k);
   const a2 = CLASSES[player.char.classId].attack2;
   return a2.heal > 0
     ? player.hp < player.char.stats.hp * 0.6

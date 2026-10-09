@@ -276,7 +276,6 @@ const MOD_ORDER: (keyof TraitMods)[] = [
   "def",
   "speed",
   "crit",
-  "dodge",
   "accuracy",
 ];
 const MOD_LABEL_LOWER: Record<keyof TraitMods, string> = {
@@ -465,22 +464,10 @@ export function statTip(
       }
       break;
     }
-    case "dodge": {
-      lines.push(
-        `Cada ataque rival acierta con su precisión × (1 − ${pct(st.dodge)}) (máx. 60% de esquive).`,
-      );
-      if (foe) {
-        const a = CLASSES[foe.char.classId];
-        lines.push(
-          `Ahora, ${a.attack1.name} de ${foeName}: ${pct(hitChance(foe, c, "attack1"))} de acierto; ${attackOf(foe, "attack2").name}: ${pct(hitChance(foe, c, "attack2"))}.`,
-        );
-      }
-      break;
-    }
     case "accuracy": {
       lines.push(
         `Se suma a la precisión de todos los ataques (${st.accuracy >= 0 ? "+" : "−"}${pct(Math.abs(st.accuracy))} ahora).`,
-        `${cls.attack1.name}: ${pct(cls.attack1.accuracy)} base → ${pct(cls.attack1.accuracy + st.accuracy)} antes de restar el esquive rival.`,
+        `${cls.attack1.name}: ${pct(cls.attack1.accuracy)} base → ${pct(cls.attack1.accuracy + st.accuracy)}.`,
       );
       break;
     }
@@ -526,7 +513,7 @@ export function skillTip(c: Combatant, foe?: Combatant): Tip {
     };
   const lines = [sk.description];
   if (sk.power > 0 && foe) {
-    const hit = hitChance(c, foe, "attack3");
+    const hit = hitChance(c, "attack3");
     lines.push(
       `Acierto ${pct(hit)}${sk.area ? " contra cada enemigo" : sk.hits && sk.hits > 1 ? " en cada golpe" : ""}.`,
       damageLine(c, foe, "attack3"),
@@ -572,13 +559,13 @@ export function attackTip(c: Combatant, key: MoveKey, foe?: Combatant): Tip {
       `Este golpe lo da tu arma (${WEAPON_TYPE_DATA[wType as WeaponType].label}) y reemplaza el Ataque 2 de la clase.`,
     );
   if (foe) {
-    const hit = hitChance(c, foe, key);
+    const hit = hitChance(c, key);
     const em = attackElementMultiplier(c, foe);
     const accBonus = st.accuracy
       ? ` ${st.accuracy > 0 ? "+" : "−"} ${pct(Math.abs(st.accuracy))} de tu stat de precisión`
       : "";
     lines.push(
-      `Acierto ${pct(hit)} = (precisión ${pct(a.accuracy)}${accBonus}) × (1 − ${pct(foe.char.stats.dodge)} de esquive de ${foe.char.name}).`,
+      `Acierto ${pct(hit)} = precisión ${pct(a.accuracy)}${accBonus}.`,
       damageLine(c, foe, key),
     );
     if (em !== 1)
@@ -670,7 +657,7 @@ export function intentTip(intent: Intent, b: Battle, idx?: number): Tip {
     };
   const a = attackOf(e, intent);
   const lines = [
-    `Acierta ${pct(hitChance(e, p, intent))} de las veces contra ti (tu ESQ ya está descontado).`,
+    `Acierta ${pct(hitChance(e, intent))} de las veces contra ti.`,
     `Daño: ~${estimateDamage(e, p, intent)} si acierta (sin crítico; ${pct(e.char.stats.crit)} de crítico).`,
     `Es su ${ATTACK_NUMBER[intent]}${intent === "attack2" ? ": arriesgado, con recarga" : ": el ataque seguro"}.`,
   ];
