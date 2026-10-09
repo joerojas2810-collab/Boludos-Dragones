@@ -290,68 +290,74 @@ export function realRoomStore(): RoomStore {
     },
 
     async loadState(room) {
-      const [rm] = rows<RoomRow>(
-        await sb
+      // Two parallel waves (was 9 sequential round trips per request).
+      const [[rm], [st], pls, fl, led, duelRow] = await Promise.all([
+        sb
           .from("rooms")
           .select("host_id, turn_seconds, status")
           .eq("id", room)
-          .limit(1),
-      );
-      const [st] = rows<StateRow>(
-        await sb.from("room_state").select("*").eq("room_id", room).limit(1),
-      );
-      if (!rm || !st) return null;
-      const pls = rows<PlayerRow>(
-        await sb
+          .limit(1)
+          .then(rows<RoomRow>),
+        sb
+          .from("room_state")
+          .select("*")
+          .eq("room_id", room)
+          .limit(1)
+          .then(rows<StateRow>),
+        sb
           .from("room_players")
           .select("*")
           .eq("room_id", room)
-          .order("joined_at"),
-      );
-      const fl = rows<FloorDb>(
-        await sb
+          .order("joined_at")
+          .then(rows<PlayerRow>),
+        sb
           .from("room_floor")
           .select("round, floor, player_id, door_kind, status, outcome")
-          .eq("room_id", room),
-      );
+          .eq("room_id", room)
+          .then(rows<FloorDb>),
+        sb
+          .from("chip_ledger")
+          .select("delta, reason")
+          .eq("room_id", room)
+          .then(rows<{ delta: number; reason: string }>),
+        loadDuelRow(room),
+      ]);
+      if (!rm || !st) return null;
       const prefix = `r${st.round}f${st.floor}:`;
-      const bts = rows<BattleDb>(
-        await sb
+      const [bts, bets, itf] = await Promise.all([
+        sb
           .from("room_battles")
           .select("battle_key, fighter_id, status, outcome, void_reason")
           .eq("room_id", room)
-          .like("battle_key", `${prefix}%`),
-      );
-      const bets = rows<{
-        battle_key: string;
-        bettor_id: string;
-        prediction: "win" | "lose";
-        stake: number;
-      }>(
-        await sb
+          .like("battle_key", `${prefix}%`)
+          .then(rows<BattleDb>),
+        sb
           .from("bets")
           .select("battle_key, bettor_id, prediction, stake")
           .eq("room_id", room)
-          .like("battle_key", `${prefix}%`),
-      );
-      const itf = rows<{
-        battle_key: string;
-        from_player: string;
-        kind: InterfereKind;
-        cost: number;
-      }>(
-        await sb
+          .like("battle_key", `${prefix}%`)
+          .then(
+            rows<{
+              battle_key: string;
+              bettor_id: string;
+              prediction: "win" | "lose";
+              stake: number;
+            }>,
+          ),
+        sb
           .from("interferences")
           .select("battle_key, from_player, kind, cost")
           .eq("room_id", room)
-          .like("battle_key", `${prefix}%`),
-      );
-      const led = rows<{ delta: number; reason: string }>(
-        await sb
-          .from("chip_ledger")
-          .select("delta, reason")
-          .eq("room_id", room),
-      );
+          .like("battle_key", `${prefix}%`)
+          .then(
+            rows<{
+              battle_key: string;
+              from_player: string;
+              kind: InterfereKind;
+              cost: number;
+            }>,
+          ),
+      ]);
       const sum = (f: (r: { delta: number; reason: string }) => boolean) =>
         led.filter(f).reduce((a, r) => a + r.delta, 0);
 
@@ -453,7 +459,7 @@ export function realRoomStore(): RoomStore {
           dust: 0,
         },
       };
-      return overlayDuel(base, (await loadDuelRow(room))?.db ?? null);
+      return overlayDuel(base, duelRow?.db ?? null);
     },
 
     async loadDuel(room) {

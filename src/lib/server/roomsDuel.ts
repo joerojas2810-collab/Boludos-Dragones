@@ -183,12 +183,22 @@ function tickState(
   return { s: st, live: out, changed };
 }
 
-/** Lazy clock: called by every snapshot/advance during `duel_fight`. */
-export async function duelTick(d: RoomDeps, room: string) {
-  await duelTx(d, room, async (s, live) => {
+/** Cheap check on data the caller already loaded: is a turn ready or overdue? */
+export function duelNeedsTick(
+  s: RoomState,
+  live: Record<string, DuelLive>,
+  now: number,
+): boolean {
+  return tickState(s, live, now).changed;
+}
+
+/** Lazy clock: resolves ready/overdue turns during `duel_fight`. True if it wrote. */
+export async function duelTick(d: RoomDeps, room: string): Promise<boolean> {
+  const r = await duelTx(d, room, async (s, live) => {
     const t = tickState(s, live, d.now());
     return t.changed ? { s: t.s, live: t.live, value: true } : null;
   });
+  return r === true;
 }
 
 export async function duelMoveService(
@@ -215,16 +225,20 @@ export async function duelMoveService(
 }
 
 // ---------------------------------------------------------------- phase moves
+/** The duelist as the fight log names them: the player, not the class. */
 async function duelHeroOf(
   d: RoomDeps,
   s: RoomState,
   id: string,
   seed: number,
+  names: Record<string, string>,
 ): Promise<Character> {
   const pick = s.players.find((p) => p.id === id)?.duelPick ?? DEFAULT_DUEL_PICK_FOR(s.duelMode);
-  if ("classId" in pick) return balancedHero(pick.classId, pick.element);
-  const { profile } = await d.loadProfile(id);
-  return heroForRound(profile, pick.heroId, "completo", seed, id);
+  const hero =
+    "classId" in pick
+      ? balancedHero(pick.classId, pick.element)
+      : heroForRound((await d.loadProfile(id)).profile, pick.heroId, "completo", seed, id);
+  return { ...hero, name: names[id] ?? hero.name };
 }
 
 export type DuelAdvance = { advanced: boolean; reason?: string };
@@ -265,12 +279,16 @@ export async function duelAdvanceService(
     const next = a.state;
     if (next.phase === "duel_fight") {
       live = { ...live };
+      const { names } = await d.store.loadMeta(room);
       for (const m of next.duels) {
         if (m.status === "settled") continue;
         const seed = d.randomSeed();
         live[m.key] = newLive(
           seed,
-          { a: await duelHeroOf(d, next, m.a, seed), b: await duelHeroOf(d, next, m.b, seed) },
+          {
+            a: await duelHeroOf(d, next, m.a, seed, names),
+            b: await duelHeroOf(d, next, m.b, seed, names),
+          },
           now,
           next.turnSeconds * 1000,
         );
@@ -339,10 +357,11 @@ export async function duelViewOf(
   s: RoomState,
   room: string,
   viewer: string,
+  row?: { db: { live: Record<string, DuelLive> } } | null,
 ): Promise<DuelView | null> {
   if (s.duels.length === 0) return null;
-  const row = isDuelPhase(s) ? await d.store.loadDuel(room) : null;
-  const live = row?.db.live ?? {};
+  const loaded = row !== undefined ? row : isDuelPhase(s) ? await d.store.loadDuel(room) : null;
+  const live = loaded?.db.live ?? {};
   const matches = s.duels.map((m): DuelMatchView => {
     const lv = live[m.key];
     let fight: DuelMatchView["fight"] = null;

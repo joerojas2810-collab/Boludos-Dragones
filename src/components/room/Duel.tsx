@@ -3,14 +3,15 @@
 // 1v1 duels in a room: host panel, pick, bets, the secret-pick fight and the
 // result. Pure view code: rules live in lib/game/{duel,room}.ts and the server.
 import { useState } from "react";
+import { ClassElementPicker } from "@/components/room/ClassElementPicker";
 import { HealthBar } from "@/components/HealthBar";
 import { HeroSprite } from "@/components/HeroSprite";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
 import type { HeroAction } from "@/lib/art/heroes";
-import { CLASS_IDS, CLASSES, type ClassId } from "@/lib/game/characters";
+import { CLASSES, type ClassId } from "@/lib/game/characters";
 import type { Action } from "@/lib/game/combat";
-import { ELEMENT_LABEL, ELEMENTS, type Element } from "@/lib/game/elements";
+import type { Element } from "@/lib/game/elements";
 import {
   DEFAULT_HERO,
   ROOM_K,
@@ -172,8 +173,6 @@ function RealPicker({ onPick, mine }: { onPick: (id: string) => void; mine: stri
 export function DuelSetup({ view, client, onError }: Props) {
   const duel = view.duel;
   const mine = mineOf(view);
-  const [cls, setCls] = useState<ClassId>("caballero");
-  const [el, setEl] = useState<Element>("fuego");
   const [heroPicked, setHeroPicked] = useState<string | null>(null);
   if (!duel) return null;
   const picked = new Set(duel.picked);
@@ -196,36 +195,10 @@ export function DuelSetup({ view, client, onError }: Props) {
       {mine ? (
         <Panel title="Tu duelista">
           {duel.mode === "balanceado" ? (
-            <>
-              <div className="flex flex-wrap justify-center gap-2">
-                {CLASS_IDS.map((c) => (
-                  <button
-                    key={c}
-                    className={`pixel-frame p-2 text-sm ${cls === c ? "!border-green-400" : ""}`}
-                    onClick={() => setCls(c)}
-                  >
-                    <HeroSprite classId={c} element={el} className="mx-auto w-20" crop />
-                    {CLASSES[c].name}
-                  </button>
-                ))}
-              </div>
-              <div className="my-2 flex flex-wrap justify-center gap-2">
-                {ELEMENTS.map((e) => (
-                  <button
-                    key={e}
-                    className={`btn ${el === e ? "" : "btn-gray"}`}
-                    onClick={() => setEl(e)}
-                  >
-                    {ELEMENT_LABEL[e]}
-                  </button>
-                ))}
-              </div>
-              <div className="text-center">
-                <button className="btn" onClick={() => send({ classId: cls, element: el })}>
-                  {picked.has(view.me) ? "Cambiar elección" : "Confirmar"}
-                </button>
-              </div>
-            </>
+            <ClassElementPicker
+              value={null}
+              onPick={(classId, element) => send({ classId, element })}
+            />
           ) : (
             <RealPicker
               mine={heroPicked}
@@ -237,8 +210,10 @@ export function DuelSetup({ view, client, onError }: Props) {
           )}
           <p className="mt-2 text-center text-sm">
             {picked.has(view.me)
-              ? "Elegido. Esperando al resto…"
-              : "Sin elegir, el servidor te da un duelista por defecto."}
+              ? "Enviado ✓ Puedes cambiarlo hasta que acabe el tiempo."
+              : duel.mode === "balanceado"
+                ? "Si no eliges, entras de Caballero de Fuego."
+                : "Sin elegir, el servidor te da un duelista por defecto."}
           </p>
         </Panel>
       ) : (

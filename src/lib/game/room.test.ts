@@ -17,6 +17,8 @@ import {
   kickPlayer,
   leaveRoom,
   missTurn,
+  parsePickKey,
+  pickHeroKey,
   placeBet,
   placeInterference,
   rankByChips,
@@ -355,6 +357,12 @@ describe("round flow", () => {
     expect(advance(s, T0, s.phaseSeq)).toMatchObject({ advanced: false });
     s = ok(chooseHero(ok(chooseHero(s, A, "h1")), B, "h2"));
     expect(ok(advance(s, T0, s.phaseSeq)).phase).toBe("floor_intro");
+  });
+  it("nivelado hero keys round-trip (class + element)", () => {
+    expect(parsePickKey(pickHeroKey("mago", "agua"))).toEqual({ classId: "mago", element: "agua" });
+    expect(parsePickKey("pick:dragon:agua")).toBeNull();
+    expect(parsePickKey("seed_default")).toBeNull();
+    expect(parsePickKey(null)).toBeNull();
   });
 });
 

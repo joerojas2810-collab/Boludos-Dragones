@@ -34,6 +34,10 @@ function harness(ids = [A, B, C, D]) {
   let clock = 1_000;
   const store = {
     loadState: async () => overlayDuel(structuredClone(base), db),
+    loadMeta: async () => ({
+      code: "ABCD",
+      names: { a: "Ana", b: "Beto", c: "Carla", d: "Dani" } as Record<string, string>,
+    }),
     loadDuel: async () => (db ? { version, db: structuredClone(db) } : null),
     saveDuel: async (_r: string, ev: number, ndb: DuelDb, o: DuelSaveOpts) => {
       if (ev !== version) throw new RpcError("conflict");
@@ -120,6 +124,23 @@ describe("duel services", () => {
     expect((await h.st()).phase).toBe("lobby");
   });
 
+  it("the fight log names the players, not their classes", async () => {
+    const h = harness([A, B]);
+    await duelStartService(h.d, A, R, "balanceado");
+    await duelPickService(h.d, A, R, { classId: "mago", element: "agua" });
+    await duelPickService(h.d, B, R, { classId: "caballero", element: "fuego" });
+    await h.adv(); // no fans -> fight
+    const key = (await h.st()).duels[0].key;
+    await duelMoveService(h.d, A, R, key, "attack1");
+    await duelMoveService(h.d, B, R, key, "defend");
+    const f = (await duelViewOf(h.d, await h.st(), R, A))!.matches[0].fight!;
+    expect(f.heroes.a.name).toBe("Ana");
+    const text = f.log.join(" ");
+    expect(text).toContain("Ana");
+    expect(text).toContain("Beto se defiende");
+    expect(text).not.toMatch(/Mago|Caballero/);
+  });
+
   it("an absent duelist never holds the turn and forfeits after two misses", async () => {
     const h = harness([A, B, C]);
     await duelStartService(h.d, A, R, "real", [[A, B]]);
@@ -179,5 +200,15 @@ describe("duel services", () => {
     await duelStartService(h.d, A, R, "balanceado", [[A, B]]);
     const r = await duelAdvanceService(h.d, R, 0);
     expect(r).toEqual({ advanced: false, reason: "stale" });
+  });
+});
+
+describe("nivelado hero keys", () => {
+  it("the round hero is the plain class + element the player picked", async () => {
+    const { heroForRound } = await import("./roomRun");
+    const h = heroForRound({} as never, "pick:mago:agua", "nivelado", 1, "p");
+    expect(h).toMatchObject({ classId: "mago", element: "agua", level: 1 });
+    const same = heroForRound({} as never, "pick:mago:agua", "nivelado", 99, "q");
+    expect(same.stats).toEqual(h.stats); // same power for everybody
   });
 });

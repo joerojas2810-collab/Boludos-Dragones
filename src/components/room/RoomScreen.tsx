@@ -3,6 +3,7 @@ import { askConfirm } from "@/lib/dialogs";
 
 import { useState, type ReactNode } from "react";
 import { DoorIcon } from "@/components/DoorIcon";
+import { ClassElementPicker } from "@/components/room/ClassElementPicker";
 import { CoopBar, CoopFight } from "@/components/room/CoopBoss";
 import {
   DuelBets,
@@ -34,7 +35,7 @@ import { useNow, useRoom, type LiveFight } from "@/lib/useRoom";
 import { characterView } from "@/lib/viewModels";
 import { filterSortCharacters } from "@/lib/viewModels";
 import { AWARD_INFO, nightTitles } from "@/lib/game/awards";
-import { DEFAULT_HERO } from "@/lib/game/room";
+import { DEFAULT_HERO, parsePickKey, pickHeroKey } from "@/lib/game/room";
 import { Vfx } from "@/components/fx/Vfx";
 import type { EmoteId, RoomClient, RoomView } from "@/lib/roomui/types";
 import {
@@ -186,10 +187,6 @@ export function RoomScreen({
               )}
             </Panel>
           )}
-          <HeroPicker view={view} onPick={(id) => void run(client.hero(id))} />
-          {isHost && (view.phase === "lobby" || view.phase === "round_end") && (
-            <DuelHostPanel view={view} client={client} onError={setErr} />
-          )}
           <div className="flex flex-wrap justify-center gap-2">
             {view.phase === "round_end" && me && (
               <button
@@ -227,6 +224,10 @@ export function RoomScreen({
               </button>
             )}
           </div>
+          {isHost && (view.phase === "lobby" || view.phase === "round_end") && (
+            <DuelHostPanel view={view} client={client} onError={setErr} />
+          )}
+          <HeroPicker view={view} onPick={(id) => void run(client.hero(id))} />
         </>
       );
       break;
@@ -437,9 +438,7 @@ export function RoomScreen({
                       className="w-16 shrink-0 max-md:w-10"
                       crop
                     />
-                  ) : (
-                    <span className="w-16 shrink-0 max-md:w-10" />
-                  )}
+                  ) : null}
                   <span
                     className={`min-w-0 flex-1 truncate ${r.isMe ? "text-yellow-300" : ""}`}
                   >
@@ -550,26 +549,51 @@ function HeroPicker({
 }) {
   const { profile } = useProfile();
   const mine = view.players.find((p) => p.id === view.me)?.heroId ?? null;
+  // Nivelado: nothing from the collection, each player picks a class and an element.
+  if (view.mode === "nivelado")
+    return (
+      <Panel title="Tu héroe · modo nivelado">
+        <p className="mb-2 text-center text-sm opacity-80">
+          Todos pelean con poder parejo: elige tu clase y tu elemento.
+        </p>
+        <ClassElementPicker
+          value={parsePickKey(mine)}
+          onPick={(c, e) => onPick(pickHeroKey(c, e))}
+        />
+        <div className="mt-2 text-center">
+          <button
+            className={`btn btn-gray ${mine === DEFAULT_HERO ? "" : "opacity-80"}`}
+            onClick={() => onPick(DEFAULT_HERO)}
+          >
+            Al azar
+          </button>
+        </div>
+        {mine === null && (
+          <p className="mt-2 text-center text-sm text-yellow-300">
+            Aún no elegiste.
+          </p>
+        )}
+      </Panel>
+    );
   const owned = profile
     ? filterSortCharacters(profile.characters, {
         classId: "all",
-        rarity: "all",
+        rarity: view.rank,
         sort: "rarity",
       })
     : [];
   return (
-    <Panel title="Tu héroe">
+    <Panel title={`Tu héroe · rango ${RARITIES[view.rank].label}`}>
       <p className="mb-2 text-center text-sm opacity-80">
-        {view.mode === "nivelado"
-          ? "Modo nivelado: todos con poder base parecido; rareza y estrellas dan un bono chico."
-          : "Poder completo: cuenta toda tu colección."}
+        Poder completo: solo cuentan tus héroes del rango que eligió el
+        anfitrión.
       </p>
       <div className="flex flex-wrap justify-center gap-2">
         <button
           className={`pixel-frame p-2 text-sm ${mine === DEFAULT_HERO ? "!border-green-400" : ""}`}
           onClick={() => onPick(DEFAULT_HERO)}
         >
-          Común al azar
+          Al azar
         </button>
         {owned.map((c) => (
           <button key={c.id} aria-label={c.name} onClick={() => onPick(c.id)}>
@@ -581,6 +605,12 @@ function HeroPicker({
           </button>
         ))}
       </div>
+      {profile && owned.length === 0 && (
+        <p className="mt-2 text-center text-sm opacity-80">
+          No tienes héroes de rango {RARITIES[view.rank].label}: entrarás con uno
+          al azar.
+        </p>
+      )}
       {mine === null && (
         <p className="mt-2 text-center text-sm text-yellow-300">
           Aún no elegiste.

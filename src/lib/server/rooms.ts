@@ -23,6 +23,7 @@ import {
   endNight,
   isFightDoor,
   hasVote,
+  parsePickKey,
   rankByChips,
   rankByFloor,
   startCoop,
@@ -65,6 +66,7 @@ import {
   duelAdvanceService,
   duelBetService,
   duelMoveService,
+  duelNeedsTick,
   duelOnDeparture,
   duelPickService,
   duelStartService,
@@ -100,6 +102,7 @@ const ERR: Record<string, [number, string]> = {
   duplicate_bet: [409, "Ya apostaste en esta pelea."],
   already_interfered: [409, "Ya interfirieron esta pelea."],
   hero_not_owned: [404, "No tienes ese héroe."],
+  hero_wrong_rank: [409, "Ese héroe no es del rango de la sala."],
   rank_locked: [409, "Alguien en la sala aún no desbloqueó ese rango."],
   forbidden: [403, "No permitido."],
   invalid_args: [400, "Datos inválidos."],
@@ -457,14 +460,24 @@ export async function snapshotService(
   room: string,
 ): Promise<RoomSnapshot> {
   return guarded(async () => {
-    await d.store.limit(`roomsnap:${player}`, 60, 60);
-    await touch(d, player, room);
-    let s = await load(d, room);
-    if (s.phase === "duel_fight") {
-      await duelTick(d, room); // lazy clock: resolves ready/overdue turns
-      s = await load(d, room);
+    // duels poll fast: a higher cap than the 60/min of the slow phases
+    const [, , s0, meta] = await Promise.all([
+      d.store.limit(`roomsnap:${player}`, 120, 60),
+      touch(d, player, room),
+      load(d, room),
+      d.store.loadMeta(room),
+    ]);
+    let s = s0;
+    let duelRow: Awaited<ReturnType<typeof d.store.loadDuel>> | undefined;
+    if (isDuelPhase(s)) {
+      duelRow = await d.store.loadDuel(room);
+      // lazy clock: resolve ready/overdue turns, reloading only if something moved
+      if (s.phase === "duel_fight" && duelNeedsTick(s, duelRow?.db.live ?? {}, d.now())) {
+        await duelTick(d, room);
+        s = await load(d, room);
+        duelRow = await d.store.loadDuel(room);
+      }
     }
-    const meta = await d.store.loadMeta(room);
     const live = s.players.filter((p) => !p.left);
     return {
       roomId: room,
@@ -501,7 +514,7 @@ export async function snapshotService(
       rankFloor: rankByFloor(s).map((x) => x.id),
       vote: await voteViewOf(d, s, room, player, d.now()),
       coop: await coopViewOf(d, s, room),
-      duel: await duelViewOf(d, s, room, player),
+      duel: await duelViewOf(d, s, room, player, duelRow),
       ...readLive(room, `${s.round}:${s.floor}`, d.now()),
     };
   });
@@ -944,9 +957,17 @@ export async function roomAction(
       }
       case "hero": {
         if (msg.heroId !== DEFAULT_HERO) {
-          const { profile } = await d.loadProfile(player);
-          if (!profile.characters.some((c) => c.id === msg.heroId))
-            return fail("hero_not_owned");
+          const s = await load(d, room);
+          if (s.mode === "nivelado") {
+            // nivelado: class + element only (no collection heroes)
+            if (!parsePickKey(msg.heroId)) return fail("invalid_args");
+          } else {
+            const { profile } = await d.loadProfile(player);
+            const hero = profile.characters.find((c) => c.id === msg.heroId);
+            if (!hero) return fail("hero_not_owned");
+            // poder completo: only heroes of the rank the host chose for the night
+            if ((hero.rarity ?? "f") !== s.rank) return fail("hero_wrong_rank");
+          }
         }
         await st.chooseHero(player, room, msg.heroId);
         break;

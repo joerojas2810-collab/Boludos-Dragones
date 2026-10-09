@@ -66,6 +66,7 @@ export const ROOM_ERROR_CODES = [
   "duplicate_bet",
   "already_interfered",
   "hero_not_owned",
+  "hero_wrong_rank",
   "rank_locked",
   "engine_outdated",
   "invalid_log",

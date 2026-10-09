@@ -15,6 +15,8 @@ import type { PlayerView, RoomView } from "./types";
 
 const ERRORS: Record<string, string> = {
   wrong_phase: "Ahora no se puede hacer eso.",
+  hero_wrong_rank: "Ese héroe no es del rango de la sala.",
+  hero_not_owned: "No tienes ese héroe.",
   forbidden: "Solo el anfitrión puede hacerlo.",
   not_member: "No estás en esta sala.",
   room_full: "La sala está llena (máximo 7).",
@@ -96,7 +98,7 @@ export function phaseBanner(
     case "round_setup":
       return {
         title: `Ronda ${round}: elige tu héroe`,
-        hint: "Sin elegir, el servidor te da un Común al azar.",
+        hint: "Nivelado: elige clase y elemento. Poder completo: un héroe de tu colección. Sin elegir, te toca uno al azar.",
         tone: "gold",
       };
     case "floor_intro":

@@ -46,7 +46,7 @@ export const ROOM_K = {
   absentAfterMs: 10_000,
   hostTransferAfterMs: 60_000,
   missedTurnsToFlee: 2,
-  duelSetupMs: 30_000, // [K] 1v1 duels: pick class+element / hero
+  duelSetupMs: 45_000, // [K] 1v1 duels: pick class+element / hero
   duelBettingMs: 15_000,
   duelFightCapMs: 300_000, // whole duel; the server resolves by hp% at the cap
   duelRevealMs: 8_000,
@@ -94,6 +94,22 @@ export const isAid = (k: InterfereKind | null | undefined): k is AidKind =>
   k === "heal" || k === "ward";
 /** hero id meaning "server picks a random Común from the round seed". */
 export const DEFAULT_HERO = "seed_default";
+
+/**
+ * Nivelado: a player picks a CLASS and an ELEMENT instead of a hero of the
+ * collection. It travels as the hero key `pick:<class>:<element>`.
+ */
+export const pickHeroKey = (classId: ClassId, element: Element) =>
+  `pick:${classId}:${element}`;
+export function parsePickKey(
+  key: string | null | undefined,
+): { classId: ClassId; element: Element } | null {
+  const m = /^pick:([a-z]+):([a-z]+)$/.exec(key ?? "");
+  if (!m) return null;
+  const classId = (CLASS_IDS as readonly string[]).includes(m[1]) ? (m[1] as ClassId) : null;
+  const element = (ELEMENTS as readonly string[]).includes(m[2]) ? (m[2] as Element) : null;
+  return classId && element ? { classId, element } : null;
+}
 
 export interface Bet {
   bettor: string;
