@@ -975,3 +975,79 @@ body[data-art="pixel"] .game-select-btn[aria-expanded="true"] { border-image-sou
   cursor: pointer;
 }
 .tip-q:hover, .tip-q[aria-expanded="true"] { opacity: 1; background: #4a3426; }
+
+/* Desktop fight command bar: slim, dark glass with a gold edge; hexagonal action chips. */
+.cmd-bar {
+  position: relative;
+  background: linear-gradient(180deg, rgb(10 17 27 / 0.78), rgb(7 12 20 / 0.95));
+  border-top: 1px solid rgb(224 176 112 / 0.5);
+  box-shadow: 0 -10px 28px rgb(0 0 0 / 0.4);
+  backdrop-filter: blur(3px);
+}
+.cmd-bar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #e0b070 18%, #e0b070 82%, transparent);
+  opacity: 0.85;
+}
+.cmd-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  height: 2.9rem;
+  padding: 0 1.25rem;
+  color: #f6ead6;
+  text-align: left;
+  isolation: isolate;
+  cursor: pointer;
+  transition: transform 0.08s;
+}
+.cmd-chip::before,
+.cmd-chip::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  clip-path: polygon(11px 0, calc(100% - 11px) 0, 100% 50%, calc(100% - 11px) 100%, 11px 100%, 0 50%);
+}
+.cmd-chip::before {
+  inset: 0;
+  background: linear-gradient(180deg, #e7c48a, #8f6238);
+}
+.cmd-chip::after {
+  inset: 1.5px;
+  background: linear-gradient(180deg, #1d2e43, #0f1925);
+}
+.cmd-chip:hover:not(:disabled)::after {
+  background: linear-gradient(180deg, #2a4663, #172a40);
+}
+.cmd-chip:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.cmd-chip[data-hot]::before {
+  background: linear-gradient(180deg, #ffe28a, #d49a1a);
+}
+.cmd-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.cmd-ghost {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.75rem;
+  color: #d9d2ca;
+  border: 1px solid rgb(224 176 112 / 0.4);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.3);
+  white-space: nowrap;
+}
+.cmd-ghost:hover:not(:disabled) {
+  border-color: #e0b070;
+  color: #fff;
+}
+.cmd-ghost:disabled {
+  opacity: 0.4;
+}

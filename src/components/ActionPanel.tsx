@@ -33,6 +33,7 @@ type Props = {
   auto?: { reason: string | null; onAuto: () => void };
   side?: boolean; // vertical list in a side column (desktop)
   float?: boolean; // translucent panel over a full-screen scene (run fights)
+  bar?: boolean; // desktop: a slim command bar under the scene (phones keep the panel)
   children?: ReactNode; // shown below the result once the fight is over
 };
 
@@ -48,6 +49,7 @@ function ActionButton({
   icon,
   left,
   wide,
+  chip,
 }: {
   tip: Tip;
   disabled?: boolean;
@@ -58,7 +60,20 @@ function ActionButton({
   icon?: string; // painted skill icon name (iconFor)
   left?: boolean; // left-aligned content (side column)
   wide?: boolean; // spans the whole row of the actions grid
+  chip?: boolean; // slim command-bar chip (desktop bar)
 }) {
+  if (chip)
+    return (
+      <Tooltip tip={tip} className="block min-w-0">
+        <button className="cmd-chip w-full" data-hot={hot ? "" : undefined} disabled={disabled} onClick={onClick}>
+          {icon && <Icon name={icon} className="h-7 shrink-0" />}
+          <span className="min-w-0">
+            <span className="block truncate text-[15px] font-bold leading-tight">{title}</span>
+            <span className="block truncate text-[11px] leading-tight text-[#aebccb]">{sub}</span>
+          </span>
+        </button>
+      </Tooltip>
+    );
   return (
     <Tooltip
       tip={tip}
@@ -104,6 +119,7 @@ export function ActionPanel({
   auto,
   side,
   float,
+  bar,
   children,
 }: Props) {
   const over = b.status !== "ongoing";
@@ -117,12 +133,13 @@ export function ActionPanel({
     .map((s) => (s === "player" ? "Tú" : `R${s.e + 1}`))
     .join(" › ");
 
-  const attack = (k: MoveKey) => {
+  const attack = (k: MoveKey, chip = false) => {
     const a = k === "attack3" ? null : attackOf(b.player, k);
     const reason = attackDisabledReason(b.player, k);
     if (k === "attack3" && !skill)
       return (
         <ActionButton
+          chip={chip}
           left={float}
           tip={skillTip(b.player, foe)}
           disabled
@@ -145,6 +162,7 @@ export function ActionPanel({
         : hits;
     return (
       <ActionButton
+        chip={chip}
         left={float}
         tip={attackTip(b.player, k, foe)}
         disabled={!!reason}
@@ -159,7 +177,7 @@ export function ActionPanel({
     );
   };
 
-  return (
+  const panel = (
     <Panel
       className={`${float ? "panel-float" : ""} shrink-0 !p-2 max-md:sticky max-md:bottom-0 max-md:z-30 ${side ? `md:w-[22rem] md:overflow-y-auto ${float ? "md:max-h-full" : "md:self-stretch"}` : ""}`}
     >
@@ -254,5 +272,53 @@ export function ActionPanel({
         </div>
       )}
     </Panel>
+  );
+  if (!bar) return panel;
+  // Desktop: a slim command bar under the scene (own look, one row); phones keep the panel.
+  return (
+    <>
+      <div className="md:hidden">{panel}</div>
+      <div className="cmd-bar hidden items-center gap-3 px-4 py-2 md:flex">
+        {over ? (
+          <div className="flex flex-1 items-center gap-4">
+            <b className="text-yellow-300">Fin de la pelea</b>
+            <div className="flex flex-1 items-center gap-3 [&>*]:!mt-0 [&>*]:!w-auto">{children}</div>
+          </div>
+        ) : (
+          <>
+            <div className="shrink-0 leading-tight">
+              <div className="text-sm font-semibold text-[#7ce0a3]">Tu turno</div>
+              <Tooltip tip={announceTip(b)}>
+                <div className="text-xs text-[#d9d2ca]">
+                  Ronda {b.turn} · <span className="tracking-wider text-yellow-300">{Array.from({ length: mine }, (_, i) => (i < mine - left ? "○" : "●")).join("")}</span> {left}/{mine}
+                </div>
+              </Tooltip>
+              {alive.length > 1 && <div className="text-[11px] text-yellow-300">Objetivo: {foe.char.name}</div>}
+            </div>
+            <div className="grid min-w-0 flex-1 grid-cols-4 gap-2.5">
+              {attack("attack1", true)}
+              {attack("attack3", true)}
+              {attack("attack2", true)}
+              <ActionButton
+                chip
+                tip={defendTip(b)}
+                onClick={() => onAct("defend", target)}
+                icon={iconFor("skill", "defend")}
+                title="Defender"
+                sub={perfect ? "¡Guardia perfecta!" : "Recibes la mitad"}
+                hot={perfect}
+              />
+            </div>
+            {auto && (
+              <Tooltip tip={autoTip(auto.reason)}>
+                <button className="cmd-ghost" disabled={!!auto.reason} onClick={auto.onAuto}>
+                  Resolver rápido
+                </button>
+              </Tooltip>
+            )}
+          </>
+        )}
+      </div>
+    </>
   );
 }

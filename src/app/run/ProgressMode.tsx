@@ -278,6 +278,24 @@ export function ProgressMode() {
     const spec = levelsOf(a.rank)[a.level];
     const settled = rs.settled;
     const role = fight.role;
+    const tools = (
+      <>
+            <button
+              className="btn btn-gray text-center"
+              onClick={() => {
+                void askConfirm(
+                  "¿Abandonar el nivel? Cuenta como perdido, pero conservas la EXP ganada.",
+                  "Abandonar",
+                ).then((ok) => {
+      if (ok) void send(a, { t: "quit" });
+    });
+              }}
+            >
+              Abandonar
+            </button>
+            <MuteButton />
+      </>
+    );
     return (
       <main className="relative isolate flex flex-col gap-3 p-3 pt-6 text-base md:h-screen md:overflow-hidden">
         <Notice />
@@ -288,7 +306,7 @@ export function ProgressMode() {
             rank={a.rank}
           />
         </div>
-        <div className="mx-auto w-full max-w-[min(100rem,calc((100vh-15rem)*1.78+23rem))] md:min-w-[48rem]">
+        <div className="mx-auto w-full max-w-[min(100rem,calc((100vh-9rem)*1.78))] md:min-w-[48rem]">
           <div className="hud-float flex flex-wrap items-center gap-x-5 gap-y-1.5 px-3 py-2 text-base">
             <b className="text-yellow-300">
               {theme.name} · Nivel {a.level + 1}
@@ -315,9 +333,14 @@ export function ProgressMode() {
               {rs.stage.hero.name} · Nv {rs.stage.hero.level} · +
               {rs.stage.xp} EXP
             </span>
+            <span className="max-md:hidden">
+              <LogPanel compact lines={b.log}>
+                {tools}
+              </LogPanel>
+            </span>
           </div>
         </div>
-        <div className="mx-auto flex w-full max-w-[min(100rem,calc((100vh-15rem)*1.78+23rem))] flex-col gap-3 md:min-h-0 md:min-w-[48rem] md:flex-1">
+        <div className="mx-auto flex w-full max-w-[min(100rem,calc((100vh-9rem)*1.78))] flex-col gap-3 md:min-h-0 md:min-w-[48rem] md:flex-1">
           <div className="flex min-w-0 flex-1 flex-col gap-3 md:min-h-0">
             <div className="flex min-w-0 flex-1 flex-col md:min-h-0">
               <BattleArena
@@ -362,6 +385,7 @@ export function ProgressMode() {
             <div className="flex flex-col gap-2 max-md:contents">
               <ActionPanel
                 float
+              bar
                 b={b}
                 target={targeting.target}
                 onAct={(act: Action, t) =>
@@ -394,21 +418,8 @@ export function ProgressMode() {
               </ActionPanel>
             </div>
           </div>
-          <LogPanel lines={b.log}>
-            <button
-              className="btn btn-gray text-center"
-              onClick={() => {
-                void askConfirm(
-                  "¿Abandonar el nivel? Cuenta como perdido, pero conservas la EXP ganada.",
-                  "Abandonar",
-                ).then((ok) => {
-      if (ok) void send(a, { t: "quit" });
-    });
-              }}
-            >
-              Abandonar
-            </button>
-            <MuteButton />
+          <LogPanel lines={b.log} className="md:hidden">
+            {tools}
           </LogPanel>
         </div>
       </main>
