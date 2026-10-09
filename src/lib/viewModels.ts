@@ -64,7 +64,7 @@ const DIFF_LABEL: Record<keyof GearBonus, string> = {
   hp: "vida",
   def: "DEF",
   speed: "velocidad",
-  dodge: "esquive",
+  resist: "resistencia a estados",
   crit: "crítico",
   accuracy: "precisión",
   critDmg: "daño crítico",

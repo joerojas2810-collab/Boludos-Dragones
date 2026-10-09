@@ -46,13 +46,15 @@ export function addStatus(
   id: StatusId,
   stacks: number,
   amount?: number,
+  resist = 0, // target's resistance: shortens the duration of negative statuses
 ): StatusEffect[] {
   const d = STATUS_DATA[id];
+  const turns = d.negative ? Math.max(1, Math.round(d.turns * (1 - resist))) : d.turns;
   const cur = list?.find((s) => s.id === id);
   const next: StatusEffect = {
     id,
     stacks: Math.min(d.max, (cur?.stacks ?? 0) + stacks),
-    turns: d.turns,
+    turns,
     ...(amount !== undefined && { amount }),
   };
   return [...(list ?? []).filter((s) => s.id !== id), next];

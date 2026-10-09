@@ -168,7 +168,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   },
   piernas: {
     label: "Piernas",
-    description: "Más defensa y algo de esquive.",
+    description: "Más defensa y algo de resistencia a estados.",
     atkMult: 0,
     accuracy: 0,
     crit: 0,
@@ -177,7 +177,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   },
   zapatos: {
     label: "Zapatos",
-    description: "Más velocidad y algo de esquive.",
+    description: "Más velocidad y algo de resistencia a estados.",
     atkMult: 0,
     accuracy: 0,
     crit: 0,

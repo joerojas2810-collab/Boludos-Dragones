@@ -46,7 +46,7 @@ const unit = (
       atk: 20,
       def: 0,
       crit: 0,
-      dodge: 0,
+      resist: 0,
       accuracy: 0.5,
       critDmg: 1.5,
       regen: 0,

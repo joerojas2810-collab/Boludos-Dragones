@@ -55,7 +55,7 @@ describe("piece rolls", () => {
   it("migrate validates rolls and lines, never trusts atkBonus, keeps legacy pieces", () => {
     const good = {
       id: "x", name: "c", type: "casco", element: "fuego", rarity: "c", stars: 0, atkBonus: 9999,
-      roll: 5, lines: [{ stat: "crit", roll: 9 }, { stat: "atk", roll: 1 }, { stat: "crit", roll: 1 }, { stat: "dodge", roll: 1.1 }],
+      roll: 5, lines: [{ stat: "crit", roll: 9 }, { stat: "atk", roll: 1 }, { stat: "crit", roll: 1 }, { stat: "resist", roll: 1.1 }],
     };
     const old = { id: "y", name: "e", type: "espada", element: "agua", rarity: "f", stars: 0, atkBonus: 1 };
     const q = migrate({ version: 5, weapons: [good, old] });

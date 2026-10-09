@@ -39,7 +39,7 @@ function hero(
       atk: 20,
       def: 8,
       crit: 0.29,
-      dodge: 0.05,
+      resist: 0.05,
       accuracy: 0,
       critDmg: c.stats.critDmg,
       regen: 0,
@@ -126,7 +126,7 @@ describe("explain: elements, traits, actions", () => {
     for (const id of TRAIT_IDS)
       expect(traitTip(id).lines.length).toBeGreaterThan(0);
     expect(text(traitTip("terco"))).toContain("+25% DEF");
-    expect(text(traitTip("terco"))).toContain("−3 puntos de esquive");
+    expect(text(traitTip("terco"))).toContain("−3 puntos de resistencia");
     expect(text(traitTip("sediento"))).toContain("10%");
   });
 
@@ -150,7 +150,7 @@ describe("explain: elements, traits, actions", () => {
   });
 
   it("intents use real numbers", () => {
-    const p = hero("caballero", "agua", { dodge: 0.05 });
+    const p = hero("caballero", "agua", { resist: 0.05 });
     const b = withRound(
       startBattle(p, hero("mago", "fuego"), createRng(2)),
       false,

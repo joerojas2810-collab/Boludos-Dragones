@@ -595,7 +595,7 @@ describe("migrate: heroes saved before Run v2", () => {
           catchphrase: "hola",
           level: 1,
           xp: 0,
-          stats: { hp: 90, atk: 17, def: 4, crit: 0.25, dodge: 0.2, accuracy: 0, flee: 0.1, speed: 10 },
+          stats: { hp: 90, atk: 17, def: 4, crit: 0.25, resist: 0.2, accuracy: 0, flee: 0.1, speed: 10 },
         },
         {
           id: "y",
@@ -604,7 +604,7 @@ describe("migrate: heroes saved before Run v2", () => {
           element: "agua",
           rarity: "f",
           stars: 0,
-          stats: { hp: 80, atk: 22, def: 3, crit: 0.1, dodge: 0.05, accuracy: 0, flee: 0, speed: 10 },
+          stats: { hp: 80, atk: 22, def: 3, crit: 0.1, resist: 0.05, accuracy: 0, flee: 0, speed: 10 },
         },
       ],
     };

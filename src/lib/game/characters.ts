@@ -28,7 +28,7 @@ export interface Stats {
   atk: number;
   def: number;
   crit: number;
-  dodge: number;
+  resist: number;
   accuracy: number; // additive to attack accuracy
   speed: number; // initiative
   critDmg: number; // crit damage multiplier (base x1.5, Pícaro x2.0)
@@ -86,7 +86,7 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
       atk: 15,
       def: 8,
       crit: 0.05,
-      dodge: 0.05,
+      resist: 0,
       accuracy: 0,
       speed: 9.5,
       critDmg: BASE_CRIT_DMG,
@@ -114,7 +114,7 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
       atk: 23,
       def: 3,
       crit: 0.1,
-      dodge: 0.05,
+      resist: 0,
       accuracy: 0,
       speed: 10,
       critDmg: BASE_CRIT_DMG,
@@ -148,7 +148,7 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
       atk: 16.2,
       def: 4,
       crit: 0.25,
-      dodge: 0.2,
+      resist: 0,
       accuracy: 0,
       speed: 10.5,
       critDmg: CLASS_PASSIVE_CRIT_MULT,
@@ -182,7 +182,7 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
       atk: 14.5,
       def: 5,
       crit: 0.05,
-      dodge: 0.05,
+      resist: 0,
       accuracy: 0,
       speed: 10,
       critDmg: BASE_CRIT_DMG,
@@ -262,7 +262,7 @@ function applyTraits(stats: Stats, ids: readonly TraitId[]): Stats {
     atk: Math.round(stats.atk * mult("atk") * 10) / 10,
     def: Math.round(stats.def * mult("def") * 10) / 10,
     crit: clamp(stats.crit + sum("crit"), 0, 0.6),
-    dodge: clamp(stats.dodge + sum("dodge"), 0, 0.6),
+    resist: clamp(stats.resist + sum("resist"), 0, 0.6),
     accuracy: sum("accuracy"),
     speed: Math.round(stats.speed * mult("speed") * 10) / 10,
     critDmg: stats.critDmg,
@@ -297,7 +297,7 @@ export function generateCharacter(
     atk: rollStat(rng, base.atk),
     def: rollStat(rng, base.def),
     crit: rollStat(rng, base.crit),
-    dodge: rollStat(rng, base.dodge),
+    resist: 0,
     accuracy: rollStat(rng, base.accuracy),
     speed: rollStat(rng, base.speed),
     critDmg: base.critDmg,

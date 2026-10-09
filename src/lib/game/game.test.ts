@@ -66,7 +66,7 @@ describe("traits", () => {
       expect(c.traits.length).toBeGreaterThanOrEqual(1);
       expect(c.traits.length).toBeLessThanOrEqual(2);
       expect(new Set(c.traits).size).toBe(c.traits.length);
-      expect(c.stats.dodge).toBeGreaterThanOrEqual(0);
+      expect(c.stats.resist).toBeGreaterThanOrEqual(0);
       expect(c.stats.hp).toBeGreaterThan(0);
     }
   });

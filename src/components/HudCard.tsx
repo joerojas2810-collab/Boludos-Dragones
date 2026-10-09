@@ -85,6 +85,8 @@ export function HudCard({
           },
         ]),
   ];
+  if (!compact && s.resist)
+    cells.push({ stat: "resist", label: "RES", value: pct(s.resist) });
   if (!compact && s.accuracy)
     cells.push({ stat: "accuracy", label: "PRE", value: pct(s.accuracy) });
   const [open, setOpen] = useState(false);

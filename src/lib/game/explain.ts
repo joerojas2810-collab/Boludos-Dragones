@@ -107,7 +107,7 @@ export const STAT_NAME: Record<keyof Stats, string> = {
   def: "DEF",
   speed: "VEL",
   crit: "CRIT",
-  dodge: "ESQ",
+  resist: "RES",
   accuracy: "Precisión",
   critDmg: "Daño crítico",
   regen: "Regeneración",
@@ -287,7 +287,7 @@ const MOD_LABEL_LOWER: Record<keyof TraitMods, string> = {
   def: "DEF",
   speed: "VEL",
   crit: "crítico",
-  dodge: "esquive",
+  resist: "resistencia",
   accuracy: "precisión",
 };
 
@@ -465,6 +465,12 @@ export function statTip(
           `Ahora, ${cls.attack1.name}: ~${d} normal, ~${Math.round(d * m)} crítico.`,
         );
       }
+      break;
+    }
+    case "resist": {
+      lines.push(
+        `Acorta la duración de Escarcha, Quemadura y Ruptura que te apliquen: ${pct(st.resist)} menos (mín. 1 ronda).`,
+      );
       break;
     }
     case "accuracy": {

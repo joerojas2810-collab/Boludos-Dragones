@@ -590,7 +590,7 @@ export function statusTick(c: Combatant, log: string[]): Combatant {
 export interface Strike {
   attacker: Combatant;
   defender: Combatant;
-  dmg: number; // damage dealt after crit (0 on a miss or a dodge)
+  dmg: number; // damage dealt after crit (0 on a miss)
 }
 
 export function strike(
@@ -697,6 +697,7 @@ export function strike(
         sid,
         stacks,
         sid === "quemadura" ? Math.round(dmg * STATUS_DATA.quemadura.per) : undefined,
+        defender.char.stats.resist,
       ),
     };
   if (sid) log.push(`${sid === "impulso" ? who : def.char.name}: ${STATUS_DATA[sid].label} ×${stacksOf(sid === "impulso" ? ownStatuses : defender.statuses, sid)}.`);

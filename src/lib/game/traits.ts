@@ -1,13 +1,13 @@
 import { RARITY_IDS, type RarityId } from "./rarity";
 import type { Rng } from "./rng";
 
-// Multipliers are fractions (0.25 = +25%); crit/dodge/accuracy are additive.
+// Multipliers are fractions (0.25 = +25%); crit/resist/accuracy are additive.
 export interface TraitMods {
   hp?: number;
   atk?: number;
   def?: number;
   crit?: number;
-  dodge?: number;
+  resist?: number;
   accuracy?: number;
   speed?: number;
 }
@@ -37,8 +37,8 @@ export interface Trait {
 export const TRAITS = {
   terco: {
     name: "Terco",
-    description: "+25% DEF, -3 esquive",
-    mods: { def: 0.25, dodge: -0.03 },
+    description: "+25% DEF, -3 resistencia",
+    mods: { def: 0.25, resist: -0.03 },
   },
   sediento: {
     name: "Sediento",
@@ -54,8 +54,8 @@ export const TRAITS = {
   },
   veloz: {
     name: "Veloz",
-    description: "+10 esquive, +5% velocidad, -5% ATQ",
-    mods: { dodge: 0.1, atk: -0.05, speed: 0.05 },
+    description: "+10 resistencia, +5% velocidad, -5% ATQ",
+    mods: { resist: 0.1, atk: -0.05, speed: 0.05 },
   },
   furioso: {
     name: "Furioso",
@@ -74,8 +74,8 @@ export const TRAITS = {
   },
   cobarde: {
     name: "Cobarde",
-    description: "+10 esquive, -2% ATQ",
-    mods: { dodge: 0.1, atk: -0.02 },
+    description: "+10 resistencia, -2% ATQ",
+    mods: { resist: 0.1, atk: -0.02 },
   },
   certero: {
     name: "Certero",
@@ -84,8 +84,8 @@ export const TRAITS = {
   },
   glotón: {
     name: "Glotón",
-    description: "+12% vida, -5 esquive",
-    mods: { hp: 0.12, dodge: -0.05 },
+    description: "+12% vida, -5 resistencia",
+    mods: { hp: 0.12, resist: -0.05 },
   },
   fragil: {
     name: "Frágil",
@@ -99,8 +99,8 @@ export const TRAITS = {
   },
   escurridizo: {
     name: "Escurridizo",
-    description: "+12 esquive, +6% velocidad, -10% vida",
-    mods: { dodge: 0.12, hp: -0.1, speed: 0.06 },
+    description: "+12 resistencia, +6% velocidad, -10% vida",
+    mods: { resist: 0.12, hp: -0.1, speed: 0.06 },
   },
   sanguinario: {
     name: "Sanguinario",
@@ -119,13 +119,13 @@ export const TRAITS = {
   },
   fornido: {
     name: "Fornido",
-    description: "+8% vida y ATQ, -5 esquive, -10% velocidad",
-    mods: { hp: 0.08, atk: 0.08, dodge: -0.05, speed: -0.1 },
+    description: "+8% vida y ATQ, -5 resistencia, -10% velocidad",
+    mods: { hp: 0.08, atk: 0.08, resist: -0.05, speed: -0.1 },
   },
   cauteloso: {
     name: "Cauteloso",
-    description: "+15% DEF, +5 esquive",
-    mods: { def: 0.15, dodge: 0.05 },
+    description: "+15% DEF, +5 resistencia",
+    mods: { def: 0.15, resist: 0.05 },
   },
   tenaz: {
     name: "Tenaz",

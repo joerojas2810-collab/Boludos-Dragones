@@ -16,7 +16,7 @@ export interface GearBonus {
   hp: number;
   def: number;
   speed: number;
-  dodge: number;
+  resist: number;
   crit: number;
   accuracy: number;
   critDmg: number; // added to the crit multiplier
@@ -30,7 +30,7 @@ export const NO_GEAR: GearBonus = {
   hp: 0,
   def: 0,
   speed: 0,
-  dodge: 0,
+  resist: 0,
   crit: 0,
   accuracy: 0,
   critDmg: 0,
@@ -56,7 +56,7 @@ export const LINE_BASE: Record<LineStat, number> = {
   hp: 0.06,
   def: 0.06,
   speed: 0.04,
-  dodge: 0.015,
+  resist: 0.015,
   crit: 0.015,
   accuracy: 0.02,
   critDmg: 0.06,
@@ -65,10 +65,10 @@ export const LINE_BASE: Record<LineStat, number> = {
 };
 // Which extra lines each piece can roll (the weapon has none).
 export const LINE_POOL: Record<GearType, readonly LineStat[]> = {
-  casco: ["accuracy", "crit", "critDmg", "def", "dodge"],
-  peto: ["hp", "regen", "dodge", "lifesteal", "speed"],
+  casco: ["accuracy", "crit", "critDmg", "def", "resist"],
+  peto: ["hp", "regen", "resist", "lifesteal", "speed"],
   piernas: ["crit", "critDmg", "accuracy", "speed", "lifesteal"],
-  zapatos: ["dodge", "hp", "atk", "regen", "crit"],
+  zapatos: ["resist", "hp", "atk", "regen", "crit"],
   collar: ["critDmg", "accuracy", "atk", "speed", "lifesteal"],
 };
 export const ROLL_SPREAD = 0.1; // new rolls are 1 +- 10%
@@ -184,7 +184,7 @@ export const GEAR_CAP: GearBonus = {
   hp: 1.25,
   def: 0.8,
   speed: 0.45,
-  dodge: 0.2,
+  resist: 0.2,
   crit: 0.3,
   accuracy: 0.2,
   critDmg: 0.5,
@@ -241,7 +241,7 @@ export const applyGear = (s: Stats, g: GearBonus): Stats => ({
   hp: Math.max(1, Math.round(s.hp * (1 + g.hp))),
   def: Math.round(s.def * (1 + g.def) * 10) / 10,
   speed: Math.round(s.speed * (1 + g.speed) * 10) / 10,
-  dodge: Math.round(Math.min(0.6, s.dodge + g.dodge) * 1000) / 1000,
+  resist: Math.round(Math.min(0.6, s.resist + g.resist) * 1000) / 1000,
   crit: Math.round(Math.min(0.6, s.crit + g.crit) * 1000) / 1000,
   accuracy: Math.round((s.accuracy + g.accuracy) * 1000) / 1000,
   critDmg: Math.round((s.critDmg + g.critDmg) * 1000) / 1000,
@@ -256,7 +256,7 @@ const bonusText = (g: GearBonus): string => {
     g.hp && `+${pct(g.hp)} vida`,
     g.def && `+${pct(g.def)} DEF`,
     g.speed && `+${pct(g.speed)} velocidad`,
-    g.dodge && `+${pct(g.dodge)} esquive`,
+    g.resist && `+${pct(g.resist)} resistencia a estados`,
     g.crit && `+${pct(g.crit)} crítico`,
     g.accuracy && `+${pct(g.accuracy)} precisión`,
     g.critDmg && `+${pct(g.critDmg)} daño crítico`,
@@ -304,9 +304,9 @@ export const SET_BONUS: Record<
   ],
   tierra: [{ def: 0.08 }, { def: 0.16 }, { def: 0.24 }],
   viento: [
-    { speed: 0.05, dodge: 0.015 },
-    { speed: 0.1, dodge: 0.03 },
-    { speed: 0.15, dodge: 0.045 },
+    { speed: 0.05, resist: 0.015 },
+    { speed: 0.1, resist: 0.03 },
+    { speed: 0.15, resist: 0.045 },
   ],
 };
 
@@ -374,7 +374,7 @@ export const LINE_GROUP: Record<LineStat, BuildGroup> = {
   speed: "dano",
   crit: "critico",
   critDmg: "critico",
-  dodge: "critico",
+  resist: "critico",
   regen: "sosten",
   lifesteal: "sosten",
 };

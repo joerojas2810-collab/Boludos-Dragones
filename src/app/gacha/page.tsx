@@ -52,7 +52,7 @@ const BANNERS: Record<Banner, { tab: string; title: string; text: string }> = {
   weapon: {
     tab: "Equipo",
     title: "Banner de equipo",
-    text: "Cada tirada forja una pieza: arma, casco, peto, piernas, zapatos o collar, con elemento y rango. Las armas suman ATQ (y su elemento pasa a ser el de tus ataques); el resto suma vida, defensa, velocidad, esquive, crítico o precisión. Cada pieza trae su propia tirada (±15%) y, desde rango C, líneas extra. Los duplicados suben estrellas.",
+    text: "Cada tirada forja una pieza: arma, casco, peto, piernas, zapatos o collar, con elemento y rango. Las armas suman ATQ (y su elemento pasa a ser el de tus ataques); el resto suma vida, defensa, velocidad, resistencia a estados, crítico o precisión. Cada pieza trae su propia tirada (±15%) y, desde rango C, líneas extra. Los duplicados suben estrellas.",
   },
 };
 

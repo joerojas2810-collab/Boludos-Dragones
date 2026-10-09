@@ -699,7 +699,7 @@ const str = (v: unknown, fallback: string) =>
 
 // Stats saved before Run v2 have `flee` and no critDmg/regen/lifesteal: those are filled
 // with the class defaults (the Pícaro already crit x2) instead of dropping the hero.
-const REQUIRED_STATS: (keyof Stats)[] = ["hp", "atk", "def", "crit", "dodge", "accuracy", "speed"];
+const REQUIRED_STATS: (keyof Stats)[] = ["hp", "atk", "def", "crit", "accuracy", "speed"];
 
 function parseStats(v: unknown, classId: ClassId): Stats | null {
   if (!isObj(v)) return null;
@@ -712,6 +712,7 @@ function parseStats(v: unknown, classId: ClassId): Stats | null {
   const num = (x: unknown, d: number) =>
     typeof x === "number" && Number.isFinite(x) ? x : d;
   out.critDmg = num(v.critDmg, CLASSES[classId].stats.critDmg);
+  out.resist = num(v.resist, 0); // saved before v11: had dodge instead
   out.regen = num(v.regen, 0);
   out.lifesteal = num(v.lifesteal, 0);
   // ponytail: stat magnitudes are not range-checked; server must only store

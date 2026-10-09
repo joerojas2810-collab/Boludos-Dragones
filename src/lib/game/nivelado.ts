@@ -55,11 +55,7 @@ export function normalizeHero(hero: Character, mode: RoomMode): Character {
       0,
       0.6,
     ),
-    dodge: clamp(
-      base.dodge * squash((hero.stats.dodge - gr.dodge) / base.dodge),
-      0,
-      0.6,
-    ),
+    resist: clamp(hero.stats.resist - gr.resist, 0, 0.6),
     // additive trait effects stay (traits are style); speed varies like the rest
     accuracy: hero.stats.accuracy - gr.accuracy,
     speed: r1(
