@@ -224,11 +224,11 @@ Los tamaños de grupo actuales se mantienen (ya van de 1 a 3 según el rango). U
 
 | Tema | Estado | Propuesta |
 |---|---|---|
-| Rangos de héroes y equipo | **[PENDIENTE]** | Decisión del 6-oct y CLAUDE.md: 9 (F–SSR). En un chat de ChatGPT el usuario aceptó cortar SS/SSR. Propuesta: mantener 9 hasta rebalancear. |
-| Estrellas y fusión | [POR DEFECTO] | Se mantiene lo actual (estrellas por copias exactas; fusión base 3★ + materiales del mismo rango). Re-medir con la economía. |
-| Pity | [POR DEFECTO] | Se elimina el pity de 250 tiradas. Probabilidades 30/22/16/12/9/6/3/1,5/0,5 % hasta recalcular. |
+| Rangos de héroes y equipo | **[DECIDIDO]** | 7 rangos de objeto, F a S (ver 7c). SS y SSR quedan solo como dificultad de dungeon. |
+| Estrellas, copias y fusión | **[DECIDIDO, implementado]** | Ver 7d: copias con rasgo, ★ por material, rango por fusión. |
+| Pity | **[DECIDIDO]** | Eliminado (migración 0049). Probabilidades 31/22,5/16,5/12/9/6/3 %. |
 | Mejorar equipo | [POR DEFECTO] | Se mantiene el sistema actual con riesgo de fallo y protección acumulativa (`plusStreak`: +5 % por fallo consecutivo). Pendiente si el Dado cargado suma puntos o es relativo (leer `docs/FORJA_V9.md`). |
-| Rasgos | **[DECIDIDO]** | Se quitan los 20 rasgos de números y se conservan los de regla de run (hoy 4). Se definen rasgos de regla nuevos que encajen con estados, guardia y elementos. Paso aparte: migración de perfiles, fusión (`heroFusion.ts`), arte por rasgo y cantidad por rango. Hasta entonces los rasgos actuales quedan como están (los de esquive, casi inertes). |
+| Rasgos | **[DECIDIDO, implementado]** | 20 rasgos de personalidad, 1 por héroe (ver 7b). |
 
 ---
 
@@ -262,12 +262,26 @@ Implementación: `traits.ts` (catálogo y reglas), `combat.ts` (estado por comba
 
 ## 7c. Rangos: F a S [DECIDIDO 2026-10-09]
 
-- **Rangos de objeto (héroes y equipo): 7, de F a S.** SS y SSR salen de gacha, héroes, equipo y forja. Probabilidades: 31/22,5/16,5/12/9/6/**3** % (S queda en 3 %: una S cada ~1,75 días a ~19 tiradas diarias; el 2 % sobrante de los tres altos se reparte entre F, E y D); multiplicador de S ×2,6 (antes 2,35); equipo S ×3,4. Valor de trueque de S: 8330 (250 / 3 %). Fusionar todo lo que se tira da ~+70 % de S extra (proporciones F 5, E 5, D 4, C 4, B 4, A 4).
+- **Rangos de objeto (héroes y equipo): 7, de F a S.** SS y SSR salen de gacha, héroes, equipo y forja. Probabilidades: 31/22,5/16,5/12/9/6/**3** % (S queda en 3 %: una S cada ~1,75 días a ~19 tiradas diarias; el 2 % sobrante de los tres altos se reparte entre F, E y D); multiplicador de S ×2,6 (antes 2,35); equipo S ×3,4. Valor de trueque de S: 8330 (250 / 3 %). Fusionar todo lo que se tira da ~+78 % de S extra como techo teórico (proporciones F 5, E 5, D 4, C 4, B 4, A 4; ver 7d).
 - **Sin pity.** Se eliminó el pity de 250; `apply_pull` ya no lo exige (migración 0049). Los contadores `pity`/`pitySsr` siguen en el perfil siempre en 0 por compatibilidad con la firma SQL.
 - **Dungeons: 9, como niveles de dificultad** (`DungeonId`, ids f..ssr sin cambios; `levels.ts` intacto). Los tres últimos (S, SS, SSR) sueltan objetos S: el top de la pieza es S y el resto sube hasta S en SS y SSR. La fuerza de los enemigos conserva la escala de 9 (`DUNGEON_MULT`); `RANK_TUNE` recalibrado para S (2,85), SS (2,79) y SSR (2,62) con héroes S de referencia (objetivo 62 / 48 / 35 %).
 - **Identidad de los rangos altos (equipo):** líneas extra C 1, A 2, S 3, más una **línea capstone** exclusiva de S (casco y peto: daño recibido; piernas, zapatos y collar: daño infligido). Cada pieza S trae hasta 4 líneas.
 - Salas: el rango de sala sigue siendo de objeto (F a S).
-- Pendiente: la fusión de héroes y la forja deben revisarse con esta cadena más corta; economía (monedas por nivel, cofres, gacha); tests de ss/ssr/pity obsoletos.
+- Pendiente: re-simular la economía (monedas por nivel, cofres, gacha) con esta cadena.
+
+## 7d. Héroes: copias, estrellas y fusión [DECIDIDO 2026-10-09, implementado]
+
+Un héroe es clase + elemento + rango. Crece en tres ejes; el material de los dos primeros se mide en **unidades**: un héroe del mismo rango vale 1 y cada copia sobrante vale 1 (el héroe base solo aporta sus copias).
+
+- **Copias.** Una tirada repetida ya no sube ★: se guarda como copia (máx. 50, el resto reembolsa 50 %) con el rasgo que le tocó. Así se puede quedar el mejor rasgo de varias tiradas (cambio de rasgo en la Forja) y el material no queda atrapado en estrellas. Código: `profile.ts` (`copies`), SQL 0050.
+- **Subir ★ (0 a 5).** 3 unidades = +1★. Cada ★: +10 % de stats y +10 de tope de nivel. Coste en tiradas incluyendo el base (S: 1★ ~133, 3★ ~333, 5★ ~533; F: 13 / 32 / 52).
+- **Subir de rango (F a S).** Base + (ratio − 1) unidades del mismo rango + monedas: F 5 (20), E 5 (40), D 4 (80), C 4 (160), B 4 (320), A 4 (640). Conserva clase, elemento, nombre, rasgo, nivel y habilidad. Las ★ se convierten con `STAR_CARRY` (factor de rareza, redondeo abajo: p. ej. 4★ en A pasa a 2★ en S; 5★ en F llega a S como 0★, sin atajo). Si ya existe el héroe en el rango siguiente se fusionan: el jugador elige el rasgo principal (el otro pasa a copia), quedan las ★ más altas, nivel y equipo del ya existente. Las copias del base que no se gastan quedan como un héroe del rango viejo.
+- **Rasgos.** El rasgo principal se cambia por el de una copia (el anterior pasa a copia).
+- **Mercado.** La unidad que se intercambia es una copia (con su rasgo); un jugador sin ese héroe lo recibe con ese rasgo.
+- **Sin quema de héroes.** Se retiró por completo; las piezas siguen quemándose (4 %).
+- **Descartado:** requisito de ★ mínimas para fusionar; afinidad de clase o elemento en el material; talentos pasivos por ★ y tope de nivel por rango (decisiones aparte, fuera de esta tanda).
+- **Balance medido:** fusionar es 2 a 4 veces más caro que tirar el rango siguiente (A→S 67 frente a 33 tiradas), así que es un sumidero de sobrantes. Si se funde toda la colección sale ~+78 % de S extra como techo; la palanca es el ratio A→S (4; con 5 baja a ~+62 %). Valor de mercado: fusionar siempre pierde frente a comerciar (4 A = 16.680 frente a 1 S = 8.330).
+- Código: `heroFusion.ts` (`starUpHero`, `fuseHeroes`, `swapTrait`), servicios `doStarUpHero`/`doFuseHeroes`/`doSwapTrait`, SQL `apply_hero_change`, interfaz `src/app/forja/HeroFusion.tsx`.
 
 ## 8. Equipo
 
@@ -319,14 +333,12 @@ Reemplazar en "Reglas del juego":
 
 ## 11. Preguntas abiertas
 
-0. **Rarezas de héroes y armamento** [duda del usuario 2026-10-09]: los rangos bajos se sienten como rareza plana que ya aporta poco; idea de reducir a S, SS y SSR. Va de la mano con la fusión de héroes (`heroFusion.ts`: base 3★ + materiales del mismo rango sube un rango) y con la conversación sobre fusión que falta traer a este documento. Afecta dungeons (9 rangos, `levels.ts`), economía, gacha (probabilidades), equipo, SQL y arte. Sin decidir.
+Cerradas el 2026-10-09: rarezas (7 rangos F a S, 7c), fusión de héroes (7d), 9 rangos o 7, tabla elemental (2), quema de héroes (retirada).
 
-1. ¿Qué ataques llevan el elemento y aplican efecto? (sección 2)
-2. ¿9 rangos o 7? (sección 7)
-3. ¿Qué hace "Drenar maná" sin maná? (sección 3)
-4. Dirección exacta de la tabla elemental contra `elements.ts`. (sección 2)
-5. ¿Los eventos entre combates chocan con la decisión de v8? (sección 6)
-6. ¿Dado cargado: puntos porcentuales o relativo? (sección 7)
-7. Mapa jefe ↔ dungeon. (sección 6)
-8. ¿Se retoma el Invocador o se sustituye por el Monje? (sección 3)
-9. Los otros 6 jefes y los ataques cargados. (sección 5)
+1. ¿Qué ataques llevan el elemento y aplican efecto? Hoy solo el especial de clase aplica estados; revisar con pruebas.
+2. ¿Qué hace "Drenar maná" sin maná? (sección 3; el Mago ya usa Tormenta o Detonar)
+3. ¿Los eventos entre combates chocan con la decisión de v8? (sección 6; decidido que no se hacen)
+4. ¿Dado cargado: puntos porcentuales o relativo? (sección 7)
+5. Mapa jefe ↔ dungeon. (sección 6)
+6. ¿Se retoma el Invocador o se sustituye por el Monje? (sección 3)
+7. Los otros 6 jefes y los ataques cargados. (sección 5)
