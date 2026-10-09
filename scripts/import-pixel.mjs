@@ -1,4 +1,4 @@
-// Importer: fire strips (64x96 or HD heroes 128x192) -> public/art/<heroes|enemies>-px/ in 5 elements.
+// Importer: fire strips (64x96 or native HD 128x192) -> public/art/<heroes|enemies>-px/ in 5 elements.
 // Usage: node scripts/import-pixel.mjs "<dir>" <heroes|enemies>   (dir has manifest.json + the strips)
 import sharp from "sharp";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -10,9 +10,10 @@ if (!dir || !["heroes", "enemies"].includes(lot)) throw new Error("usage: <dir> 
 const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
 const FW = manifest.frame_width;
 const FH = manifest.frame_height;
-if (!(FW === 64 && FH === 96) && !(lot === "heroes" && FW === 128 && FH === 192))
+if (!(FW === 64 && FH === 96) && !(FW === 128 && FH === 192))
   throw new Error("unsupported native frame dimensions");
 const PAD = FW / 64 * 3;
+const hd = FW === 128;
 if (lot === "heroes") {
   const expected = Object.fromEntries([...readFileSync("src/lib/art/heroes.ts", "utf8").matchAll(/^  (\w+): \{ frames: (\d+), fps: (\d+), loop: (true|false), hold: (true|false) \},$/gm)]
     .map((m) => [m[1], { frames: +m[2], fps: +m[3], loop: m[4] === "true", hold: m[5] === "true" }]));
@@ -25,6 +26,24 @@ if (lot === "heroes") {
       if (entry[field] !== expected[action][field]) throw new Error(`invalid ${field}: ${entry.file}`);
     if (entry.frame_width !== FW || entry.frame_height !== FH || entry.anchor?.x !== FW / 2 || entry.anchor?.y !== FH * 15 / 16)
       throw new Error(`invalid hero dimensions or feet anchor: ${entry.file}`);
+  }
+}
+if (lot === "enemies") {
+  const expected = Object.fromEntries([...readFileSync("src/lib/art/enemies.generated.ts", "utf8").matchAll(/^  ([a-z0-9_]+_fire_(?:idle|attack|hit|defeat|entrance)): \{\s*frames: (\d+),\s*fps: (\d+),\s*loop: (true|false),\s*cell: (\d+),\s*\},/gm)]
+    .map((m) => [m[1] + ".png", { frames: +m[2], fps: +m[3], loop: m[4] === "true" }]));
+  const required = new Set(Object.keys(expected));
+  if (required.size !== 110 || manifest.files.length !== required.size) throw new Error("enemies require the exact 110 fire strips from the catalog");
+  for (const entry of manifest.files) {
+    const meta = expected[entry.file];
+    if (!required.delete(entry.file) || !meta) throw new Error(`unexpected or duplicate enemy: ${entry.file}`);
+    for (const field of ["frames", "fps", "loop"])
+      if (entry[field] !== meta[field]) throw new Error(`invalid ${field}: ${entry.file}`);
+    const action = entry.file.match(/_fire_(idle|attack|hit|defeat|entrance)\.png$/)?.[1];
+    const hold = action === "defeat";
+    if (entry.action !== action || entry.hold !== hold || entry.end_behavior !== (hold ? "hold" : meta.loop ? "loop" : "return_to_idle"))
+      throw new Error(`invalid enemy action/end behavior: ${entry.file}`);
+    if (entry.frame_width !== FW || entry.frame_height !== FH || entry.anchor?.x !== FW / 2 || entry.anchor?.y !== FH * 15 / 16)
+      throw new Error(`invalid enemy dimensions or feet anchor: ${entry.file}`);
   }
 }
 // Validate every header before replacing any runtime asset.
@@ -62,7 +81,7 @@ const flat = (ramp) => {
   const m = "#" + a.map((v, k) => Math.round(v * 0.6 + b[k] * 0.4).toString(16).padStart(2, "0")).join("");
   return [ramp[0], ramp[1], m, m];
 };
-if (lot === "enemies") for (const k of Object.keys(RAMPS)) RAMPS[k] = dim(flat(RAMPS[k]));
+if (lot === "enemies" && !hd) for (const k of Object.keys(RAMPS)) RAMPS[k] = dim(flat(RAMPS[k]));
 
 const out = `public/art/${lot}-px`;
 mkdirSync(out, { recursive: true });
@@ -71,7 +90,7 @@ for (const { file } of manifest.files) {
   const { data, info } = await sharp(join(dir, file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   // Enemy shine: isolated bright non-ramp pixels sitting on the body colour (teeth and horns are clusters, so they stay).
   const sparkle = new Set();
-  if (lot === "enemies") {
+  if (lot === "enemies" && !hd) {
     const work = Buffer.from(data); // removed sparkles are painted as body colour so a second pass can take the rest of a "+"
     const at = (x, y) => (y * info.width + x) * 4;
     const isRamp = (p) => work[p + 3] > 0 && src.some((c) => c[0] === work[p] && c[1] === work[p + 1] && c[2] === work[p + 2]);
@@ -112,7 +131,7 @@ for (const { file } of manifest.files) {
     n++;
   }
 }
-if (lot === "heroes") writeFileSync("src/lib/art/pixel-heroes.generated.json", JSON.stringify({
+writeFileSync(`src/lib/art/pixel-${lot}.generated.json`, JSON.stringify({
   frame_width: FW, frame_height: FH, padding: PAD,
   runtime_frame_width: FW + 2 * PAD,
   anchor: { x: FW / 2 + PAD, y: FH * 15 / 16 },

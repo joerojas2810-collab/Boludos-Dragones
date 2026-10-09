@@ -1,6 +1,6 @@
 # Continuación de producción pixel art
 
-Plan de trabajo mediante bases compartidas y exportaciones automatizadas. Las siete fases originales están completadas; las secciones históricas conservan sus cantidades y decisiones. La Fase 1 ya fue adaptada a HD. El trabajo actual es la conversión de los fondos de combate de Fase 6 a 960×540.
+Plan de trabajo mediante bases compartidas y exportaciones automatizadas. Las siete fases originales están completadas; las secciones históricas conservan sus cantidades y decisiones. Héroes y fondos de combate ya fueron adaptados a HD. El trabajo actual es la conversión de Fase 2: enemigos y jefes a 128×192.
 
 ## Reglas de trabajo
 
@@ -22,6 +22,14 @@ Las variantes conservan píxeles neutros y alfa, y cambian solo la rampa exclusi
 Autorizada el 8 de octubre de 2026 después de cerrar los héroes HD. Reemplazar 90 capas de combate (18 escenas, nueve parejas normal/jefe) por PNG nativos 960×540; suelo desde y=378 y anclaje central (480,270). Conservar nombres, cinco capas, factores de parallax y las seis pantallas completas HD existentes sin cambios. Reutilizar las cinco capas de Pantano HD aprobadas; producir ocho planos lejanos y ocho grupos de arquitectura nuevos. Los jefes comparten cielo, plano lejano y primer plano y se distinguen por arquitectura ceremonial y detalles de suelo. Entrega acumulada: 96 PNG, manifiesto y ZIP completo.
 
 Producción completa: 90 capas de combate HD importadas y seis pantallas completas intactas. Verificados 96 PNG, paletas exactas, dimensiones, alfa, anclajes, suelo en y=378, igualdad entre entrega y juego y ZIP de 97 entradas (22.318.582 bytes). TypeScript y ESLint sin errores; Vitest 44 archivos / 421 pruebas aprobadas. Revisión visual completada en galería y combate 1080p, 2K y móvil: todas las capas cargan y conservan escalas enteras. La distribución móvil previa del protagonista en la fila superior permanece fuera de esta fase. Lista para commit y push a main. No iniciar la adaptación de enemigos ni otras fases sin la siguiente instrucción del usuario.
+
+## Actualización de Fase 2: enemigos y jefes HD
+
+Producción completa: 24 diseños, cinco familias con normal, élite y jefe más nueve jefes finales. Las 110 tiras de Fuego y sus 392 cuadros conservan el catálogo, con reposo, ataque, recibir golpe y derrota; los 14 jefes también tienen entrada. Importación final: 550 tiras y 1.960 cuadros en cinco elementos. Cuadros nativos 128×192 y pies (64,180); margen lateral 6 px, reproducción 140×192 y pies (70,180).
+
+Los atlas originales aportan cuatro poses distintas por diseño. La extracción conserva la anatomía mediante escala uniforme y alineación de pies; las transiciones usan desplazamientos de un píxel de la parte superior y entrada por revelado binario. La máscara elemental roja y sus brillos cálidos se normalizan a la rampa exclusiva de cuatro tonos; las variantes cambian únicamente esa rampa, conservando marfil y acero neutros. Sin los filtros de brillo del importador antiguo para HD. Alfa binario, RGB transparente cero y máximo 96 colores por tira base.
+
+La integración usa `pixel-enemies.generated.json`, independiente de los héroes. El importador valida nombres, cuadros, fps, loop, derrota mantenida y anclajes; la galería no solicita entrada para normales ni élites. Recursos pintados y reglas de juego conservados. Entrega: 110 bases y manifiesto en `phase_2_enemies.zip`, 111 entradas y 3.223.212 bytes; borradores y atlas fuera del repositorio. Activos, paletas, alfa, recoloreado exacto y ZIP aprobados; TypeScript y ESLint sin errores; Vitest 45 archivos / 423 pruebas aprobadas. El mapa de muestra se presenta sin las 120 animaciones del catálogo, que se abre mediante un botón. Revisión visual aprobada: cuatro poses de los 24 diseños y muestra con componentes reales en 1080p, 2K y móvil. Catálogo desplegable, entrada de jefe con retorno a reposo y derrota mantenida comprobados. Fase terminada y lista para commit y push.
 
 ## Fase 4: estadísticas, sistema y reliquias
 

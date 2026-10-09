@@ -4,9 +4,11 @@ import type { Element } from "@/lib/game/elements";
 import type { EnemyFamily } from "@/lib/game/worlds";
 import type { SheetAnim } from "@/components/AnimSheet";
 import { ENEMY_ANIMS, FINAL_BOSS_BY_RANK } from "./enemies.generated";
+import pixelEnemies from "./pixel-enemies.generated.json";
 
-// Alternate art line (NEXT_PUBLIC_ART=pixel): 64x96 strips in /art/enemies-px, entrance only on bosses.
-export const PX_ASPECT = 70 / 96; // 64 px frame + 3 px transparent padding per side (scripts/import-pixel.mjs)
+// Native dimensions are imported independently of the heroes. Entrance is boss-only.
+export const PX_FRAME_HEIGHT = pixelEnemies.frame_height;
+export const PX_ASPECT = pixelEnemies.runtime_frame_width / PX_FRAME_HEIGHT;
 export const PX_ACTIONS = {
   idle: { frames: 4, fps: 6, loop: true },
   attack: { frames: 4, fps: 10, loop: false },

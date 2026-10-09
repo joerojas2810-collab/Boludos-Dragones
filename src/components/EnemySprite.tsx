@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { AnimSheet } from "@/components/AnimSheet";
 import { isPixel } from "@/lib/art/pixel";
-import { enemyAnim, PX_ASPECT, type EnemyAction } from "@/lib/art/enemies";
+import { enemyAnim, PX_ASPECT, PX_FRAME_HEIGHT, type EnemyAction } from "@/lib/art/enemies";
 import type { Element } from "@/lib/game/elements";
 import type { EnemyFamily } from "@/lib/game/worlds";
 import "./pixel-sprites.css";
@@ -58,7 +58,7 @@ export function EnemySprite({
       className={`h-full w-full origin-bottom ${isPixel() ? "pixel-sprite-box" : ""} ${className}`}
       // --es set by BattleArena by group size (1.35 alone, smaller with 2-3 so neighbours don't overlap)
       style={isPixel()
-        ? { "--pixel-size": `calc(100cqh * var(--es, 1.35) * ${boss ? 1.26 : 1})` } as React.CSSProperties
+        ? { "--pixel-size": `calc(100cqh * var(--es, 1.35) * ${boss ? 1.26 : 1})`, "--pixel-frame-height": `${PX_FRAME_HEIGHT}px` } as React.CSSProperties
         : { transform: `scale(calc(var(--es, 1.35) * ${boss ? 1.26 : 1}))` }}
     >
       <div
