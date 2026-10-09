@@ -83,18 +83,19 @@ export function ItemCard({
                 element={item.element}
                 traits={item.traits}
                 className={isPixel()
-                  ? "absolute inset-x-0 bottom-[24%] top-5"
+                  ? "pixel-card-portrait absolute inset-x-2.5 bottom-[24%] top-[2%]"
                   : "absolute bottom-0 left-1/2 aspect-square h-full -translate-x-1/2"}
                 crop
+                fitBox={isPixel()}
               />
             ) : (
               // Pieces: keep the icon above the info strip so the text never covers it.
-              <div className={`absolute inset-x-0 bottom-[34%] ${isPixel() ? "top-5" : "top-[8%]"} flex items-center justify-center`}>
+              <div className={`absolute bottom-[34%] ${isPixel() ? "pixel-card-object inset-x-2.5 top-3.5" : "inset-x-0 top-[8%]"} flex items-center justify-center`}>
                 <WeaponSprite
                   type={item.type}
                   element={item.element}
                   rarity={item.rarity}
-                  className="h-full w-auto max-w-[86%]"
+                  className={isPixel() ? "h-full w-full object-contain" : "h-full w-auto max-w-[86%]"}
                 />
               </div>
             )}

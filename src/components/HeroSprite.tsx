@@ -37,6 +37,8 @@ type Props = {
   animated?: boolean;
   // Static only: zoom on the body (feet low) so the hero fills a card frame.
   crop?: boolean;
+  // Fit a static crop inside an explicitly sized card portrait box.
+  fitBox?: boolean;
   // Static, hi-res idle frame (640 px) for large displays such as the hub.
   big?: boolean;
 };
@@ -97,6 +99,7 @@ function Hero({
   action = "idle",
   animated = false,
   crop = false,
+  fitBox = false,
   big = false,
 }: Props & { action: HeroAction }) {
   const [done, setDone] = useState(false);
@@ -108,10 +111,10 @@ function Hero({
     if (crop && !animated) {
       const [x, y, width, height] = PX_IDLE_BOUNDS[classId];
       const sheetWidth = pixelHeroes.runtime_frame_width * HERO_ACTIONS.idle.frames;
-      return <div role="img" aria-hidden="true" className={`pixel-hero-thumbnail ${className}`}>
+      return <div role="img" aria-hidden="true" className={`pixel-hero-thumbnail ${className}`} style={fitBox ? { containerType: "size" } : undefined}>
         <div style={{
           aspectRatio: `${width} / ${height}`,
-          height: "100%",
+          height: fitBox ? `min(100cqh, calc(100cqw * ${height / width}))` : "100%",
           maxWidth: "100%",
           maxHeight: "100%",
           backgroundImage: `url(${src})`,
