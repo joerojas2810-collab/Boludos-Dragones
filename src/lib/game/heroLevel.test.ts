@@ -43,7 +43,7 @@ describe("hero level", () => {
 describe("class skill", () => {
   it("heroSkill: pick if valid, else class default (any rank)", () => {
     expect(heroSkill("mago")).toBe("tormenta");
-    expect(heroSkill("mago", "drenarMana")).toBe("drenarMana");
+    expect(heroSkill("mago", "detonar")).toBe("detonar");
     expect(heroSkill("mago", "castigo")).toBe("tormenta");
   });
 });

@@ -454,7 +454,7 @@ export function buildLabel(pieces: readonly WornPiece[]): BuildGroup | null {
 // Hero style (third skill) -> build group it favours.
 export const SKILL_STYLE_GROUP: Record<string, BuildGroup> = {
   contraataque: "tanque",
-  drenarMana: "sosten",
+  detonar: "dano",
   barrido: "dano",
   tormenta: "dano",
   golpeDoble: "critico",

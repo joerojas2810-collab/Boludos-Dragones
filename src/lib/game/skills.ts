@@ -9,8 +9,8 @@ export const STORM_POWER = 1.3; // Tormenta: damage vs EACH enemy
 export const COUNTER_ROUNDS = 2; // Contraataque lasts this many round ends
 export const COUNTER_TAKEN = 1; // damage taken by the hero while it is up (1 = full: it is not a guard)
 export const COUNTER_REFLECT = 1.2; // x the unreduced hit, sent back
-export const DRAIN_POWER = 1; // Drenar maná: single-target strike
-export const DRAIN_LIFESTEAL = 0.25; // fraction of damage dealt healed
+export const DETONATE_POWER = 1; // Detonar: single-target strike
+export const DETONATE_PER_STACK = 0.25; // extra damage per status stack on the target
 export const DOUBLE_STRIKE_POWER = 0.95; // per hit (two hits)
 export const EXECUTE_POWER = 1.6;
 export const EXECUTE_BELOW = 0.4; // target hp fraction
@@ -28,7 +28,7 @@ export type SkillId =
   | "barrido"
   | "contraataque"
   | "tormenta"
-  | "drenarMana"
+  | "detonar"
   | "golpeDoble"
   | "ejecutar"
   | "santuario"
@@ -56,6 +56,7 @@ export interface Skill {
   lifesteal?: number; // fraction of damage dealt healed
   selfBelow?: number; // own hp fraction under which selfMult applies (Aniquilación)
   selfMult?: number;
+  detonate?: number; // extra damage per status stack on the target; the stacks are consumed
 }
 
 const pc = (v: number) => `${Math.round(v * 100)}%`;
@@ -94,16 +95,16 @@ export const SKILLS: Record<SkillId, Skill> = {
     accuracy: 0.9,
     area: true,
   },
-  drenarMana: {
-    id: "drenarMana",
+  detonar: {
+    id: "detonar",
     classId: "mago",
-    name: "Drenar maná",
-    blurb: "Daño y cura",
-    description: `Arrancas energía al rival (${pc(DRAIN_POWER)} de poder) y recuperas ${pc(DRAIN_LIFESTEAL)} del daño que haces.`,
+    name: "Detonar",
+    blurb: "Hace estallar los estados",
+    description: `Golpe de ${pc(DETONATE_POWER)} de poder que hace +${pc(DETONATE_PER_STACK)} por cada acumulación de estado del objetivo, y se las borra.`,
     cooldown: 3,
-    power: DRAIN_POWER,
+    power: DETONATE_POWER,
     accuracy: 0.95,
-    lifesteal: DRAIN_LIFESTEAL,
+    detonate: DETONATE_PER_STACK,
   },
   golpeDoble: {
     id: "golpeDoble",
@@ -178,7 +179,7 @@ export const SKILLS: Record<SkillId, Skill> = {
 
 export const SKILLS_BY_CLASS: Record<ClassId, readonly [SkillId, SkillId]> = {
   caballero: ["barrido", "contraataque"],
-  mago: ["tormenta", "drenarMana"],
+  mago: ["tormenta", "detonar"],
   picaro: ["golpeDoble", "ejecutar"],
   clerigo: ["santuario", "castigo"],
   berserker: ["desgarro", "aniquilacion"],

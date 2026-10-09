@@ -499,6 +499,12 @@ function selfFactor(att: Combatant, key: MoveKey): number {
     : 1;
 }
 
+// Detonar: extra damage per status stack on the target.
+function detonateFactor(att: Combatant, def: Combatant, key: MoveKey): number {
+  const d = key === "attack3" ? skillOf(att)?.detonate : undefined;
+  return d ? 1 + d * (def.statuses ?? []).reduce((n, s) => n + s.stacks, 0) : 1;
+}
+
 // Skill bonus vs a weakened target (Ejecutar).
 function executeFactor(att: Combatant, def: Combatant, key: MoveKey): number {
   const s = key === "attack3" ? skillOf(att) : undefined;
@@ -534,6 +540,7 @@ export function estimateDamage(
         ((def.reflect ?? 0) > 0 ? COUNTER_TAKEN : 1) *
         executeFactor(att, def, key) *
         selfFactor(att, key) *
+        detonateFactor(att, def, key) *
         (1 + furyBonus(att)),
     ),
   );
@@ -725,6 +732,10 @@ export function strike(
     hp: Math.max(0, def.hp - (dmg - absorbed)),
     ...(def.shield !== undefined && { shield: def.shield - absorbed }),
   };
+  if (skill?.detonate && defender.statuses?.length) {
+    log.push(`${def.char.name} detona: se borran sus estados.`);
+    defender = { ...defender, statuses: [] };
+  }
   let ownStatuses = attacker.statuses;
   const sid = canApply ? STATUS_OF_ELEMENT[element] : undefined;
   if (sid === "impulso") ownStatuses = addStatus(ownStatuses, sid, stacks);

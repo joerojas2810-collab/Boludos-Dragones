@@ -124,13 +124,13 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   },
   maza: {
     label: "Maza",
-    description: "Castigo: golpe fuerte que además te cura un poco.",
+    description: "Golpe sagrado: golpe fuerte que además te cura un poco.",
     atkMult: 1.1,
     accuracy: 0,
     crit: 0,
     speedMult: 0.95,
     noun: "Maza",
-    special: { name: "Castigo", power: 2.2, accuracy: 0.85, cooldown: 2, heal: 0.06 },
+    special: { name: "Golpe sagrado", power: 2.2, accuracy: 0.85, cooldown: 2, heal: 0.06 },
   },
   varita: {
     label: "Varita",

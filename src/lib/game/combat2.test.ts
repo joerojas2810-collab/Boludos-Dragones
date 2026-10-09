@@ -269,19 +269,20 @@ describe("class skills (Ataque 3)", () => {
     expect(s2.log.filter((l) => l.includes("contraataca"))).toHaveLength(1);
   });
 
-  it("Drenar maná heals the hero for a share of the damage dealt", () => {
-    const b0 = fight(withSkill("mago", "drenarMana", { hp: 100 }), three(), [
-      [],
-      [],
-      [],
-    ]);
-    const b = { ...b0, player: { ...b0.player, hp: 40 } };
-    const s = step(b, "attack3", always);
-    const dealt = b.enemies[0].hp - s.enemies[0].hp;
-    expect(dealt).toBeGreaterThan(0);
-    expect(s.player.hp).toBe(
-      40 + Math.round(dealt * (SKILLS.drenarMana.lifesteal ?? 0)),
-    );
+  it("Detonar hits harder per status stack and clears them", () => {
+    const b0 = fight(withSkill("mago", "detonar"), three(), [[], [], []]);
+    const plain = step(b0, "attack3", always);
+    const marked = {
+      ...b0,
+      enemies: b0.enemies.map((e, i) =>
+        i === 0 ? { ...e, statuses: [{ id: "ruptura" as const, stacks: 2, turns: 3 }] } : e,
+      ),
+    };
+    const s = step(marked, "attack3", always);
+    const d0 = b0.enemies[0].hp - plain.enemies[0].hp;
+    const d1 = marked.enemies[0].hp - s.enemies[0].hp;
+    expect(d1).toBeGreaterThan(d0);
+    expect(s.enemies[0].statuses ?? []).toHaveLength(0);
   });
 
   it("Golpe doble strikes the target twice", () => {
