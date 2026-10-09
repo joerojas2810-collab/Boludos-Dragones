@@ -147,6 +147,20 @@ Cambios de código que esto implica:
 
 ---
 
+## 4b. Ataques por clase y arma (definición 2026-10-09)
+
+Ataque 1 = golpe seguro de la clase. Ataque 2 = habilidad de clase (1 de 2). Ataque 3 = especial del arma (2 armas por clase).
+
+| Clase | Identidad | Ataque 2 (elige 1) | Ataque 3 (arma) |
+|---|---|---|---|
+| Caballero [DECIDIDO el concepto] | Más lento, defensa alta, recibe el golpe y lo devuelve (no es una guardia) | **Contraataque** (se queda: recibe el golpe de verdad, devuelve el daño recibido) · **Represalia** [PROPUESTA] (golpe de poder 1,3 que suma +10 % por golpe recibido desde tu última acción, hasta +40 %) | Espada: Golpe de escudo · Hacha: Hachazo |
+| Mago [DECIDIDO] | Especialista en estados | **Tormenta** (a todos, poder ×1,3, aplica 2 acumulaciones) · **Detonar** (reemplaza a Drenar maná: poder 1,0 al objetivo, +25 % por acumulación de estado que tenga, y se las borra; recarga 3) | Bastón: Cataclismo · Varita: Rayo arcano |
+| Pícaro [sin cambios] | Críticos ×2 | Golpe doble · Ejecutar | Daga: Puñalada rápida · Arco: Disparo certero |
+| Clérigo [DECIDIDO] | Sanador-castigador | **Santuario** · **Castigo** | Maza: **Golpe sagrado** (renombrada; era Castigo) · Libro: Plegaria |
+| Berserker [DECIDIDO] | Convierte el peligro en daño | Desgarro · Aniquilación | Mandoble: Frenesí · Martillo: Aplastar |
+
+Cambios derivados del Caballero [PROPUESTA]: velocidad base menor (de 9,5 a ~8,5, a medir); el Reflejo de su Guardia perfecta se sustituye por un escudo del 8 % de su vida máxima, para no duplicar el Contraataque. Barrido sale de su lista. El Mago pasa a ser el único con habilidad de área (Tormenta).
+
 ## 5. Jefes
 
 Reglas: la tabla elemental es universal para jefes. La mecánica del jefe es lo que lo distingue. Reutilizar patrones comunes, no 9 sistemas distintos.
