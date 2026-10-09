@@ -55,6 +55,6 @@ ok(me.profile.weapons.find((w) => w.id === "w-casco-agua-s")?.lines?.[0]?.stat =
 ok(me.profile.coins === 12345, "coins untouched");
 ok(((await db.query(`select count(*)::int n from public.market_offers where status='open'`)).rows[0] as { n: number }).n === 0, "stale hero offers cancelled");
 ok(JSON.stringify(pr).includes('"status":"copy"'), "a repeated pull is a copy");
-await db.exec(fs.readFileSync(root + "upgrade_from_0044.sql", "utf8")).then(() => ok(true, ""), (e) => ok(false, "second run of the upgrade file failed: " + e.message));
+await db.exec(fs.readFileSync(root + "upgrade_from_0044.sql", "utf8")).then(() => ok(true, ""), (e: Error) => ok(false, "second run of the upgrade file failed: " + e.message));
 console.log(fail ? `upgrade_0044: ${fail} FAILED` : "upgrade_0044: all ok");
 process.exit(fail ? 1 : 0);
