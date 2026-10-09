@@ -77,6 +77,7 @@ const KNOWN: Record<string, [number, string]> = {
   only_hero: [409, "No puedes quemar a tu único héroe."],
   rank_mismatch: [409, "Todos los héroes deben ser del mismo rango."],
   invalid_skill: [400, "Esa habilidad no es de esta clase."],
+  skill_in_room: [409, "No puedes cambiar la habilidad mientras estás en una sala."],
   skill_locked: [409, "Esa habilidad aún no está disponible para este héroe."],
   invalid_items: [400, "Datos inválidos."],
   rate_limited: [429, "Espera un momento."],
