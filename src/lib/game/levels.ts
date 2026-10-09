@@ -3,12 +3,12 @@
 // elite, and the last level of a rank is a 5-fight level closed by a named boss.
 // Everything is generated from fixed seeds (no hand-written levels).
 import { ELEMENTS, type Element } from "./elements";
-import { RARITY_IDS, type RarityId } from "./rarity";
+import { DUNGEON_IDS, type DungeonId } from "./rarity";
 import { createRng, hashSeed, type Rng } from "./rng";
 import { SLOTS, type Slot } from "./weapons";
 import type { EnemyFamily } from "./worlds";
 
-export const LEVELS_PER_RANK: Readonly<Record<RarityId, number>> = {
+export const LEVELS_PER_RANK: Readonly<Record<DungeonId, number>> = {
   f: 6,
   e: 6,
   d: 7,
@@ -38,7 +38,7 @@ export interface DungeonTheme {
   guest: EnemyFamily | null; // appears now and then; null = all five equal
 }
 
-export const DUNGEON_THEMES: Readonly<Record<RarityId, DungeonTheme>> = {
+export const DUNGEON_THEMES: Readonly<Record<DungeonId, DungeonTheme>> = {
   f: { name: "Pantano de Niebla", world: 0, bossId: "lord_of_flies", bossName: "Señor de las Moscas", bossElement: "agua", families: ["limo", "espectro"], guest: "diablillo" },
   e: { name: "Cumbres Ardientes", world: 1, bossId: "ash_king", bossName: "Rey de Ceniza", bossElement: "fuego", families: ["diablillo", "golem"], guest: "limo" },
   d: { name: "Cañón del Viento", world: 2, bossId: "eternal_watcher", bossName: "Vigía Eterno", bossElement: "viento", families: ["arpia", "diablillo"], guest: "golem" },
@@ -51,7 +51,7 @@ export const DUNGEON_THEMES: Readonly<Record<RarityId, DungeonTheme>> = {
 };
 
 export interface LevelSpec {
-  rank: RarityId;
+  rank: DungeonId;
   index: number; // 0-based
   length: LevelLength;
   final: boolean; // last level of the rank: named boss
@@ -59,7 +59,7 @@ export interface LevelSpec {
   drop: DropSlot;
 }
 
-const rankIndex = (rank: RarityId) => RARITY_IDS.indexOf(rank);
+const rankIndex = (rank: DungeonId) => DUNGEON_IDS.indexOf(rank);
 
 function shuffle<T>(rng: Rng, xs: readonly T[]): T[] {
   const a = [...xs];
@@ -71,7 +71,7 @@ function shuffle<T>(rng: Rng, xs: readonly T[]): T[] {
 }
 
 // ~30% two-fight levels, ~40% three, ~30% five; the order is fixed per rank.
-function lengthsFor(rank: RarityId, n: number): LevelLength[] {
+function lengthsFor(rank: DungeonId, n: number): LevelLength[] {
   const rng = createRng(hashSeed(rankIndex(rank), 9101));
   const m = n - 1;
   const twos = Math.round(m * 0.3);
@@ -84,10 +84,10 @@ function lengthsFor(rank: RarityId, n: number): LevelLength[] {
   return [...shuffle(rng, pool), FINAL_LENGTH];
 }
 
-const cache = new Map<RarityId, readonly LevelSpec[]>();
+const cache = new Map<DungeonId, readonly LevelSpec[]>();
 
 // The levels of a rank (ascension 0). Deterministic.
-export function levelsOf(rank: RarityId): readonly LevelSpec[] {
+export function levelsOf(rank: DungeonId): readonly LevelSpec[] {
   const hit = cache.get(rank);
   if (hit) return hit;
   const n = LEVELS_PER_RANK[rank];

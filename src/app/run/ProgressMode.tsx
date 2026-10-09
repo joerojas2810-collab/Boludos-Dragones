@@ -51,7 +51,7 @@ import {
   type OwnedCharacter,
   type Profile,
 } from "@/lib/game/profile";
-import { RARITIES, RARITY_IDS, type RarityId } from "@/lib/game/rarity";
+import { DUNGEON_IDS, DUNGEON_INFO, RARITIES, type DungeonId } from "@/lib/game/rarity";
 import {
   ASC_RULES,
   currentFight,
@@ -94,7 +94,7 @@ const ROLE_LABEL: Record<FightRole, string> = {
 };
 
 interface Attempt {
-  rank: RarityId;
+  rank: DungeonId;
   level: number;
   asc: number;
   heroId: string;
@@ -111,8 +111,8 @@ interface Outcome {
 }
 type View =
   | { t: "ranks" }
-  | { t: "levels"; rank: RarityId }
-  | { t: "prep"; rank: RarityId; level: number }
+  | { t: "levels"; rank: DungeonId }
+  | { t: "prep"; rank: DungeonId; level: number }
   | { t: "fight"; a: Attempt }
   | { t: "starting" } // waiting for the server to open the attempt
   | { t: "saving" } // waiting for the server to verify and pay the attempt
@@ -138,7 +138,7 @@ export function ProgressMode() {
   const hero = profile.characters.find((c) => c.id === heroId) ?? null;
 
   const enter = async (
-    rank: RarityId,
+    rank: DungeonId,
     level: number,
     id: string,
     ascOverride?: number,
@@ -169,7 +169,7 @@ export function ProgressMode() {
   };
 
   // Instant resolution of an already-cleared level; shows the usual result screen.
-  const sweep = async (rank: RarityId, level: number, id: string, times = 1) => {
+  const sweep = async (rank: DungeonId, level: number, id: string, times = 1) => {
     const owned = profile.characters.find((c) => c.id === id);
     if (!owned || view.t === "saving") return;
     setHeroId(id);
@@ -456,7 +456,7 @@ export function ProgressMode() {
         ? a.asc + 1
         : null;
     const nextRank = dungeonEnd
-      ? RARITY_IDS[RARITY_IDS.indexOf(a.rank) + 1]
+      ? DUNGEON_IDS[DUNGEON_IDS.indexOf(a.rank) + 1]
       : undefined;
     const nextRankOpen =
       nextRank !== undefined && isRankUnlocked(o.bank.profile.dungeons, nextRank);
@@ -701,10 +701,10 @@ export function ProgressMode() {
           el siguiente rango.
         </p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {RARITY_IDS.map((rank) => {
+          {DUNGEON_IDS.map((rank) => {
             const theme = DUNGEON_THEMES[rank];
             const locked = !isRankUnlocked(profile.dungeons, rank);
-            const prev = RARITY_IDS[RARITY_IDS.indexOf(rank) - 1];
+            const prev = DUNGEON_IDS[DUNGEON_IDS.indexOf(rank) - 1];
             const done = clearedLevels(profile.dungeons, rank, 0);
             return (
               <button
@@ -715,7 +715,7 @@ export function ProgressMode() {
                   setView({ t: "levels", rank });
                 }}
                 className="pixel-frame flex items-center gap-4 p-3 text-left enabled:hover:brightness-125 disabled:opacity-50"
-                style={{ borderColor: RARITIES[rank].color }}
+                style={{ borderColor: DUNGEON_INFO[rank].color }}
               >
                 <RankIcon
                   rank={rank}
@@ -789,7 +789,7 @@ function NextStage({
   heroId,
 }: {
   profile: Profile;
-  rank: RarityId;
+  rank: DungeonId;
   level: number;
   asc: number;
   heroId: string;
@@ -901,7 +901,7 @@ function Prep({
   onBack,
 }: {
   profile: Profile;
-  rank: RarityId;
+  rank: DungeonId;
   level: number;
   asc: number;
   setHeroId: (id: string) => void;

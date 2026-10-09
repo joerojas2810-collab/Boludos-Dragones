@@ -240,7 +240,7 @@ let ver = Number((await q(`select version from public.player_state where player_
 await setCoins(10000);
 const pullW = async (items: unknown[], over: Record<string, unknown> = {}) => {
   const g = (await q(`select pity_ssr from public.gacha_state where player_id='${P}' and banner='weapon'`))[0].pity_ssr;
-  const r = await rpc("apply_pull", { p_player: P, p_version: ver, p_idem: "k" + Math.random().toString(36).slice(2, 12), p_banner: "weapon", p_cost: 250 * items.length, p_pity: 0, p_pity_ssr: g + items.length, p_seed: 1, p_daily: false, p_items: items, ...over });
+  const r = await rpc("apply_pull", { p_player: P, p_version: ver, p_idem: "k" + Math.random().toString(36).slice(2, 12), p_banner: "weapon", p_cost: 250 * items.length, p_pity: 0, p_pity_ssr: 0, p_seed: 1, p_daily: false, p_items: items, ...over });
   ver = r.version; return r;
 };
 const cas = (roll: number, lines?: unknown) => ({ type: "casco", element: "fuego", rarity: "c", data: { name: "Casco" }, roll, ...(lines ? { lines } : {}) });

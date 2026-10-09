@@ -11,10 +11,30 @@ export const RARITY_IDS = [
   "b",
   "a",
   "s",
-  "ss",
-  "ssr",
 ] as const;
 export type RarityId = (typeof RARITY_IDS)[number];
+
+// Dungeon tiers: nine difficulty levels. Their ids keep the old rank names (stored in the
+// database and in progress), but items only come in RARITY_IDS: tiers above S drop S.
+export const DUNGEON_IDS = [...RARITY_IDS, "ss", "ssr"] as const;
+export type DungeonId = (typeof DUNGEON_IDS)[number];
+export const isDungeonId = (v: unknown): v is DungeonId =>
+  typeof v === "string" && (DUNGEON_IDS as readonly string[]).includes(v);
+// Label and colour of a dungeon tier (RARITIES covers only the item ranks).
+export const DUNGEON_INFO: Record<DungeonId, { label: string; color: string }> = {
+  f: { label: "F", color: "#9ca3af" }, e: { label: "E", color: "#4ade80" },
+  d: { label: "D", color: "#2dd4bf" }, c: { label: "C", color: "#60a5fa" },
+  b: { label: "B", color: "#818cf8" }, a: { label: "A", color: "#c084fc" },
+  s: { label: "S", color: "#fbbf24" }, ss: { label: "SS", color: "#fb923c" },
+  ssr: { label: "SSR", color: "#f43f5e" },
+};
+// Rank of the items a dungeon drops.
+export const dropRank = (d: DungeonId): RarityId =>
+  d === "ss" || d === "ssr" ? "s" : d;
+// Enemy strength multiplier of a tier (kept from the nine-rank scale: RANK_TUNE is calibrated on it).
+export const DUNGEON_MULT: Record<DungeonId, number> = {
+  f: 1.0, e: 1.15, d: 1.3, c: 1.5, b: 1.75, a: 2.0, s: 2.35, ss: 2.65, ssr: 3.0,
+};
 
 export interface RarityInfo {
   label: string;
@@ -31,9 +51,7 @@ export const RARITIES: Record<RarityId, RarityInfo> = {
   c: { label: "C", color: "#60a5fa", probability: 0.12, multiplier: 1.5 },
   b: { label: "B", color: "#818cf8", probability: 0.09, multiplier: 1.75 },
   a: { label: "A", color: "#c084fc", probability: 0.06, multiplier: 2.0 },
-  s: { label: "S", color: "#fbbf24", probability: 0.03, multiplier: 2.35 },
-  ss: { label: "SS", color: "#fb923c", probability: 0.015, multiplier: 2.65 },
-  ssr: { label: "SSR", color: "#f43f5e", probability: 0.005, multiplier: 3.0 },
+  s: { label: "S", color: "#fbbf24", probability: 0.05, multiplier: 2.6 },
 };
 
 // Old 5-rarity ids (saved profiles, DB rows) -> new rank. See docs/DUNGEONS_FORJA.md.
@@ -47,10 +65,6 @@ export const LEGACY_RARITY: Record<string, RarityId> = {
 
 export const MAX_STARS = 5;
 export const STAR_BONUS = 0.1; // per star, multiplicative over the rarity mult
-// Pity (per banner): only SSR. `pitySsr` = pulls since the last SSR, guaranteeing
-// SSR at PITY_SSR_THRESHOLD. The SS counter (`pity`) is no longer used (Run v2).
-export const PITY_THRESHOLD = 100; // legacy SS counter bound (kept for saved profiles)
-export const PITY_SSR_THRESHOLD = 250;
 
 // Rank at or above S: gets the animated gold frame and the big pull reveal.
 export const isTopRank = (r: RarityId) =>
@@ -83,19 +97,13 @@ export function scaleStats(
   };
 }
 
-// Always consumes exactly one rng value (stable streams). Resolve server-side.
-export function rollRarity(
-  rng: Rng,
-  _pity: number, // SS pity was removed in Run v2; kept so callers do not change
-  pitySsr = 0,
-): { rarity: RarityId; pityTriggered: boolean } {
+// Always consumes exactly one rng value (stable streams). Resolve server-side. No pity.
+export function rollRarity(rng: Rng): RarityId {
   const r = rng.next();
-  if (pitySsr >= PITY_SSR_THRESHOLD)
-    return { rarity: "ssr", pityTriggered: true };
   let acc = 0;
   for (const id of RARITY_IDS) {
     acc += RARITIES[id].probability;
-    if (r < acc) return { rarity: id, pityTriggered: false };
+    if (r < acc) return id;
   }
-  return { rarity: "f", pityTriggered: false };
+  return "f";
 }

@@ -40,7 +40,7 @@ export const NO_GEAR: GearBonus = {
   dmgDealt: 0,
 };
 type GearKey = keyof GearBonus;
-type LineStat = Exclude<GearKey, "dmgTaken" | "dmgDealt">;
+type LineStat = GearKey; // includes the S capstone stats (dmgTaken / dmgDealt)
 
 // Main stat of each piece: fixed by type, its value varies +-ROLL_SPREAD per piece.
 export const GEAR_BASE: Record<GearType, Partial<GearBonus>> = {
@@ -62,6 +62,8 @@ export const LINE_BASE: Record<LineStat, number> = {
   critDmg: 0.06,
   regen: 0.004,
   lifesteal: 0.02,
+  dmgTaken: 0.02, // capstone only
+  dmgDealt: 0.02, // capstone only
 };
 // Which extra lines each piece can roll (the weapon has none).
 export const LINE_POOL: Record<GearType, readonly LineStat[]> = {
@@ -77,10 +79,21 @@ export interface GearLine {
   stat: LineStat;
   roll: number; // 1 +- ROLL_SPREAD
 }
-const EXTRA_FROM = ["c", "a", "ss", "ssr"] as const;
+const EXTRA_FROM = ["c", "a", "s"] as const;
 export const extraLines = (rarity: RarityId): number =>
   EXTRA_FROM.filter((r) => RARITY_IDS.indexOf(rarity) >= RARITY_IDS.indexOf(r))
     .length;
+// S pieces carry one more line, their own "capstone", that no lower rank can roll.
+export const CAPSTONE: Record<GearType, "dmgTaken" | "dmgDealt"> = {
+  casco: "dmgTaken",
+  peto: "dmgTaken",
+  piernas: "dmgDealt",
+  zapatos: "dmgDealt",
+  collar: "dmgDealt",
+};
+export const hasCapstone = (rarity: RarityId): boolean => rarity === "s";
+export const maxLines = (rarity: RarityId): number =>
+  extraLines(rarity) + (hasCapstone(rarity) ? 1 : 0);
 const rollOne = (rng: Rng) =>
   Math.round((1 - ROLL_SPREAD + rng.next() * 2 * ROLL_SPREAD) * 1000) / 1000;
 
@@ -92,10 +105,11 @@ export function rollGear(
 ): { roll: number; lines: GearLine[] } {
   const roll = rollOne(rng);
   const pool = [...LINE_POOL[type]];
-  const lines = Array.from({ length: extraLines(rarity) }, () => ({
+  const lines: GearLine[] = Array.from({ length: extraLines(rarity) }, () => ({
     stat: pool.splice(rng.int(0, pool.length - 1), 1)[0],
     roll: rollOne(rng),
   }));
+  if (hasCapstone(rarity)) lines.push({ stat: CAPSTONE[type], roll: rollOne(rng) });
   return { roll, lines };
 }
 // Roll for any piece: hand weapons only get the main roll, armour also gets lines.
@@ -126,8 +140,11 @@ export function parseRoll(
     const r = (l as GearLine | null)?.roll;
     if (
       stat === undefined ||
-      out.length >= extraLines(rarity) ||
-      !(LINE_POOL[type] as readonly string[]).includes(stat) ||
+      out.length >= maxLines(rarity) ||
+      !(
+        (LINE_POOL[type] as readonly string[]).includes(stat) ||
+        (hasCapstone(rarity) && stat === CAPSTONE[type])
+      ) ||
       seen.has(stat) ||
       typeof r !== "number" ||
       !Number.isFinite(r)
@@ -168,9 +185,7 @@ export const GEAR_RANK_MULT: Record<RarityId, number> = {
   c: 1.66,
   b: 2.013,
   a: 2.378,
-  s: 2.91,
-  ss: 3.4,
-  ssr: 4.6,
+  s: 3.4,
 };
 // Global knob for patches: scales every piece bonus (base and extra lines).
 export const GEAR_SCALE = 0.5;
@@ -363,7 +378,7 @@ export const BUILD_GROUPS: readonly BuildGroup[] = [
 export const BUILD_LABEL: Record<BuildGroup, string> = {
   tanque: "Tanque",
   dano: "Daño",
-  critico: "Crítico y evasión",
+  critico: "Crítico y resistencia",
   sosten: "Sostén",
 };
 export const LINE_GROUP: Record<LineStat, BuildGroup> = {
@@ -377,6 +392,8 @@ export const LINE_GROUP: Record<LineStat, BuildGroup> = {
   resist: "critico",
   regen: "sosten",
   lifesteal: "sosten",
+  dmgTaken: "tanque",
+  dmgDealt: "dano",
 };
 // Share of lines needed for the small / large bonus, and the bonuses.
 export const RESONANCE_SHARE: Record<BuildGroup, [number, number]> = {

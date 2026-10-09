@@ -27,7 +27,7 @@ for (const pl of players ?? []) {
   const raw = await sb.rpc("get_profile", { p_player: pl.id });
   if (raw.error) { console.error("skip", pl.name, raw.error.message); continue; }
   const me = toMe(raw.data);
-  for (const c of me.profile.characters.filter((x) => x.rarity === "ssr")) {
+  for (const c of me.profile.characters.filter((x) => x.rarity === "s")) {
     const hero = heroFromOwned(me.profile, c.id);
     if (!hero) continue;
     const clear = levelsOf("ssr").map((spec) => {

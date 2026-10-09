@@ -8,7 +8,7 @@ import type { Character } from "./characters";
 import { clearedLevels, isLevelUnlocked } from "./dungeonProgress";
 import { heroPower, type Profile } from "./profile";
 import { recommendedPower } from "./recommended";
-import type { RarityId } from "./rarity";
+import type { DungeonId } from "./rarity";
 import {
   abandonStage,
   createStage,
@@ -45,7 +45,7 @@ export function sweepStage(
 export function sweepBlock(
   p: Profile,
   heroId: string,
-  rank: RarityId,
+  rank: DungeonId,
   level: number,
   asc: number,
 ): string | null {

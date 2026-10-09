@@ -244,8 +244,6 @@ const RANK_EPITHET: Record<RarityId, readonly [string, string]> = {
   b: ["Noble", "Noble"],
   a: ["Heroico", "Heroica"],
   s: ["Legendario", "Legendaria"],
-  ss: ["Mítico", "Mítica"],
-  ssr: ["Divino", "Divina"],
 };
 const FEMININE: readonly WeaponType[] = ["espada", "hacha", "daga", "maza", "varita", "piernas", "zapatos"];
 const PLURAL: readonly WeaponType[] = ["piernas", "zapatos"]; // Grebas, Botas

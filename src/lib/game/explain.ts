@@ -62,7 +62,6 @@ import {
   levelCap,
   xpToNextLevel,
 } from "./heroLevel";
-import { PITY_SSR_THRESHOLD } from "./rarity";
 import { COUNTER_TAKEN } from "./skills";
 import {
   ADVANTAGE_BONUS,
@@ -912,8 +911,8 @@ export const gearTip = (): Tip => ({
   kind: "info",
   lines: [
     `Cada pieza trae una tirada propia: su stat principal varía ±${pct(ROLL_SPREAD)}.`,
-    `Líneas extra: ${extraLines("c")} desde rango C, ${extraLines("a")} desde A y ${extraLines("ss")} desde SS y ${extraLines("ssr")} en SSR. Cada una es otro stat con su propia tirada.`,
-    "El rango pesa más que en los héroes (SSR es muy superior a SS); 3 estrellas dan +10% y 5 estrellas +20% extra.",
+    `Líneas extra: ${extraLines("c")} desde rango C, ${extraLines("a")} desde A y ${extraLines("s")} en S (la última es una línea especial de S). Cada una es otro stat con su propia tirada.`,
+    "El rango pesa más que en los héroes (S es muy superior a A); 3 estrellas dan +10% y 5 estrellas +20% extra.",
     `Topes de la suma de todas las piezas: vida +${pct(GEAR_CAP.hp)}, ATQ +${pct(GEAR_CAP.atk)}, DEF +${pct(GEAR_CAP.def)}, velocidad +${pct(GEAR_CAP.speed)}.`,
     "Si repites una pieza, conservas la mejor tirada y sube una estrella.",
   ],
@@ -934,12 +933,3 @@ export const burnTip = (): Tip => ({
 });
 
 
-export const pityTip = (): Tip => ({
-  title: "Garantía (pity)",
-  kind: "info",
-  lines: [
-    "Cuenta las tiradas de este banner desde tu último SSR.",
-    `A las ${PITY_SSR_THRESHOLD} sin SSR, la siguiente tirada es SSR seguro. No hay garantía para SS ni S.`,
-    "Cada banner lleva su propio contador.",
-  ],
-});

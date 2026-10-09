@@ -257,6 +257,15 @@ Elegidos (12):
 
 Descartados: Cobarde, Metódico, Rencoroso, Supersticioso. Faltan 2 rasgos para llegar a 20 (o quedarse en 18). Salen los de solo números (Afortunado, Robusto, Certero, Frágil, Blindado, Escurridizo, Furioso, Fornido, Cauteloso, Cobarde anterior, Glotón y Terco anteriores se reconvierten). Fanfarrón y Curioso necesitan arte nuevo; cada rasgo lleva 2 o 3 frases propias para el registro.
 
+## 7c. Rangos: F a S [DECIDIDO 2026-10-09]
+
+- **Rangos de objeto (héroes y equipo): 7, de F a S.** SS y SSR salen de gacha, héroes, equipo y forja. Probabilidades: 30/22/16/12/9/6/**5** % (S absorbe el 5 % que sumaban S, SS y SSR); multiplicador de S ×2,6 (antes 2,35); equipo S ×3,4. Valor de trueque de S: 5000 (250 / 5 %).
+- **Sin pity.** Se eliminó el pity de 250; `apply_pull` ya no lo exige (migración 0049). Los contadores `pity`/`pitySsr` siguen en el perfil siempre en 0 por compatibilidad con la firma SQL.
+- **Dungeons: 9, como niveles de dificultad** (`DungeonId`, ids f..ssr sin cambios; `levels.ts` intacto). Los tres últimos (S, SS, SSR) sueltan objetos S: el top de la pieza es S y el resto sube hasta S en SS y SSR. La fuerza de los enemigos conserva la escala de 9 (`DUNGEON_MULT`); `RANK_TUNE` recalibrado para S (2,85), SS (2,79) y SSR (2,62) con héroes S de referencia (objetivo 62 / 48 / 35 %).
+- **Identidad de los rangos altos (equipo):** líneas extra C 1, A 2, S 3, más una **línea capstone** exclusiva de S (casco y peto: daño recibido; piernas, zapatos y collar: daño infligido). Cada pieza S trae hasta 4 líneas.
+- Salas: el rango de sala sigue siendo de objeto (F a S).
+- Pendiente: la fusión de héroes y la forja deben revisarse con esta cadena más corta; economía (monedas por nivel, cofres, gacha); tests de ss/ssr/pity obsoletos.
+
 ## 8. Equipo
 
 Seis casillas: arma, casco, peto, piernas, zapatos, collar.

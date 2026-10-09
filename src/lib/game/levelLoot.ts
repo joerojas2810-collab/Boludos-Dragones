@@ -6,7 +6,7 @@ import { ELEMENTS } from "./elements";
 import { rollGear } from "./gear";
 import { levelElement, type LevelSpec } from "./levels";
 import { gachaDropRank, type RunPiece } from "./loot";
-import { RARITY_IDS, type RarityId } from "./rarity";
+import { dropRank, DUNGEON_IDS, RARITY_IDS, type DungeonId, type RarityId } from "./rarity";
 import { createRng, hashSeed, type Rng } from "./rng";
 import { FIGHT_XP } from "./stage";
 import {
@@ -32,7 +32,7 @@ export const PIECE_RANK_TILT = 1.3; // 1 = gacha odds for the rest; > 1 leans to
 export const PIECE_ELEMENT_LEVEL_SHARE = 0.4; // else any element
 export const REPEAT_PIECE_MULT = 0.75; // repeat clears (and sweeps) keep most of the piece drops; no daily decay
 // Keep in sync with bank_level / level_escamas in SQL (0041).
-export const ESCAMAS_PER_LEVEL: Partial<Record<RarityId, number>> = { s: 2, ss: 3, ssr: 4 };
+export const ESCAMAS_PER_LEVEL: Partial<Record<DungeonId, number>> = { s: 2, ss: 3, ssr: 4 };
 export const ESCAMAS_ASC_STEP = 0.1; // +10% per ascension level
 export const DADO_CHANCE = 0.05; // last level of a dungeon S+, first clear and repeats
 export const DADO_DAILY_MAX = 2;
@@ -46,7 +46,7 @@ export interface LevelLoot {
 // Escamas of a cleared level: only S+. A first clear rounds; a repeat takes the coin repeat factor and the
 // daily decay and FLOORS (so a heavily decayed repeat reaches 0). Keep in sync with level_escamas (0042).
 export const ESCAMAS_REPEAT_MULT = 0.6;
-export function levelEscamas(rank: RarityId, asc: number, repeat = false, payMult = 1): number {
+export function levelEscamas(rank: DungeonId, asc: number, repeat = false, payMult = 1): number {
   const x = (ESCAMAS_PER_LEVEL[rank] ?? 0) * (1 + ESCAMAS_ASC_STEP * asc);
   return repeat ? Math.floor(x * ESCAMAS_REPEAT_MULT * payMult + 1e-9) : Math.round(x);
 }
@@ -56,7 +56,7 @@ export function levelEscamas(rank: RarityId, asc: number, repeat = false, payMul
  * The caller rolls it at bank time with a SERVER rng (never from the run seed, which the client knows).
  */
 export function rollDado(spec: LevelSpec, rng: Rng, dadoLeft: number): number {
-  const eligible = spec.final && RARITY_IDS.indexOf(spec.rank) >= RARITY_IDS.indexOf("s") && dadoLeft > 0;
+  const eligible = spec.final && DUNGEON_IDS.indexOf(spec.rank) >= DUNGEON_IDS.indexOf("s") && dadoLeft > 0;
   return eligible && rng.chance(DADO_CHANCE) ? 1 : 0;
 }
 
@@ -99,10 +99,11 @@ export function levelLoot(
   const count = roundRandom(rng, spec.length * PIECE_ROLLS_PER_FIGHT * PIECE_CHANCE * pieceMult);
   // The level's single roll for a piece of the dungeon's own rank (replaces one of the pieces).
   const topAt = count > 0 && rng.chance(TOP_PIECE_CHANCE * pieceMult) ? rng.int(0, count - 1) : -1;
-  const below = RARITY_IDS[Math.max(0, RARITY_IDS.indexOf(spec.rank) - 1)];
+  // Tiers above S (SS, SSR) drop S for the top piece and up to S for the rest: harder tiers, more S.
+  const below = RARITY_IDS[Math.min(RARITY_IDS.length - 1, Math.max(0, DUNGEON_IDS.indexOf(spec.rank) - 1))];
   for (let i = 0; i < count; i++)
     pieces.push(
-      pieceOf(rng, spec, asc, i === topAt ? spec.rank : gachaDropRank(rng, below, PIECE_RANK_TILT)),
+      pieceOf(rng, spec, asc, i === topAt ? dropRank(spec.rank) : gachaDropRank(rng, below, PIECE_RANK_TILT)),
     );
   return {
     escamas: levelEscamas(spec.rank, asc, opts.repeat, opts.payMult ?? 1),

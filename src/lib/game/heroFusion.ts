@@ -29,7 +29,6 @@ export const HERO_FUSION: Partial<Record<RarityId, { ratio: number; coins: numbe
   b: { ratio: 4, coins: 320 },
   a: { ratio: 4, coins: 640 },
   s: { ratio: 3, coins: 1280 },
-  ss: { ratio: 3, coins: 2560 },
 };
 
 // The base hero spends this many stars to rank up; any extra stars stay (4★ -> 1★, 5★ -> 2★).

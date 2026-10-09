@@ -41,8 +41,6 @@ const OPENING: Record<RarityId, readonly [number, number, number]> = {
   b: [11, 14, 11.5],
   a: [14, 16.5, 13.5],
   s: [14, 17, 13.5],
-  ss: [18.5, 19, 12.5],
-  ssr: [17.5, 17.5, 11],
 };
 
 export function ItemCard({

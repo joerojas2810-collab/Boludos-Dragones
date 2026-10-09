@@ -1,9 +1,9 @@
 // Coins of the dungeon levels (Run v2): nearly flat per rank (high ranks pay with
 // loot), first-clear chests carry the early game, repeats pay 60% with a daily decay.
-import { RARITY_IDS, type RarityId } from "./rarity";
+import { DUNGEON_IDS, type DungeonId } from "./rarity";
 
 // Tune here. Target: ~2 ten-pulls a day at the steady state of a high-rank player (economy-sim.ts).
-export const LEVEL_COINS: Record<RarityId, number> = {
+export const LEVEL_COINS: Record<DungeonId, number> = {
   f: 60,
   e: 75,
   d: 95,
@@ -14,7 +14,7 @@ export const LEVEL_COINS: Record<RarityId, number> = {
   ss: 240,
   ssr: 270,
 };
-export const FIRST_CLEAR_CHEST: Record<RarityId, number> = {
+export const FIRST_CLEAR_CHEST: Record<DungeonId, number> = {
   f: 1000,
   e: 1600,
   d: 2500,
@@ -41,7 +41,7 @@ export const levelDecay = (nthRepeatToday: number): number =>
 
 // Coins of clearing one level. nthRepeatToday only matters when repeat.
 export function levelCoins(
-  rank: RarityId,
+  rank: DungeonId,
   asc: number,
   repeat: boolean,
   nthRepeatToday = 1,
@@ -54,7 +54,7 @@ export function levelCoins(
 
 // One-off chest when the LAST level of a dungeon is cleared for the first time at
 // an ascension (asc 0: the full chest, later ones 50% flat).
-export const firstClearChest = (rank: RarityId, asc: number): number =>
+export const firstClearChest = (rank: DungeonId, asc: number): number =>
   Math.round(FIRST_CLEAR_CHEST[rank] * (asc === 0 ? 1 : ASC_CHEST_MULT));
 
-export const rankIndex = (rank: RarityId) => RARITY_IDS.indexOf(rank);
+export const rankIndex = (rank: DungeonId) => DUNGEON_IDS.indexOf(rank);

@@ -1,6 +1,5 @@
 "use client";
 
-import { pityTip } from "@/lib/game/explain";
 import { ELEMENTS } from "@/lib/game/elements";
 import { RankIcon } from "@/components/RankIcon";
 import { useState } from "react";
@@ -8,7 +7,6 @@ import { Panel } from "@/components/Panel";
 import { DailyStreak } from "@/components/DailyStreak";
 import { PullReveal } from "@/components/PullReveal";
 import { HeroSprite } from "@/components/HeroSprite";
-import { Tooltip } from "@/components/Tooltip";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import type { ItemView } from "@/components/ItemCard";
 import { CLASS_IDS } from "@/lib/game/characters";
@@ -20,7 +18,6 @@ import {
   type PullResult,
 } from "@/lib/game/profile";
 import {
-  PITY_SSR_THRESHOLD,
   RARITIES,
   RARITY_IDS,
 } from "@/lib/game/rarity";
@@ -29,17 +26,11 @@ import { WEAPON_TYPES } from "@/lib/game/weapons";
 import { repo, useProfile } from "@/lib/useProfile";
 import { resultView, specialLine, summarizePull } from "@/lib/viewModels";
 
-// Views of a pull, marking the pity-guaranteed ones by replaying the SSR counter
-// (guaranteed at PITY_SSR_THRESHOLD, reset on a hit).
-function pullViews(rs: PullResult[], pitySsr: number): ItemView[] {
-  let ssr = pitySsr;
+// Views of a pull.
+function pullViews(rs: PullResult[]): ItemView[] {
   return rs.flatMap((r) => {
     const v = resultView(r);
-    const mark =
-      r.rarity === "ssr" && ssr >= PITY_SSR_THRESHOLD ? "ssr" : undefined;
-    if (r.rarity === "ssr") ssr = 0;
-    else ssr++;
-    return v ? [mark ? { ...v, pity: mark } : v] : [];
+    return v ? [v] : [];
   });
 }
 
@@ -85,7 +76,7 @@ export default function GachaPage() {
       const { results } = await job();
       if (results)
         setReveal({
-          items: pullViews(results, profile.pitySsr[banner]),
+          items: pullViews(results),
           summary: summarizePull(results),
         });
       else setSummary("Esa tirada ya estaba registrada.");
@@ -165,32 +156,6 @@ export default function GachaPage() {
             </li>
           ))}
         </ul>
-
-        <div className="mb-2 text-center">
-          <Tooltip
-            tip={pityTip()}
-          >
-            <span className="block space-y-1 text-sm">
-              <span className="flex items-center gap-2">
-                <span className="w-10 text-right" style={{ color: RARITIES.ssr.color }}>
-                  SSR
-                </span>
-                <span className="pity-bar">
-                  <i
-                    className="bar-fill"
-                    data-fill="pity_ssr"
-                    style={{
-                      width: `${Math.min(100, (profile.pitySsr[banner] / PITY_SSR_THRESHOLD) * 100)}%`,
-                    }}
-                  />
-                </span>
-                <span className="w-16 text-left">
-                  {profile.pitySsr[banner]}/{PITY_SSR_THRESHOLD}
-                </span>
-              </span>
-            </span>
-          </Tooltip>
-        </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           {([1, MULTI_PULL] as const).map((n) => {

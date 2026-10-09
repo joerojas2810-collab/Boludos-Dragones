@@ -18,9 +18,7 @@ export const TRADE_VALUE: Record<RarityId, number> = {
   c: 2080,
   b: 2780,
   a: 4170,
-  s: 8330,
-  ss: 16670,
-  ssr: 36000, // ~143 pulls on average with the 250 pity
+  s: 5000, // 250 / 5%: the expected cost in coins of one S
 };
 export const TRADE_TOLERANCE = 0.25;
 

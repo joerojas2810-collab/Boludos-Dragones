@@ -56,7 +56,7 @@ export function RarityFrame({
         />
       )}
       {size >= 64 &&
-        (rarity === "s" || rarity === "ss" || rarity === "ssr") && (
+        rarity === "s" && (
           <Vfx
             id={`rank_glint_${rarity}`}
             className="pointer-events-none absolute inset-y-0 left-1/2 z-10 h-full -translate-x-1/2"

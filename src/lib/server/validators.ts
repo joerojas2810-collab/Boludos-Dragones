@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { isFairTrade, isPieceKey } from "../game/market";
-import { RARITY_IDS } from "../game/rarity";
+import { DUNGEON_IDS } from "../game/rarity";
 import { SLOTS } from "../game/weapons";
 
 // ---- name / PIN ----
@@ -58,7 +58,7 @@ export const runStartBody = z.strictObject({
 });
 export const levelStartBody = z.strictObject({
   characterId: z.string().min(1).max(100),
-  rank: z.enum(RARITY_IDS),
+  rank: z.enum(DUNGEON_IDS),
   level: z.number().int().min(0).max(11),
   ascension: z.number().int().min(0).max(5),
 });

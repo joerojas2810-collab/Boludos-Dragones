@@ -44,12 +44,11 @@ import {
 } from "./gear";
 import {
   MAX_STARS,
-  PITY_SSR_THRESHOLD,
-  PITY_THRESHOLD,
   LEGACY_RARITY,
   RARITY_IDS,
   toRank,
   rollRarity,
+  type DungeonId,
   scaleStats,
   type RarityId,
 } from "./rarity";
@@ -110,8 +109,8 @@ export interface Profile {
   characters: OwnedCharacter[];
   weapons: OwnedWeapon[];
   equipped: Record<string, string>; // characterId -> weaponId
-  pity: Record<Banner, number>; // pulls since last SS or better
-  pitySsr: Record<Banner, number>; // pulls since last SSR
+  pity: Record<Banner, number>; // always 0: pity was removed (kept for the apply_pull signature)
+  pitySsr: Record<Banner, number>; // always 0
   daily?: DailyState; // free daily pull streak (see streak.ts)
   lastBankedRunId?: string; // guard against banking the same run twice
   runsDay?: { day: string; n: number }; // runs banked on that game day (pay decays, see economy.ts)
@@ -168,7 +167,6 @@ export interface PullResult {
   rarity: RarityId;
   stars: number; // after the pull
   refund: number;
-  pityTriggered: boolean;
   character?: OwnedCharacter;
   weapon?: OwnedWeapon;
 }
@@ -191,21 +189,8 @@ function pull(
   };
   const results: PullResult[] = [];
   for (let i = 0; i < count; i++) {
-    const { rarity, pityTriggered } = rollRarity(
-      rng,
-      p.pity[banner],
-      p.pitySsr[banner],
-    );
-    const topRank = RARITY_IDS.indexOf(rarity) >= RARITY_IDS.indexOf("ss");
-    p = {
-      ...p,
-      pity: { ...p.pity, [banner]: topRank ? 0 : p.pity[banner] + 1 },
-      pitySsr: {
-        ...p.pitySsr,
-        [banner]: rarity === "ssr" ? 0 : p.pitySsr[banner] + 1,
-      },
-    };
-    const base = { banner, rarity, pityTriggered };
+    const rarity = rollRarity(rng);
+    const base = { banner, rarity };
     let status: PullResult["status"] = "new";
     let refund = 0;
     if (banner === "character") {
@@ -484,7 +469,7 @@ export function bankRun(
 // ---- Run v2: dungeon levels ----
 
 export interface LevelResult {
-  rank: RarityId;
+  rank: DungeonId;
   level: number; // 0-based index in the rank
   asc: number;
   heroId: string;
@@ -508,7 +493,7 @@ export interface LevelBank {
 // Repeat flag and daily pay multiplier the loot roll needs BEFORE banking.
 export function lootOptions(
   p: Profile,
-  rank: RarityId,
+  rank: DungeonId,
   level: number,
   asc: number,
 ): { repeat: boolean; payMult: number; dadoLeft: number } {
@@ -802,7 +787,7 @@ const canEquipPair = (
 export const MAX_MATERIAL = 99999;
 // Old forge stock (v8) paid out without loss: S/SS/SSR parts -> Escamas (1/2/4 each), F..A parts ->
 // coins (5/8/12/20/35/60 each), every core -> 1 Dado cargado. Keep in sync with 0041_forge_v9.sql.
-export const PART_TO_ESCAMAS: Partial<Record<RarityId, number>> = { s: 1, ss: 2, ssr: 4 };
+export const PART_TO_ESCAMAS: Partial<Record<string, number>> = { s: 1, ss: 2, ssr: 4 }; // old saves may hold SS/SSR parts
 export const PART_TO_COINS: Partial<Record<RarityId, number>> = { f: 5, e: 8, d: 12, c: 20, b: 35, a: 60 };
 function convertOldParts(v: unknown): { coins: number; escamas: number; dados: number } {
   const out = { coins: 0, escamas: 0, dados: 0 };
@@ -885,12 +870,12 @@ export function migrate(json: unknown): Profile {
     weapons,
     equipped,
     pity: {
-      character: nat(pity.character, PITY_THRESHOLD),
-      weapon: nat(pity.weapon, PITY_THRESHOLD),
+      character: nat(pity.character, 0),
+      weapon: nat(pity.weapon, 0),
     },
     pitySsr: {
-      character: nat(pitySsr.character, PITY_SSR_THRESHOLD),
-      weapon: nat(pitySsr.weapon, PITY_SSR_THRESHOLD),
+      character: nat(pitySsr.character, 0),
+      weapon: nat(pitySsr.weapon, 0),
     },
     ...(isObj(json.daily) && isDayKey(json.daily.day)
       ? {

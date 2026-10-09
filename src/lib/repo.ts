@@ -41,7 +41,7 @@ import { ascendPiece } from "./game/ascend";
 import { upgradePiece } from "./game/upgrade";
 import type { Weapon } from "./game/weapons";
 import type { RunPiece } from "./game/loot";
-import type { RarityId } from "./game/rarity";
+import type { DungeonId } from "./game/rarity";
 import type { Slot } from "./game/weapons";
 import { ENGINE_VERSION, type StageAction } from "./game/stageReplay";
 import { createRng } from "./game/rng";
@@ -64,7 +64,7 @@ export interface RunStartInfo {
   runId: string;
   seed: number;
   hero: Character;
-  rank: RarityId | null; // null = weekly tower (no dungeon)
+  rank: DungeonId | null; // null = weekly tower (no dungeon)
   ascension?: number;
   tower?: TowerMode;
 }
@@ -78,7 +78,7 @@ export interface LevelStartInfo {
 export interface LevelFinish {
   info: LevelStartInfo;
   heroId: string;
-  rank: RarityId;
+  rank: DungeonId;
   level: number;
   asc: number;
   stage: Stage; // local mode banks from it; the server only looks at the action log
@@ -131,7 +131,7 @@ export interface ProfileRepo {
   chooseSkill(characterId: string, skill: SkillId): Promise<void>;
   startLevel(
     heroId: string,
-    rank: RarityId,
+    rank: DungeonId,
     level: number,
     asc: number,
   ): Promise<LevelStartInfo>;
@@ -139,7 +139,7 @@ export interface ProfileRepo {
   /** Instant resolution of an already-cleared level (see game/sweep.ts). */
   sweepLevel(
     heroId: string,
-    rank: RarityId,
+    rank: DungeonId,
     level: number,
     asc: number,
   ): Promise<LevelOutcome & { stage: Stage }>;
@@ -153,7 +153,7 @@ export interface ProfileRepo {
     classId: ClassId,
     characterId: string | null,
     seedHint?: number,
-    rank?: RarityId,
+    rank?: DungeonId,
     ascension?: number,
     tower?: TowerMode,
   ): Promise<RunStartInfo>;
@@ -164,7 +164,7 @@ export interface ProfileRepo {
       coins: number;
       maxFloor: number;
       loot?: RunPiece[];
-      clear?: { rank: RarityId; lives: number; asc?: number }; // local mode only; the server replays
+      clear?: { rank: DungeonId; lives: number; asc?: number }; // local mode only; the server replays
     },
     keepalive?: boolean,
   ): Promise<RunBankInfo>;

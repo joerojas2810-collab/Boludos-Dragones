@@ -3,23 +3,23 @@
 // ascension; the next rank unlocks when the previous rank's last level is cleared
 // at ascension 0; ascension N+1 of a rank opens when ALL its levels are cleared at N.
 import { LEVELS_PER_RANK, MAX_ASCENSION } from "./levels";
-import { RARITY_IDS, type RarityId } from "./rarity";
+import { DUNGEON_IDS, type DungeonId } from "./rarity";
 
-export type DungeonProgress = Partial<Record<RarityId, number[]>>;
+export type DungeonProgress = Partial<Record<DungeonId, number[]>>;
 
-export const clearedLevels = (p: DungeonProgress, rank: RarityId, asc = 0) =>
+export const clearedLevels = (p: DungeonProgress, rank: DungeonId, asc = 0) =>
   p[rank]?.[asc] ?? 0;
 
-export const isDungeonDone = (p: DungeonProgress, rank: RarityId, asc = 0) =>
+export const isDungeonDone = (p: DungeonProgress, rank: DungeonId, asc = 0) =>
   clearedLevels(p, rank, asc) >= LEVELS_PER_RANK[rank];
 
-export function isRankUnlocked(p: DungeonProgress, rank: RarityId): boolean {
-  const i = RARITY_IDS.indexOf(rank);
-  return i === 0 || isDungeonDone(p, RARITY_IDS[i - 1]);
+export function isRankUnlocked(p: DungeonProgress, rank: DungeonId): boolean {
+  const i = DUNGEON_IDS.indexOf(rank);
+  return i === 0 || isDungeonDone(p, DUNGEON_IDS[i - 1]);
 }
 
 // Highest ascension the player may enter in a rank.
-export function maxAscension(p: DungeonProgress, rank: RarityId): number {
+export function maxAscension(p: DungeonProgress, rank: DungeonId): number {
   let a = 0;
   while (a < MAX_ASCENSION && isDungeonDone(p, rank, a)) a++;
   return a;
@@ -27,7 +27,7 @@ export function maxAscension(p: DungeonProgress, rank: RarityId): number {
 
 export function isLevelUnlocked(
   p: DungeonProgress,
-  rank: RarityId,
+  rank: DungeonId,
   level: number,
   asc = 0,
 ): boolean {
@@ -48,7 +48,7 @@ export interface ClearRecord {
 
 export function recordClear(
   p: DungeonProgress,
-  rank: RarityId,
+  rank: DungeonId,
   level: number,
   asc = 0,
 ): ClearRecord | null {
@@ -69,7 +69,7 @@ export function recordClear(
 export function parseProgress(v: unknown): DungeonProgress {
   const out: DungeonProgress = {};
   if (!v || typeof v !== "object") return out;
-  for (const r of RARITY_IDS) {
+  for (const r of DUNGEON_IDS) {
     const row = (v as Record<string, unknown>)[r];
     if (!Array.isArray(row)) continue;
     out[r] = row

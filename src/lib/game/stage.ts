@@ -14,7 +14,7 @@ import {
   levelElement,
   type LevelSpec,
 } from "./levels";
-import { RARITIES, RARITY_IDS, type RarityId } from "./rarity";
+import { dropRank, DUNGEON_IDS, DUNGEON_MULT, type DungeonId } from "./rarity";
 import { TRAITS, type Trait } from "./traits";
 import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
@@ -39,16 +39,16 @@ export const KIND_POWER: Record<FightRole, number> = {
   final: 0.75,
 };
 // Per-rank difficulty tuning (scripts/stage-tune.ts bisects these to hit the target clear rates).
-export const RANK_TUNE: Record<RarityId, number> = {
+export const RANK_TUNE: Record<DungeonId, number> = {
   f: 1.24,
   e: 1.26,
   d: 1.46,
   c: 1.59,
   b: 1.83,
   a: 1.98,
-  s: 2.22,
-  ss: 3.02,
-  ssr: 4.14,
+  s: 2.85,
+  ss: 2.79,
+  ssr: 2.62,
 };
 export const LEVEL_STEP = 0.05; // enemy power grows this much per level index
 export const ASC_HP_STEP = 0.12; // per ascension level
@@ -73,7 +73,7 @@ const hasTag = (hero: Character, tag: NonNullable<Trait["tag"]>) =>
 export const winHeal = (hero: Character, asc = 0) =>
   healBetween(asc) + (hasTag(hero, "healOnWin") ? SEDIENTO_HEAL : 0);
 
-const rankIdx = (r: RarityId) => RARITY_IDS.indexOf(r);
+const rankIdx = (r: DungeonId) => DUNGEON_IDS.indexOf(r);
 
 // Ascension rules (stack): L1 stats (see steps), L2 half heal, L3 bigger normal
 // groups, L4 elites/bosses attack twice, L5 no heal between fights.
@@ -96,7 +96,7 @@ const FAMILY_LABEL: Record<EnemyFamily, string> = {
 };
 const ROMAN = ["", " II", " III"];
 
-function pickFamily(rng: ReturnType<typeof createRng>, rank: RarityId): EnemyFamily {
+function pickFamily(rng: ReturnType<typeof createRng>, rank: DungeonId): EnemyFamily {
   const t = DUNGEON_THEMES[rank];
   const all: EnemyFamily[] = ["limo", "diablillo", "arpia", "golem", "espectro"];
   if (!t.guest) return rng.pick(all);
@@ -107,10 +107,10 @@ function pickFamily(rng: ReturnType<typeof createRng>, rank: RarityId): EnemyFam
 function groupSize(
   rng: ReturnType<typeof createRng>,
   role: FightRole,
-  rank: RarityId,
+  rank: DungeonId,
   asc: number,
 ): number {
-  const hi = rankIdx(rank) / (RARITY_IDS.length - 1); // 0..1
+  const hi = rankIdx(rank) / (DUNGEON_IDS.length - 1); // 0..1
   let size = 1;
   if (role === "normal") {
     const r = rng.next();
@@ -136,13 +136,13 @@ function makeFight(
   const size = groupSize(rng, role, rank, asc);
   const hasBoss = role !== "normal";
   const levelPower = 1 + LEVEL_STEP * spec.index;
-  const rankMult = RARITIES[rank].multiplier * RANK_TUNE[rank];
+  const rankMult = DUNGEON_MULT[rank] * RANK_TUNE[rank];
   const theme = DUNGEON_THEMES[rank];
   const made: Character[] = [];
   const seen = new Map<string, number>();
   for (let i = 0; i < size; i++) {
     const isLead = hasBoss && i === 0;
-    const base = generateCharacter(rng, rng.pick(CLASS_IDS), rank);
+    const base = generateCharacter(rng, rng.pick(CLASS_IDS), dropRank(rank));
     const family = role === "final" && isLead ? theme.families[0] : pickFamily(rng, rank);
     const element: Element =
       role === "final" && isLead

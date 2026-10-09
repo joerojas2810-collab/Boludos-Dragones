@@ -30,7 +30,7 @@ import {
 } from "../game/tower";
 import { ascendPiece } from "../game/ascend";
 import { upgradePiece } from "../game/upgrade";
-import { RARITY_IDS, type RarityId } from "../game/rarity";
+import { DUNGEON_IDS, type DungeonId } from "../game/rarity";
 import { createRng } from "../game/rng";
 import { isSkillId } from "../game/skills";
 import { levelFights } from "../game/stage";
@@ -552,7 +552,7 @@ export async function submitRunService(
 
 export interface LevelStartBody {
   characterId: string;
-  rank: RarityId;
+  rank: DungeonId;
   level: number;
   ascension: number;
 }
@@ -679,7 +679,7 @@ export async function finishLevelService(
   };
   if (
     kind !== "level" ||
-    !RARITY_IDS.includes(rank as RarityId) ||
+    !DUNGEON_IDS.includes(rank as DungeonId) ||
     !Number.isInteger(level) ||
     !Number.isInteger(asc) ||
     !heroId
@@ -689,7 +689,7 @@ export async function finishLevelService(
       "wrong_run_kind",
       "Esa run no es un nivel de dungeon.",
     );
-  const r = rank as RarityId;
+  const r = rank as DungeonId;
   const lv = level as number;
   const ascension = asc as number;
   const spec = levelsOf(r)[lv];

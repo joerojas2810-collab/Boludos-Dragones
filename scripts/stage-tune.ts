@@ -7,18 +7,19 @@ import { CLASS_IDS, generateCharacter } from "../src/lib/game/characters";
 import { step } from "../src/lib/game/combat";
 import { applyGear, gearBonus, rollGear } from "../src/lib/game/gear";
 import { levelsOf } from "../src/lib/game/levels";
-import { RARITY_IDS, scaleStats, type RarityId } from "../src/lib/game/rarity";
+import { dropRank, DUNGEON_IDS, scaleStats, type DungeonId } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
 import { heroSkill } from "../src/lib/game/skills";
 import { RANK_TUNE, createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
 import { CLASS_WEAPONS, GEAR_TYPES, weaponAtk } from "../src/lib/game/weapons";
 
 const N = Number(process.argv[2] ?? 24);
-const TARGET: Record<RarityId, number> = { f: 0.95, e: 0.92, d: 0.88, c: 0.84, b: 0.78, a: 0.7, s: 0.62, ss: 0.48, ssr: 0.35 };
+const TARGET: Record<DungeonId, number> = { f: 0.95, e: 0.92, d: 0.88, c: 0.84, b: 0.78, a: 0.7, s: 0.62, ss: 0.48, ssr: 0.35 };
 const STARS = Number(process.env.STARS ?? 3);
 const LEVEL = Number(process.env.LEVEL ?? 20);
 
-function hero(rank: RarityId, seed: number) {
+function hero(tier: DungeonId, seed: number) {
+  const rank = dropRank(tier); // tiers above S use S items
   const rng = createRng(seed);
   const c = generateCharacter(rng, rng.pick(CLASS_IDS), rank);
   const pieces = GEAR_TYPES.map((type) => ({ type, rarity: rank, stars: 0, element: c.element, ...rollGear(rng, type, rank) }));
@@ -27,7 +28,7 @@ function hero(rank: RarityId, seed: number) {
   return { ...c, rarity: rank, stars: STARS, level: LEVEL, skill: heroSkill(c.classId), stats: { ...g, atk: Math.round((g.atk + weaponAtk(rank, 0, CLASS_WEAPONS[c.classId][0])) * 10) / 10 } };
 }
 
-function rate(rank: RarityId): number {
+function rate(rank: DungeonId): number {
   let total = 0;
   const levels = levelsOf(rank);
   for (const spec of levels) {
@@ -51,7 +52,7 @@ function rate(rank: RarityId): number {
 }
 
 const ONLY = process.env.RANKS?.split(","); // e.g. RANKS=ss,ssr
-for (const rank of RARITY_IDS.filter((r) => !ONLY || ONLY.includes(r))) {
+for (const rank of DUNGEON_IDS.filter((r) => !ONLY || ONLY.includes(r))) {
   let lo = 0.3, hi = 6;
   for (let it = 0; it < 9; it++) {
     const mid = (lo + hi) / 2;
