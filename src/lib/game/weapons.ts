@@ -219,6 +219,12 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   },
 };
 
+// One spare copy of a piece: its own roll and extra lines (the copy a duplicate pull left behind).
+export interface PieceRoll {
+  roll?: number;
+  lines?: GearLine[];
+}
+
 export interface Weapon {
   id: string; // = weaponKey: unique per type + element + rarity
   name: string;
@@ -230,9 +236,10 @@ export interface Weapon {
   // Per-piece roll (+-15%) and extra lines, see gear.ts. Absent on pieces saved before Run v2.
   roll?: number;
   lines?: GearLine[];
-  legacy?: boolean; // existed before profile v5 (burns at the legacy rate)
+  legacy?: boolean; // existed before profile v5
   plus?: number; // Mejorar level 0..10 (upgrade.ts); absent = 0
   plusStreak?: number; // consecutive failed upgrades at the current level (+5% each)
+  copies?: PieceRoll[]; // spare copies (profile.ts MAX_COPIES): each keeps its own roll and lines
 }
 
 // Rank epithet [masculine, feminine]: every item name is "<Noun> <epithet> de <Element>".

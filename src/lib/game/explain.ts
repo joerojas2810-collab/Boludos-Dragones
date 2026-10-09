@@ -47,7 +47,6 @@ import {
 } from "./combat";
 import { AUTO_STOP_HP } from "./auto";
 import { WEAPON_TYPE_DATA, weaponSpecial, type WeaponType } from "./weapons";
-import { BURN_RATE, LEGACY_BURN_RATE } from "./burn";
 import {
   extraLines,
   GEAR_CAP,
@@ -933,22 +932,12 @@ export const gearTip = (): Tip => ({
     `Líneas extra: ${extraLines("c")} desde rango C, ${extraLines("a")} desde A y ${extraLines("s")} en S (la última es una línea especial de S). Cada una es otro stat con su propia tirada.`,
     "El rango pesa más que en los héroes (S es muy superior a A); 3 estrellas dan +10% y 5 estrellas +20% extra.",
     `Topes de la suma de todas las piezas: vida +${pct(GEAR_CAP.hp)}, ATQ +${pct(GEAR_CAP.atk)}, DEF +${pct(GEAR_CAP.def)}, velocidad +${pct(GEAR_CAP.speed)}.`,
-    "Si repites una pieza, conservas la mejor tirada y sube una estrella.",
+    "Si repites una pieza, la repetida queda como copia con su propia tirada: sirve de material en la Forja o para quedarte con la mejor tirada.",
   ],
   source: "Equipo",
 });
 
 
 
-export const burnTip = (): Tip => ({
-  title: "Quemar",
-  kind: "info",
-  lines: [
-    `Convierte una pieza en monedas: ${pct(BURN_RATE)} de su valor de intercambio. Siempre pierdes frente a invocar.`,
-    `Lo anterior al cambio (marcado «legado») rinde ${pct(LEGACY_BURN_RATE)}.`,
-    "No se puede quemar lo equipado. Los héroes no se queman: se mejoran en la Forja o se intercambian.",
-  ],
-  source: "Colección",
-});
 
 

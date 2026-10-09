@@ -1,5 +1,4 @@
 "use client";
-import { askConfirm, toast } from "@/lib/dialogs";
 
 import { iconFor } from "@/lib/art";
 import Link from "next/link";
@@ -13,13 +12,12 @@ import { EquipmentEditor } from "@/components/EquipmentEditor";
 import { GameSelect } from "@/components/GameSelect";
 import { compareGear } from "@/lib/gearSort";
 import { PieceFilterBar } from "@/components/PieceFilterBar";
-import { filterPieces, isFiltering, NO_PIECE_FILTER, type PieceFilter } from "@/lib/pieceFilter";
+import { filterPieces, NO_PIECE_FILTER, type PieceFilter } from "@/lib/pieceFilter";
 import {
   CLASSES,
   CLASS_IDS,
   type Stats,
 } from "@/lib/game/characters";
-import { burnMany, burnValue } from "@/lib/game/burn";
 import { ELEMENT_LABEL } from "@/lib/game/elements";
 import {
   previewCombatant,
@@ -59,78 +57,6 @@ const STAT_ORDER: (keyof Stats)[] = [
 const FRACTION = ["hp", "atk", "def", "speed"];
 const fmt = (k: keyof Stats, v: number) =>
   FRACTION.includes(k) ? `${+v.toFixed(1)}` : `${Math.round(v * 100)}%`;
-
-// Destructive: asks for confirmation first. The coins are far below the gacha price.
-function BurnButton({
-  label,
-  what,
-  disabled,
-  run,
-}: {
-  label: string;
-  what: string;
-  disabled?: boolean;
-  run: () => void;
-}) {
-  return (
-    <button
-      className="btn btn-gray w-full text-center text-sm"
-      disabled={disabled}
-      title="Se pierde para siempre"
-      onClick={() => {
-        void askConfirm(`¿Quemar ${what}? No se puede deshacer.`, "Quemar").then((ok) => {
-      if (ok) void run();
-    });
-      }}
-    >
-      {label}
-    </button>
-  );
-}
-
-// Bulk burn of what the filter shows: two clicks (ask, then confirm), no browser dialog.
-function BurnShown({
-  noun,
-  count,
-  shown,
-  coins,
-  run,
-}: {
-  noun: string;
-  count: number;
-  shown: number; // how many the filter shows (some are protected and never burned)
-  coins: number;
-  run: () => void;
-}) {
-  const [ask, setAsk] = useState(false);
-  if (count === 0) return null;
-  return (
-    <div className="mb-3 flex flex-wrap items-center gap-2">
-      <button
-        className={`btn text-center text-sm ${ask ? "" : "btn-gray"}`}
-        onClick={() => {
-          if (!ask) return setAsk(true);
-          setAsk(false);
-          run();
-        }}
-      >
-        {ask
-          ? `Confirmar: quemar ${count} ${noun} (+${coins} monedas)`
-          : count < shown
-            ? `Quemar ${count} de las ${shown} ${noun} mostradas`
-            : `Quemar las ${count} ${noun} mostradas`}
-      </button>
-      {ask && (
-        <>
-          <button className="btn btn-gray text-center text-sm" onClick={() => setAsk(false)}>
-            Cancelar
-          </button>
-          <span className="text-xs text-[#d9d2ca]">Se conservan las equipadas y las que tienen estrellas, salvo que marques la casilla.</span>
-        </>
-      )}
-    </div>
-  );
-}
 
 function Detail({
   c,
@@ -230,7 +156,6 @@ export default function CollectionPage() {
   });
   const [selected, setSelected] = useState<string | null>(null);
   const [pf, setPf] = useState<PieceFilter>(NO_PIECE_FILTER);
-  const [burnInvested, setBurnInvested] = useState(false); // include pieces with stars
 
   if (!ready || !profile) return null;
   const list = filterSortCharacters(profile.characters, filter);
@@ -240,10 +165,6 @@ export default function CollectionPage() {
     pf,
     new Set(Object.values(profile.equipped)),
   );
-  const worn = new Set(Object.values(profile.equipped));
-  const burnablePieces = shownPieces
-    .filter((w) => !worn.has(w.id) && (burnInvested || w.stars === 0))
-    .map((w) => w.id);
   const owner = (wid: string) =>
     profile.characters.find((c) => profile.equipped[c.id] === wid);
   const empty = (what: string) => (
@@ -386,30 +307,6 @@ export default function CollectionPage() {
               shown={shownPieces.length}
               total={profile.weapons.length}
             />
-            {isFiltering(pf) && (
-              <label className="mb-2 flex items-center gap-2 text-xs text-[#d9d2ca]">
-                <input
-                  type="checkbox"
-                  checked={burnInvested}
-                  onChange={(e) => setBurnInvested(e.target.checked)}
-                />
-                Incluir piezas con estrellas
-              </label>
-            )}
-            {isFiltering(pf) && (
-              <BurnShown
-                noun="piezas"
-                count={burnablePieces.length}
-                shown={shownPieces.length}
-                coins={burnMany(profile, burnablePieces).coins}
-                run={() =>
-                  act(async () => {
-                    const r = await repo.burnMany(burnablePieces);
-                    toast(`Quema realizada: ${r.count} ${r.count === 1 ? "pieza" : "piezas"}, +${r.coins} monedas.`);
-                  })
-                }
-              />
-            )}
             {shownPieces.length === 0 && (
               <p className="py-4 text-center">Ninguna pieza coincide con el filtro.</p>
             )}
@@ -418,7 +315,6 @@ export default function CollectionPage() {
                 .sort(compareGear)
                 .map((w) => {
                   const o = owner(w.id);
-                  const worn = Object.values(profile.equipped).includes(w.id);
                   return (
                     <div key={w.id} className="flex w-full flex-col gap-1">
                     <ItemCard
@@ -430,15 +326,6 @@ export default function CollectionPage() {
                       })}
                       size={96}
                       className="!w-full"
-                    />
-                    <BurnButton
-                      label={`Quemar (+${burnValue(w.rarity, w.legacy)})`}
-                      what={`${w.name} (${RARITIES[w.rarity].label})`}
-                      disabled={worn}
-                      run={() => act(async () => {
-                        const r = await repo.burn(w.id);
-                        toast(`${w.name} quemada: +${r.coins} monedas.`);
-                      })}
                     />
                     </div>
                   );

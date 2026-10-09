@@ -1,24 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { burn, burnValue, BURN_RATE, LEGACY_BURN_RATE } from "./burn";
 import type { Element } from "./elements";
 import { maxLines, rollQuality } from "./gear";
-import { TRADE_VALUE } from "./market";
 import {
   autoEquipPlan,
   createProfile,
   equipWeapon,
-  unequipWeapon,
   grantPiece,
   heroFromOwned,
   migrate,
   pullCharacter,
   pullWeapon,
-  MULTI_PULL,
-  PULL_COST_CHARACTER,
-  pullCost,
   type Profile,
 } from "./profile";
-import { RARITIES, RARITY_IDS } from "./rarity";
 import { createRng } from "./rng";
 import { isGearType, weaponKey } from "./weapons";
 
@@ -40,15 +33,14 @@ describe("piece rolls", () => {
       expect(w.lines?.length ?? 0).toBe(n);
     }
   });
-  it("a duplicate keeps the better roll and recomputes atkBonus", () => {
+  it("a duplicate is a spare copy with its own roll; the main roll does not change", () => {
     const base = { ...mk("espada", "c"), roll: 0.9 };
     let p = grantPiece(rich(), base);
     p = grantPiece(p, { ...base, roll: 1.1 });
     const w = p.weapons[0];
-    expect(w.stars).toBe(1);
-    expect(w.roll).toBe(1.1);
+    expect([w.stars, w.roll, w.copies?.map((c) => c.roll)]).toEqual([0, 0.9, [1.1]]);
     p = grantPiece(p, { ...base, roll: 0.86 });
-    expect(p.weapons[0].roll).toBe(1.1);
+    expect(p.weapons[0].copies?.map((c) => c.roll)).toEqual([1.1, 0.86]);
     expect(p.weapons[0].atkBonus).toBeGreaterThan(0);
   });
   it("migrate validates rolls and lines, never trusts atkBonus, keeps legacy pieces", () => {
@@ -110,30 +102,7 @@ describe("autoEquipPlan modes", () => {
   });
 });
 
-describe("burn", () => {
-  it("values: 8% of the trade value, 50% for legacy", () => {
-    expect(burnValue("f")).toBe(Math.floor(TRADE_VALUE.f * BURN_RATE));
-    expect(burnValue("s", true)).toBe(Math.floor(TRADE_VALUE.s * LEGACY_BURN_RATE));
-  });
-  it("burning back pulled items never profits (expected value of a pull < its cost)", () => {
-    const ev = RARITY_IDS.reduce((s, r) => s + RARITIES[r].probability * burnValue(r), 0);
-    const tenPullPerItem = pullCost("character", MULTI_PULL) / MULTI_PULL;
-    expect(ev).toBeLessThan(tenPullPerItem * 0.9);
-    expect(ev).toBeLessThan(PULL_COST_CHARACTER);
-  });
-  it("refuses equipped pieces and heroes; an unequipped piece burns for coins", () => {
-    let p = pullCharacter(rich(), createRng(3), 2)!.profile;
-    const [a] = p.characters;
-    p = grantPiece(p, mk("casco", "f"));
-    const id = p.weapons[0].id;
-    p = equipWeapon(p, a.id, id);
-    expect(burn(p, id)).toBeNull();
-    expect(burn(p, a.id)).toBeNull(); // a hero id is not a piece
-    p = unequipWeapon(p, a.id, "casco");
-    const r = burn(p, id)!;
-    expect(r.profile.weapons).toHaveLength(0);
-    expect(r.profile.coins).toBe(p.coins + r.coins);
-  });
+describe("roll quality", () => {
   it("rollQuality exists for ordering", () => {
     expect(rollQuality({ roll: 1.1 })).toBeGreaterThan(rollQuality({ roll: 0.9 }));
   });

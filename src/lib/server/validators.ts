@@ -62,12 +62,6 @@ export const levelStartBody = z.strictObject({
   level: z.number().int().min(0).max(11),
   ascension: z.number().int().min(0).max(5),
 });
-export const burnBody = z.strictObject({
-  id: z.string().min(1).max(100),
-});
-export const burnManyBody = z.strictObject({
-  ids: z.array(z.string().min(1).max(100)).min(1).max(100),
-});
 const heroMaterial = z.strictObject({ id: z.string().min(1).max(100), n: z.number().int().min(1).max(51) });
 export const fuseHeroesBody = z.strictObject({
   baseId: z.string().min(1).max(100),
@@ -139,7 +133,16 @@ export const marketIdBody = z.strictObject({ offerId: uuidSchema });
 // ---- forge ----
 export const ascendBody = z.strictObject({
   baseId: z.string().min(1).max(100),
-  materialIds: z.array(z.string().min(1).max(100)).min(2).max(5),
+  materials: z.array(heroMaterial).min(1).max(9),
+  keep: z.enum(["base", "existing"]).optional(),
+});
+export const starUpPieceBody = z.strictObject({
+  baseId: z.string().min(1).max(100),
+  materials: z.array(heroMaterial).min(1).max(9),
+});
+export const swapRollBody = z.strictObject({
+  pieceId: z.string().min(1).max(100),
+  index: z.number().int().min(0).max(49),
 });
 export const upgradeBody = z.strictObject({
   pieceId: z.string().min(1).max(100),

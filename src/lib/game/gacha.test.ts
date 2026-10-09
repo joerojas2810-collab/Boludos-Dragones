@@ -154,12 +154,11 @@ describe("pulls", () => {
     expect(a).toEqual(b);
     expect(JSON.parse(JSON.stringify(a.profile))).toEqual(a.profile);
   });
-  it("duplicate adds a star, caps at 5, then refunds 50%", () => {
+  it("a duplicate piece is a spare copy with its own roll; at 50 copies it refunds 50%", () => {
     const rng = createRng(11);
     let p = rich(2_000_000);
-    let sawStar = false;
-    let sawRefund = false;
-    for (let i = 0; i < 4000 && !sawRefund; i++) {
+    let sawCopy = false;
+    for (let i = 0; i < 1500; i++) {
       const before = p;
       const r = pullWeapon(p, rng)!;
       p = r.profile;
@@ -167,23 +166,22 @@ describe("pulls", () => {
       if (res.status === "new") {
         expect(p.weapons).toHaveLength(before.weapons.length + 1);
       } else {
+        expect(res.status).toBe("copy");
         expect(p.weapons).toHaveLength(before.weapons.length);
-        if (res.status === "star") {
-          sawStar = true;
-          expect(res.stars).toBeLessThanOrEqual(MAX_STARS);
-        } else {
-          sawRefund = true;
-          expect(res.stars).toBe(MAX_STARS);
-          expect(res.refund).toBe(PULL_COST_CHARACTER / 2);
-          expect(p.coins).toBe(
-            before.coins - PULL_COST_CHARACTER + PULL_COST_CHARACTER / 2,
-          );
-        }
+        expect(res.stars).toBe(0);
+        sawCopy = true;
       }
     }
-    expect(sawStar && sawRefund).toBe(true);
-    for (const w of p.weapons)
+    expect(sawCopy).toBe(true);
+    for (const w of p.weapons) {
       expect(w.atkBonus).toBe(weaponAtk(w.rarity, w.stars, w.type, w.roll));
+      for (const c of w.copies ?? []) expect(c.roll).toBeDefined();
+    }
+    // a piece holding MAX_COPIES refunds instead
+    const full: Profile = { ...p, weapons: p.weapons.map((w) => ({ ...w, copies: Array(MAX_COPIES).fill({ roll: 1 }) })) };
+    const dup = pullWeapon(full, createRng(11))!;
+    const statuses = dup.results.map((x) => x.status);
+    expect(statuses[0] === "refund" || statuses[0] === "new").toBe(true);
   });
   it("a character duplicate becomes a spare copy with its own trait; stars do not move", () => {
     let p = rich();
@@ -243,16 +241,17 @@ describe("run loot banking", () => {
     rarity: "b" as const,
     name: "Casco de Agua",
   };
-  it("grants new pieces, +1 star on duplicates and a refund at max stars", () => {
+  it("grants new pieces, a spare copy on duplicates and a refund at max copies", () => {
     let p = rich(0);
     p = bankRun(p, 10, 3, "r1", [piece, piece]);
     expect(p.weapons).toHaveLength(1);
-    expect(p.weapons[0].stars).toBe(1);
+    expect(p.weapons[0].stars).toBe(0);
+    expect(p.weapons[0].copies).toHaveLength(1);
     expect(p.coins).toBe(10);
     p = bankRun(p, 0, 3, "r1", [piece]); // same run id: nothing again
-    expect(p.weapons[0].stars).toBe(1);
-    for (let i = 0; i < 6; i++) p = bankRun(p, 0, 3, `x${i}`, [piece]);
-    expect(p.weapons[0].stars).toBe(5);
+    expect(p.weapons[0].copies).toHaveLength(1);
+    for (let i = 0; i < MAX_COPIES + 2; i++) p = bankRun(p, 0, 3, `x${i}`, [piece]);
+    expect(p.weapons[0].copies).toHaveLength(MAX_COPIES);
     expect(p.coins).toBeGreaterThan(10); // refunds once maxed
   });
 });

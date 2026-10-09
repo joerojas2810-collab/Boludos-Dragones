@@ -13,10 +13,12 @@ import {
   unitsOf,
   type Material,
 } from "@/lib/game/heroFusion";
+import { cheapestUnits } from "@/lib/game/units";
 import { characterKey, heroPower, type OwnedCharacter, type Profile } from "@/lib/game/profile";
 import { MAX_STARS, RARITIES, RARITY_IDS, type RarityId } from "@/lib/game/rarity";
 import { TRAITS, type TraitId } from "@/lib/game/traits";
 import { characterView } from "@/lib/viewModels";
+import { MaterialGrid, stepQty } from "./MaterialPicker";
 
 type Mode = "star" | "rank" | "trait";
 const MODES: [Mode, string][] = [
@@ -61,7 +63,6 @@ export function HeroFusionPanel({
     .filter(([id, n]) => n > 0 && pool.some((c) => c.id === id))
     .map(([id, n]) => ({ id, n }));
   const picked = materials.reduce((s, m) => s + m.n, 0);
-  const limitOf = (c: OwnedCharacter) => (c.id === baseId ? (c.copies?.length ?? 0) : unitsOf(c));
 
   const existing = base && next ? profile.characters.find((c) => c.id === characterKey(base.classId, base.element, next)) : undefined;
   const ready = !!base && picked === need;
@@ -88,21 +89,9 @@ export function HeroFusionPanel({
     setBaseId(null);
     setQty({});
   };
-  const step = (c: OwnedCharacter, d: number) =>
-    setQty((q) => {
-      const n = Math.max(0, Math.min(limitOf(c), (q[c.id] ?? 0) + d));
-      return picked - (q[c.id] ?? 0) + n > need && d > 0 ? q : { ...q, [c.id]: n };
-    });
   // The cheapest units first: copies (free), then heroes without stars or levels, weakest first.
-  const autoPick = () => {
-    const units = pool.flatMap((c) => {
-      const copies = Array.from({ length: c.copies?.length ?? 0 }, () => ({ id: c.id, cost: 0 }));
-      return c.id === baseId ? copies : [...copies, { id: c.id, cost: 1 + c.stars * 100 + c.level }];
-    });
-    const out: Record<string, number> = {};
-    for (const u of units.sort((a, b) => a.cost - b.cost).slice(0, need)) out[u.id] = (out[u.id] ?? 0) + 1;
-    setQty(out);
-  };
+  const autoPick = () =>
+    setQty(Object.fromEntries(cheapestUnits(pool, baseId ?? "", need, (c) => c.stars * 100 + c.level).map((m) => [m.id, m.n])));
 
   const status = !base
     ? "Elige el héroe base."
@@ -199,27 +188,13 @@ export function HeroFusionPanel({
               </span>
             </h4>
             {base ? (
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] justify-items-center gap-x-2 gap-y-3">
-                {pool
-                  .filter((c) => limitOf(c) > 0)
-                  .map((c) => (
-                    <div key={c.id} className="flex flex-col items-center gap-1">
-                      <ItemCard item={characterView(c)} size={72} selected={(qty[c.id] ?? 0) > 0} />
-                      <div className="flex items-center gap-1 text-sm">
-                        <button type="button" aria-label={`Menos ${c.name}`} className="btn btn-gray !min-h-7 !px-2 text-center" onClick={() => step(c, -1)}>
-                          −
-                        </button>
-                        <span className="min-w-12 text-center">
-                          {qty[c.id] ?? 0}/{limitOf(c)}
-                        </span>
-                        <button type="button" aria-label={`Más ${c.name}`} className="btn btn-gray !min-h-7 !px-2 text-center" onClick={() => step(c, 1)}>
-                          +
-                        </button>
-                      </div>
-                      {c.id === baseId && <span className="text-[11px] opacity-70">solo sus copias</span>}
-                    </div>
-                  ))}
-              </div>
+              <MaterialGrid
+                items={pool}
+                baseId={baseId}
+                qty={qty}
+                view={(c) => characterView(c)}
+                onStep={(c, d, limit) => setQty((q) => stepQty(q, c.id, d, limit, need))}
+              />
             ) : (
               <p className="text-sm opacity-80">Primero elige el héroe.</p>
             )}

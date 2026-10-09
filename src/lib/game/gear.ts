@@ -112,6 +112,27 @@ export function rollGear(
   if (hasCapstone(rarity)) lines.push({ stat: CAPSTONE[type], roll: rollOne(rng) });
   return { roll, lines };
 }
+// A piece that ranks up keeps its lines and rolls only the ones the new rank adds (distinct stats;
+// the S capstone last). Hand weapons have none.
+export function growLines(
+  rng: Rng,
+  type: WeaponType,
+  rarity: RarityId,
+  have: readonly GearLine[] = [],
+): GearLine[] | undefined {
+  if (!isGearType(type)) return undefined;
+  const lines = [...have];
+  const pool = LINE_POOL[type].filter((s) => !lines.some((l) => l.stat === s));
+  let normal = lines.filter((l) => l.stat !== CAPSTONE[type]).length;
+  while (normal < extraLines(rarity) && pool.length) {
+    lines.push({ stat: pool.splice(rng.int(0, pool.length - 1), 1)[0], roll: rollOne(rng) });
+    normal++;
+  }
+  if (hasCapstone(rarity) && !lines.some((l) => l.stat === CAPSTONE[type]))
+    lines.push({ stat: CAPSTONE[type], roll: rollOne(rng) });
+  return lines;
+}
+
 // Roll for any piece: hand weapons only get the main roll, armour also gets lines.
 export const rollPiece = (
   rng: Rng,

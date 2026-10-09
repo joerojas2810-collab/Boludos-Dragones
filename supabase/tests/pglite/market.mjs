@@ -19,7 +19,7 @@ await ins(1, "mago", "fuego", "c", 2);       // ana: 2 spare copies
 await ins(1, "picaro", "agua", "f", 0);     // ana: single copy
 await ins(2, "picaro", "agua", "f", 1);     // beto: spare
 await ins(3, "mago", "fuego", "c", 50);      // carla: maxed (50 copies)
-await db.exec(`insert into public.weapons(player_id,type,element,rarity,stars,data) values ('${U(1)}','espada','rayo','a',1,'{}')`);
+await db.exec(`insert into public.weapons(player_id,type,element,rarity,data) values ('${U(1)}','espada','rayo','a','{}')`);
 await db.exec(`insert into public.equipment(player_id,character_key,weapon_key) values ('${U(1)}','${A}','${W}')`);
 
 await db.exec(`update public.player_state set coins = 100000`);
@@ -99,13 +99,14 @@ const s3 = await rpc("market_create", { p_player: U(2), p_kind: "character", p_g
 ok(!!s3.id, "expired row swept, piece can be re-offered");
 
 // weapons + per-player open limit
-await db.exec(`update public.weapons set stars=1 where player_id='${U(1)}'`);
+await db.exec(`update public.weapons set copies = '[{"roll":1.12,"lines":null}]'::jsonb where player_id='${U(1)}'`); // a spare copy with its own roll
 const w = await rpc("market_create", { p_player: U(1), p_kind: "weapon", p_give: W , p_coins: 4170 });
 ok((await rpc("market_accept", { p_player: U(3), p_offer: w.id })).ok, "weapon gift");
-ok((await q(`select stars from public.weapons where player_id='${U(1)}'`))[0].stars === 0, "giver keeps weapon at 0 stars");
+ok((await q(`select jsonb_array_length(copies) n from public.weapons where player_id='${U(1)}'`))[0].n === 0, "giver keeps the weapon with no copies left");
+ok(Number((await q(`select roll from public.weapons where player_id='${U(3)}' and key='${W}'`))[0].roll) === 1.12, "the receiver got the copy's roll");
 ok((await q(`select count(*)::int n from public.weapons where player_id='${U(3)}'`))[0].n === 1, "receiver got weapon");
 const types = ["espada","hacha","lanza","arco","baston","daga"];
-for (const t of types) await db.exec(`insert into public.weapons(player_id,type,element,rarity,stars,data) values ('${U(3)}','${t}','agua','f',1,'{}')`);
+for (const t of types) await db.exec(`insert into public.weapons(player_id,type,element,rarity,copies,data) values ('${U(3)}','${t}','agua','f','[{"roll":1,"lines":null}]'::jsonb,'{}')`);
 let made = 0;
 for (const t of types) { try { await rpc("market_create", { p_player: U(3), p_kind: "weapon", p_give: `w-${t}-agua-f`, p_coins: 830 }); made++; } catch (e) { ok(String(e.message).includes("too_many_offers"), "limit error " + e.message); } }
 ok(made === 5, "max 5 open offers per player, got " + made);

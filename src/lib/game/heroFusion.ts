@@ -9,6 +9,8 @@
 import { characterKey, MAX_COPIES, type OwnedCharacter, type Profile } from "./profile";
 import { levelCap } from "./heroLevel";
 import { MAX_STARS, RARITIES, RARITY_IDS, type RarityId } from "./rarity";
+import type { TraitId } from "./traits";
+import { spendUnits, unitsOf, type Material, type SpendRules } from "./units";
 
 // Tune here. `ratio` counts the base hero too. Lots of common heroes, few rare ones: what you
 // can spare shrinks with rank, so the ratio never rises. S is the top rank, so there is no S row.
@@ -38,11 +40,6 @@ export const STAR_CARRY: Partial<Record<RarityId, readonly number[]>> = {
   a: [0, 0, 1, 1, 2, 2],
 };
 
-// `n` units taken from hero `id` (its copies first; the hero leaves when all its units are used).
-export interface Material {
-  id: string;
-  n: number;
-}
 export interface HeroFusion {
   baseId: string;
   materials: Material[];
@@ -61,7 +58,8 @@ export type HeroGrowthResult =
 
 const fail = (error: string) => ({ ok: false as const, error });
 const nextRank = (r: RarityId): RarityId | null => RARITY_IDS[RARITY_IDS.indexOf(r) + 1] ?? null;
-export const unitsOf = (c: OwnedCharacter) => 1 + (c.copies?.length ?? 0);
+export { unitsOf };
+export type { Material };
 
 function withCopies(c: OwnedCharacter, copies: OwnedCharacter["copies"]): OwnedCharacter {
   const out = { ...c };
@@ -69,34 +67,21 @@ function withCopies(c: OwnedCharacter, copies: OwnedCharacter["copies"]): OwnedC
   return copies?.length ? { ...out, copies } : out;
 }
 
-type Spent = { ok: true; characters: OwnedCharacter[]; units: number } | { ok: false; error: string };
-
-// Takes the materials out of the collection and counts their units.
-function spend(characters: OwnedCharacter[], base: OwnedCharacter, mats: Material[]): Spent {
-  if (new Set(mats.map((m) => m.id)).size !== mats.length)
-    return fail("No repitas el mismo héroe en los materiales.");
-  let out = characters;
-  let units = 0;
-  for (const m of mats) {
-    const h = out.find((c) => c.id === m.id);
-    if (!h) return fail("Uno de los héroes no es tuyo.");
-    if (h.rarity !== base.rarity) return fail("Todos los héroes deben ser del mismo rango.");
-    if (!Number.isInteger(m.n) || m.n < 1) return fail("Cantidad de material no válida.");
-    const copies = h.copies ?? [];
-    if (m.n > (h.id === base.id ? copies.length : copies.length + 1))
-      return fail(
-        h.id === base.id
-          ? "El héroe base solo puede dar sus copias."
-          : "Usas más unidades de las que tiene ese héroe.",
-      );
-    units += m.n;
-    out =
-      m.n > copies.length
-        ? out.filter((c) => c.id !== h.id)
-        : out.map((c) => (c.id === h.id ? withCopies(c, copies.slice(0, copies.length - m.n)) : c));
-  }
-  return { ok: true, characters: out, units };
-}
+const HERO_RULES: SpendRules<OwnedCharacter> = {
+  msg: {
+    notYours: "Uno de los héroes no es tuyo.",
+    otherRank: "Todos los héroes deben ser del mismo rango.",
+    repeated: "No repitas el mismo héroe en los materiales.",
+    badAmount: "Cantidad de material no válida.",
+    baseCopies: "El héroe base solo puede dar sus copias.",
+    tooMany: "Usas más unidades de las que tiene ese héroe.",
+  },
+  trim: (c, copies) => withCopies(c, copies as TraitId[]),
+};
+const spend = (characters: OwnedCharacter[], base: OwnedCharacter, mats: Material[]) => {
+  const r = spendUnits(characters, base, mats, HERO_RULES);
+  return r.ok ? { ok: true as const, characters: r.items, units: r.units } : r;
+};
 
 // +1 star for STAR_UNITS units of material of the hero's rank.
 export function starUpHero(

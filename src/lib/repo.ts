@@ -35,9 +35,8 @@ import { levelFights, type Stage } from "./game/stage";
 import { sweepBlock, sweepStage } from "./game/sweep";
 import { dayPayMult } from "./game/economy";
 import { localWeekSeed, towerHero, type TowerMode } from "./game/tower";
-import { burn as burnItem, burnMany } from "./game/burn";
 import { fuseHeroes, starUpHero, swapTrait, type Material, type HeroGrowthResult } from "./game/heroFusion";
-import { ascendPiece } from "./game/ascend";
+import { ascendPiece, starUpPiece, swapPieceRoll, type PieceGrowthResult } from "./game/pieceGrowth";
 import { upgradePiece } from "./game/upgrade";
 import type { Weapon } from "./game/weapons";
 import type { RunPiece } from "./game/loot";
@@ -126,8 +125,6 @@ export interface ProfileRepo {
     weaponId: string | null,
     slot?: Slot,
   ): Promise<void>;
-  burn(id: string): Promise<{ coins: number }>;
-  burnMany(ids: string[]): Promise<{ coins: number; count: number }>;
   chooseSkill(characterId: string, skill: SkillId): Promise<void>;
   startLevel(
     heroId: string,
@@ -143,8 +140,12 @@ export interface ProfileRepo {
     level: number,
     asc: number,
   ): Promise<LevelOutcome & { stage: Stage }>;
-  /** Ascender (Forja): base piece + same-rank materials + coins -> the base one rank up. */
-  ascendPiece(baseId: string, materialIds: string[]): Promise<AscendOutcome>;
+  /** Rank-up of a piece (Forja > Equipo): `id` is the resulting piece (new rank, or the owned one it merged into). */
+  ascendPiece(baseId: string, materials: Material[], keep?: "base" | "existing"): Promise<{ text: string; id: string }>;
+  /** +1 star for 3 units of material of the piece's rank. */
+  starUpPiece(baseId: string, materials: Material[]): Promise<{ text: string; id: string }>;
+  /** Swaps the piece's main roll with the one of its spare copy `index`. */
+  swapPieceRoll(pieceId: string, index: number): Promise<{ text: string; id: string }>;
   /** Mejorar (+N): spends Escamas (and a Dado cargado if asked); a failure never loses the piece. */
   upgradePiece(pieceId: string, useDado: boolean): Promise<UpgradeOutcome>;
   /** Rank-up (Forja > Héroes): `id` is the resulting hero (new rank, or the owned one it merged into). */
@@ -183,10 +184,10 @@ export interface StoreApi {
 
 export function createLocalRepo(store: StoreApi): ProfileRepo {
   // Applies a star-up / trait swap result to the local profile.
-  const grew = (r: HeroGrowthResult, id: string) => {
+  const grew = <R extends HeroGrowthResult | PieceGrowthResult>(r: R, id: string | ((r: Extract<R, { ok: true }>) => string)) => {
     if (!r.ok) throw new RepoError("fusion_invalid", r.error);
     store.replace(r.profile);
-    return { text: r.text, id };
+    return { text: r.text, id: typeof id === "string" ? id : id(r as Extract<R, { ok: true }>) };
   };
   const pull = async (banner: Banner, count: number) => {
     const rng = createRng(Date.now());
@@ -242,18 +243,6 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       store.update((p) =>
         w ? equipWeapon(p, c, w) : unequipWeapon(p, c, slot),
       ),
-    burn: async (id) => {
-      const r = burnItem(store.get(), id);
-      if (!r) throw new RepoError("burn_invalid", "No se puede quemar (¿está equipada?).");
-      store.replace(r.profile);
-      return { coins: r.coins };
-    },
-    burnMany: async (ids) => {
-      const r = burnMany(store.get(), ids);
-      if (r.count === 0) throw new RepoError("burn_invalid", "No hay nada que se pueda quemar.");
-      store.replace(r.profile);
-      return { coins: r.coins, count: r.count };
-    },
     chooseSkill: async (id, skill) => {
       if (!chooseHeroSkill(store.get(), id, skill))
         throw new RepoError("skill_locked", "Esa habilidad no está disponible.");
@@ -331,12 +320,10 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       store.update(() => bank.profile);
       return { bank, loot, stage };
     },
-    ascendPiece: async (baseId, materialIds) => {
-      const r = ascendPiece(store.get(), baseId, materialIds);
-      if (!r.ok) throw new RepoError("forge_invalid", r.error);
-      store.replace(r.profile);
-      return { ok: true, message: r.message, newId: r.newId, profile: r.profile };
-    },
+    ascendPiece: async (baseId, materials, keep) =>
+      grew(ascendPiece(store.get(), { baseId, materials, keep }, createRng(Date.now())), (r) => r.id),
+    starUpPiece: async (baseId, materials) => grew(starUpPiece(store.get(), { baseId, materials }), (r) => r.id),
+    swapPieceRoll: async (pieceId, index) => grew(swapPieceRoll(store.get(), { id: pieceId, index }), (r) => r.id),
     upgradePiece: async (pieceId, useDado) => {
       const p = store.get();
       const r = upgradePiece(p, pieceId, useDado, createRng(Date.now()));
@@ -489,22 +476,6 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         weaponId,
         ...(slot ? { slot } : {}),
       }),
-    burn: async (id) => {
-      const r = await api<{ coins: number; profile: Profile }>(
-        "/api/collection/burn",
-        { id },
-      );
-      store.replace(r.profile);
-      return { coins: r.coins };
-    },
-    burnMany: async (ids) => {
-      const r = await api<{ coins: number; count: number; profile: Profile }>(
-        "/api/collection/burn-many",
-        { ids },
-      );
-      store.replace(r.profile);
-      return { coins: r.coins, count: r.count };
-    },
     chooseSkill: (characterId, skillId) =>
       withProfile("/api/collection/skill", { characterId, skillId }),
     startLevel: async (heroId, rank, level, asc) => {
@@ -558,10 +529,20 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       const stage = sweepStage(r.seed, r.hero, levelFights(levelsOf(rank)[level], asc), asc);
       return { bank: { ...r.bank, profile: r.profile }, loot: r.loot, stage };
     },
-    ascendPiece: async (baseId, materialIds) => {
-      const r = await api<AscendOutcome>("/api/forge/ascend", { baseId, materialIds });
+    ascendPiece: async (baseId, materials, keep) => {
+      const r = await api<{ text: string; id: string; profile: Profile }>("/api/forge/ascend", { baseId, materials, keep });
       store.replace(r.profile);
-      return r;
+      return { text: r.text, id: r.id };
+    },
+    starUpPiece: async (baseId, materials) => {
+      const r = await api<{ text: string; id: string; profile: Profile }>("/api/forge/star-up", { baseId, materials });
+      store.replace(r.profile);
+      return { text: r.text, id: r.id };
+    },
+    swapPieceRoll: async (pieceId, index) => {
+      const r = await api<{ text: string; id: string; profile: Profile }>("/api/forge/swap-roll", { pieceId, index });
+      store.replace(r.profile);
+      return { text: r.text, id: r.id };
     },
     upgradePiece: async (pieceId, useDado) => {
       const r = await api<UpgradeOutcome>("/api/forge/upgrade", { pieceId, useDado });

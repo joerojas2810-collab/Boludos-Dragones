@@ -1,7 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { CLASS_IDS, type Character, type ClassId } from "../game/characters";
 import { createStarterHero } from "../game/tutorial";
-import { burn as burnItem, burnMany } from "../game/burn";
 import { fuseHeroes, starUpHero, swapTrait, type Material } from "../game/heroFusion";
 import { isLevelUnlocked, isRankUnlocked } from "../game/dungeonProgress";
 import { missionDeltas } from "../game/missions";
@@ -28,7 +27,7 @@ import {
   towerXp,
   type TowerMode,
 } from "../game/tower";
-import { ascendPiece } from "../game/ascend";
+import { ascendPiece, starUpPiece, swapPieceRoll } from "../game/pieceGrowth";
 import { upgradePiece } from "../game/upgrade";
 import { DUNGEON_IDS, type DungeonId } from "../game/rarity";
 import { createRng } from "../game/rng";
@@ -940,54 +939,7 @@ export async function sweepLevelService(
   }
 }
 
-// ---- burn / hero skill ----
-
-export async function doBurn(
-  d: Deps,
-  playerId: string,
-  id: string,
-) {
-  await limit(d.rpc, `burn:${playerId}`, 30, 60);
-  const me = await loadMe(d.rpc, playerId);
-  const r = burnItem(me.profile, id);
-  if (!r) throw new ApiError(409, "burn_invalid", "No se puede quemar (¿está equipada?).");
-  try {
-    await call(d.rpc, "burn_item", {
-      p_player: playerId,
-      p_version: me.version,
-      p_key: id,
-    });
-  } catch (e) {
-    return mapRpcError(e);
-  }
-  await audit(d.rpc, playerId, "burn", { id, coins: r.coins });
-  const fresh = await loadMe(d.rpc, playerId);
-  return { coins: r.coins, profile: fresh.profile };
-}
-
-export async function doBurnMany(
-  d: Deps,
-  playerId: string,
-  ids: string[],
-) {
-  await limit(d.rpc, `burnmany:${playerId}`, 20, 60);
-  const me = await loadMe(d.rpc, playerId);
-  if (burnMany(me.profile, ids).count === 0)
-    throw new ApiError(409, "burn_invalid", "No hay nada que se pueda quemar.");
-  let raw: { burned: number; gained: number };
-  try {
-    raw = await call(d.rpc, "burn_many", {
-      p_player: playerId,
-      p_version: me.version,
-      p_keys: ids,
-    });
-  } catch (e) {
-    return mapRpcError(e);
-  }
-  await audit(d.rpc, playerId, "burn_many", { n: raw.burned, coins: raw.gained });
-  const fresh = await loadMe(d.rpc, playerId);
-  return { count: raw.burned, coins: raw.gained, profile: fresh.profile };
-}
+// ---- hero skill ----
 
 export async function doChooseSkill(
   d: Deps,
@@ -1050,22 +1002,55 @@ function heroChange(before: Profile, after: Profile) {
   };
 }
 
-// Star-up, rank-up and trait swap: the pure code in heroFusion.ts decides, apply_hero_change
-// writes the result atomically (optimistic version).
-async function growHero(
+// The pieces that differ between two profiles, as the rows apply_piece_change writes (same shape as
+// heroChange): whole piece rows to upsert, keys that disappear, and where each worn slot now points.
+function pieceChange(before: Profile, after: Profile) {
+  const was = new Map(before.weapons.map((w) => [w.id, w]));
+  const now = new Set(after.weapons.map((w) => w.id));
+  return {
+    upsert: after.weapons
+      .filter((w) => was.get(w.id) !== w) // unchanged pieces keep their object
+      .map((w) => ({
+        type: w.type,
+        element: w.element,
+        rarity: w.rarity,
+        stars: w.stars,
+        name: w.name,
+        roll: w.roll ?? null,
+        lines: w.lines ?? null,
+        legacy: !!w.legacy,
+        plus: w.plus ?? 0,
+        plusStreak: w.plusStreak ?? 0,
+        copies: (w.copies ?? []).map((c) => ({ roll: c.roll ?? null, lines: c.lines ?? null })),
+      })),
+    remove: before.weapons.filter((w) => !now.has(w.id)).map((w) => w.id),
+    equip: Object.entries(before.equipped).flatMap(([slot, wid]) => {
+      const to = after.equipped[slot] ?? null;
+      return to === wid ? [] : [{ weapon: wid, to }];
+    }),
+  };
+}
+
+type GrowResult = { ok: true; profile: Profile; text: string; id: string } | { ok: false; error: string };
+
+// Star-up, rank-up and roll / trait swap: the pure code (heroFusion.ts, pieceGrowth.ts) decides, one
+// atomic RPC writes the result (optimistic version).
+async function growWith(
   d: Deps,
   playerId: string,
+  rpc: "apply_hero_change" | "apply_piece_change",
+  change: (before: Profile, after: Profile) => { upsert: unknown[]; remove: string[]; equip: unknown[] },
   action: string,
   meta: Record<string, unknown>,
-  run: (p: Profile) => { ok: true; profile: Profile; text: string; id: string } | { ok: false; error: string },
+  run: (p: Profile) => GrowResult,
 ) {
   await limit(d.rpc, `fuse:${playerId}`, 30, 60);
   const me = await loadMe(d.rpc, playerId);
   const r = run(me.profile);
   if (!r.ok) throw new ApiError(400, "fusion_invalid", r.error);
-  const ch = heroChange(me.profile, r.profile);
+  const ch = change(me.profile, r.profile);
   try {
-    await call(d.rpc, "apply_hero_change", {
+    await call(d.rpc, rpc, {
       p_player: playerId,
       p_version: me.version,
       p_coins: me.profile.coins - r.profile.coins,
@@ -1076,10 +1061,16 @@ async function growHero(
   } catch (e) {
     return mapRpcError(e);
   }
+  await trackMissions(d.rpc, playerId, { forge: 1 });
   await audit(d.rpc, playerId, action, { ...meta, coins: me.profile.coins - r.profile.coins, result: r.id });
   const fresh = await loadMe(d.rpc, playerId);
   return { text: r.text, id: r.id, profile: fresh.profile };
 }
+
+const growHero = (d: Deps, playerId: string, action: string, meta: Record<string, unknown>, run: (p: Profile) => GrowResult) =>
+  growWith(d, playerId, "apply_hero_change", heroChange, action, meta, run);
+const growPiece = (d: Deps, playerId: string, action: string, meta: Record<string, unknown>, run: (p: Profile) => GrowResult) =>
+  growWith(d, playerId, "apply_piece_change", pieceChange, action, meta, run);
 
 export const doFuseHeroes = (
   d: Deps,
@@ -1107,38 +1098,21 @@ export const doSwapTrait = (d: Deps, playerId: string, id: string, index: number
 
 // ---- forge (Ascender + Mejorar) ----
 
-// The server runs the same pure code as the client and persists the result atomically
-// (apply_ascend / apply_upgrade, optimistic version). Rejected inputs never reach the database.
-export async function doAscend(d: Deps, playerId: string, baseId: string, materialIds: string[]) {
-  await limit(d.rpc, `forge:${playerId}`, 60, 60);
-  const me = await loadMe(d.rpc, playerId);
-  // A real rng for the new piece's roll/lines (a state-derived one could be steered).
-  const r = ascendPiece(me.profile, baseId, materialIds, createRng(d.randomSeed()));
-  if (!r.ok) throw new ApiError(400, "forge_invalid", r.error);
-  const made = r.profile.weapons.find((w) => w.id === r.newId);
-  try {
-    await call(d.rpc, "apply_ascend", {
-      p_player: playerId,
-      p_version: me.version,
-      p_base: baseId,
-      p_materials: materialIds,
-      p_new: {
-        type: made?.type,
-        element: made?.element,
-        rarity: made?.rarity,
-        name: made?.name,
-        roll: made?.roll,
-        lines: made?.lines ?? null,
-      },
-    });
-  } catch (e) {
-    return mapRpcError(e);
-  }
-  await trackMissions(d.rpc, playerId, { forge: 1 });
-  await audit(d.rpc, playerId, "ascend", { base: baseId, materials: materialIds, coins: r.coins, result: r.newId });
-  const fresh = await loadMe(d.rpc, playerId);
-  return { ok: true as const, message: r.message, newId: r.newId, profile: fresh.profile };
-}
+export const doStarUpPiece = (d: Deps, playerId: string, baseId: string, materials: Material[]) =>
+  growPiece(d, playerId, "star_up_piece", { base: baseId, materials }, (p) => {
+    const r = starUpPiece(p, { baseId, materials });
+    return r.ok ? { ...r, id: baseId } : r;
+  });
+
+// A real rng for the lines a rank-up adds (a state-derived one could be steered).
+export const doAscend = (d: Deps, playerId: string, baseId: string, materials: Material[], keep?: "base" | "existing") =>
+  growPiece(d, playerId, "ascend", { base: baseId, materials }, (p) => {
+    const r = ascendPiece(p, { baseId, materials, keep }, createRng(d.randomSeed()));
+    return r.ok ? { ...r } : r;
+  });
+
+export const doSwapRoll = (d: Deps, playerId: string, id: string, index: number) =>
+  growPiece(d, playerId, "swap_roll", { piece: id, index }, (p) => swapPieceRoll(p, { id, index }));
 
 export async function doUpgrade(d: Deps, playerId: string, pieceId: string, useDado: boolean) {
   await limit(d.rpc, `forge:${playerId}`, 60, 60);

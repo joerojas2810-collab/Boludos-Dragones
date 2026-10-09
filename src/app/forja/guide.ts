@@ -9,18 +9,19 @@ export type Guide = {
 
 export const GUIDE: Record<"ascend" | "heroes" | "upgrade", Guide> = {
   ascend: {
-    title: "Ascender",
-    what: "Subes de rango una pieza de equipo o un héroe gastando repetidos.",
-    needs: "La base + otras del mismo rango (cualquier tipo o elemento) + monedas.",
-    gives: "La base sube un rango y vuelve a 0★ y +0. Conserva tipo, elemento y nombre.",
-    example: "5 piezas C + 160 monedas → 1 pieza B.",
+    title: "Equipo",
+    what: "Tu equipo crece igual que los héroes: estrellas, rango y tirada.",
+    needs: "Material = piezas del mismo rango (cualquier tipo o elemento, 1 unidad cada una) y copias sobrantes (1 unidad cada una).",
+    gives: "★: +1★ por 3 unidades. Rango: la pieza sube con la misma tirada. Tiradas: cambia la principal por la de una copia.",
+    example: "3 piezas C cualesquiera → tu C pasa de 1★ a 2★. 3 piezas C + 160 monedas → tu C pasa a rango B.",
     steps: [
-      "Equipo son las armas y la armadura. Ascender es subir el rango de una pieza.",
-      "Paso 1: elige la pieza base, la que quieres conservar.",
-      "Paso 2: marca otras piezas del mismo rango como material. Sirve cualquier tipo y elemento, pero no las equipadas. El contador te dice cuántas faltan.",
-      "Paso 3: revisa el resultado y pulsa Ascender. Las de material desaparecen.",
-      "Ojo: la base vuelve a 0★ y +0. Por eso conviene ascender primero, y completar estrellas y mejorar al final.",
-      "Los héroes tienen su propia sección: Héroes.",
+      "Equipo son las armas y la armadura. Una pieza repetida queda como copia con su propia tirada de stats.",
+      "Tiradas: si la tirada de una copia es mejor, úsala como principal. La que tenías pasa a ser una copia.",
+      "Subir ★: elige la pieza y 3 unidades de material. Las piezas equipadas o con +N solo dan copias, nunca la pieza entera.",
+      "Subir de rango: la pieza conserva tipo, elemento, nombre y tirada; sus ★ se convierten (mira la tabla). Se sortean las líneas nuevas del rango.",
+      "Si ya tienes esa pieza en el rango siguiente, se fusionan: eliges qué tirada queda y te quedas con las ★ más altas.",
+      "El +N de Mejorar vuelve a +0 al ascender: sube de rango primero y mejora al final.",
+      "El rango S es el techo: ahí solo se suben ★ (y el +N con Escamas).",
     ],
   },
   heroes: {

@@ -176,6 +176,5 @@ describe("explain: Run v2 rules", () => {
     const m = await import("./explain");
     expect(text(m.levelTip(3, 0, 0))).toContain("20");
     expect(text(m.gearTip())).toContain("10%");
-    expect(text(m.burnTip())).toContain("4%");
   });
 });

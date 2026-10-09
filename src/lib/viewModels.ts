@@ -112,7 +112,8 @@ export function weaponView(
     rarity: w.rarity,
     stars: w.stars,
     element: w.element,
-    lines: [pieceLine(w), ...(opts.lines ?? [])],
+    copies: w.copies?.length || undefined,
+    lines: [pieceLine(w), ...(w.copies?.length ? [`${w.copies.length} ${w.copies.length === 1 ? "copia" : "copias"}`] : []), ...(opts.lines ?? [])],
     badge: opts.badge,
   };
 }
@@ -123,9 +124,7 @@ export function resultView(r: PullResult): ItemView | null {
       ? `REEMBOLSO +${r.refund}`
       : r.status === "copy"
         ? "+1 COPIA"
-        : r.status === "star"
-          ? "+1 ★"
-          : "NUEVO";
+        : "NUEVO";
   if (r.character) return characterView(r.character, { badge });
   if (r.weapon) return weaponView(r.weapon, { badge });
   return null;
@@ -145,7 +144,6 @@ export function summarizePull(rs: PullResult[]): string {
   return [
     `${n((r) => r.status === "new")} nuevos`,
     `${n((r) => r.status === "copy")} copias`,
-    `${n((r) => r.status === "star")} estrellas`,
     ...(refund ? [`${refund} monedas de reembolso`] : []),
     `Mejor: ${RARITIES[best].label}`,
   ].join(" · ");

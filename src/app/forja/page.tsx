@@ -10,16 +10,16 @@ import { TipHover } from "@/components/Tooltip";
 import { RARITIES } from "@/lib/game/rarity";
 import { TRAITS } from "@/lib/game/traits";
 import { playForgeSound } from "@/lib/sfx";
-import { characterView } from "@/lib/viewModels";
+import { characterView, pieceLine, weaponView } from "@/lib/viewModels";
 import { repo, useProfile } from "@/lib/useProfile";
-import { AscendPieces } from "./AscendPieces";
 import { GuidePanel } from "./GuidePanel";
 import { HeroFusionPanel } from "./HeroFusion";
+import { PieceGrowthPanel } from "./PieceGrowth";
 import { MatIcon, Upgrade } from "./Upgrade";
 
 type Tab = "ascend" | "heroes" | "upgrade";
 const TABS: [Tab, string][] = [
-  ["ascend", "Ascender equipo"],
+  ["ascend", "Equipo"],
   ["heroes", "Héroes"],
   ["upgrade", "Mejorar"],
 ];
@@ -57,6 +57,7 @@ export default function ForgePage() {
   }, []);
   if (!ready || !profile) return null;
   const hero = msg?.heroId ? profile.characters.find((c) => c.id === msg.heroId) : undefined;
+  const piece = msg?.heroId ? profile.weapons.find((w) => w.id === msg.heroId) : undefined;
 
   const show = (ok: boolean, title: string, text: string, ids: string[], extra: { heroId?: string; gave?: string[] } = {}) => {
     setMsg({ ok, title, text, ...extra });
@@ -129,6 +130,23 @@ export default function ForgePage() {
                           </div>
                         </div>
                       )}
+                      {msg.ok && piece && (
+                        <div className="flex items-center justify-center gap-3 text-sm">
+                          <ItemCard item={weaponView(piece)} size={96} />
+                          <div className="space-y-1">
+                            <div className="font-semibold text-yellow-300">{piece.name}</div>
+                            <div>
+                              Rango {RARITIES[piece.rarity].label} · {piece.stars}★{piece.plus ? ` · +${piece.plus}` : ""}
+                            </div>
+                            <div>{pieceLine(piece)}</div>
+                            {piece.copies?.length ? (
+                              <div>
+                                {piece.copies.length} {piece.copies.length === 1 ? "copia guardada" : "copias guardadas"}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      )}
                       {msg.ok && msg.gave && msg.gave.length > 0 && (
                         <div className="text-center text-sm opacity-90">
                           <b>Entregaste:</b> {msg.gave.join(" · ")}
@@ -162,18 +180,12 @@ export default function ForgePage() {
           </div>
 
           {tab === "ascend" && (
-            <AscendPieces
+            <PieceGrowthPanel
               profile={profile}
               busy={busy}
-              onAscend={(b, m) =>
-                void act(
-                  "Ascender equipo",
-                  async () => ({
-                    text: (await repo.ascendPiece(b, m)).message,
-                  }),
-                  ["forge_merge", "forge_success"],
-                )
-              }
+              onStarUp={(b, m, gave) => void act("Subir ★", () => repo.starUpPiece(b, m), ["forge_merge", "forge_success"], gave)}
+              onAscend={(b, m, keep, gave) => void act("Subir de rango", () => repo.ascendPiece(b, m, keep), ["forge_merge", "forge_success"], gave)}
+              onSwap={(id, i, gave) => void act("Cambiar de tirada", () => repo.swapPieceRoll(id, i), ["forge_craft", "forge_success"], gave)}
             />
           )}
           {tab === "heroes" && (

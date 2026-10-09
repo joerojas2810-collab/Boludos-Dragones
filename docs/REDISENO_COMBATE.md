@@ -287,7 +287,11 @@ Un héroe es clase + elemento + rango. Crece en tres ejes; el material de los do
 - **Sin quema de héroes.** Se retiró por completo; las piezas siguen quemándose (4 %).
 - **Descartado:** requisito de ★ mínimas para fusionar; afinidad de clase o elemento en el material; talentos pasivos por ★ y tope de nivel por rango (decisiones aparte, fuera de esta tanda).
 - **Balance medido:** fusionar es 2 a 4 veces más caro que tirar el rango siguiente (A→S 67 frente a 33 tiradas), así que es un sumidero de sobrantes. Si se funde toda la colección sale ~+78 % de S extra como techo; la palanca es el ratio A→S (4; con 5 baja a ~+62 %). Valor de mercado: fusionar siempre pierde frente a comerciar (4 A = 16.680 frente a 1 S = 8.330).
+- **Equipo con la misma lógica (migración 0053):** una pieza repetida es una copia con su propia tirada y líneas (`weapons.copies`); ★ por 3 unidades; subir de rango conserva la tirada, sortea las líneas nuevas, convierte las ★ y se fusiona con elección de tirada; las piezas equipadas o con +N solo dan copias; el mercado mueve una copia con su tirada; `apply_piece_change` escribe el resultado. Quema de piezas retirada. Código: `pieceGrowth.ts`, `units.ts` (unidades compartidas con los héroes), `src/app/forja/PieceGrowth.tsx`.
 - Código: `heroFusion.ts` (`starUpHero`, `fuseHeroes`, `swapTrait`), servicios `doStarUpHero`/`doFuseHeroes`/`doSwapTrait`, SQL `apply_hero_change`, interfaz `src/app/forja/HeroFusion.tsx`.
+
+### Motor v13 [DECIDIDO 2026-10-09]
+Básico seguro para todos; todo golpe de héroe aplica estado (1 acumulación, habilidad de clase 2); `DAMAGE_SCALE` 0,8 (peleas ~25 % más largas: Mago ~5 rondas, Caballero ~10 con héroes sin equipo); Contraataque se resuelve en la misma ronda (devuelve el golpe que ya cayó o el siguiente de esa ronda); grupos de 3 raros (p3 = 0,12·nivel, escoltas dobles solo en SSR); `RANK_TUNE`, `DUEL_TUNE` y `COOP_K.poolPerPlayer` (1,5) recalibrados; iconos de estado sobre el personaje; HUD de escritorio con barra de comandos delgada y registro opcional. Dungeon SSR con héroes S 3★ Nv50: media ~68 %, clases entre 65 y 77 %.
 
 ## 8. Equipo
 

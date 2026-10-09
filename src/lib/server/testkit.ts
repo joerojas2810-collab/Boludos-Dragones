@@ -46,6 +46,7 @@ export class FakeDb {
   levelStarts: Args[] = [];
   burned: Args[] = [];
   heroChanges: Args[] = [];
+  pieceChanges: Args[] = [];
   skills: Args[] = [];
   xpGrants: Args[] = [];
   dungeons: Record<string, number[]> = {};
@@ -191,6 +192,40 @@ export class FakeDb {
         this.version++;
         return this.okv({ coins: this.coins, version: this.version });
       }
+      case "apply_piece_change": {
+        // Mirrors 0053: one atomic write-set for pieces (upserts, then deletes), optimistic version.
+        if (a.p_version !== this.version) return this.err("conflict");
+        if (this.coins < Number(a.p_coins)) return this.err("insufficient_coins");
+        this.pieceChanges.push(a);
+        for (const w of a.p_upsert as Args[]) {
+          const key = `w-${w.type}-${w.element}-${w.rarity}`;
+          const row: Row = {
+            key,
+            kind: "weap",
+            a: String(w.type),
+            element: String(w.element),
+            rarity: String(w.rarity),
+            stars: Number(w.stars),
+            data: {
+              name: w.name,
+              roll: w.roll,
+              lines: w.lines,
+              legacy: w.legacy,
+              plus: w.plus,
+              plusStreak: w.plusStreak,
+              copies: w.copies,
+            },
+          };
+          const i = this.rows.findIndex((r) => r.key === key);
+          if (i >= 0) this.rows[i] = row;
+          else this.rows.push(row);
+        }
+        const gone = new Set(a.p_delete as string[]);
+        this.rows = this.rows.filter((r) => !gone.has(r.key));
+        this.coins -= Number(a.p_coins);
+        this.version++;
+        return this.okv({ coins: this.coins, version: this.version });
+      }
       case "choose_hero_skill":
         this.skills.push(a);
         return this.okv({ ok: true });
@@ -240,7 +275,6 @@ export class FakeDb {
         this.idem.set(idem, res);
         return this.okv(res);
       }
-      case "apply_ascend":
       case "apply_upgrade":
         if (a.p_version !== this.version) return this.err("conflict");
         this.forged.push({ name, ...a });

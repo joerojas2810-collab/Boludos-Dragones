@@ -7,7 +7,7 @@ import { MATERIAL_ICON } from "@/lib/art";
 import { RARITIES } from "@/lib/game/rarity";
 import type { Profile } from "@/lib/game/profile";
 import { canUpgrade, DADO_BONUS, PLUS_BONUS_PER_LEVEL, STREAK_BONUS, UPGRADE_TABLE, upgradeChance } from "@/lib/game/upgrade";
-import { byPieceOrder, PieceRow } from "./AscendPieces";
+import { byPieceOrder, PieceRow } from "./PieceRow";
 
 // Material icon with a coin fallback until the final art loads.
 export function MatIcon({ kind, className = "h-5" }: { kind: keyof typeof MATERIAL_ICON; className?: string }) {

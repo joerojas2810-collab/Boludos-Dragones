@@ -35,11 +35,9 @@ import {
   resonanceBonus,
   resonances,
   rollPiece,
-  rollQuality,
   setBonus,
   SKILL_STYLE_GROUP,
   type BuildGroup,
-  type GearLine,
   type WornPiece,
 } from "./gear";
 import {
@@ -101,7 +99,7 @@ export type OwnedCharacter = Character & {
   // Spare copies from repeated pulls: each keeps the trait it rolled (swapTrait picks the main one).
   // A copy is also one unit of material for starring up and ranking up (heroFusion.ts).
   copies?: TraitId[];
-  legacy?: boolean; // existed before PROFILE_VERSION 5 (burns at LEGACY_BURN_RATE)
+  legacy?: boolean; // existed before PROFILE_VERSION 5
 };
 export type OwnedWeapon = Weapon;
 
@@ -162,10 +160,10 @@ export const canAfford = (p: Profile, banner: Banner, count = 1) =>
   p.coins >= pullCost(banner, count);
 
 export interface PullResult {
-  // new: added to collection; copy: EXACT duplicate hero (same class+element+rarity) stored as a
-  // spare copy; star: EXACT duplicate weapon gave +1 star; refund: duplicate already at max
-  // copies / stars, coins returned.
-  status: "new" | "copy" | "star" | "refund";
+  // new: added to collection; copy: EXACT duplicate (same class+element+rarity / same piece key)
+  // stored as a spare copy with its own trait or roll; refund: duplicate already at max copies,
+  // coins returned.
+  status: "new" | "copy" | "refund";
   banner: Banner;
   id: string;
   rarity: RarityId;
@@ -237,8 +235,14 @@ function pull(
       const owned = p.weapons.find((x) => x.id === w.id);
       let item: OwnedWeapon = w;
       if (owned) {
-        item = withStars(owned, Math.min(MAX_STARS, owned.stars + 1), w);
-        status = owned.stars >= MAX_STARS ? "refund" : "star";
+        const spare = owned.copies ?? [];
+        if (spare.length < MAX_COPIES) {
+          item = { ...owned, copies: [...spare, { roll: w.roll, lines: w.lines }] };
+          status = "copy";
+        } else {
+          item = owned;
+          status = "refund";
+        }
         p = {
           ...p,
           weapons: p.weapons.map((x) => (x.id === w.id ? item : x)),
@@ -403,9 +407,9 @@ export function unequipWeapon(
   return { ...p, equipped };
 }
 
-// A run piece that reached the collection: new, +1 star on a duplicate, or nothing when
-// the duplicate is already at max stars: a coin refund for classic runs (as the server's
-// bank_run), nothing for dungeon levels (drops are plentiful; migration 0034).
+// A run piece that reached the collection: new, a spare copy (own roll and lines) on a duplicate, or
+// nothing when the duplicate already holds MAX_COPIES: a coin refund for classic runs (as the
+// server's bank_run), nothing for dungeon levels (drops are plentiful; migration 0034).
 export function grantPiece(p: Profile, piece: RunPiece, refund = true): Profile {
   const id = weaponKey(piece.type, piece.element, piece.rarity);
   const owned = p.weapons.find((w) => w.id === id);
@@ -427,27 +431,11 @@ export function grantPiece(p: Profile, piece: RunPiece, refund = true): Profile 
         },
       ],
     };
-  if (owned.stars >= MAX_STARS)
+  const spare = owned.copies ?? [];
+  if (spare.length >= MAX_COPIES)
     return refund ? { ...p, coins: p.coins + refundAmount("weapon") } : p;
-  const next = withStars(owned, owned.stars + 1, piece);
+  const next = { ...owned, copies: [...spare, { roll: piece.roll, lines: piece.lines }] };
   return { ...p, weapons: p.weapons.map((w) => (w.id === id ? next : w)) };
-}
-
-// Duplicate: +1 star and keep the better of the two rolls (automatic).
-function withStars(
-  owned: OwnedWeapon,
-  stars: number,
-  inc: { roll?: number; lines?: GearLine[] },
-): OwnedWeapon {
-  const better =
-    inc.roll !== undefined && rollQuality(inc) > rollQuality(owned) ? inc : owned;
-  return {
-    ...owned,
-    stars,
-    roll: better.roll,
-    lines: better.lines,
-    atkBonus: weaponAtk(owned.rarity, stars, owned.type, better.roll),
-  };
 }
 
 // Call EXACTLY ONCE per run, whenever it ends (completed, lost or abandoned).
@@ -761,6 +749,12 @@ function parseWeapon(v: unknown, legacyAll: boolean): OwnedWeapon | null {
   const type = v.type !== "lanza" && isWeaponType(v.type) ? v.type : "espada";
   const stars = nat(v.stars, MAX_STARS);
   const rolled = parseRoll(type, rarity, v.roll, v.lines);
+  const copies = (Array.isArray(v.copies) ? v.copies : [])
+    .slice(0, MAX_COPIES)
+    .flatMap((c) => {
+      const r = isObj(c) ? parseRoll(type, rarity, c.roll, c.lines) : {};
+      return r.roll === undefined ? [] : [r];
+    });
   return {
     id: weaponKey(type, element, rarity),
     name: weaponName(type, element, rarity), // names are derived, old saves get the unified one
@@ -770,6 +764,7 @@ function parseWeapon(v: unknown, legacyAll: boolean): OwnedWeapon | null {
     stars,
     atkBonus: weaponAtk(rarity, stars, type, rolled.roll), // never trusted
     ...rolled,
+    ...(copies.length ? { copies } : {}),
     ...(legacyAll || v.legacy === true ? { legacy: true } : {}),
     ...(nat(v.plus, 10) > 0 ? { plus: nat(v.plus, 10) } : {}),
     ...(nat(v.plusStreak, 1000) > 0 ? { plusStreak: nat(v.plusStreak, 1000) } : {}),

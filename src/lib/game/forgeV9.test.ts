@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { ASCEND, ascendPiece } from "./ascend";
+import { ASCEND, ascendPiece, starUpPiece, swapPieceRoll } from "./pieceGrowth";
 import { generateCharacter } from "./characters";
 import { ELEMENTS } from "./elements";
-import { gearBonus, PLUS_BONUS_PER_LEVEL } from "./gear";
-import { HERO_FUSION } from "./heroFusion";
+import { gearBonus, maxLines, PLUS_BONUS_PER_LEVEL } from "./gear";
+import { HERO_FUSION, STAR_CARRY } from "./heroFusion";
 import { characterKey, createProfile, grantPiece, heroFromOwned, migrate, slotKey, type Profile } from "./profile";
 import { RARITY_IDS, type RarityId } from "./rarity";
+import type { RunPiece } from "./loot";
 import { createRng } from "./rng";
 import {
   canUpgrade,
@@ -17,7 +18,7 @@ import {
 } from "./upgrade";
 import { WEAPON_TYPES, weaponKey } from "./weapons";
 
-const piece = (type: (typeof WEAPON_TYPES)[number], el: (typeof ELEMENTS)[number], rarity: RarityId) => ({
+const piece = (type: (typeof WEAPON_TYPES)[number], el: (typeof ELEMENTS)[number], rarity: RarityId): RunPiece & { roll: number } => ({
   type,
   element: el,
   rarity,
@@ -30,70 +31,122 @@ const withPieces = (...ps: ReturnType<typeof piece>[]): Profile =>
 const group = (rank: RarityId, total: number) =>
   Array.from({ length: total }, (_, i) => piece(WEAPON_TYPES[i % WEAPON_TYPES.length], ELEMENTS[i % 5], rank));
 
-describe("Ascender", () => {
+const mats = (ws: { id: string }[]) => ws.map((w) => ({ id: w.id, n: 1 }));
+const asc = (p: Profile, baseId: string, ids: { id: string; n: number }[], keep?: "base" | "existing", seed = 1) =>
+  ascendPiece(p, { baseId, materials: ids, keep }, createRng(seed));
+
+describe("Ascender (piece growth)", () => {
   it("uses the hero fusion table (total counts the base)", () => {
     for (const r of RARITY_IDS.slice(0, -1)) expect(ASCEND[r]).toEqual({ total: HERO_FUSION[r]!.ratio, coins: HERO_FUSION[r]!.coins });
     expect(ASCEND.s).toBeUndefined(); // S is the top rank
   });
-  it("base + materials of any type and element -> the base one rank up, 0 stars and +0", () => {
+  it("base + materials of any type and element -> the base one rank up, keeping its roll; stars convert, +N resets", () => {
     const g = group("f", ASCEND.f!.total);
     let p = withPieces(...g);
-    p = { ...p, weapons: p.weapons.map((w, i) => (i === 0 ? { ...w, stars: 3, plus: 2 } : w)) };
+    p = { ...p, weapons: p.weapons.map((w, i) => (i === 0 ? { ...w, stars: 5, plus: 2, roll: 1.07 } : w)) };
     const base = p.weapons[0];
-    const r = ascendPiece(p, base.id, p.weapons.slice(1).map((w) => w.id), createRng(1));
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const r = asc(p, base.id, mats(p.weapons.slice(1)));
+    if (!r.ok) throw new Error(r.error);
     expect(r.profile.weapons).toHaveLength(1);
     const w = r.profile.weapons[0];
-    expect([w.id, w.rarity, w.stars, w.plus ?? 0, w.type, w.element, w.name]).toEqual([
-      weaponKey(base.type, base.element, "e"), "e", 0, 0, base.type, base.element, base.name,
+    expect([w.id, w.rarity, w.stars, w.plus ?? 0, w.type, w.element, w.roll]).toEqual([
+      weaponKey(base.type, base.element, "e"), "e", STAR_CARRY.f![5], 0, base.type, base.element, 1.07,
     ]);
     expect(r.profile.coins).toBe(100000 - ASCEND.f!.coins);
+  });
+  it("gear keeps its lines and rolls only the ones the new rank adds (capstone at S)", () => {
+    const base = { ...piece("casco", "fuego", "a"), lines: [{ stat: "def" as const, roll: 1.1 }, { stat: "crit" as const, roll: 0.95 }] };
+    const others = group("a", ASCEND.a!.total - 1).map((x, i) => ({ ...x, type: "peto" as const, element: ELEMENTS[i % 5] }));
+    const p = withPieces(base, ...others);
+    const b = p.weapons.find((w) => w.type === "casco")!;
+    const r = asc(p, b.id, mats(p.weapons.filter((w) => w.id !== b.id)));
+    if (!r.ok) throw new Error(r.error);
+    const up = r.profile.weapons.find((w) => w.type === "casco")!;
+    expect(up.rarity).toBe("s");
+    expect(up.lines).toHaveLength(maxLines("s"));
+    expect(up.lines!.slice(0, 2)).toEqual(base.lines); // the old lines stay, same rolls
+    expect(up.lines!.some((l) => l.stat === "dmgTaken")).toBe(true);
   });
   it("same input + same rng = same result (client and server agree)", () => {
     const g = group("c", ASCEND.c!.total);
     const p = withPieces(...g);
-    const ids = p.weapons.slice(1).map((w) => w.id);
-    const a = ascendPiece(p, p.weapons[0].id, ids, createRng(9));
-    const b = ascendPiece(p, p.weapons[0].id, ids, createRng(9));
-    expect(a).toEqual(b);
+    const ids = mats(p.weapons.slice(1));
+    expect(asc(p, p.weapons[0].id, ids, undefined, 9)).toEqual(asc(p, p.weapons[0].id, ids, undefined, 9));
   });
-  it("rejects wrong counts, other ranks, worn pieces, missing coins, the top rank and a maxed target", () => {
+  it("rejects wrong counts, other ranks, worn pieces, missing coins, the top rank", () => {
     const g = group("f", ASCEND.f!.total);
     const p = withPieces(...g, piece("espada", "agua", "e"));
-    const ids = p.weapons.slice(1, ASCEND.f!.total).map((w) => w.id);
+    const ids = mats(p.weapons.slice(1, ASCEND.f!.total));
     const base = p.weapons[0].id;
-    expect(ascendPiece(p, base, ids.slice(1)).ok).toBe(false); // one short
-    expect(ascendPiece(p, base, [...ids.slice(1), weaponKey("espada", "agua", "e")]).ok).toBe(false); // other rank
-    expect(ascendPiece(p, base, [...ids.slice(1), base]).ok).toBe(false); // base as material
-    expect(ascendPiece(p, base, [...ids.slice(1), ids[1]]).ok).toBe(false); // repeated
-    expect(ascendPiece({ ...p, equipped: { h: ids[0] } }, base, ids).ok).toBe(false); // worn material
-    expect(ascendPiece({ ...p, coins: 0 }, base, ids).ok).toBe(false);
-    expect(ascendPiece(p, "w-nada-nada-f", ids).ok).toBe(false);
+    expect(asc(p, base, ids.slice(1)).ok).toBe(false); // one short
+    expect(asc(p, base, [...ids.slice(1), { id: weaponKey("espada", "agua", "e"), n: 1 }]).ok).toBe(false); // other rank
+    expect(asc(p, base, [...ids.slice(1), { id: base, n: 1 }]).ok).toBe(false); // the base gives only copies
+    expect(asc(p, base, [...ids.slice(1), ids[1]]).ok).toBe(false); // repeated
+    expect(asc({ ...p, equipped: { h: ids[0].id } }, base, ids).ok).toBe(false); // worn material
+    expect(asc({ ...p, coins: 0 }, base, ids).ok).toBe(false);
+    expect(asc(p, "w-nada-nada-f", ids).ok).toBe(false);
     const top = withPieces(piece("espada", "agua", "s"));
-    expect(ascendPiece(top, top.weapons[0].id, []).ok).toBe(false); // S cannot go higher
-    // target already owned with 5 stars
-    const maxed = grantPiece(p, piece(g[0].type, g[0].element, "e"));
-    const full = { ...maxed, weapons: maxed.weapons.map((w) => (w.rarity === "e" && w.type === g[0].type && w.element === g[0].element ? { ...w, stars: 5 } : w)) };
-    expect(ascendPiece(full, base, ids).ok).toBe(false);
+    expect(asc(top, top.weapons[0].id, []).ok).toBe(false); // S cannot go higher
   });
   it("refuses materials that carry +N", () => {
     const g = group("f", ASCEND.f!.total);
     const p0 = withPieces(...g);
     const p = { ...p0, weapons: p0.weapons.map((w, i) => (i === 2 ? { ...w, plus: 1 } : w)) };
-    const r = ascendPiece(p, p.weapons[0].id, p.weapons.slice(1).map((w) => w.id));
-    expect(r.ok).toBe(false);
+    expect(asc(p, p.weapons[0].id, mats(p.weapons.slice(1))).ok).toBe(false);
   });
-  it("a worn base keeps its place; an owned target takes +1 star instead", () => {
+  it("a worn base keeps its slot; an owned piece of the next rank merges and you choose the roll", () => {
     const g = group("f", ASCEND.f!.total);
     const p = { ...withPieces(...g), equipped: {} as Record<string, string> };
-    const base = p.weapons[0];
-    const ids = p.weapons.slice(1).map((w) => w.id);
-    const worn = ascendPiece({ ...p, equipped: { h1: base.id } }, base.id, ids, createRng(1));
+    const base = { ...p.weapons[0], roll: 1.1 };
+    const ids = mats(p.weapons.slice(1));
+    const worn = asc({ ...p, equipped: { h1: base.id } }, base.id, ids);
     expect(worn.ok && worn.profile.equipped.h1).toBe(weaponKey(base.type, base.element, "e"));
-    const dup = grantPiece(p, piece(base.type, base.element, "e"));
-    const r = ascendPiece(dup, base.id, ids, createRng(1));
-    expect(r.ok && r.profile.weapons.find((w) => w.rarity === "e")!.stars).toBe(1);
+    const owned = { ...piece(base.type, base.element, "e"), roll: 0.9 };
+    const withOwned = grantPiece({ ...p, weapons: p.weapons.map((w) => (w.id === base.id ? base : w)) }, owned);
+    const keepBase = asc(withOwned, base.id, ids, "base");
+    if (!keepBase.ok) throw new Error(keepBase.error);
+    const m = keepBase.profile.weapons.find((w) => w.rarity === "e")!;
+    expect([m.roll, m.copies?.[0]?.roll, keepBase.fusion?.merged]).toEqual([1.1, 0.9, true]);
+    const keepOld = asc(withOwned, base.id, ids, "existing");
+    expect(keepOld.ok && keepOld.profile.weapons.find((w) => w.rarity === "e")!.roll).toBe(0.9);
+  });
+  it("copies are material and the base's unspent copies stay behind as a piece of the old rank", () => {
+    const g = group("c", ASCEND.c!.total);
+    let p = withPieces(...g);
+    const base = p.weapons[0];
+    p = { ...p, weapons: p.weapons.map((w) => (w.id === base.id ? { ...w, copies: [{ roll: 1.02 }, { roll: 0.97 }, { roll: 1.05 }] } : w)) };
+    const others = p.weapons.slice(1, 3); // ratio 4 -> 3 units: two pieces + one copy of the base
+    const r = asc(p, base.id, [...mats(others), { id: base.id, n: 1 }]);
+    if (!r.ok) throw new Error(r.error);
+    const left = r.profile.weapons.find((w) => w.id === base.id)!;
+    expect([left.rarity, left.stars, left.roll, left.copies?.length]).toEqual(["c", 0, 1.02, 1]);
+    expect(r.profile.weapons.find((w) => w.rarity === "b")).toBeDefined();
+  });
+});
+
+describe("starUpPiece and swapPieceRoll", () => {
+  it("3 units (copies count) give +1 star and the attack follows", () => {
+    const base = { ...piece("espada", "fuego", "b"), roll: 1 };
+    let p = withPieces(base, base, base, base); // 1 piece + 3 copies
+    const id = p.weapons[0].id;
+    expect(p.weapons[0].copies).toHaveLength(3);
+    const r = starUpPiece(p, { baseId: id, materials: [{ id, n: 3 }] });
+    if (!r.ok) throw new Error(r.error);
+    expect(r.profile.weapons[0].stars).toBe(1);
+    expect(r.profile.weapons[0].copies).toBeUndefined();
+    expect(r.profile.weapons[0].atkBonus).toBeGreaterThan(p.weapons[0].atkBonus);
+    expect(starUpPiece(p, { baseId: id, materials: [{ id, n: 2 }] }).ok).toBe(false);
+    p = { ...p, weapons: p.weapons.map((w) => ({ ...w, stars: 5 })) };
+    expect(starUpPiece(p, { baseId: id, materials: [{ id, n: 3 }] }).ok).toBe(false);
+  });
+  it("swapPieceRoll trades the main roll with a copy's", () => {
+    const p = withPieces({ ...piece("casco", "agua", "c"), roll: 1.1, lines: [{ stat: "def", roll: 1.1 }] }, { ...piece("casco", "agua", "c"), roll: 0.9, lines: [{ stat: "crit", roll: 0.9 }] });
+    const id = p.weapons[0].id;
+    const r = swapPieceRoll(p, { id, index: 0 });
+    if (!r.ok) throw new Error(r.error);
+    const w = r.profile.weapons[0];
+    expect([w.roll, w.lines?.[0].stat, w.copies?.[0].roll]).toEqual([0.9, "crit", 1.1]);
+    expect(swapPieceRoll(p, { id, index: 3 }).ok).toBe(false);
   });
 });
 

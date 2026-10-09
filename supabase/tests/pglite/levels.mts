@@ -4,14 +4,13 @@ import { db, setup, as, rpc } from "./harness.mjs";
 import { generateCharacter } from "../../../src/lib/game/characters";
 import { createRng } from "../../../src/lib/game/rng";
 import { levelCoins, firstClearChest } from "../../../src/lib/game/levelPay";
-import { burnValue } from "../../../src/lib/game/burn";
 import { DUNGEON_IDS, RARITY_IDS } from "../../../src/lib/game/rarity";
 import { LEVELS_PER_RANK, levelsOf } from "../../../src/lib/game/levels";
 import { levelLoot } from "../../../src/lib/game/levelLoot";
 import { heroFromOwned, migrate } from "../../../src/lib/game/profile";
 import { heroRow, playLevelBot } from "../../../src/lib/server/testkit";
 import {
-  doBurn, doChooseSkill, doPull, finishLevelService, loadMe, startLevelService,
+  doChooseSkill, doPull, finishLevelService, loadMe, startLevelService,
 } from "../../../src/lib/server/services";
 import type { Deps } from "../../../src/lib/server/rpc";
 
@@ -194,31 +193,11 @@ await reset();
   if (done0 === 0) await db.exec(`delete from public.dungeon_progress where player_id='${P}' and rank='f' and ascension=0`);
   await reset();
 }
-// 8. burn
+// 8. nothing is burned any more (0050 heroes, 0053 pieces)
 const v0 = Number((await q(`select version from public.player_state where player_id='${P}'`))[0].version);
 await err(rpc("burn_hero", { p_player: P, p_version: v0, p_key: second.key }), "burn_hero", "heroes are not burned any more (0050)");
-let br: { version: number; gained?: number } = { version: v0 };
-await err(rpc("burn_item", { p_player: P, p_version: br.version, p_key: "w-nada-nada-nada;" }), "invalid_args");
-await err(rpc("burn_item", { p_player: U(2), p_version: 0, p_key: "w-espada-agua-f" }), "not_owned", "burn someone else's piece");
-await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,slot) values ('${P}','${HERO}','w-espada-agua-f','arma')`);
-await err(rpc("burn_item", { p_player: P, p_version: br.version, p_key: "w-espada-agua-f" }), "equipped");
-await db.exec(`delete from public.equipment`);
-br = await rpc("burn_item", { p_player: P, p_version: br.version, p_key: "w-espada-agua-f" });
-ok(br.gained === burnValue("f", false) && br.gained === 33, "piece burns at 4%: " + br.gained);
-// burn_many: skips equipped / unknown, one version bump, 4% each
-await db.exec(`insert into public.weapons(player_id,type,element,rarity) values ('${P}','hacha','agua','f'),('${P}','lanza','agua','f'),('${P}','arco','agua','f')`);
-await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,slot) values ('${P}','${HERO}','w-arco-agua-f','arma')`);
-const vBefore = Number((await q(`select version from public.player_state where player_id='${P}'`))[0].version);
-const bm = await rpc("burn_many", { p_player: P, p_version: vBefore, p_keys: '{"w-hacha-agua-f","w-lanza-agua-f","w-arco-agua-f","w-nada-nada-f"}' });
-ok(bm.burned === 2 && bm.gained === 2 * burnValue("f", false) && bm.version === vBefore + 1, "burn_many burns 2, skips equipped/unknown: " + JSON.stringify(bm));
-await err(rpc("burn_many", { p_player: P, p_version: vBefore, p_keys: '{"w-hacha-agua-f"}' }), "conflict", "burn_many stale version");
-await db.exec(`delete from public.equipment where weapon_key='w-arco-agua-f'`);
-await db.exec(`delete from public.weapons where key='w-arco-agua-f'`);
-br = { ...br, version: bm.version };
-for (const r of RARITY_IDS) for (const lg of [false, true]) {
-  const sqlv = (await q(`select (public.trade_value('c-mago-fuego-${r}') * ${lg ? 50 : 4} / 100) v`))[0].v;
-  if (sqlv !== burnValue(r, lg)) { fail++; console.log("FAIL burn parity", r, lg, sqlv, burnValue(r, lg)); } else pass++;
-}
+await err(rpc("burn_item", { p_player: P, p_version: v0, p_key: "w-espada-agua-f" }), "burn_item", "pieces are not burned any more (0053)");
+await err(rpc("burn_many", { p_player: P, p_version: v0, p_keys: '{"w-hacha-agua-f"}' }), "burn_many", "burn_many is gone");
 ok((await q(`select public.trade_value('c-mago-fuego-s') v`))[0].v === 8330, "trade_value s 8330");
 
 // 9. hero skill
@@ -240,10 +219,10 @@ const cas = (roll: number, lines?: unknown) => ({ type: "casco", element: "fuego
 await pullW([cas(0.9, [{ stat: "crit", roll: 1.05 }])]);
 await pullW([cas(1.1, [{ stat: "def", roll: 1.1 }])]);
 let w = (await q(`select stars,roll,lines from public.weapons where player_id='${P}' and key='w-casco-fuego-c'`))[0];
-ok(w.stars === 1 && Number(w.roll) === 1.1 && w.lines[0].stat === "def", "duplicate keeps the better roll");
+ok(w.stars === 0 && Number(w.roll) === 0.9 && w.lines[0].stat === "crit", "the main roll stays: a duplicate is a copy, not +1 star");
 await pullW([cas(0.86, [{ stat: "accuracy", roll: 0.9 }])]);
-w = (await q(`select roll from public.weapons where key='w-casco-fuego-c'`))[0];
-ok(Number(w.roll) === 1.1, "a worse duplicate does not replace the roll");
+const cp = (await q(`select copies from public.weapons where key='w-casco-fuego-c'`))[0].copies;
+ok(cp.length === 2 && cp[0].roll === 1.1 && cp[0].lines[0].stat === "def" && cp[1].roll === 0.86, "each duplicate keeps its own roll and lines as a copy");
 await err(pullW([cas(1.3)]), "invalid_items", "roll 1.3");
 await err(pullW([{ ...cas(1), roll: undefined }]), "invalid_items", "piece without roll");
 await err(pullW([cas(1, [{ stat: "hp", roll: 1 }])]), "invalid_items", "stat outside the pool");
@@ -253,8 +232,8 @@ const forge = async (grant: any[]) => { const g = grant[0]; return rpc("grant_pi
 await forge([{ type: "peto", element: "agua", rarity: "a", name: "Peto", roll: 1.02, lines: [{ stat: "hp", roll: 1 }, { stat: "regen", roll: 1.1 }] }]);
 ok((await q(`select count(*)::int c from public.weapons where key='w-peto-agua-a' and lines is not null`))[0].c === 1, "granted piece with lines");
 await err(forge([{ type: "peto", element: "agua", rarity: "a", name: "P", roll: 1, lines: [{ stat: "hp", roll: 1 }, { stat: "hp", roll: 1 }] }]), "invalid_items", "duplicate stat");
-await db.exec(`update public.weapons set stars=5 where key='w-peto-agua-a'`);
-await err(forge([{ type: "peto", element: "agua", rarity: "a", name: "P", roll: 1, lines: [] }]), "max_stars", "grant over max stars");
+await db.exec(`update public.weapons set copies = (select jsonb_agg(jsonb_build_object('roll', 1, 'lines', null)) from generate_series(1,50)) where key='w-peto-agua-a'`);
+await err(forge([{ type: "peto", element: "agua", rarity: "a", name: "P", roll: 1, lines: [] }]), "max_copies", "grant over 50 copies");
 
 // 11. tower rounds tiebreak
 await rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9, p_rounds: 50 });
@@ -304,15 +283,12 @@ const me = await loadMe(deps.rpc, P);
 ok(me.profile.characters.every((c) => c.legacy === undefined), "db rows are not legacy by default");
 ok(heroFromOwned(me.profile, HERO)!.level >= 1, "hero rebuilt from rows");
 ok(migrate({ characters: [] }).characters.length === 0, "migrate ok");
-// burn + skill + pull + forge through services
+// skill + pull through services
 await doChooseSkill(deps, P, HERO, "barrido").catch(() => undefined);
 await setCoins(5000);
 const pr = await doPull(deps, P, { banner: "weapon", count: 10, idempotencyKey: crypto.randomUUID() });
 ok(pr.results!.length === 10, "service weapon pull x10");
 ok((await q(`select count(*)::int c from public.weapons where roll is not null`))[0].c > 0, "pulled pieces have rolls in the DB");
-const bw = (await q(`select key from public.weapons where key not in (select weapon_key from public.equipment) limit 1`))[0].key;
-const dbn = await doBurn(deps, P, bw);
-ok(dbn.coins > 0, "service burn");
 
 console.log(`levels: pass ${pass} fail ${fail}`);
 if (fail) process.exit(1);

@@ -52,6 +52,7 @@ ok(me.profile.weapons.find((w) => w.id === "w-espada-fuego-s")?.stars === 2, "pi
 ok(me.profile.equipped["c-clerigo-viento-s"] === "w-maza-viento-s", "gear followed the re-ranked hero: " + JSON.stringify(me.profile.equipped));
 ok(me.profile.characters.find((c) => c.id === "c-caballero-tierra-c")?.traits.join() === "terco", "first valid trait kept");
 ok(me.profile.weapons.find((w) => w.id === "w-casco-agua-s")?.lines?.[0]?.stat === "resist", "dodge line became resist");
+ok(me.profile.weapons.find((w) => w.id === "w-baston-agua-c")?.stars === 1 && !me.profile.weapons.some((w) => w.copies?.length), "old stars on pieces stay, no copies appear");
 ok(me.profile.coins === 12345, "coins untouched");
 ok(((await db.query(`select count(*)::int n from public.market_offers where status='open'`)).rows[0] as { n: number }).n === 0, "stale hero offers cancelled");
 ok(JSON.stringify(pr).includes('"status":"copy"'), "a repeated pull is a copy");

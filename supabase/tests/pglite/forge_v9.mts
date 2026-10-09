@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// 0041 Forja v9: part_stock conversion, Escamas/Dado in bank_level, apply_ascend, apply_upgrade, prizes.
+// 0041 Forja v9: part_stock conversion, Escamas/Dado in bank_level, apply_piece_change (0053), apply_upgrade, prizes.
 // Run: npx tsx supabase/tests/pglite/forge_v9.mts
 import fs from "fs";
 import { db, setup, rpc, as } from "./harness.mjs";
@@ -29,7 +29,7 @@ await db.exec(`insert into public.part_stock(player_id,key,qty) values
   ('${U}','p-daga-f',2),('${U}','p-maza-a',1),('${U}','p-libro-c',1),
   ('${U}','core-agua',2),('${U}','core-rayo',1)`);
 await db.exec(`delete from public.migration_flags where key='0041_forge_v9'`);
-const reapply = async () => { for (const f of ["0041_forge_v9.sql", "0042_forge_v9_fixes.sql"]) await db.exec(fs.readFileSync(new URL("../../migrations/" + f, import.meta.url), "utf8")); };
+const reapply = async () => { for (const f of ["0041_forge_v9.sql", "0042_forge_v9_fixes.sql", "0050_hero_copies.sql", "0053_piece_copies.sql"]) await db.exec(fs.readFileSync(new URL("../../migrations/" + f, import.meta.url), "utf8")); };
 await reapply();
 const s = await st();
 ok(s.escamas === 11 && s.dados === 3 && s.coins === 190, "conversion " + JSON.stringify(s));
@@ -84,51 +84,52 @@ b = await bank(9, { p_dados: 1 });
 ok(b.dados === 1, "the cap resets on a new game day");
 await err(rpc("bank_level", { p_player: U, p_run_id: await start(0), p_hero_id: HERO, p_rank: "s", p_level: 0, p_asc: 0, p_status: "lost", p_xp: 0, p_dados: 1, p_pieces: [], p_repeat: true }), "invalid_args", "die on a lost level");
 
-// 4. apply_ascend
-const give = (type: string, el: string, rank: string, stars = 0) =>
-  db.exec(`insert into public.weapons(player_id,type,element,rarity,stars,roll,data) values ('${U}','${type}','${el}','${rank}',${stars},1,'{"name":"${type}"}')`);
+// 4. apply_piece_change (0053): the write-set of star-up, ascend and roll swap
+const give = (type: string, el: string, rank: string, stars = 0, extra = "") =>
+  db.exec(`insert into public.weapons(player_id,type,element,rarity,stars,roll,data${extra ? ",copies" : ""}) values ('${U}','${type}','${el}','${rank}',${stars},1,'{"name":"${type}"}'${extra})`);
 await db.exec(`delete from public.weapons where player_id='${U}'`);
 await db.exec(`update public.player_state set coins = 5000 where player_id='${U}'`);
-await give("espada", "fuego", "s"); await give("hacha", "agua", "s"); await give("casco", "rayo", "s");
-await give("peto", "tierra", "ss"); // wrong rank for materials
+await give("espada", "fuego", "f", 2, `,'[{"roll":1.1,"lines":null},{"roll":0.9,"lines":null}]'::jsonb`);
+await give("hacha", "agua", "f"); await give("casco", "rayo", "f"); await give("peto", "tierra", "f");
 const v = async () => (await st()).version;
-const newp = { type: "espada", element: "fuego", rarity: "ss", name: "Espada", roll: 1.05 };
-const asc = async (over: Record<string, unknown> = {}) => rpc("apply_ascend", { p_player: U, p_version: await v(), p_base: "w-espada-fuego-s", p_materials: ["w-hacha-agua-s", "w-casco-rayo-s"], p_new: newp, ...over });
-await err(asc({ p_version: 999 }), "conflict");
-await err(asc({ p_materials: ["w-hacha-agua-s"] }), "invalid_args", "too few materials");
-await err(asc({ p_materials: ["w-hacha-agua-s", "w-hacha-agua-s"] }), "invalid_args", "repeated material");
-await err(asc({ p_materials: ["w-hacha-agua-s", "w-espada-fuego-s"] }), "invalid_args", "base as material");
-await err(asc({ p_materials: ["w-hacha-agua-s", "w-peto-tierra-ss"] }), "rank_mismatch");
-await err(asc({ p_materials: ["w-hacha-agua-s", "w-nada-nada-s"] }), "not_owned");
-await err(asc({ p_new: { ...newp, rarity: "ssr" } }), "invalid_items", "wrong target rank");
-await err(asc({ p_new: { ...newp, type: "hacha" } }), "invalid_items", "wrong type");
-await err(asc({ p_new: { ...newp, roll: 9 } }), "invalid_items", "forged roll");
-await db.exec(`update public.player_state set coins = 100 where player_id='${U}'`);
-await err(asc(), "insufficient_coins");
+const arr = (a: string[]) => "{" + a.map((x) => `"${x}"`).join(",") + "}";
+const prow = (type: string, element: string, rarity: string, o: Record<string, unknown> = {}) =>
+  ({ type, element, rarity, stars: 0, name: type, roll: 1.05, lines: null, legacy: false, plus: 0, plusStreak: 0, copies: [], ...o });
+const pc = async (over: Record<string, unknown> = {}) =>
+  rpc("apply_piece_change", { p_player: U, p_version: await v(), p_coins: 20, p_equip: [], p_upsert: [prow("espada", "fuego", "e", { stars: 1 })], ...over, p_delete: arr((over.p_delete as string[]) ?? ["w-hacha-agua-f", "w-casco-rayo-f"]) });
+await err(pc({ p_version: 999 }), "conflict");
+await err(pc({ p_coins: 999999 }), "invalid_args", "coins out of range");
+await err(pc({ p_upsert: [prow("espada", "fuego", "ss")] }), "invalid_args", "rank ss is not an item rank any more");
+await err(pc({ p_upsert: [prow("espada", "fuego", "e", { stars: 6 })] }), "invalid_args", "stars > 5");
+await err(pc({ p_upsert: [prow("espada", "fuego", "e", { copies: Array(51).fill({ roll: 1, lines: null }) })] }), "invalid_args", "51 copies");
+await err(pc({ p_upsert: [prow("espada", "fuego", "e", { roll: 9 })] }), "invalid_items", "forged roll");
+await err(pc({ p_upsert: [prow("espada", "fuego", "e", { copies: [{ roll: 9, lines: null }] })] }), "invalid_items", "forged copy roll");
+await err(pc({ p_delete: ["w-espada-fuego-e"] }), "invalid_args", "upserted and deleted");
+await err(pc({ p_delete: ["w-hacha-agua-f", "w-nada-nada-f"] }), "not_owned");
+await db.exec(`update public.player_state set coins = 10 where player_id='${U}'`);
+await err(pc(), "insufficient_coins");
 await db.exec(`update public.player_state set coins = 5000 where player_id='${U}'`);
-// worn material is refused; a worn base keeps its slot
+// worn base keeps its slot: the gear row follows the piece to its new key
 await db.exec(`insert into public.characters(player_id,class,element,rarity,stars,data) values ('${U}','mago','agua','f',0,'{}')`);
-await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,slot) values ('${U}','c-mago-agua-f','w-casco-rayo-s','casco')`);
-await err(asc(), "equipped", "worn material");
-await db.exec(`delete from public.equipment where player_id='${U}'`);
-await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,slot) values ('${U}','c-mago-agua-f','w-espada-fuego-s','arma')`);
+await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,slot) values ('${U}','c-mago-agua-f','w-espada-fuego-f','arma')`);
 const c1 = (await st()).coins;
-const r = await asc();
-ok(r.key === "w-espada-fuego-ss" && r.status === "new", "ascended " + JSON.stringify(r));
-ok((await st()).coins === c1 - 1280, "S -> SS costs 1280");
-ok((await q(`select key from public.weapons where player_id='${U}' order by key`)).map((x) => x.key).join() === "w-espada-fuego-ss,w-peto-tierra-ss", "base + materials consumed");
-ok((await q(`select weapon_key from public.equipment where player_id='${U}'`))[0]?.weapon_key === "w-espada-fuego-ss", "worn base keeps its slot under the new key");
-const nw = (await q(`select stars, plus, roll from public.weapons where key='w-espada-fuego-ss'`))[0];
-ok(nw.stars === 0 && nw.plus === 0 && Number(nw.roll) === 1.05, "new piece: 0 stars, +0, server roll");
-// collision: the target already exists -> +1 star, unless it is at max stars
-await give("espada", "agua", "f"); await give("hacha", "agua", "f"); await give("daga", "agua", "f"); await give("arco", "agua", "f"); await give("maza", "agua", "f"); await give("libro", "agua", "f");
-await give("espada", "agua", "e", 2);
-const f = async () => rpc("apply_ascend", { p_player: U, p_version: await v(), p_base: "w-espada-agua-f", p_materials: ["w-hacha-agua-f", "w-daga-agua-f", "w-arco-agua-f", "w-maza-agua-f"], p_new: { type: "espada", element: "agua", rarity: "e", name: "E", roll: 1 } });
-// F needs 6 pieces total (base + 5)
-await err(f(), "invalid_args", "F needs 5 materials");
-const r2 = await rpc("apply_ascend", { p_player: U, p_version: await v(), p_base: "w-espada-agua-f", p_materials: ["w-hacha-agua-f", "w-daga-agua-f", "w-arco-agua-f", "w-maza-agua-f", "w-libro-agua-f"], p_new: { type: "espada", element: "agua", rarity: "e", name: "E", roll: 1 } });
-ok(r2.status === "star" && (await q(`select stars from public.weapons where key='w-espada-agua-e'`))[0].stars === 3, "existing target gets +1 star");
-await err(rpc("apply_ascend", { p_player: U, p_version: await v(), p_base: "w-espada-fuego-ss", p_materials: ["w-peto-tierra-ss"], p_new: { type: "espada", element: "fuego", rarity: "ssr", name: "x", roll: 1 } }), "invalid_args", "SS needs 3 pieces");
+await pc({ p_upsert: [prow("espada", "fuego", "e", { stars: 1, copies: [{ roll: 0.9, lines: null }] }), prow("espada", "fuego", "f", { roll: 1.1 })], p_delete: ["w-hacha-agua-f", "w-casco-rayo-f"], p_equip: [{ weapon: "w-espada-fuego-f", to: "w-espada-fuego-e" }] });
+ok((await st()).coins === c1 - 20, "the rank-up costs its coins");
+ok((await q(`select key from public.weapons where player_id='${U}' order by key`)).map((x) => x.key).join() === "w-espada-fuego-e,w-espada-fuego-f,w-peto-tierra-f", "new rank + split piece stay, materials gone");
+ok((await q(`select weapon_key from public.equipment where player_id='${U}'`))[0]?.weapon_key === "w-espada-fuego-e", "worn base keeps its slot under the new key");
+const nw = (await q(`select stars, plus, roll, copies from public.weapons where key='w-espada-fuego-e'`))[0];
+ok(nw.stars === 1 && nw.plus === 0 && Number(nw.roll) === 1.05 && nw.copies.length === 1 && nw.copies[0].roll === 0.9, "new piece: stars, +0, roll and copies as sent");
+const prof4 = await rpc("get_profile", { p_player: U });
+ok(prof4.weapons.find((w: any) => w.id === "w-espada-fuego-e").data.copies.length === 1, "get_profile returns the copies");
+// unequip
+await pc({ p_upsert: [prow("espada", "fuego", "e", { stars: 1 })], p_delete: [], p_equip: [{ weapon: "w-espada-fuego-e", to: null }], p_coins: 0 });
+ok((await q(`select count(*)::int c from public.equipment where player_id='${U}'`))[0].c === 0, "unequipped");
+// grant_piece: a duplicate is a copy with its own roll; at 50 copies it refunds (or errors without refund)
+const gp = async (refund: boolean) => rpc("grant_piece", { p_player: U, p_type: "peto", p_element: "tierra", p_rank: "f", p_name: "x", p_roll: 1.1, p_lines: null, p_refund_on_max: refund });
+ok((await gp(true)) === "copy" && (await q(`select jsonb_array_length(copies) n, stars from public.weapons where key='w-peto-tierra-f'`))[0].n === 1, "duplicate piece = copy");
+await db.exec(`update public.weapons set copies = (select jsonb_agg(jsonb_build_object('roll', 1, 'lines', null)) from generate_series(1,50)) where key='w-peto-tierra-f'`);
+ok((await gp(true)) === "refund", "50 copies refund");
+await err(gp(false), "max_copies");
 
 // 5. apply_upgrade
 await db.exec(`delete from public.weapons where player_id='${U}'`);
@@ -160,23 +161,11 @@ ok(u.plus === 5 && u.escamas === 0, "+5 costs 5 Escamas " + JSON.stringify(u));
 // 6. the plus level reaches the profile; clients cannot call the new functions
 const p2 = await rpc("get_profile", { p_player: U });
 ok(p2.weapons.find((w: any) => w.id === "w-casco-fuego-s").data.plus === 5, "get_profile carries plus");
-for (const f of ["apply_ascend", "apply_upgrade"])
-  await as("authenticated", U, async () => { try { await db.query(`select public.${f}(null,null,null,null,null)`); fail++; console.log("FAIL: authenticated can call", f); } catch (e) { if (String((e as Error).message).includes("permission denied")) pass++; else { fail++; console.log("FAIL: ", f, (e as Error).message.slice(0, 100)); } } });
+for (const [f, nulls] of [["apply_piece_change", "null,null,null,null,null,null"], ["apply_upgrade", "null,null,null,null,null"]])
+  await as("authenticated", U, async () => { try { await db.query(`select public.${f}(${nulls})`); fail++; console.log("FAIL: authenticated can call", f); } catch (e) { if (String((e as Error).message).includes("permission denied")) pass++; else { fail++; console.log("FAIL: ", f, (e as Error).message.slice(0, 100)); } } });
 await err(rpc("apply_forge", {}), "function", "apply_forge is gone");
 
-// 7. 0042 fixes
-// materials with +N are refused; a worn base... (rank S needs 3 pieces in total)
-await db.exec(`delete from public.weapons where player_id='${U}'`);
-await db.exec(`update public.player_state set coins = 5000 where player_id='${U}'`);
-await give("espada", "fuego", "s"); await give("hacha", "agua", "s"); await give("casco", "rayo", "s");
-await db.exec(`update public.weapons set plus = 1 where key='w-hacha-agua-s'`);
-await err(asc(), "material_upgraded");
-await db.exec(`update public.weapons set plus = 0 where key='w-hacha-agua-s'`);
-// target at max stars: grant_piece says refund/max_stars and NOTHING is consumed
-await give("espada", "fuego", "ss", 5);
-const before = (await q(`select count(*)::int c from public.weapons where player_id='${U}'`))[0].c;
-await err(asc(), "max_stars");
-ok((await q(`select count(*)::int c from public.weapons where player_id='${U}'`))[0].c === before, "failed ascend consumes nothing");
+// 7. grant_piece still refuses the removed weapon
 // lanza is gone from grant_piece
 await err(rpc("grant_piece", { p_player: U, p_type: "lanza", p_element: "agua", p_rank: "f", p_name: "x", p_roll: 1, p_lines: null, p_refund_on_max: false }), "invalid_items", "no lanza");
 // coop dice share the daily cap of 2 with the level drops

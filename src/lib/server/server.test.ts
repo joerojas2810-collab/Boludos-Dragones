@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ASCEND } from "../game/ascend";
+import { ASCEND } from "../game/pieceGrowth";
 import { generateCharacter } from "../game/characters";
 import { ENGINE_VERSION } from "../game/stage";
 import { replayTower } from "../game/tower";
@@ -14,9 +14,10 @@ import { levelsOf } from "../game/levels";
 import type { RarityId } from "../game/rarity";
 import { heroFromOwned, migrate } from "../game/profile";
 import {
-  doBurn,
   doChooseSkill,
   doAscend,
+  doStarUpPiece,
+  doSwapRoll,
   doFuseHeroes,
   doStarUpHero,
   doSwapTrait,
@@ -593,7 +594,7 @@ describe("forge service (Ascender + Mejorar)", () => {
     stars,
     data: { name: "x", roll: 1, ...extra },
   });
-  it("ascend: runs the pure rule, rolls with the server rng and persists base + materials", async () => {
+  it("ascend: runs the pure rule and writes base + materials as one change", async () => {
     const db = new FakeDb();
     db.coins = 100;
     const mats = [
@@ -604,18 +605,35 @@ describe("forge service (Ascender + Mejorar)", () => {
     ];
     expect(mats).toHaveLength(ASCEND.f!.total - 1); // the base plus these are what F -> E asks for
     db.rows.push(piece("espada", "fuego", "f"), ...mats.map(([t, e]) => piece(t, e, "f")));
-    const r = await doAscend(db.deps, "u1", "w-espada-fuego-f", mats.map(([t, e]) => `w-${t}-${e}-f`));
-    expect(r.newId).toBe("w-espada-fuego-e");
-    expect(db.forged[0]).toMatchObject({
-      name: "apply_ascend",
-      p_base: "w-espada-fuego-f",
-      p_new: { type: "espada", element: "fuego", rarity: "e" },
+    const r = await doAscend(db.deps, "u1", "w-espada-fuego-f", mats.map(([t, e]) => ({ id: `w-${t}-${e}-f`, n: 1 })));
+    expect(r.id).toBe("w-espada-fuego-e");
+    expect(db.pieceChanges[0]).toMatchObject({
+      p_coins: ASCEND.f!.coins,
+      p_upsert: [{ type: "espada", element: "fuego", rarity: "e", stars: 0, roll: 1 }],
     });
+    expect(db.pieceChanges[0].p_delete).toEqual(["w-espada-fuego-f", ...mats.map(([t, e]) => `w-${t}-${e}-f`)]);
+    expect(db.coins).toBe(100 - ASCEND.f!.coins);
+    expect(db.audits).toContain("ascend");
     // too few materials never reach the DB
     expect(
-      await catchErr(doAscend(db.deps, "u1", "w-espada-fuego-f", ["w-hacha-agua-f"])),
-    ).toMatchObject({ status: 400, code: "forge_invalid" });
-    expect(db.forged).toHaveLength(1);
+      await catchErr(doAscend(db.deps, "u1", "w-espada-fuego-e", [{ id: "w-hacha-agua-f", n: 1 }])),
+    ).toMatchObject({ status: 400, code: "fusion_invalid" });
+    expect(db.pieceChanges).toHaveLength(1);
+  });
+  it("star-up and roll swap use copies; the rest is refused before SQL", async () => {
+    const db = new FakeDb();
+    db.rows.push(piece("casco", "agua", "c", 0, { copies: [{ roll: 0.9 }, { roll: 1.1 }, { roll: 1.05 }] }));
+    const up = await doStarUpPiece(db.deps, "u1", "w-casco-agua-c", [{ id: "w-casco-agua-c", n: 3 }]);
+    expect(up.profile.weapons[0]).toMatchObject({ stars: 1 });
+    expect(db.pieceChanges[0]).toMatchObject({ p_coins: 0, p_delete: [] });
+    const db2 = new FakeDb();
+    db2.rows.push(piece("casco", "agua", "c", 0, { copies: [{ roll: 1.1 }] }));
+    const sw = await doSwapRoll(db2.deps, "u1", "w-casco-agua-c", 0);
+    expect(sw.profile.weapons[0]).toMatchObject({ roll: 1.1 });
+    expect(sw.profile.weapons[0].copies?.[0].roll).toBe(1);
+    expect(await catchErr(doSwapRoll(db2.deps, "u1", "w-casco-agua-c", 5))).toMatchObject({ code: "fusion_invalid" });
+    expect(await catchErr(doStarUpPiece(db2.deps, "u1", "w-casco-agua-c", [{ id: "w-casco-agua-c", n: 3 }]))).toMatchObject({ code: "fusion_invalid" });
+    expect(db2.pieceChanges).toHaveLength(1);
   });
   it("upgrade: the server rolls the success; costs and gates are checked before the DB", async () => {
     const db = new FakeDb();
@@ -630,10 +648,13 @@ describe("forge service (Ascender + Mejorar)", () => {
     expect(db.forged).toHaveLength(1);
   });
   it("validates the request bodies", () => {
-    expect(ascendBody.safeParse({ baseId: "w-a-b-c", materialIds: ["x", "y"] }).success).toBe(true);
-    expect(ascendBody.safeParse({ baseId: "w-a-b-c", materialIds: ["x"] }).success).toBe(false);
-    expect(ascendBody.safeParse({ baseId: "w-a-b-c", materialIds: Array(9).fill("x") }).success).toBe(false);
-    expect(ascendBody.safeParse({ baseId: "w", materialIds: ["x", "y"], extra: 1 }).success).toBe(false);
+    const m = (n: number) => ({ id: "x", n });
+    expect(ascendBody.safeParse({ baseId: "w-a-b-c", materials: [m(1), m(2)] }).success).toBe(true);
+    expect(ascendBody.safeParse({ baseId: "w-a-b-c", materials: [] }).success).toBe(false);
+    expect(ascendBody.safeParse({ baseId: "w-a-b-c", materials: Array(10).fill(m(1)) }).success).toBe(false);
+    expect(ascendBody.safeParse({ baseId: "w-a-b-c", materials: [m(0)] }).success).toBe(false);
+    expect(ascendBody.safeParse({ baseId: "w", materials: [m(1)], extra: 1 }).success).toBe(false);
+    expect(ascendBody.safeParse({ baseId: "w", materials: [m(1)], keep: "base" }).success).toBe(true);
     expect(upgradeBody.safeParse({ pieceId: "w-a-b-c", useDado: true }).success).toBe(true);
     expect(upgradeBody.safeParse({ pieceId: "w-a-b-c" }).success).toBe(false);
   });
@@ -816,28 +837,8 @@ describe("dungeon level services (fake DB)", () => {
   });
 });
 
-describe("burn / skill / profile mapping (fake DB)", () => {
+describe("skill / profile mapping (fake DB)", () => {
   const h0 = generateCharacter(createRng(5), "mago");
-  it("burn runs the pure rules first, then asks SQL with the profile version", async () => {
-    const db = new FakeDb();
-    db.rows.push(heroRow(h0, "f"), {
-      key: "w-espada-fuego-f",
-      kind: "weap",
-      a: "espada",
-      element: "fuego",
-      rarity: "f",
-      stars: 0,
-      data: { name: "Espada" },
-    });
-    const r = await doBurn(db.deps, "u1", "w-espada-fuego-f");
-    expect(r.coins).toBe(33); // 4% of 830
-    expect(db.burned[0]).toMatchObject({ name: "burn_item", p_key: "w-espada-fuego-f", p_version: 0 });
-    // heroes are not burned and unknown pieces do not exist: SQL is never reached
-    const n = db.burned.length;
-    for (const id of [db.rows[0].key, "w-espada-fuego-f"])
-      expect(await catchErr(doBurn(db.deps, "u1", id))).toMatchObject({ code: "burn_invalid" });
-    expect(db.burned).toHaveLength(n);
-  });
   it("choose skill validates ownership and class before SQL, at any rank", async () => {
     const db = new FakeDb();
     const high = heroRow(h0, "c");
@@ -889,18 +890,19 @@ describe("burn / skill / profile mapping (fake DB)", () => {
       expect(it.roll).toBeGreaterThanOrEqual(0.85);
       expect(it.roll).toBeLessThanOrEqual(1.15);
     }
-    // ascend: the new piece's roll comes from the injected server rng, not from the profile state
+    // ascend: the lines a rank-up adds come from the injected server rng, not from the profile state
     const mk = (seed: number) => {
       const f = new FakeDb();
       f.deps.randomSeed = () => seed;
-      f.coins = 100;
-      for (const [t, e] of [["casco", "fuego"], ["casco", "agua"], ["casco", "rayo"], ["casco", "tierra"], ["peto", "agua"]])
-        f.rows.push({ key: `w-${t}-${e}-f`, kind: "weap", a: t, element: e, rarity: "f", stars: 0, data: { name: "x", roll: 1 } });
+      f.coins = 1000;
+      f.rows.push({ key: "w-casco-fuego-b", kind: "weap", a: "casco", element: "fuego", rarity: "b", stars: 0, data: { name: "x", roll: 1, lines: [{ stat: "def", roll: 1 }] } });
+      for (const [t, e] of [["casco", "agua"], ["casco", "rayo"], ["casco", "tierra"]])
+        f.rows.push({ key: `w-${t}-${e}-b`, kind: "weap", a: t, element: e, rarity: "b", stars: 0, data: { name: "x", roll: 1 } });
       return f;
     };
     const run = async (f: FakeDb) => {
-      await doAscend(f.deps, "u1", "w-casco-fuego-f", ["w-casco-agua-f", "w-casco-rayo-f", "w-casco-tierra-f", "w-peto-agua-f"]);
-      return (f.forged[0].p_new as { roll: number }).roll;
+      await doAscend(f.deps, "u1", "w-casco-fuego-b", ["w-casco-agua-b", "w-casco-rayo-b", "w-casco-tierra-b"].map((id) => ({ id, n: 1 })));
+      return JSON.stringify((f.pieceChanges[0].p_upsert as { lines: unknown }[])[0].lines);
     };
     const ra = await run(mk(1));
     const rb = await run(mk(2));
