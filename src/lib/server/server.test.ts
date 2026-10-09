@@ -11,11 +11,15 @@ import { BAD_CREDENTIALS, login } from "./loginFlow";
 import { limit } from "./rpc";
 import { levelLoot } from "../game/levelLoot";
 import { levelsOf } from "../game/levels";
+import type { RarityId } from "../game/rarity";
 import { heroFromOwned, migrate } from "../game/profile";
 import {
   doBurn,
   doChooseSkill,
   doAscend,
+  doFuseHeroes,
+  doStarUpHero,
+  doSwapTrait,
   doUpgrade,
   doPull,
   finishLevelService,
@@ -900,5 +904,71 @@ describe("burn / skill / profile mapping (fake DB)", () => {
     const rc = await run(mk(1));
     expect(ra).toBe(rc);
     expect(ra).not.toBe(rb);
+  });
+});
+
+describe("hero growth services (fake DB)", () => {
+  const hero = (cls: "mago" | "picaro" | "clerigo" | "caballero", seed: number, rank: RarityId, copies: string[] = []) => {
+    const r = heroRow(generateCharacter(createRng(seed), cls), rank);
+    (r.data as Record<string, unknown>).copies = copies;
+    return r;
+  };
+  const five = () => [
+    hero("mago", 1, "f"),
+    hero("picaro", 2, "f"),
+    hero("clerigo", 3, "f"),
+    hero("caballero", 4, "f"),
+    hero("mago", 5, "f", ["terco"]),
+  ];
+
+  it("rank-up runs the pure rules, then writes one atomic change with the coins spent", async () => {
+    const db = new FakeDb();
+    db.rows.push(...five());
+    const [base, ...mats] = db.rows.map((r) => r.key);
+    const r = await doFuseHeroes(db.deps, "u1", base, mats.slice(0, 3).map((id) => ({ id, n: 1 })).concat([{ id: mats[3], n: 1 }]));
+    expect(r.id).toBe(base.replace(/-f$/, "-e"));
+    const call = db.heroChanges[0];
+    expect(call).toMatchObject({ p_version: 0, p_coins: 20 });
+    expect((call.p_upsert as { rarity: string }[]).map((h) => h.rarity)).toEqual(["f", "e"]); // the material that only gave its copy + the new hero
+    expect(call.p_delete).toEqual([base, ...mats.slice(0, 3)]); // the base is renamed to its new rank
+    expect(db.coins).toBe(3000 - 20);
+    expect(db.audits).toContain("fuse_heroes");
+  });
+
+  it("star-up spends 3 units (copies first) and adds a star", async () => {
+    const db = new FakeDb();
+    db.rows.push(
+      hero("mago", 1, "b", ["terco", "glotón"]),
+      hero("picaro", 2, "b", ["terco"]),
+    );
+    const [base, other] = db.rows.map((r) => r.key);
+    const r = await doStarUpHero(db.deps, "u1", base, [
+      { id: base, n: 2 },
+      { id: other, n: 1 },
+    ]);
+    expect(r.profile.characters.find((c) => c.id === base)).toMatchObject({ stars: 1 });
+    expect(r.profile.characters.find((c) => c.id === base)?.copies).toBeUndefined();
+    expect(r.profile.characters.find((c) => c.id === other)?.copies).toBeUndefined(); // its copy was spent, the hero stays
+    expect(db.heroChanges[0]).toMatchObject({ p_coins: 0, p_delete: [] });
+  });
+
+  it("swap trait trades the main trait with a copy's", async () => {
+    const db = new FakeDb();
+    db.rows.push(hero("mago", 1, "c", ["glotón"]));
+    const key = db.rows[0].key;
+    const before = (await loadMe(db.deps.rpc, "u1")).profile.characters[0].traits[0];
+    const r = await doSwapTrait(db.deps, "u1", key, 0);
+    const h = r.profile.characters[0];
+    expect([h.traits[0], h.copies?.[0]]).toEqual(["glotón", before]);
+  });
+
+  it("refuses invalid input before SQL is reached", async () => {
+    const db = new FakeDb();
+    db.rows.push(...five());
+    const base = db.rows[0].key;
+    expect(await catchErr(doFuseHeroes(db.deps, "u1", base, [{ id: db.rows[1].key, n: 1 }]))).toMatchObject({ code: "fusion_invalid" });
+    expect(await catchErr(doSwapTrait(db.deps, "u1", base, 3))).toMatchObject({ code: "fusion_invalid" });
+    expect(await catchErr(doStarUpHero(db.deps, "u1", "c-nada-nada-f", []))).toMatchObject({ code: "fusion_invalid" });
+    expect(db.heroChanges).toHaveLength(0);
   });
 });

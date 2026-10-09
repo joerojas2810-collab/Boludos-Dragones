@@ -1,6 +1,6 @@
 import { CLASS_IDS, CLASSES } from "./characters";
 import { ELEMENTS, ELEMENT_LABEL, type Element } from "./elements";
-import type { Profile } from "./profile";
+import { MAX_COPIES, type Profile } from "./profile";
 import { MAX_STARS, RARITIES, RARITY_IDS, type RarityId } from "./rarity";
 import { WEAPON_TYPES, WEAPON_TYPE_DATA } from "./weapons";
 
@@ -97,14 +97,19 @@ export const isFairTrade = (give: string, want: string | null, coins: number) =>
   Math.abs(tradeValue(give) - (tradeValue(want) + coins)) <=
   tradeValue(give) * TRADE_TOLERANCE;
 
-const starsOf = (p: Profile, kind: PieceKind, key: string): number | null =>
-  (kind === "character" ? p.characters : p.weapons).find((x) => x.id === key)
-    ?.stars ?? null;
+// Spare units of a piece: a hero's spare copies, a weapon's stars (null when not owned).
+const spareOf = (p: Profile, kind: PieceKind, key: string): number | null => {
+  if (kind === "character") {
+    const c = p.characters.find((x) => x.id === key);
+    return c ? (c.copies?.length ?? 0) : null;
+  }
+  return p.weapons.find((x) => x.id === key)?.stars ?? null;
+};
 
-// Repeated pieces (stars >= 1) are the only ones that can be offered or given.
+// Only spare units can be offered or given: a hero's copy (it travels with its trait) or a weapon's star.
 export const spareKeys = (p: Profile, kind: PieceKind): string[] =>
   (kind === "character" ? p.characters : p.weapons)
-    .filter((x) => x.stars >= 1)
+    .filter((x) => (spareOf(p, kind, x.id) ?? 0) >= 1)
     .map((x) => x.id);
 
 // Why `me` cannot accept the offer (Spanish), or null if it looks acceptable.
@@ -115,9 +120,9 @@ export function acceptBlock(
   isMine: boolean,
 ): string | null {
   if (isMine) return "Es tu oferta.";
-  if ((starsOf(p, offer.kind, offer.give) ?? -1) >= MAX_STARS)
-    return "Ya tienes el máximo de estrellas de esa pieza.";
-  if (offer.want && (starsOf(p, offer.kind, offer.want) ?? 0) < 1)
+  if ((spareOf(p, offer.kind, offer.give) ?? -1) >= (offer.kind === "character" ? MAX_COPIES : MAX_STARS))
+    return offer.kind === "character" ? "Ya tienes el máximo de copias de ese héroe." : "Ya tienes el máximo de estrellas de esa pieza.";
+  if (offer.want && (spareOf(p, offer.kind, offer.want) ?? 0) < 1)
     return "No tienes repetida la pieza que piden.";
   if (offer.coins > 0 && p.coins < offer.coins)
     return `Te faltan ${offer.coins - p.coins} monedas.`;

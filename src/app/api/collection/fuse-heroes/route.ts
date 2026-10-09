@@ -8,5 +8,5 @@ export const runtime = "nodejs";
 export const POST = route(async (req) => {
   const id = await requireUser();
   const b = await readJson(req, fuseHeroesBody);
-  return ok(await doFuseHeroes(realDeps(), id, b.baseId, b.materialIds));
+  return ok(await doFuseHeroes(realDeps(), id, b.baseId, b.materials, b.keep));
 });

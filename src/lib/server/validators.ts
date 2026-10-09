@@ -70,9 +70,19 @@ export const burnManyBody = z.strictObject({
   kind: z.enum(["hero", "piece"]),
   ids: z.array(z.string().min(1).max(100)).min(1).max(100),
 });
+const heroMaterial = z.strictObject({ id: z.string().min(1).max(100), n: z.number().int().min(1).max(51) });
 export const fuseHeroesBody = z.strictObject({
   baseId: z.string().min(1).max(100),
-  materialIds: z.array(z.string().min(1).max(100)).min(2).max(9),
+  materials: z.array(heroMaterial).min(1).max(9),
+  keep: z.enum(["base", "existing"]).optional(),
+});
+export const starUpHeroBody = z.strictObject({
+  baseId: z.string().min(1).max(100),
+  materials: z.array(heroMaterial).min(1).max(9),
+});
+export const swapTraitBody = z.strictObject({
+  heroId: z.string().min(1).max(100),
+  index: z.number().int().min(0).max(49),
 });
 export const tutorialBody = z.strictObject({ step: z.number().int().min(0).max(7) });
 export const skillBody = z.strictObject({

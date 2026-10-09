@@ -11,14 +11,14 @@ for (let i = 1; i <= 3; i++) {
   await rpc("create_player", { p_user: U(i), p_name: names[i - 1], p_name_key: names[i - 1], p_is_admin: false });
 }
 const q = async (sql) => (await db.query(sql)).rows;
-const stars = async (u, key) => (await q(`select stars from public.characters where player_id='${U(u)}' and key='${key}'`))[0]?.stars ?? null;
-const total = async (key) => Number((await q(`select coalesce(sum(stars+1),0) s from public.characters where key='${key}'`))[0].s);
+const stars = async (u, key) => (await q(`select cardinality(copies) as stars from public.characters where player_id='${U(u)}' and key='${key}'`))[0]?.stars ?? null; // heroes: spare copies since 0050
+const total = async (key) => Number((await q(`select coalesce(sum(cardinality(copies)+1),0) s from public.characters where key='${key}'`))[0].s);
 const A = "c-mago-fuego-c", B = "c-picaro-agua-f", W = "w-espada-rayo-a";
-const ins = (u, cls, el, rar, st) => db.exec(`insert into public.characters(player_id,class,element,rarity,stars,data) values ('${U(u)}','${cls}','${el}','${rar}',${st},'{"name":"x"}')`);
-await ins(1, "mago", "fuego", "c", 2);       // ana: 1 spare... 2 stars
+const ins = (u, cls, el, rar, n) => db.exec(`insert into public.characters(player_id,class,element,rarity,copies,data) values ('${U(u)}','${cls}','${el}','${rar}',array_fill('terco'::text, array[${n}]),'{"name":"x","traits":["terco"]}')`);
+await ins(1, "mago", "fuego", "c", 2);       // ana: 2 spare copies
 await ins(1, "picaro", "agua", "f", 0);     // ana: single copy
 await ins(2, "picaro", "agua", "f", 1);     // beto: spare
-await ins(3, "mago", "fuego", "c", 5);       // carla: maxed
+await ins(3, "mago", "fuego", "c", 50);      // carla: maxed (50 copies)
 await db.exec(`insert into public.weapons(player_id,type,element,rarity,stars,data) values ('${U(1)}','espada','rayo','a',1,'{}')`);
 await db.exec(`insert into public.equipment(player_id,character_key,weapon_key) values ('${U(1)}','${A}','${W}')`);
 
@@ -57,7 +57,7 @@ await err(rpc("market_cancel", { p_player: U(2), p_offer: o1.id }), "forbidden",
 await err(rpc("market_accept", { p_player: U(2), p_offer: "11111111-1111-1111-1111-111111111111" }), "offer_not_found");
 // carla cannot give B (does not own it): not_owned; and nothing changed
 await err(rpc("market_accept", { p_player: U(3), p_offer: o1.id }), "max_stars", "carla maxed on A (and lacks B)");
-ok((await stars(1, A)) === 2 && (await stars(3, A)) === 5, "state untouched after failed accept");
+ok((await stars(1, A)) === 2 && (await stars(3, A)) === 50, "state untouched after failed accept");
 
 // happy swap + conservation
 const tA = await total(A), tB = await total(B);
@@ -74,8 +74,8 @@ ok((await rpc("market_list", {})).length === 0, "list empty after trade");
 
 // gift; receiver maxed out cannot take it
 const g = await rpc("market_create", { p_player: U(1), p_kind: "character", p_give: A , p_coins: 2080 });
-await err(rpc("market_accept", { p_player: U(3), p_offer: g.id }), "max_stars", "receiver at 5 stars");
-ok((await stars(1, A)) === 1 && (await stars(3, A)) === 5, "no change after max_stars");
+await err(rpc("market_accept", { p_player: U(3), p_offer: g.id }), "max_stars", "receiver at 50 copies");
+ok((await stars(1, A)) === 1 && (await stars(3, A)) === 50, "no change after max_stars");
 ok((await rpc("market_accept", { p_player: U(2), p_offer: g.id })).ok, "gift accepted");
 ok((await stars(1, A)) === 0 && (await stars(2, A)) === 1, "gift moved one star");
 // seller no longer has a spare copy: new offer refused
@@ -83,12 +83,12 @@ await err(rpc("market_create", { p_player: U(1), p_kind: "character", p_give: A 
 
 // stale offer: seller spent the spare star elsewhere -> accept fails, nothing moves
 const s1 = await rpc("market_create", { p_player: U(2), p_kind: "character", p_give: A , p_coins: 2080 });
-await db.exec(`update public.characters set stars=0 where player_id='${U(2)}' and key='${A}'`);
+await db.exec(`update public.characters set copies='{}' where player_id='${U(2)}' and key='${A}'`);
 await err(rpc("market_accept", { p_player: U(1), p_offer: s1.id }), "not_owned", "seller lost the spare star");
 await rpc("market_cancel", { p_player: U(2), p_offer: s1.id });
 ok((await q(`select status from public.market_offers where id='${s1.id}'`))[0].status === "cancelled", "owner cancels");
 // piece can be offered again after cancel
-await db.exec(`update public.characters set stars=1 where player_id='${U(2)}' and key='${A}'`);
+await db.exec(`update public.characters set copies='{terco}' where player_id='${U(2)}' and key='${A}'`);
 const s2 = await rpc("market_create", { p_player: U(2), p_kind: "character", p_give: A , p_coins: 2080 });
 
 // expiry

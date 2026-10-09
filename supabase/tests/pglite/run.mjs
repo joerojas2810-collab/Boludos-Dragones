@@ -60,13 +60,13 @@ await err(db.exec(`insert into public.room_players(room_id,player_id,chips) valu
 
 // --- gacha
 await db.exec(`update public.player_state set coins=5000 where player_id='${U(2)}'`);
-const ch=(cls,el,rar)=>({class:cls,element:el,rarity:rar,data:{name:"X"}});
+const ch=(cls,el,rar)=>({class:cls,element:el,rarity:rar,data:{name:"X",traits:["terco"]}});
 let st=0;
 const pull=async(items,over={})=>{ const banner=over.banner??"character"; return rpc("apply_pull",{p_player:U(2),p_version:over.v??st,p_idem:over.idem??("idem-"+Math.random().toString(36).slice(2,12)),p_banner:banner,p_cost:over.cost??250*items.length,p_pity:0,p_pity_ssr:over.pitySsr??0,p_seed:123,p_daily:over.daily??false,p_items:items});}; // the pity counters are inert since 0049: always 0
 let r=await pull([ch("mago","fuego","f")]); st=r.version;
 ok(r.coins===4750 && r.results[0].status==="new" && r.results[0].id==="c-mago-fuego-f" && r.pitySsr===0,"first pull "+JSON.stringify(r));
 r=await pull([ch("mago","fuego","f")],{}); st=r.version;
-ok(r.results[0].status==="star" && r.results[0].stars===1,"dup star");
+ok(r.results[0].status==="copy" && r.results[0].stars===0,"dup is a spare copy, stars stay");
 r=await pull([ch("mago","agua","f")],{}); st=r.version;
 ok(r.results[0].status==="new" && !r.results[0].fragmentGain,"new hero, no fragment "+JSON.stringify(r));
 // idempotent replay
@@ -87,7 +87,7 @@ const ten=Array.from({length:10},()=>ch("caballero","tierra","f"));
 r=await pull(ten,{cost:2250}); st=r.version;
 ok(r.results.length===10 && r.results[0].status==="new" && r.results[5].stars===5 || true,"10 pull");
 console.log("10-pull statuses",r.results.map(x=>x.status+":"+x.stars).join(","),"refundTotal",r.refundTotal);
-ok(r.results[5].stars===5 && r.results[6].status==="refund" && r.results[6].refund===125 && r.refundTotal===500,"max star refund");
+ok(r.results[0].status==="new" && r.results.slice(1).every(x=>x.status==="copy" && x.stars===0) && r.refundTotal===0,"nine copies, no refund below the cap");
 await err(pull(ten,{cost:2500}),"invalid_cost","10 at full price");
 // no pity (0049): whatever the DB holds, nothing is forced and the counter stays 0
 await db.exec(`update public.gacha_state set pity=100, pity_ssr=250 where player_id='${U(2)}' and banner='character'`);

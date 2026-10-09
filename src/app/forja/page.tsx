@@ -131,7 +131,7 @@ export default function ForgePage() {
             <HeroFusionPanel
               profile={profile}
               busy={busy}
-              onFuse={(b, m) => void act("Ascender héroe", () => repo.fuseHeroes(b, m), ["forge_merge", "forge_success"])}
+              onFuse={(b, m) => void act("Ascender héroe", () => repo.fuseHeroes(b, m.map((id) => ({ id, n: 1 }))), ["forge_merge", "forge_success"])}
             />
           )}
           {tab === "upgrade" && (

@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { CLASS_IDS, type Character, type ClassId } from "../game/characters";
 import { createStarterHero } from "../game/tutorial";
 import { burn as burnItem, burnMany } from "../game/burn";
-import { fuseHeroes } from "../game/heroFusion";
+import { fuseHeroes, starUpHero, swapTrait, type Material } from "../game/heroFusion";
 import { isLevelUnlocked, isRankUnlocked } from "../game/dungeonProgress";
 import { missionDeltas } from "../game/missions";
 import { levelLoot, rollDado, type LevelLoot } from "../game/levelLoot";
@@ -1023,41 +1023,90 @@ export async function doChooseSkill(
 
 // ---- hero fusion ----
 
-export async function doFuseHeroes(
+// The heroes that differ between two profiles, as the rows apply_hero_change writes: whole hero
+// rows to upsert, keys that disappear, and where each worn piece goes (null = unequipped).
+function heroChange(before: Profile, after: Profile) {
+  const was = new Map(before.characters.map((c) => [c.id, c]));
+  const now = new Set(after.characters.map((c) => c.id));
+  const owner = (k: string) => k.split("|")[0];
+  const worn = new Map(Object.entries(after.equipped).map(([k, w]) => [w, owner(k)]));
+  return {
+    upsert: after.characters
+      .filter((c) => was.get(c.id) !== c) // unchanged heroes keep their object
+      .map((c) => ({
+        class: c.classId,
+        element: c.element,
+        rarity: c.rarity,
+        stars: c.stars,
+        level: c.level,
+        xp: c.xp,
+        skill: c.skill ?? null,
+        legacy: !!c.legacy,
+        copies: c.copies ?? [],
+        data: { name: c.name, stats: c.stats, traits: c.traits, catchphrase: c.catchphrase },
+      })),
+    remove: before.characters.filter((c) => !now.has(c.id)).map((c) => c.id),
+    equip: Object.entries(before.equipped).flatMap(([k, w]) => {
+      const to = worn.get(w) ?? null;
+      return to === owner(k) ? [] : [{ weapon: w, to }];
+    }),
+  };
+}
+
+// Star-up, rank-up and trait swap: the pure code in heroFusion.ts decides, apply_hero_change
+// writes the result atomically (optimistic version).
+async function growHero(
   d: Deps,
   playerId: string,
-  baseId: string,
-  materialIds: string[],
+  action: string,
+  meta: Record<string, unknown>,
+  run: (p: Profile) => { ok: true; profile: Profile; text: string; id: string } | { ok: false; error: string },
 ) {
   await limit(d.rpc, `fuse:${playerId}`, 30, 60);
   const me = await loadMe(d.rpc, playerId);
-  const r = fuseHeroes(me.profile, { baseId, materials: materialIds.map((id) => ({ id, n: 1 })) });
+  const r = run(me.profile);
   if (!r.ok) throw new ApiError(400, "fusion_invalid", r.error);
-  const h = r.fusion.hero;
+  const ch = heroChange(me.profile, r.profile);
   try {
-    await call(d.rpc, "fuse_heroes", {
+    await call(d.rpc, "apply_hero_change", {
       p_player: playerId,
       p_version: me.version,
-      p_base: baseId,
-      p_materials: materialIds,
-      p_coins: r.fusion.coins,
-      p_data: { name: h.name, stats: h.stats, traits: h.traits, catchphrase: h.catchphrase },
-      p_level: h.level,
-      p_xp: h.xp,
-      p_stars: h.stars,
+      p_coins: me.profile.coins - r.profile.coins,
+      p_upsert: ch.upsert,
+      p_delete: ch.remove,
+      p_equip: ch.equip,
     });
   } catch (e) {
     return mapRpcError(e);
   }
-  await audit(d.rpc, playerId, "fuse_heroes", {
-    base: baseId,
-    materials: materialIds,
-    coins: r.fusion.coins,
-    result: h.id,
-  });
+  await audit(d.rpc, playerId, action, { ...meta, coins: me.profile.coins - r.profile.coins, result: r.id });
   const fresh = await loadMe(d.rpc, playerId);
-  return { text: r.text, id: h.id, profile: fresh.profile };
+  return { text: r.text, id: r.id, profile: fresh.profile };
 }
+
+export const doFuseHeroes = (
+  d: Deps,
+  playerId: string,
+  baseId: string,
+  materials: Material[],
+  keep?: "base" | "existing",
+) =>
+  growHero(d, playerId, "fuse_heroes", { base: baseId, materials }, (p) => {
+    const r = fuseHeroes(p, { baseId, materials, keep });
+    return r.ok ? { ...r, id: r.fusion.hero.id } : r;
+  });
+
+export const doStarUpHero = (d: Deps, playerId: string, baseId: string, materials: Material[]) =>
+  growHero(d, playerId, "star_up_hero", { base: baseId, materials }, (p) => {
+    const r = starUpHero(p, { baseId, materials });
+    return r.ok ? { ...r, id: baseId } : r;
+  });
+
+export const doSwapTrait = (d: Deps, playerId: string, id: string, index: number) =>
+  growHero(d, playerId, "swap_trait", { hero: id, index }, (p) => {
+    const r = swapTrait(p, { id, index });
+    return r.ok ? { ...r, id } : r;
+  });
 
 // ---- forge (Ascender + Mejorar) ----
 

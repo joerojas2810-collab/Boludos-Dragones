@@ -10,12 +10,12 @@ import {
   tradeBand,
   type MarketOffer,
 } from "./market";
-import { PULL_COST_CHARACTER, type Profile } from "./profile";
+import { MAX_COPIES, PULL_COST_CHARACTER, type Profile } from "./profile";
 import { RARITIES } from "./rarity";
 
 const prof = (c: [string, number][], w: [string, number][] = []) =>
   ({
-    characters: c.map(([id, stars]) => ({ id, stars })),
+    characters: c.map(([id, spare]) => ({ id, stars: 0, copies: Array(spare).fill("terco") })), // heroes: spare copies
     weapons: w.map(([id, stars]) => ({ id, stars })),
   }) as unknown as Profile;
 const offer = (o: Partial<MarketOffer>): MarketOffer => ({
@@ -40,7 +40,7 @@ describe("market keys", () => {
     expect(isPieceKey("weapon", "c-mago-fuego-c")).toBe(false);
     expect(pieceLabel("c-mago-fuego-c")).toContain("Mago");
   });
-  it("only repeated pieces are tradeable", () => {
+  it("only spare copies (heroes) and stars (weapons) are tradeable", () => {
     const p = prof([
       ["c-mago-fuego-c", 1],
       ["c-picaro-agua-f", 0],
@@ -51,7 +51,7 @@ describe("market keys", () => {
     expect(acceptBlock(prof([]), offer({}), true)).toMatch(/tu oferta/);
     expect(acceptBlock(prof([]), offer({}), false)).toBeNull();
     expect(
-      acceptBlock(prof([["c-mago-fuego-c", 5]]), offer({}), false),
+      acceptBlock(prof([["c-mago-fuego-c", MAX_COPIES]]), offer({}), false),
     ).toMatch(/máximo/);
     const swap = offer({ want: "c-picaro-agua-f" });
     expect(acceptBlock(prof([["c-picaro-agua-f", 0]]), swap, false)).toMatch(

@@ -45,6 +45,7 @@ export class FakeDb {
   levelBanks: Args[] = [];
   levelStarts: Args[] = [];
   burned: Args[] = [];
+  heroChanges: Args[] = [];
   skills: Args[] = [];
   xpGrants: Args[] = [];
   dungeons: Record<string, number[]> = {};
@@ -157,6 +158,39 @@ export class FakeDb {
         this.rows = this.rows.filter((r) => r.key !== a.p_key);
         this.version++;
         return this.okv({ burned: a.p_key });
+      case "apply_hero_change": {
+        // Mirrors 0050: one atomic write-set (upserts, then deletes), optimistic version.
+        if (a.p_version !== this.version) return this.err("conflict");
+        if (this.coins < Number(a.p_coins)) return this.err("insufficient_coins");
+        this.heroChanges.push(a);
+        for (const h of a.p_upsert as Args[]) {
+          const key = `c-${h.class}-${h.element}-${h.rarity}`;
+          const row: Row = {
+            key,
+            kind: "char",
+            a: String(h.class),
+            element: String(h.element),
+            rarity: String(h.rarity),
+            stars: Number(h.stars),
+            data: {
+              ...(h.data as object),
+              level: h.level,
+              xp: h.xp,
+              legacy: h.legacy,
+              copies: h.copies,
+              ...(h.skill ? { skill: h.skill } : {}),
+            },
+          };
+          const i = this.rows.findIndex((r) => r.key === key);
+          if (i >= 0) this.rows[i] = row;
+          else this.rows.push(row);
+        }
+        const gone = new Set(a.p_delete as string[]);
+        this.rows = this.rows.filter((r) => !gone.has(r.key));
+        this.coins -= Number(a.p_coins);
+        this.version++;
+        return this.okv({ coins: this.coins, version: this.version });
+      }
       case "choose_hero_skill":
         this.skills.push(a);
         return this.okv({ ok: true });

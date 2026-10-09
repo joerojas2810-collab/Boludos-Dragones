@@ -36,7 +36,7 @@ import { sweepBlock, sweepStage } from "./game/sweep";
 import { dayPayMult } from "./game/economy";
 import { localWeekSeed, towerHero, type TowerMode } from "./game/tower";
 import { burn as burnItem, burnMany } from "./game/burn";
-import { fuseHeroes } from "./game/heroFusion";
+import { fuseHeroes, starUpHero, swapTrait, type Material, type HeroGrowthResult } from "./game/heroFusion";
 import { ascendPiece } from "./game/ascend";
 import { upgradePiece } from "./game/upgrade";
 import type { Weapon } from "./game/weapons";
@@ -147,8 +147,12 @@ export interface ProfileRepo {
   ascendPiece(baseId: string, materialIds: string[]): Promise<AscendOutcome>;
   /** Mejorar (+N): spends Escamas (and a Dado cargado if asked); a failure never loses the piece. */
   upgradePiece(pieceId: string, useDado: boolean): Promise<UpgradeOutcome>;
-  /** Hero fusion (Forja > Héroes): `id` is the resulting hero (new rank, or the one that got +1 star). */
-  fuseHeroes(baseId: string, materialIds: string[]): Promise<{ text: string; id: string }>;
+  /** Rank-up (Forja > Héroes): `id` is the resulting hero (new rank, or the owned one it merged into). */
+  fuseHeroes(baseId: string, materials: Material[], keep?: "base" | "existing"): Promise<{ text: string; id: string }>;
+  /** +1 star for 3 units of material of the hero's rank. */
+  starUpHero(baseId: string, materials: Material[]): Promise<{ text: string; id: string }>;
+  /** Swaps the hero's main trait with the one of its spare copy `index`. */
+  swapTrait(heroId: string, index: number): Promise<{ text: string; id: string }>;
   startRun(
     classId: ClassId,
     characterId: string | null,
@@ -178,6 +182,12 @@ export interface StoreApi {
 }
 
 export function createLocalRepo(store: StoreApi): ProfileRepo {
+  // Applies a star-up / trait swap result to the local profile.
+  const grew = (r: HeroGrowthResult, id: string) => {
+    if (!r.ok) throw new RepoError("fusion_invalid", r.error);
+    store.replace(r.profile);
+    return { text: r.text, id };
+  };
   const pull = async (banner: Banner, count: number) => {
     const rng = createRng(Date.now());
     const out: { rs: PullResult[] | null } = { rs: null };
@@ -334,12 +344,14 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       store.replace(r.profile);
       return r;
     },
-    fuseHeroes: async (baseId, materialIds) => {
-      const r = fuseHeroes(store.get(), { baseId, materials: materialIds.map((id) => ({ id, n: 1 })) });
+    fuseHeroes: async (baseId, materials, keep) => {
+      const r = fuseHeroes(store.get(), { baseId, materials, keep });
       if (!r.ok) throw new RepoError("fusion_invalid", r.error);
       store.replace(r.profile);
       return { text: r.text, id: r.fusion.hero.id };
     },
+    starUpHero: async (baseId, materials) => grew(starUpHero(store.get(), { baseId, materials }), baseId),
+    swapTrait: async (heroId, index) => grew(swapTrait(store.get(), { id: heroId, index }), heroId),
     startRun: async (
       classId,
       characterId,
@@ -556,10 +568,26 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       store.replace(r.profile);
       return r;
     },
-    fuseHeroes: async (baseId, materialIds) => {
+    fuseHeroes: async (baseId, materials, keep) => {
       const r = await api<{ text: string; id: string; profile: Profile }>(
         "/api/collection/fuse-heroes",
-        { baseId, materialIds },
+        { baseId, materials, keep },
+      );
+      store.replace(r.profile);
+      return { text: r.text, id: r.id };
+    },
+    starUpHero: async (baseId, materials) => {
+      const r = await api<{ text: string; id: string; profile: Profile }>(
+        "/api/collection/star-up",
+        { baseId, materials },
+      );
+      store.replace(r.profile);
+      return { text: r.text, id: r.id };
+    },
+    swapTrait: async (heroId, index) => {
+      const r = await api<{ text: string; id: string; profile: Profile }>(
+        "/api/collection/swap-trait",
+        { heroId, index },
       );
       store.replace(r.profile);
       return { text: r.text, id: r.id };
