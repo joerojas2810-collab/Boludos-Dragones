@@ -12,6 +12,7 @@ import type {
 } from "../game/room";
 import type { RarityId } from "../game/rarity";
 import type { Climb } from "../game/floorFights";
+import type { DuelDb } from "../game/duelRoom";
 import type { Profile } from "../game/profile";
 import type { SummaryRes } from "../rooms/api";
 
@@ -45,6 +46,14 @@ export interface AdvanceArgs {
   seed: number | null;
   fighters: { player: string; door_kind: string; fight_seed: number }[] | null;
   keepFighters: string[] | null; // betting -> fighting
+}
+
+/** Chip moves and the optional phase move that ride along with a duel save. */
+export interface DuelSaveOpts {
+  deltas: { player: string; delta: number; reason: "duel_stake" | "duel_payout" }[];
+  phase?: { to: Phase; expectedSeq: number; deadlineMs: number; resetReady: boolean };
+  /** Mission progress to credit (SQL ignores it outside the event days and never fails the save). */
+  missions: { player: string; key: "duel_win" | "bet_win" }[];
 }
 
 export interface RoomMeta {
@@ -168,6 +177,15 @@ export interface RoomStore {
       chips: number;
       dados: number;
     }[],
+  ): Promise<void>;
+  /** Duel state (server-only table); null before the first duel of the room. */
+  loadDuel(room: string): Promise<{ version: number; db: DuelDb } | null>;
+  /** Optimistic atomic write: state + chip deltas + phase. Throws RpcError('conflict'|'stale'|...). */
+  saveDuel(
+    room: string,
+    expectedVersion: number,
+    db: DuelDb,
+    opts: DuelSaveOpts,
   ): Promise<void>;
   /** Keeps the better of the stored and the new damage. */
   saveCoop(

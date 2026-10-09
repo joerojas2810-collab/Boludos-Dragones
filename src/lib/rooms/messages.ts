@@ -1,6 +1,8 @@
 // zod schemas for every client -> server request and every Realtime message of
 // the room flow. All strict (unknown keys rejected) and size-bounded.
 import { z } from "zod";
+import { CLASS_IDS } from "../game/characters";
+import { ELEMENTS } from "../game/elements";
 import { RARITY_IDS } from "../game/rarity";
 import { runActionSchema } from "../server/validators";
 
@@ -33,6 +35,10 @@ export const phaseEnum = z.enum([
   "reveal",
   "round_end",
   "coop_boss",
+  "duel_setup",
+  "duel_betting",
+  "duel_fight",
+  "duel_reveal",
   "night_summary",
   "closed",
 ]);
@@ -125,6 +131,31 @@ export const clientMsg = z.discriminatedUnion("type", [
   }),
   z.strictObject({ ...m("emote"), id: z.enum(EMOTE_IDS) }),
   z.strictObject({ ...m("vote"), floor, yes: z.boolean() }),
+  // 1v1 duels (room.ts duel phases). Pairs default to autoPairs when omitted.
+  z.strictObject({
+    ...m("duel_start"),
+    mode: z.enum(["balanceado", "real"]),
+    pairs: z.array(z.tuple([uuid, uuid])).min(1).max(3).optional(),
+  }),
+  z.strictObject({
+    ...m("duel_pick"),
+    pick: z.union([
+      z.strictObject({ classId: z.enum(CLASS_IDS), element: z.enum(ELEMENTS) }),
+      z.strictObject({ heroId: z.string().min(1).max(100) }),
+    ]),
+  }),
+  z.strictObject({
+    ...m("duel_bet"),
+    key: z.string().min(1).max(100),
+    prediction: predictionEnum,
+    stake: z.number().int().min(10).max(1_000_000),
+  }),
+  // the secret pick of the open turn; the server resolves when both answered
+  z.strictObject({
+    ...m("duel_move"),
+    key: z.string().min(1).max(100),
+    action: z.enum(["attack1", "attack2", "attack3", "defend"]),
+  }),
 ]);
 export type ClientMsg = z.infer<typeof clientMsg>;
 

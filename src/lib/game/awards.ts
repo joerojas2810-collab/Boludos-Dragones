@@ -13,6 +13,7 @@ export interface AwardInput {
   losses: number;
   betNet: number; // chips won (+) or lost (-) betting
   interferences: number; // interferences this player CAST
+  duelWins?: number; // 1v1 duels won (kept by the server, not by the SQL summary)
   interfered?: number; // interferences received (pending: server)
   deaths?: number; // times eliminated/lives lost (pending: server)
   braveWins?: number; // wins with low HP (pending: server)
@@ -23,6 +24,7 @@ export type AwardId =
   | "apostador"
   | "mecenas"
   | "saboteador"
+  | "duelista"
   | "interferido"
   | "gafe"
   | "murio"
@@ -46,6 +48,7 @@ const DEFS: { id: AwardId; score: (p: AwardInput) => number | null }[] = [
     id: "saboteador",
     score: (p) => (p.interferences > 0 ? p.interferences : null),
   },
+  { id: "duelista", score: (p) => (p.duelWins ? p.duelWins : null) },
   { id: "interferido", score: (p) => (p.interfered ? p.interfered : null) },
   { id: "valiente", score: (p) => (p.braveWins ? p.braveWins : null) },
   { id: "murio", score: (p) => (p.deaths ? p.deaths : null) },
@@ -98,6 +101,10 @@ export const AWARD_INFO: Record<
     title: "El Saboteador",
     blurb: (v) => `${v} zancadillas lanzadas. Sin remordimientos.`,
   },
+  duelista: {
+    title: "El Duelista",
+    blurb: (v) => `${v} ${v === 1 ? "duelo ganado" : "duelos ganados"} cara a cara.`,
+  },
   interferido: {
     title: "El Blanco Favorito",
     blurb: (v) => `Le interfirieron ${v} veces. Algo habrá hecho.`,
@@ -136,6 +143,7 @@ const TITLE: Record<AwardId, (v: number) => string> = {
   apostador: () => "Oráculo oficial",
   mecenas: () => "Mecenas de la casa",
   saboteador: () => "Saboteador oficial",
+  duelista: () => "Duelista oficial",
   interferido: () => "Blanco favorito",
   valiente: () => "Valiente de hilo",
   murio: () => "Mártir oficial",

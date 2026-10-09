@@ -61,6 +61,17 @@ import {
 } from "./roomRun";
 import type { FloorRow, RoomDeps } from "./roomsStore";
 import { addEmote, readLive, setLive } from "./roomsLive";
+import {
+  duelAdvanceService,
+  duelBetService,
+  duelMoveService,
+  duelOnDeparture,
+  duelPickService,
+  duelStartService,
+  duelTick,
+  duelViewOf,
+  isDuelPhase,
+} from "./roomsDuel";
 
 void roomTopic;
 void ROOM_ROUTES;
@@ -97,6 +108,7 @@ const ERR: Record<string, [number, string]> = {
   room_limit: [409, "Ya tienes una sala abierta."],
   engine_outdated: [409, "Versión del juego distinta. Recarga la página."],
   invalid_log: [409, "Tu registro de acciones no es válido."],
+  conflict: [409, "Intenta de nuevo."],
   rate_limited: [429, "Espera un momento."],
 };
 
@@ -447,7 +459,11 @@ export async function snapshotService(
   return guarded(async () => {
     await d.store.limit(`roomsnap:${player}`, 60, 60);
     await touch(d, player, room);
-    const s = await load(d, room);
+    let s = await load(d, room);
+    if (s.phase === "duel_fight") {
+      await duelTick(d, room); // lazy clock: resolves ready/overdue turns
+      s = await load(d, room);
+    }
     const meta = await d.store.loadMeta(room);
     const live = s.players.filter((p) => !p.left);
     return {
@@ -485,6 +501,7 @@ export async function snapshotService(
       rankFloor: rankByFloor(s).map((x) => x.id),
       vote: await voteViewOf(d, s, room, player, d.now()),
       coop: await coopViewOf(d, s, room),
+      duel: await duelViewOf(d, s, room, player),
       ...readLive(room, `${s.round}:${s.floor}`, d.now()),
     };
   });
@@ -501,7 +518,12 @@ export async function summaryService(
     const s = await load(d, room);
     if (s.phase !== "night_summary" && s.phase !== "closed")
       return fail("wrong_phase");
-    return d.store.nightSummary(room);
+    const sum = await d.store.nightSummary(room);
+    const wins = (await d.store.loadDuel(room))?.db.wins ?? {};
+    return {
+      ...sum,
+      players: sum.players.map((p) => ({ ...p, duel_wins: wins[p.player_id] ?? 0 })),
+    };
   });
 }
 
@@ -724,6 +746,16 @@ export async function advanceService(
     });
     if (s.phase === "closed") return fail("room_closed");
     if (s.phaseSeq !== phaseSeq) return stale("stale");
+    if (isDuelPhase(s)) {
+      const r = await duelAdvanceService(d, room, phaseSeq);
+      const fresh = await load(d, room);
+      if (r.advanced) await publish(d, room, fresh);
+      return {
+        advanced: r.advanced,
+        reason: r.advanced ? undefined : (r.reason as AdvanceRes["reason"]),
+        state: phaseViewOf(fresh, now),
+      };
+    }
     const seed = d.randomSeed();
     const coopDone = s.phase === "coop_boss" && (await coopAllDone(d, s, room));
     let r = modelAdvance(s, now, phaseSeq, { seed, coopDone });
@@ -790,6 +822,7 @@ const LIMITS: Partial<Record<ClientMsg["type"], [number, number]>> = {
   advance: [60, 60],
   submit: [30, 60],
   bet: [30, 60],
+  duel_move: [120, 60],
   interfere: [20, 60],
   vote: [20, 60],
 };
@@ -834,6 +867,7 @@ export async function roomAction(
     let extra: Record<string, unknown> = {};
     switch (msg.type) {
       case "leave":
+        await duelOnDeparture(d, room, player, "leave");
         await st.leaveRoom(player, room);
         publishAfter = true;
         break;
@@ -886,6 +920,19 @@ export async function roomAction(
         extra = await st.placeInterference(room, player, b.key, msg.kind);
         break;
       }
+      case "duel_start":
+        await duelStartService(d, player, room, msg.mode, msg.pairs);
+        publishAfter = true;
+        break;
+      case "duel_pick":
+        await duelPickService(d, player, room, msg.pick);
+        break;
+      case "duel_bet":
+        await duelBetService(d, player, room, msg.key, msg.prediction, msg.stake);
+        break;
+      case "duel_move":
+        await duelMoveService(d, player, room, msg.key, msg.action);
+        break;
       case "vote": {
         const s = await load(d, room);
         if (s.phase !== "reveal" || !hasVote(s.floor))
@@ -920,6 +967,7 @@ export async function roomAction(
         await st.setTurnSeconds(player, room, msg.seconds);
         break;
       case "kick":
+        await duelOnDeparture(d, room, msg.target, "leave");
         await st.kick(player, room, msg.target);
         await st.audit(player, "room_kick", { room, target: msg.target });
         break;
@@ -927,6 +975,7 @@ export async function roomAction(
         await st.transferHost(player, room, msg.to);
         break;
       case "close":
+        await duelOnDeparture(d, room, player, "close");
         await st.closeRoom(player, room);
         publishAfter = true;
         break;

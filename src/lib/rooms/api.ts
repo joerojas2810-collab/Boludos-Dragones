@@ -56,6 +56,7 @@ export const ROOM_ERROR_CODES = [
   "not_enough_players",
   "max_rounds",
   "coop_disabled",
+  "conflict",
   "battle_not_found",
   "battle_locked",
   "self_bet",
@@ -156,6 +157,51 @@ export const coopView = z.object({
 });
 export type CoopView = z.infer<typeof coopView>;
 
+/** 1v1 duels: matches, bets (filtered) and, once the fight starts, the public state. */
+const duelHero = z.object({
+  name: z.string(),
+  classId: z.string(),
+  element: z.string(),
+  skill: z.string().optional(),
+});
+const duelAction = z.enum(["attack1", "attack2", "attack3", "defend"]);
+const ab = <T extends z.ZodType>(t: T) => z.object({ a: t, b: t });
+export const duelView = z.object({
+  mode: z.enum(["balanceado", "real"]),
+  round: int,
+  picked: z.array(uuid), // duelists that already chose (not WHAT they chose)
+  matches: z.array(
+    z.object({
+      key: z.string(),
+      a: uuid,
+      b: uuid,
+      reported: z.boolean(), // the server's verdict is in (the fight is over)
+      status: z.enum(["open", "locked", "settled"]),
+      winner: uuid.nullable(),
+      end: z.enum(["ko", "time", "forfeit", "draw", "no_fight"]).nullable(),
+      outcome: z.enum(["win", "lose", "void"]).nullable(),
+      bets: z.array(
+        z.object({ bettor: uuid, prediction: z.enum(["win", "lose"]), stake: int }),
+      ),
+      fight: z
+        .object({
+          turn: int,
+          deadlineMs: int,
+          hp: ab(int),
+          maxHp: ab(int),
+          cooldown: ab(int),
+          cooldown3: ab(int),
+          picked: ab(z.boolean()),
+          heroes: ab(duelHero),
+          log: z.array(z.string()),
+          last: z.object({ a: duelAction.nullable(), b: duelAction.nullable() }).nullable(),
+        })
+        .nullable(),
+    }),
+  ),
+});
+export type DuelView = z.infer<typeof duelView>;
+
 export const roomSnapshot = z.object({
   roomId: uuid,
   code: z.string(),
@@ -180,6 +226,7 @@ export const roomSnapshot = z.object({
   emotes: z.array(z.object({ from: uuid, id: z.string(), at: int })),
   vote: voteView.nullable().optional(),
   coop: coopView.nullable().optional(),
+  duel: duelView.nullable().optional(),
 });
 export type RoomSnapshot = z.infer<typeof roomSnapshot>;
 
@@ -253,6 +300,7 @@ export const summaryRes = z.object({
       losses: int,
       bet_net: int,
       interferences: int,
+      duel_wins: int.optional(), // from the duel state, not the SQL summary
     }),
   ),
   awards: z.object({

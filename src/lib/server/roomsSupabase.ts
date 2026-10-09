@@ -10,7 +10,9 @@ import {
   type Phase,
   type RoomMode,
   type RoomPlayer,
+  type RoomState,
 } from "../game/room";
+import { overlayDuel, type DuelDb } from "../game/duelRoom";
 import type { Climb } from "../game/floorFights";
 import type { SummaryRes } from "../rooms/api";
 import { env } from "./env";
@@ -80,6 +82,14 @@ export function realRoomStore(): RoomStore {
   const sb = adminClient();
   const rpc = (name: string, args: Obj) => sb.rpc(name, args);
   const c = <T = Obj>(name: string, args: Obj) => call<T>(rpc, name, args);
+  const loadDuelRow = async (
+    room: string,
+  ): Promise<{ version: number; db: DuelDb } | null> => {
+    const [r] = rows<{ version: number; state: DuelDb }>(
+      await sb.from("room_duel").select("version, state").eq("room_id", room).limit(1),
+    );
+    return r ? { version: r.version, db: r.state } : null;
+  };
 
   return {
     limit: (k, max, win) => limit(rpc, k, max, win),
@@ -383,6 +393,8 @@ export function realRoomStore(): RoomStore {
             cur?.outcome ?? (cur?.status === "skipped" ? "skipped" : null),
           // ponytail: not persisted; a missed turn counts as timeout instead of 2-miss flee
           missedTurns: 0,
+          duelPick: null, // ponytail: duels not persisted yet (stage 3)
+          duelWins: 0,
         };
       });
 
@@ -411,7 +423,7 @@ export function realRoomStore(): RoomStore {
           voidReason: b.void_reason,
         };
 
-      return {
+      const base: RoomState = {
         phase: st.phase,
         phaseSeq: st.phase_seq,
         round: st.round,
@@ -423,6 +435,10 @@ export function realRoomStore(): RoomStore {
         hostId: rm.host_id,
         players,
         battles,
+        duels: [],
+        duelMode: "balanceado",
+        duelRound: 0,
+        duelFrom: "lobby",
         roundSeed: st.round_seed === null ? null : Number(st.round_seed),
         roundStartedAt: ms(st.round_started_at),
         nightStartedAt: ms(st.night_started_at),
@@ -437,6 +453,26 @@ export function realRoomStore(): RoomStore {
           dust: 0,
         },
       };
+      return overlayDuel(base, (await loadDuelRow(room))?.db ?? null);
+    },
+
+    async loadDuel(room) {
+      return loadDuelRow(room);
+    },
+
+    async saveDuel(room, expectedVersion, db, opts) {
+      await c("duel_save", {
+        p_room: room,
+        p_expected_version: expectedVersion,
+        p_state: db,
+        p_deltas: opts.deltas,
+        p_missions: opts.missions,
+        p_phase: opts.phase?.to ?? null,
+        p_expected_seq: opts.phase?.expectedSeq ?? null,
+        p_deadline:
+          opts.phase && opts.phase.deadlineMs > 0 ? iso(opts.phase.deadlineMs) : null,
+        p_reset_ready: opts.phase?.resetReady ?? false,
+      });
     },
 
     async floorRows(room, round, player) {

@@ -25,7 +25,8 @@ export type MissionKind =
   | "room_round"
   | "bet_win"
   | "aid"
-  | "coop_damage";
+  | "coop_damage"
+  | "duel_win";
 
 interface Def {
   kind: MissionKind;
@@ -98,6 +99,7 @@ export const MISSION_POOL: readonly Def[] = [
     target: 1,
     label: "Hazle daño al jefe cooperativo",
   },
+  { kind: "duel_win", scope: "event", target: 1, label: "Gana un duelo 1v1" },
 ];
 
 export interface Mission {

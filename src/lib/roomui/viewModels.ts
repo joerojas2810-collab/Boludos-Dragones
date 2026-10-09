@@ -141,6 +141,14 @@ export function phaseBanner(
         hint: "Todos contra el mismo jefe.",
         tone: "boss",
       };
+    case "duel_setup":
+      return { title: "Duelos 1v1: elige", hint: "Prepara tu duelista.", tone: "info" };
+    case "duel_betting":
+      return { title: "Duelos 1v1: apuestas", hint: "Apuesta por tu favorito.", tone: "gold" };
+    case "duel_fight":
+      return { title: "¡Duelos en curso!", hint: "Elige en secreto cada turno.", tone: "boss" };
+    case "duel_reveal":
+      return { title: "Resultado de los duelos", hint: "Gana quien tumbe al rival.", tone: "gold" };
     case "night_summary":
       return {
         title: "Resumen de la noche",
@@ -361,6 +369,17 @@ export function phaseComplete(v: RoomView): boolean {
       );
       return present.length > 0 && present.every((p) => done.has(p.id));
     }
+    case "duel_setup": {
+      const picked = new Set(v.duel?.picked);
+      const duelists = new Set(v.duel?.matches.flatMap((m) => [m.a, m.b]));
+      return present.filter((p) => duelists.has(p.id)).every((p) => picked.has(p.id));
+    }
+    case "duel_betting": {
+      const duelists = new Set(v.duel?.matches.flatMap((m) => [m.a, m.b]));
+      return present.filter((p) => !duelists.has(p.id)).every((p) => p.ready);
+    }
+    case "duel_fight":
+      return !!v.duel && v.duel.matches.every((m) => m.reported || m.status === "settled");
     default:
       return false;
   }

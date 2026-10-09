@@ -8,7 +8,9 @@ import type { RarityId } from "../game/rarity";
 import type { Climb } from "../game/floorFights";
 import type { FightSpec } from "../game/stage";
 import type { StageAction } from "../game/stageReplay";
-import type { CoopView } from "../rooms/api";
+import type { CoopView, DuelView } from "../rooms/api";
+import type { DuelMode, DuelPick } from "../game/room";
+import type { Action as DuelAction } from "../game/combat";
 import type { TraitId } from "../game/traits";
 import type {
   Bet,
@@ -100,6 +102,7 @@ export interface RoomView {
   interfereCost?: number;
   vote?: VoteInfo | null;
   coop?: CoopView | null; // coop boss: shared bar (coop_boss and the summary)
+  duel?: DuelView | null; // 1v1 duels (deadlines already on the client clock)
   connection: "online" | "reconnecting";
 }
 
@@ -163,6 +166,12 @@ export interface RoomClient {
   coopSubmit(
     actions: StageAction[],
   ): Promise<Res<{ damage: number; finished: boolean }>>;
+  /** 1v1 duels: host starts (pairs default to the server's suggestion). */
+  duelStart(mode: DuelMode, pairs?: [string, string][]): Promise<Res>;
+  duelPick(pick: DuelPick): Promise<Res>;
+  duelBet(key: string, prediction: BetPrediction, stake: number): Promise<Res>;
+  /** The secret pick of the open turn. */
+  duelMove(key: string, action: DuelAction): Promise<Res>;
   close(): Promise<Res>;
   leave(): Promise<Res>;
   turn(msg: Omit<TurnInfo, "fighter">): void;

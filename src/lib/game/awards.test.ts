@@ -85,3 +85,15 @@ describe("nightTitles", () => {
     ).toBe("Rey del piso 12");
   });
 });
+
+describe("duelista", () => {
+  const P = (id: string, duelWins?: number): AwardInput => ({
+    id, chips: 100, maxFloor: 0, wins: 0, losses: 0, betNet: 0, interferences: 0, duelWins,
+  });
+  it("goes to whoever won the most duels, and only if someone won one", () => {
+    const a = computeAwards([P("a", 1), P("b", 3), P("c")]);
+    expect(a.find((x) => x.id === "duelista")).toEqual({ id: "duelista", player: "b", value: 3 });
+    expect(nightTitles(["a", "b", "c"], a).b).toBe("Duelista oficial");
+    expect(computeAwards([P("a"), P("b", 0)]).some((x) => x.id === "duelista")).toBe(false);
+  });
+});

@@ -760,6 +760,19 @@ export class FakeRoomClient implements RoomClient {
   async endNight() {
     return this.apply(endNight(this.st, ME, this.vnow()));
   }
+  // 1v1 duels need the real server (secret picks); the demo room skips them.
+  async duelStart(): Promise<Res> {
+    return { ok: false, error: "demo" };
+  }
+  async duelPick(): Promise<Res> {
+    return { ok: false, error: "demo" };
+  }
+  async duelBet(): Promise<Res> {
+    return { ok: false, error: "demo" };
+  }
+  async duelMove(): Promise<Res> {
+    return { ok: false, error: "demo" };
+  }
   async close() {
     const r = this.apply(closeRoom(this.st, ME, this.vnow()));
     if (r.ok) this.emit({ type: "closed" });

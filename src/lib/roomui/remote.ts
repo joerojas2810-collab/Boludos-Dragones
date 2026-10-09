@@ -12,10 +12,13 @@ import type { StageAction } from "../game/stageReplay";
 import type {
   BetPrediction,
   DoorKind,
+  DuelMode,
+  DuelPick,
   FightOutcome,
   InterfereKind,
   RoomMode,
 } from "../game/room";
+import type { Action as DuelAction } from "../game/combat";
 import { MSG_VERSION } from "../rooms/messages";
 import { type RoomSnapshot, type RunView, type SummaryRes } from "../rooms/api";
 import type {
@@ -34,6 +37,7 @@ import type {
 
 const POLL_MS = 2_000;
 const IDLE_POLL_MS = 5_000;
+const DUEL_POLL_MS = 1_000; // a duel turn is a few seconds: poll fast while it runs
 const HIDDEN_POLL_MS = 15_000; // background tab: poll rarely to spare server quota
 const ID_RE = /^[0-9a-f-]{36}$/i;
 
@@ -152,7 +156,9 @@ export class RemoteRoomClient implements RoomClient {
     this.schedule(
       s.state.phase === "lobby" || s.state.phase === "night_summary"
         ? IDLE_POLL_MS
-        : POLL_MS,
+        : s.state.phase === "duel_fight"
+          ? DUEL_POLL_MS
+          : POLL_MS,
     );
   }
 
@@ -252,6 +258,17 @@ export class RemoteRoomClient implements RoomClient {
       ),
       vote: s.vote ?? null,
       coop: s.coop ?? null,
+      duel: s.duel
+        ? {
+            ...s.duel,
+            matches: s.duel.matches.map((m) => ({
+              ...m,
+              fight: m.fight
+                ? { ...m.fight, deadlineMs: m.fight.deadlineMs - this.skew }
+                : null,
+            })),
+          }
+        : null,
       connection: "online",
     };
   }
@@ -311,6 +328,13 @@ export class RemoteRoomClient implements RoomClient {
   transferHost = (to: string) => this.act("transfer_host", { to });
   endNight = () => this.act("end_night");
   startCoop = () => this.act("start_coop");
+  duelStart = (mode: DuelMode, pairs?: [string, string][]) =>
+    this.act("duel_start", pairs ? { mode, pairs } : { mode });
+  duelPick = (pick: DuelPick) => this.act("duel_pick", { pick });
+  duelBet = (key: string, prediction: BetPrediction, stake: number) =>
+    this.act("duel_bet", { key, prediction, stake });
+  duelMove = (key: string, action: DuelAction) =>
+    this.act("duel_move", { key, action });
   close = () => this.act("close");
   leave = () => this.act("leave");
 
@@ -410,6 +434,7 @@ function toAwards(s: SummaryRes): Award[] {
       losses: p.losses,
       betNet: p.bet_net,
       interferences: p.interferences,
+      duelWins: p.duel_wins ?? 0,
     })),
   );
 }

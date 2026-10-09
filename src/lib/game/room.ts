@@ -4,6 +4,8 @@
 // and what FakeRoomStore / the API use to decide the NEXT state.
 // `[K]` constants live here so one night of play can retune everything.
 
+import { CLASS_IDS, type ClassId } from "./characters";
+import { ELEMENTS, type Element } from "./elements";
 import { RARITY_IDS, type RarityId } from "./rarity";
 
 export const ROOM_K = {
@@ -44,6 +46,11 @@ export const ROOM_K = {
   absentAfterMs: 10_000,
   hostTransferAfterMs: 60_000,
   missedTurnsToFlee: 2,
+  duelSetupMs: 30_000, // [K] 1v1 duels: pick class+element / hero
+  duelBettingMs: 15_000,
+  duelFightCapMs: 300_000, // whole duel; the server resolves by hp% at the cap
+  duelRevealMs: 8_000,
+  duelWinChips: 30, // [K] new chips for the winner (counted in totals.comp)
 } as const;
 
 /** Coop final boss (lib/game/coop.ts); false = refuse start_coop. */
@@ -59,6 +66,10 @@ export const PHASES = [
   "reveal",
   "round_end",
   "coop_boss",
+  "duel_setup",
+  "duel_betting",
+  "duel_fight",
+  "duel_reveal",
   "night_summary",
   "closed",
 ] as const;
@@ -103,6 +114,29 @@ export interface Battle {
   outcome: BetOutcome | null;
   voidReason: VoidReason | null;
 }
+// 1v1 duels (lib/game/duel.ts). `balanceado`: everybody picks only class +
+// element and fights with the plain hero of that class; `real`: a hero of the
+// account, full power. A duel is a Battle-like match: bets are "win" = a wins.
+export type DuelMode = "balanceado" | "real";
+export type DuelPick = { classId: ClassId; element: Element } | { heroId: string };
+export type DuelEnd = "ko" | "time" | "forfeit" | "draw" | "no_fight";
+export interface DuelMatch {
+  key: string;
+  a: string;
+  b: string;
+  bets: Bet[];
+  status: "open" | "locked" | "settled";
+  reported: boolean; // the server's verdict arrived (winner/end are final)
+  winner: string | null; // null = draw / void
+  end: DuelEnd | null;
+  outcome: BetOutcome | null;
+}
+/** What a slow duelist gets when time runs out. */
+export const DEFAULT_DUEL_PICK_FOR = (mode: DuelMode): DuelPick =>
+  mode === "real"
+    ? { heroId: DEFAULT_HERO }
+    : { classId: "caballero", element: "fuego" };
+
 export interface RoomPlayer {
   id: string;
   joinedAt: number;
@@ -120,6 +154,8 @@ export interface RoomPlayer {
   door: DoorKind | null;
   outcome: FightOutcome | "skipped" | null;
   missedTurns: number;
+  duelPick: DuelPick | null;
+  duelWins: number;
 }
 /** Chip accounting: sum(chips)+open stakes = issued - interfereSpent + comp - dust. */
 export interface ChipTotals {
@@ -140,6 +176,10 @@ export interface RoomState {
   hostId: string;
   players: RoomPlayer[];
   battles: Record<string, Battle>; // by fighter id, current floor
+  duels: DuelMatch[]; // current duel round (kept until the next one starts)
+  duelMode: DuelMode;
+  duelRound: number;
+  duelFrom: "lobby" | "round_end"; // where the room returns after the duels
   roundSeed: number | null;
   roundStartedAt: number;
   nightStartedAt: number;
@@ -250,13 +290,17 @@ export type Action =
   | "close"
   | "end_night"
   | "start_coop"
+  | "start_duels"
+  | "choose_duel_pick"
+  | "duel_bet"
+  | "report_duel"
   | "choose_hero"
   | "ready"
   | "choose_door"
   | "bet"
   | "interfere"
   | "report_outcome";
-type Role = "host" | "member" | "active" | "fighter";
+type Role = "host" | "member" | "active" | "fighter" | "duelist";
 const PERMS: Record<Action, { phases: readonly Phase[]; role: Role }> = {
   set_mode: { phases: ["lobby"], role: "host" },
   set_rank: { phases: ["lobby"], role: "host" },
@@ -267,8 +311,15 @@ const PERMS: Record<Action, { phases: readonly Phase[]; role: Role }> = {
   close: { phases: PHASES.filter((p) => p !== "closed"), role: "host" },
   end_night: { phases: ["round_end"], role: "host" },
   start_coop: { phases: ["round_end"], role: "host" },
+  start_duels: { phases: ["lobby", "round_end"], role: "host" },
+  choose_duel_pick: { phases: ["duel_setup"], role: "duelist" },
+  duel_bet: { phases: ["duel_betting"], role: "member" },
+  report_duel: { phases: ["duel_fight"], role: "duelist" },
   choose_hero: { phases: FLOOR_PLAY, role: "member" },
-  ready: { phases: ["round_setup", "betting", "round_end"], role: "member" },
+  ready: {
+    phases: ["round_setup", "betting", "round_end", "duel_betting"],
+    role: "member",
+  },
   choose_door: { phases: ["doors"], role: "active" },
   bet: { phases: ["betting"], role: "member" },
   interfere: { phases: ["betting"], role: "member" },
@@ -290,6 +341,8 @@ export function can(s: RoomState, id: string, action: Action): boolean {
       return canPlay(s, p);
     case "fighter":
       return !!s.battles[id] && p.outcome === null;
+    case "duelist":
+      return s.duels.some((m) => m.a === id || m.b === id);
   }
 }
 function guard(s: RoomState, id: string, action: Action): Result | null {
@@ -321,6 +374,8 @@ function newPlayer(id: string, now: number, s?: RoomState): RoomPlayer {
     door: null,
     outcome: null,
     missedTurns: 0,
+    duelPick: null,
+    duelWins: 0,
   };
 }
 
@@ -341,6 +396,10 @@ export function createRoomState(
     hostId,
     players: [newPlayer(hostId, now)],
     battles: {},
+    duels: [],
+    duelMode: "balanceado",
+    duelRound: 0,
+    duelFrom: "lobby",
     roundSeed: null,
     roundStartedAt: 0,
     nightStartedAt: 0,
@@ -584,6 +643,12 @@ function transferHostIn(n: RoomState, effects: Effect[]) {
 function closeIn(n: RoomState, now: number, effects: Effect[]) {
   for (const b of Object.values(n.battles))
     settleBattleIn(n, b, "void", "room_closed", effects);
+  for (const m of n.duels) {
+    m.reported = true;
+    m.winner = null;
+    m.end = "no_fight";
+    settleDuelIn(n, m, effects);
+  }
   setPhase(n, "closed", 0, effects, now);
 }
 
@@ -596,6 +661,7 @@ export function leaveRoom(s: RoomState, id: string, now: number): Result {
   p.present = false;
   p.ready = false;
   voidFighter(n, id, effects);
+  voidDuelist(n, id, effects);
   if (members(n).length === 0) {
     closeIn(n, now, effects);
   } else if (n.hostId === id) {
@@ -729,6 +795,180 @@ export function startRound(
   return done(n, [phaseEffect(n)]);
 }
 
+// ------------------------------------------------------------------ duels
+/** Suggested pairs: present players next to each other by chips (odd one sits out). */
+export function autoPairs(s: RoomState): [string, string][] {
+  const ids = presentMembers(s)
+    .sort((a, b) => b.chips - a.chips || (a.id < b.id ? -1 : 1))
+    .map((p) => p.id);
+  const out: [string, string][] = [];
+  for (let i = 0; i + 1 < ids.length; i += 2) out.push([ids[i], ids[i + 1]]);
+  return out;
+}
+
+/** Host: starts a duel round (from the lobby or between rounds). */
+export function startDuels(
+  s: RoomState,
+  host: string,
+  now: number,
+  mode: DuelMode,
+  pairs: readonly (readonly [string, string])[],
+): Result {
+  const g = guard(s, host, "start_duels");
+  if (g) return g;
+  if (mode !== "balanceado" && mode !== "real") return fail("invalid_args");
+  const seen = new Set<string>();
+  for (const [a, b] of pairs) {
+    if (a === b || seen.has(a) || seen.has(b)) return fail("invalid_args");
+    seen.add(a).add(b);
+    if (!byId(s, a)?.present || !byId(s, b)?.present) return fail("not_member");
+    if (member(s, a) === undefined || member(s, b) === undefined)
+      return fail("not_member");
+  }
+  if (pairs.length === 0) return fail("not_enough_players");
+  const n = clone(s);
+  const effects: Effect[] = [];
+  n.duelRound += 1;
+  n.duelMode = mode;
+  n.duelFrom = s.phase === "round_end" ? "round_end" : "lobby";
+  n.duels = pairs.map(([a, b]) => ({
+    key: `u${n.duelRound}:${a}:${b}`,
+    a,
+    b,
+    bets: [],
+    status: "open",
+    reported: false,
+    winner: null,
+    end: null,
+    outcome: null,
+  }));
+  for (const p of n.players) {
+    p.duelPick = null;
+    p.ready = false;
+  }
+  setPhase(n, "duel_setup", ROOM_K.duelSetupMs, effects, now);
+  return done(n, effects);
+}
+
+/** Duelist: class + element (balanceado) or a hero of the account (real). */
+export function chooseDuelPick(s: RoomState, id: string, pick: DuelPick): Result {
+  const g = guard(s, id, "choose_duel_pick");
+  if (g) return g;
+  const ok =
+    s.duelMode === "real"
+      ? "heroId" in pick && typeof pick.heroId === "string" && pick.heroId !== ""
+      : "classId" in pick &&
+        (CLASS_IDS as readonly string[]).includes(pick.classId) &&
+        (ELEMENTS as readonly string[]).includes(pick.element);
+  if (!ok) return fail("invalid_args");
+  const n = clone(s);
+  byId(n, id)!.duelPick = pick;
+  return done(n);
+}
+
+/** Spectators bet on a duel: "win" = the first duelist (a) wins, "lose" = b. */
+export function placeDuelBet(
+  s: RoomState,
+  bettor: string,
+  key: string,
+  prediction: BetPrediction,
+  stake: number,
+): Result {
+  const g = guard(s, bettor, "duel_bet");
+  if (g) return g;
+  const m = s.duels.find((d) => d.key === key);
+  if (!m || m.status !== "open") return fail("battle_not_found");
+  const p = byId(s, bettor)!;
+  if (!p.present) return fail("not_member");
+  const err = validateBet(stake, p.chips, bettor === m.a || bettor === m.b);
+  if (err) return fail(err);
+  if (m.bets.some((x) => x.bettor === bettor)) return fail("duplicate_bet");
+  const n = clone(s);
+  byId(n, bettor)!.chips -= stake;
+  n.duels.find((d) => d.key === key)!.bets.push({ bettor, prediction, stake });
+  return done(n);
+}
+
+/** Server verdict of a duel (`winner` null = draw). First report wins. */
+export function reportDuel(
+  s: RoomState,
+  id: string,
+  key: string,
+  winner: string | null,
+  end: DuelEnd,
+): Result {
+  const g = guard(s, id, "report_duel");
+  if (g) return g;
+  const m = s.duels.find((d) => d.key === key);
+  if (!m || (m.a !== id && m.b !== id)) return fail("battle_not_found");
+  if (winner !== null && winner !== m.a && winner !== m.b)
+    return fail("invalid_args");
+  if (m.reported) return done(s);
+  const n = clone(s);
+  const mm = n.duels.find((d) => d.key === key)!;
+  mm.reported = true;
+  mm.winner = winner;
+  mm.end = end;
+  return done(n);
+}
+
+/** Pays the pool and the prize; voids (refund) when there is no winner. */
+function settleDuelIn(n: RoomState, m: DuelMatch, effects: Effect[]) {
+  if (m.status === "settled") return;
+  const outcome: BetOutcome =
+    m.winner === null ? "void" : m.winner === m.a ? "win" : "lose";
+  const { payouts, dust } = settlePool(m.bets, outcome);
+  for (const po of payouts) {
+    const p = byId(n, po.bettor);
+    if (p) p.chips += po.payout;
+  }
+  n.totals.dust += dust;
+  const w = m.winner ? byId(n, m.winner) : undefined;
+  if (w) {
+    w.chips += ROOM_K.duelWinChips;
+    w.duelWins += 1;
+    n.totals.comp += ROOM_K.duelWinChips;
+  }
+  m.status = "settled";
+  m.outcome = outcome;
+  m.end ??= m.winner === null ? "no_fight" : "ko";
+  effects.push({
+    type: "battle_settled",
+    key: m.key,
+    outcome,
+    voidReason: outcome === "void" ? "no_fight" : null,
+  });
+}
+
+/** A duelist left: before the fight the match is void; mid-fight the rival wins. */
+function voidDuelist(n: RoomState, id: string, effects: Effect[]) {
+  for (const m of n.duels) {
+    if (m.status === "settled" || (m.a !== id && m.b !== id)) continue;
+    if (n.phase === "duel_fight" && !m.reported) {
+      const other = byId(n, m.a === id ? m.b : m.a);
+      m.reported = true;
+      m.winner = other && !other.left ? other.id : null;
+      m.end = m.winner ? "forfeit" : "no_fight";
+    } else if (n.phase === "duel_setup" || n.phase === "duel_betting") {
+      m.reported = true;
+      m.winner = null;
+      m.end = "no_fight";
+      settleDuelIn(n, m, effects);
+    }
+  }
+}
+
+function lockDuels(n: RoomState, now: number, effects: Effect[]) {
+  const open = n.duels.filter((m) => m.status === "open");
+  if (open.length === 0) {
+    setPhase(n, "duel_reveal", ROOM_K.duelRevealMs, effects, now);
+    return;
+  }
+  for (const m of open) m.status = "locked";
+  effects.push({ type: "battles_locked", keys: open.map((m) => m.key) });
+  setPhase(n, "duel_fight", ROOM_K.duelFightCapMs, effects, now);
+}
+
 // --------------------------------------------------------------- bets
 export function placeBet(
   s: RoomState,
@@ -847,6 +1087,7 @@ function enterRoundSetup(
   n.roundSeed = seed;
   n.roundStartedAt = now;
   n.battles = {};
+  n.duels = [];
   for (const p of n.players) {
     p.lives = ROOM_K.lives;
     p.eliminated = false;
@@ -893,6 +1134,18 @@ export function phaseDone(s: RoomState): boolean {
       return fighters(s).every((p) => p.outcome !== null);
     case "round_end":
       return present.length > 0 && present.every((p) => p.ready);
+    case "duel_setup":
+      return present
+        .filter((p) => s.duels.some((m) => m.a === p.id || m.b === p.id))
+        .every((p) => p.duelPick !== null);
+    case "duel_betting": {
+      const fans = present.filter(
+        (p) => !s.duels.some((m) => m.a === p.id || m.b === p.id),
+      );
+      return fans.every((p) => p.ready);
+    }
+    case "duel_fight":
+      return s.duels.every((m) => m.status === "settled" || m.reported);
     default:
       return false;
   }
@@ -1059,6 +1312,47 @@ export function advance(
     case "coop_boss":
       setPhase(n, "night_summary", 0, effects, now);
       break;
+    case "duel_setup": {
+      for (const m of n.duels) {
+        const ps = [byId(n, m.a), byId(n, m.b)];
+        if (ps.some((p) => !p || p.left || !p.present)) {
+          m.reported = true;
+          m.end = "no_fight";
+          settleDuelIn(n, m, effects);
+        } else
+          for (const p of ps) p!.duelPick ??= { ...DEFAULT_DUEL_PICK_FOR(n.duelMode) };
+      }
+      for (const p of n.players) p.ready = false;
+      const fans = presentMembers(n).filter(
+        (p) => !n.duels.some((m) => m.a === p.id || m.b === p.id),
+      );
+      if (fans.length > 0 && n.duels.some((m) => m.status === "open"))
+        setPhase(n, "duel_betting", ROOM_K.duelBettingMs, effects, now);
+      else lockDuels(n, now, effects);
+      break;
+    }
+    case "duel_betting":
+      lockDuels(n, now, effects);
+      break;
+    case "duel_fight":
+      // Unreported duels hit the cap (the server reports by hp% before this).
+      for (const m of n.duels) {
+        if (m.status === "settled") continue;
+        if (!m.reported) {
+          m.reported = true;
+          m.winner = null;
+          m.end = "time";
+        }
+        settleDuelIn(n, m, effects);
+      }
+      setPhase(n, "duel_reveal", ROOM_K.duelRevealMs, effects, now);
+      break;
+    case "duel_reveal":
+      for (const p of n.players) p.ready = false;
+      if (n.duelFrom === "round_end")
+        setPhase(n, "round_end", ROOM_K.roundEndMs, effects, now);
+      else setPhase(n, "lobby", 0, effects, now);
+      break;
     default:
       return stale("manual_phase");
   }
@@ -1093,9 +1387,12 @@ export function chipSupply(s: RoomState): { held: number; expected: number } {
   const escrow = Object.values(s.battles)
     .filter((b) => b.status !== "settled")
     .reduce((a, b) => a + b.bets.reduce((x, y) => x + y.stake, 0), 0);
+  const duelEscrow = s.duels
+    .filter((m) => m.status !== "settled")
+    .reduce((a, m) => a + m.bets.reduce((x, y) => x + y.stake, 0), 0);
   const { issued, interfereSpent, comp, dust } = s.totals;
   return {
-    held: held + escrow,
+    held: held + escrow + duelEscrow,
     expected: issued - interfereSpent + comp - dust,
   };
 }
