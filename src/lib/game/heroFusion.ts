@@ -194,7 +194,7 @@ export function fuseHeroes(
     profile: { ...p, coins: p.coins - rule.coins, characters, equipped },
     fusion: { baseId: base.id, materials: a.materials, coins: rule.coins, rank: next, hero, merged: !!target, split },
     text: target
-      ? `${target.name} (${label}) absorbe a ${base.name}: ${hero.stars}★.`
+      ? `${target.name} (${label}) absorbe a ${base.name}: queda con ${hero.stars}★ y ${hero.copies?.length ?? 0} ${hero.copies?.length === 1 ? "copia" : "copias"} (el rasgo que no elegiste pasa a ser una copia).`
       : `${base.name} sube a rango ${label}${carried ? ` con ${carried}★` : ""}.`,
   };
 }

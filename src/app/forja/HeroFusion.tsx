@@ -269,6 +269,7 @@ export function HeroFusionPanel({
                   </div>
                   <div>
                     Rango {RARITIES[result.rarity].label}, {result.stars}★ · rasgo {traitName(result.traits[0])}
+                    {fusion.merged ? ` · ${result.copies?.length ?? 0} copias (+1 por esta fusión)` : ""}
                   </div>
                   {fusion.split && (
                     <div className="opacity-80">
