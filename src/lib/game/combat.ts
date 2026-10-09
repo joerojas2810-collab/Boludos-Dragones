@@ -189,7 +189,7 @@ export const lifestealOf = (c: Combatant): number =>
   Math.min(LIFESTEAL_CAP, c.char.stats.lifesteal + (c.perks?.lifesteal ?? 0));
 
 // Every heal (attack heal, skills, lifesteal, regen, Clérigo blessing).
-const healMult = (c: Combatant): number => 1 - rulesOf(c).healPenalty;
+export const healMult = (c: Combatant): number => 1 - rulesOf(c).healPenalty;
 
 export const skillOf = (c: Combatant): Skill | undefined =>
   c.char.skill ? SKILLS[c.char.skill] : undefined;
@@ -524,7 +524,7 @@ export function attackElementMultiplier(
 }
 
 // End-of-round passive heal (Clérigo blessing + regen), one capped number.
-function passiveHeal(c: Combatant, log: string[]): Combatant {
+export function passiveHeal(c: Combatant, log: string[]): Combatant {
   const rate = passiveHealRate(c);
   if (rate <= 0) return c;
   const hp = Math.min(
@@ -535,13 +535,13 @@ function passiveHeal(c: Combatant, log: string[]): Combatant {
   return { ...c, hp };
 }
 
-interface Strike {
+export interface Strike {
   attacker: Combatant;
   defender: Combatant;
   dmg: number; // damage dealt after crit (0 on a miss or a dodge)
 }
 
-function strike(
+export function strike(
   att: Combatant,
   def: Combatant,
   key: MoveKey,
