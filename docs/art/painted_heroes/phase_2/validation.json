@@ -1,0 +1,18 @@
+{
+  "phase": 2,
+  "status": "approved",
+  "animation_strips": 200,
+  "static_images": 20,
+  "mask_strips": 40,
+  "checks": [
+    "all 220 lossless WebP assets match rendered PNG pixels and alpha",
+    "runtime frame dimensions match manifest",
+    "40 masks match their strip dimensions",
+    "approved class and element filenames preserved"
+  ],
+  "limitations": [
+    "not yet integrated",
+    "2x exports resample the same native detail",
+    "Berserker currently shares Knight art in main"
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "version": "1.0_proposed",
+  "style": "painted_fantasy",
+  "roles": [
+    "main",
+    "dark",
+    "light",
+    "glow"
+  ],
+  "elements": {
+    "fire": [
+      "#F4511E",
+      "#92270F",
+      "#FF943F",
+      "#FFE1A0"
+    ],
+    "water": [
+      "#1ABCE0",
+      "#106780",
+      "#64D4FF",
+      "#D1F4FF"
+    ],
+    "earth": [
+      "#A78347",
+      "#4B3928",
+      "#D6B77A",
+      "#F4E7BC"
+    ],
+    "lightning": [
+      "#E8CD38",
+      "#796018",
+      "#FFF078",
+      "#FFF8D6"
+    ],
+    "wind": [
+      "#67BE99",
+      "#28594F",
+      "#A8E3C8",
+      "#E3FFF2"
+    ]
+  },
+  "ranks": {
+    "f": [
+      "#9CA3AF",
+      "#414854",
+      "#D1D5DB",
+      "#F3F4F6"
+    ],
+    "e": [
+      "#4ADE80",
+      "#185C3A",
+      "#A7F3C0",
+      "#E7FFF0"
+    ],
+    "d": [
+      "#2DD4BF",
+      "#145E59",
+      "#99F6E4",
+      "#E6FFFA"
+    ],
+    "c": [
+      "#60A5FA",
+      "#203F78",
+      "#BFDBFE",
+      "#EFF6FF"
+    ],
+    "b": [
+      "#818CF8",
+      "#34346F",
+      "#C7D2FE",
+      "#F0F1FF"
+    ],
+    "a": [
+      "#C084FC",
+      "#603078",
+      "#E9D5FF",
+      "#FBF1FF"
+    ],
+    "s": [
+      "#FBBF24",
+      "#795019",
+      "#FDE68A",
+      "#FFFADE"
+    ],
+    "ss": [
+      "#FB923C",
+      "#7C351D",
+      "#FED7AA",
+      "#FFF2E5"
+    ],
+    "ssr": [
+      "#F43F5E",
+      "#7D203B",
+      "#FDA4AF",
+      "#FFF0F4"
+    ]
+  },
+  "neutrals": {
+    "outline": "#171923",
+    "steel": "#77777E",
+    "steel_shadow": "#292A35",
+    "steel_light": "#C6C4C0",
+    "leather": "#594134",
+    "background": "#151C25",
+    "surface": "#25303B",
+    "surface_raised": "#354352",
+    "text": "#F4EBDD",
+    "text_secondary": "#C5CDD3",
+    "border": "#7B8B9B",
+    "copper": "#B88762",
+    "action": "#A8E3C8",
+    "action_text": "#151C25",
+    "danger": "#FCA5A5",
+    "focus": "#D1F4FF"
+  }
+}
