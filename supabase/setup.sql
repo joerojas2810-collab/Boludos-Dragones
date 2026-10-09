@@ -9181,6 +9181,7 @@ update public.market_offers set status = 'cancelled', closed_at = now()
 -- 3) apply_pull stores a duplicate hero as a copy (status 'copy'; refund at 50 copies).
 -- 4) apply_hero_change: one atomic write-set for star-up, rank-up and trait swap (fuse_heroes goes).
 -- 5) The market moves a hero's spare copy (with its trait) instead of a star.
+-- 7) Open hero offers made before this (they offered stars) are cancelled: only copies are tradeable now.
 -- 6) Heroes are no longer burned: burn_hero goes and burn_many only takes pieces.
 alter table public.characters add column if not exists copies text[] not null default '{}';
 alter table public.characters drop constraint if exists characters_copies_check;
@@ -9420,6 +9421,10 @@ begin
    where player_id = p_player returning coins, version into v_state.coins, v_state.version;
   return jsonb_build_object('burned', v_count, 'gained', v_total, 'coins', v_state.coins, 'version', v_state.version);
 end $$;
+
+-- 7) Offers of heroes made when the tradeable unit was a star are stale now.
+update public.market_offers set status = 'cancelled', closed_at = now()
+ where status = 'open' and kind = 'character';
 
 -- ===== 0018_lockdown_functions.sql =====
 -- 0018_lockdown_functions: re-apply the function lockdown to EVERY function in public.
