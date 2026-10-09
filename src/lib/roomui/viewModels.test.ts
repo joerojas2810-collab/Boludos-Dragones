@@ -161,6 +161,30 @@ describe("phaseComplete", () => {
   });
 });
 
+describe("phaseComplete (duels)", () => {
+  const match = (o: object = {}) => ({
+    key: "k", a: "a", b: "b", reported: false, status: "locked" as const,
+    winner: null, end: null, outcome: null, bets: [], fight: null, ...o,
+  });
+  const duel = (o: object = {}) => ({
+    mode: "balanceado" as const, round: 1, picked: [] as string[], matches: [match()], ...o,
+  });
+  it("setup waits for every present duelist to pick", () => {
+    const players = [P("a"), P("b"), P("c")];
+    expect(phaseComplete(V({ phase: "duel_setup", players, duel: duel({ picked: ["a"] }) }))).toBe(false);
+    expect(phaseComplete(V({ phase: "duel_setup", players, duel: duel({ picked: ["a", "b"] }) }))).toBe(true);
+  });
+  it("betting waits for the spectators only", () => {
+    const d = duel();
+    expect(phaseComplete(V({ phase: "duel_betting", duel: d, players: [P("a"), P("b"), P("c")] }))).toBe(false);
+    expect(phaseComplete(V({ phase: "duel_betting", duel: d, players: [P("a"), P("b"), P("c", { ready: true })] }))).toBe(true);
+  });
+  it("the fight ends when every duel has its verdict", () => {
+    expect(phaseComplete(V({ phase: "duel_fight", duel: duel() }))).toBe(false);
+    expect(phaseComplete(V({ phase: "duel_fight", duel: duel({ matches: [match({ reported: true })] }) }))).toBe(true);
+  });
+});
+
 describe("playerStatus", () => {
   it("covers absent, eliminated and fighting", () => {
     const v = V({ phase: "fighting" });

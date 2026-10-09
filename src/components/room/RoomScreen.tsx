@@ -4,6 +4,13 @@ import { askConfirm } from "@/lib/dialogs";
 import { useState, type ReactNode } from "react";
 import { DoorIcon } from "@/components/DoorIcon";
 import { CoopBar, CoopFight } from "@/components/room/CoopBoss";
+import {
+  DuelBets,
+  DuelFight,
+  DuelHostPanel,
+  DuelResults,
+  DuelSetup,
+} from "@/components/room/Duel";
 import { FloorPlayer } from "@/components/room/FloorPlayer";
 import { Podium } from "@/components/room/Podium";
 import { HeroSprite } from "@/components/HeroSprite";
@@ -180,6 +187,9 @@ export function RoomScreen({
             </Panel>
           )}
           <HeroPicker view={view} onPick={(id) => void run(client.hero(id))} />
+          {isHost && (view.phase === "lobby" || view.phase === "round_end") && (
+            <DuelHostPanel view={view} client={client} onError={setErr} />
+          )}
           <div className="flex flex-wrap justify-center gap-2">
             {view.phase === "round_end" && me && (
               <button
@@ -316,6 +326,23 @@ export function RoomScreen({
         <>
           <CoopBar view={view} />
           {me && <CoopFight client={client} />}
+        </>
+      );
+      break;
+    case "duel_setup":
+      main = <DuelSetup view={view} client={client} onError={setErr} />;
+      break;
+    case "duel_betting":
+      main = <DuelBets view={view} client={client} onError={setErr} />;
+      break;
+    case "duel_fight":
+      main = <DuelFight view={view} client={client} onError={setErr} />;
+      break;
+    case "duel_reveal":
+      main = (
+        <>
+          <DuelResults view={view} />
+          <DuelFight view={view} client={client} onError={setErr} />
         </>
       );
       break;
