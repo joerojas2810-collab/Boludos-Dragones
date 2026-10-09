@@ -58,7 +58,7 @@ describe("element sets", () => {
   });
 });
 
-import { buildLabel, resonances, rollGear, gearBonus as gb, GEAR_CAP as CAP, NO_GEAR as NG } from "./gear";
+import { buildLabel, CAPSTONE, resonances, rollGear, gearBonus as gb, GEAR_CAP as CAP, NO_GEAR as NG } from "./gear";
 import { createRng } from "./rng";
 
 describe("gear rolls and resonance (Run v2)", () => {
@@ -67,20 +67,32 @@ describe("gear rolls and resonance (Run v2)", () => {
     expect(rollGear(rng, "casco", "f").lines).toHaveLength(0);
     expect(rollGear(rng, "casco", "c").lines).toHaveLength(1);
     expect(rollGear(rng, "casco", "a").lines).toHaveLength(2);
-    const ss = rollGear(rng, "peto", "ss");
-    expect(ss.lines).toHaveLength(3);
-    expect(new Set(ss.lines.map((l) => l.stat)).size).toBe(3);
-    for (const r of [ss.roll, ...ss.lines.map((l) => l.roll)]) {
+    // S: 3 regular lines plus the capstone line of the slot, all distinct
+    const s = rollGear(rng, "peto", "s");
+    expect(s.lines).toHaveLength(4);
+    expect(new Set(s.lines.map((l) => l.stat)).size).toBe(4);
+    expect(s.lines[3].stat).toBe(CAPSTONE.peto);
+    for (const r of [s.roll, ...s.lines.map((l) => l.roll)]) {
       expect(r).toBeGreaterThanOrEqual(0.85);
       expect(r).toBeLessThanOrEqual(1.15);
     }
+  });
+
+  it("only S pieces carry a capstone line", () => {
+    const rng = createRng(11);
+    const capstones = new Set<string>(Object.values(CAPSTONE));
+    for (const rank of ["f", "e", "d", "c", "b", "a"] as const)
+      for (const type of ["casco", "peto", "piernas", "zapatos", "collar"] as const)
+        expect(rollGear(rng, type, rank).lines.some((l) => capstones.has(l.stat))).toBe(false);
+    for (const type of ["casco", "peto", "piernas", "zapatos", "collar"] as const)
+      expect(rollGear(rng, type, "s").lines.at(-1)?.stat).toBe(CAPSTONE[type]);
   });
 
   it("a better roll gives a bigger bonus and totals stay under the caps", () => {
     const base = { type: "casco" as const, rarity: "b" as const, stars: 0, lines: [] };
     expect(gb([{ ...base, roll: 1.15 }]).hp).toBeGreaterThan(gb([{ ...base, roll: 0.85 }]).hp);
     const full = (["casco", "peto", "piernas", "zapatos", "collar"] as const).map((type) => ({
-      type, rarity: "ssr" as const, stars: 5, ...rollGear(createRng(9), type, "ssr"),
+      type, rarity: "s" as const, stars: 5, ...rollGear(createRng(9), type, "s"),
     }));
     const b = gb(full);
     for (const k of Object.keys(NG) as (keyof typeof NG)[]) expect(b[k]).toBeLessThanOrEqual(CAP[k]);

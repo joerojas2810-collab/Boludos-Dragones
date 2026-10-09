@@ -69,7 +69,7 @@ describe("bankLevel", () => {
 });
 
 describe("hero skill + migrate", () => {
-  it("chooseHeroSkill validates class and unlock, and survives migrate", () => {
+  it("chooseHeroSkill validates the class (any rank), and survives migrate", () => {
     const p = withHero();
     const c = p.characters[0];
     const [own, other] = [SKILLS_BY_CLASS[c.classId][1], SKILLS_BY_CLASS[c.classId === "mago" ? "caballero" : "mago"][0]];
@@ -77,7 +77,8 @@ describe("hero skill + migrate", () => {
     const ok = chooseHeroSkill(base, c.id, own)!;
     expect(ok.characters[0].skill).toBe(own);
     expect(chooseHeroSkill(base, c.id, other)).toBeNull(); // wrong class
-    expect(chooseHeroSkill({ ...base, characters: [{ ...c, rarity: "f" as const, stars: 0 }] }, c.id, own)).toBeNull(); // locked
+    const low = { ...base, characters: [{ ...c, rarity: "f" as const, stars: 0 }] };
+    expect(chooseHeroSkill(low, c.id, own)!.characters[0].skill).toBe(own); // no rank or star lock
     expect(migrate(JSON.parse(JSON.stringify(ok))).characters[0].skill).toBe(own);
   });
   it("old numeric dungeon shapes reset to {}", () => {

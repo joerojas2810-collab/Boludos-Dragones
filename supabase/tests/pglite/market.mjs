@@ -31,7 +31,7 @@ await err(rpc("market_create", { p_player: U(1), p_kind: "character", p_give: A,
 await err(rpc("market_create", { p_player: U(1), p_kind: "character", p_give: A, p_want: B, p_coins: 400 }), "unfair_trade", "coins below the 25% band");
 await err(rpc("market_create", { p_player: U(1), p_kind: "character", p_give: A, p_coins: 1559 }), "unfair_trade", "sale 1 coin under the band");
 await err(rpc("market_create", { p_player: U(1), p_kind: "character", p_give: B , p_coins: 830 }), "not_owned", "give single copy (0 stars)");
-await err(rpc("market_create", { p_player: U(1), p_kind: "character", p_give: "c-mago-fuego-s" , p_coins: 8330 }), "not_owned", "give piece I do not have");
+await err(rpc("market_create", { p_player: U(1), p_kind: "character", p_give: "c-mago-fuego-s" , p_coins: 5000 }), "not_owned", "give piece I do not have");
 await err(rpc("market_create", { p_player: U(1), p_kind: "character", p_give: "c-dragon-fuego-c" }), "invalid_args", "nonexistent class");
 await err(rpc("market_create", { p_player: U(1), p_kind: "character", p_give: A, p_want: "c-mago-fuego-mitico" }), "invalid_args", "nonexistent want");
 await err(rpc("market_create", { p_player: U(1), p_kind: "character", p_give: A, p_want: W }), "invalid_args", "kind mismatch");

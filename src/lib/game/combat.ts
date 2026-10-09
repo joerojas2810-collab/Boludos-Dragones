@@ -804,7 +804,8 @@ export function strike(
   // Elemental effects: the player always applies them, enemies only on strong
   // hits when flagged (elites, bosses). Mago's perfect guard doubles the stacks.
   const element = att.char.weapon?.element ?? att.char.element;
-  const classMove = actor === "player" && key === "attack3";
+  // The class special applies statuses, except Detonar, which only consumes them.
+  const classMove = actor === "player" && key === "attack3" && !skill?.detonate;
   const canApply =
     actor === "player" ? classMove : !!att.applies && isStrongIntent(key);
   const guardBoost = att.riposte && att.char.classId === "mago" ? 2 : 1;

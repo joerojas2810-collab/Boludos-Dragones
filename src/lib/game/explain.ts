@@ -295,6 +295,7 @@ const MOD_ORDER: (keyof TraitMods)[] = [
   "def",
   "speed",
   "crit",
+  "resist",
   "accuracy",
 ];
 const MOD_LABEL_LOWER: Record<keyof TraitMods, string> = {

@@ -6,7 +6,7 @@ import { ELEMENTS } from "./elements";
 import { rollGear } from "./gear";
 import { levelElement, type LevelSpec } from "./levels";
 import { gachaDropRank, type RunPiece } from "./loot";
-import { dropRank, DUNGEON_IDS, RARITY_IDS, type DungeonId, type RarityId } from "./rarity";
+import { itemRankOf, DUNGEON_IDS, RARITY_IDS, type DungeonId, type RarityId } from "./rarity";
 import { createRng, hashSeed, type Rng } from "./rng";
 import { FIGHT_XP } from "./stage";
 import {
@@ -103,7 +103,7 @@ export function levelLoot(
   const below = RARITY_IDS[Math.min(RARITY_IDS.length - 1, Math.max(0, DUNGEON_IDS.indexOf(spec.rank) - 1))];
   for (let i = 0; i < count; i++)
     pieces.push(
-      pieceOf(rng, spec, asc, i === topAt ? dropRank(spec.rank) : gachaDropRank(rng, below, PIECE_RANK_TILT)),
+      pieceOf(rng, spec, asc, i === topAt ? itemRankOf(spec.rank) : gachaDropRank(rng, below, PIECE_RANK_TILT)),
     );
   return {
     escamas: levelEscamas(spec.rank, asc, opts.repeat, opts.payMult ?? 1),

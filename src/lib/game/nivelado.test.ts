@@ -35,13 +35,13 @@ function hero(
 describe("niveladoBonus", () => {
   it.each([
     ["f", 0, 0],
-    ["ssr", 5, NIVELADO_MAX_BONUS],
+    ["s", 5, NIVELADO_MAX_BONUS],
   ] as const)("%s %i★ = %f", (r, st, exp) => {
     expect(niveladoBonus(r, st)).toBeCloseTo(exp, 10);
   });
-  it("s 3★ is about 8-9% and monotonic", () => {
-    expect(niveladoBonus("s", 3)).toBeGreaterThan(0.08);
-    expect(niveladoBonus("s", 3)).toBeLessThan(0.09);
+  it("s 3★ is about 12% (S is the top rank) and monotonic", () => {
+    expect(niveladoBonus("s", 3)).toBeGreaterThan(0.11);
+    expect(niveladoBonus("s", 3)).toBeLessThan(0.13);
     expect(niveladoBonus("c", 0)).toBeLessThan(niveladoBonus("s", 0));
     expect(niveladoBonus("s", 99)).toBeLessThanOrEqual(NIVELADO_MAX_BONUS);
   });

@@ -11,7 +11,7 @@ import {
   type MissionState,
 } from "../game/missions";
 import { createRng } from "../game/rng";
-import { dropRank, DUNGEON_IDS, type RarityId } from "../game/rarity";
+import { itemRankOf, DUNGEON_IDS, type RarityId } from "../game/rarity";
 import { ApiError } from "./http";
 import { call, limit, mapRpcError, type Deps, type Rpc } from "./rpc";
 
@@ -109,7 +109,7 @@ export async function claimMissionService(
     });
     // best cleared dungeon tier -> the item rank the rewards roll at (SS / SSR dungeons: S)
     const rank: RarityId = (DUNGEON_IDS as readonly string[]).includes(best)
-      ? dropRank(best as (typeof DUNGEON_IDS)[number])
+      ? itemRankOf(best as (typeof DUNGEON_IDS)[number])
       : "f";
     const roll = rollMissionRewards(
       createRng(d.randomSeed()),

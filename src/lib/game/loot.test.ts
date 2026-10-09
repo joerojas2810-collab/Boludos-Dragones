@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { levelLoot } from "./levelLoot";
 import { levelsOf } from "./levels";
 import { dropRank, gachaDropRank, UP_CHANCE } from "./loot";
-import { RARITY_IDS, type RarityId } from "./rarity";
+import { RARITY_IDS, type DungeonId, type RarityId } from "./rarity";
 import { createRng } from "./rng";
 
 describe("loot rank", () => {
@@ -23,10 +23,10 @@ describe("loot rank", () => {
     expect(n.e).toBeGreaterThan(n.f);
     expect(n.b / 6000).toBeGreaterThan(0.06);
     expect(n.b / 6000).toBeLessThan(0.14);
-    // SSR cannot go above itself; F cannot go below itself
+    // S (the top rank) cannot go above itself; F cannot go below itself
     const rng = createRng(1);
     for (let i = 0; i < 500; i++) {
-      expect(dropRank(rng, "ssr", 0.5)).toMatch(/^(f|e|d|c|b|a|s|ss|ssr)$/);
+      expect(dropRank(rng, "s", 0.5)).toMatch(/^(f|e|d|c|b|a|s)$/);
       expect(dropRank(rng, "f", 0)).toBe("f");
     }
   });
@@ -51,14 +51,11 @@ describe("gachaDropRank (dungeon loot rarity)", () => {
         );
     for (let i = 0; i < 50; i++) expect(gachaDropRank(rng, "f")).toBe("f");
   });
-  it("its own rank is as rare as in a pull (S dungeon ~3 %, SSR ~0.5 %)", () => {
+  it("its own rank is as rare as in a pull (S ~5 %)", () => {
     const s = share("s");
-    expect(s("s")).toBeGreaterThan(0.02);
-    expect(s("s")).toBeLessThan(0.045);
-    expect(s("f")).toBeGreaterThan(0.25); // mostly low ranks
-    const ssr = share("ssr", 200000);
-    expect(ssr("ssr")).toBeLessThan(0.01);
-    expect(ssr("s") + ssr("ss") + ssr("ssr")).toBeLessThan(0.07);
+    expect(s("s")).toBeGreaterThan(0.03);
+    expect(s("s")).toBeLessThan(0.07);
+    expect(s("f")).toBeGreaterThan(0.2); // mostly low ranks
   });
   it("tilt leans toward the top", () => {
     const rng = createRng(9);
@@ -69,7 +66,7 @@ describe("gachaDropRank (dungeon loot rarity)", () => {
 });
 
 describe("levelLoot: the top rank is one roll per level", () => {
-  const spec = (rank: RarityId) => levelsOf(rank)[2];
+  const spec = (rank: DungeonId) => levelsOf(rank)[2];
   it("S dungeon: ~5 % of levels give exactly one S piece, never two, never above S", () => {
     let withTop = 0;
     const N = 6000;
@@ -86,11 +83,27 @@ describe("levelLoot: the top rank is one roll per level", () => {
   it("repeats keep 75% of the top chance; the rest of the pieces stay below the dungeon", () => {
     let top = 0;
     for (let i = 0; i < 6000; i++) {
-      const l = levelLoot(spec("ssr"), 0, "mago", i, { repeat: true });
-      top += l.pieces.filter((p) => p.rarity === "ssr").length;
+      const l = levelLoot(spec("s"), 0, "mago", i, { repeat: true });
+      top += l.pieces.filter((p) => p.rarity === "s").length;
     }
     expect(top / 6000).toBeGreaterThan(0.025);
     expect(top / 6000).toBeLessThan(0.05);
+  });
+  it("SS and SSR tiers drop S (never above) and drop more of it than the S dungeon", () => {
+    const sShare = (rank: DungeonId) => {
+      let s = 0, all = 0;
+      for (let i = 0; i < 4000; i++) {
+        const l = levelLoot(spec(rank), 0, "mago", i, { repeat: false });
+        for (const p of l.pieces) {
+          expect(RARITY_IDS.indexOf(p.rarity)).toBeLessThanOrEqual(RARITY_IDS.indexOf("s"));
+          all++;
+          if (p.rarity === "s") s++;
+        }
+      }
+      return s / all;
+    };
+    expect(sShare("ss")).toBeGreaterThan(sShare("s"));
+    expect(sShare("ssr")).toBeGreaterThan(sShare("s"));
   });
   it("the daily decay (payMult) does not touch the pieces, only Escamas", () => {
     for (let i = 0; i < 200; i++) {

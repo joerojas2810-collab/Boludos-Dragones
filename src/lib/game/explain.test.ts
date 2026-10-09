@@ -118,7 +118,8 @@ describe("explain: stats", () => {
 describe("explain: elements, traits, actions", () => {
   it("element tip lists +25% / -25% matchups", () => {
     const t = text(elementTip("agua"));
-    expect(t).toContain("Fuerte contra Fuego y Viento");
+    expect(t).toContain("Fuerte contra Fuego");
+    expect(t).toContain("Débil contra Rayo");
     expect(t).toContain("25%");
   });
 
@@ -171,10 +172,9 @@ describe("explain: elements, traits, actions", () => {
 });
 
 describe("explain: Run v2 rules", () => {
-  it("level, pity and gear tips quote the real constants", async () => {
+  it("level and gear tips quote the real constants", async () => {
     const m = await import("./explain");
     expect(text(m.levelTip(3, 0, 0))).toContain("20");
-    expect(text(m.pityTip())).toContain("250");
     expect(text(m.gearTip())).toContain("10%");
     expect(text(m.burnTip())).toContain("4%");
   });

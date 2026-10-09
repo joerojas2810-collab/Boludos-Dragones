@@ -17,18 +17,17 @@ import {
 } from "./traits";
 
 // Tune here. `ratio` counts the base hero too. Lots of common heroes, few rare ones: what you
-// can spare shrinks with rank, so the ratio never rises. Fusing every hero you ever pull adds
-// ~+200% SSR over the pity (SSR is exponential in the chain, so almost all of it comes from A,
-// S and SS); the stars the base must spend (FUSION_STARS) are what really gates it. Retune here
-// if that proves too much or too little. Coins double per rank.
+// can spare shrinks with rank, so the ratio never rises. S is the top rank, so there is no S row.
+// Fusing every hero you ever pull adds ~+70% S on top of the S that comes straight from pulls
+// (almost all of it from A and B); the stars the base must spend (FUSION_STARS) are what really
+// gates it. Retune here if that proves too much or too little. Coins double per rank.
 export const HERO_FUSION: Partial<Record<RarityId, { ratio: number; coins: number }>> = {
-  f: { ratio: 6, coins: 20 },
-  e: { ratio: 6, coins: 40 },
-  d: { ratio: 5, coins: 80 },
-  c: { ratio: 5, coins: 160 },
-  b: { ratio: 4, coins: 320 },
-  a: { ratio: 4, coins: 640 },
-  s: { ratio: 3, coins: 1280 },
+  f: { ratio: 5, coins: 20 },
+  e: { ratio: 5, coins: 40 },
+  d: { ratio: 4, coins: 80 },
+  c: { ratio: 4, coins: 160 },
+  b: { ratio: 3, coins: 320 },
+  a: { ratio: 3, coins: 640 },
 };
 
 // The base hero spends this many stars to rank up; any extra stars stay (4★ -> 1★, 5★ -> 2★).

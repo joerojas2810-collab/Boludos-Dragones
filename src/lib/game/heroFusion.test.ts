@@ -84,29 +84,31 @@ describe("fuseHeroes", () => {
     expect(fuseHeroes(profile(hs, 1), { baseId: hs[0].id, materialIds: ids }).ok).toBe(false);
     const mixed = [...hs.slice(0, 4), hero("e")];
     expect(fuseHeroes(profile(mixed), { baseId: mixed[0].id, materialIds: mixed.slice(1).map((h) => h.id) }).ok).toBe(false);
-    const ssr = [0, 1, 2].map((i) => hero("ssr", CLASS_IDS[i], ELEMENTS[i]));
-    expect(fuseHeroes(profile(ssr), { baseId: ssr[0].id, materialIds: ssr.slice(1).map((h) => h.id) }).ok).toBe(false);
+    const top = [0, 1, 2].map((i) => hero("s", CLASS_IDS[i], ELEMENTS[i])); // S is the top rank
+    expect(fuseHeroes(profile(top), { baseId: top[0].id, materialIds: top.slice(1).map((h) => h.id) }).ok).toBe(false);
   });
 });
 
 describe("hero fusion ratios", () => {
   it("ask for more of the common heroes and fewer of the rare ones", () => {
     const ratios = RARITY_IDS.flatMap((r) => (HERO_FUSION[r] ? [HERO_FUSION[r]!.ratio] : []));
-    expect(ratios).toHaveLength(8);
+    expect(ratios).toHaveLength(RARITY_IDS.length - 1); // every rank but the top one
+    expect(HERO_FUSION.s).toBeUndefined();
     for (let i = 1; i < ratios.length; i++) expect(ratios[i]).toBeLessThanOrEqual(ratios[i - 1]);
-    expect(ratios[ratios.length - 1]).toBeLessThanOrEqual(3); // SS -> SSR must be reachable
+    expect(ratios[ratios.length - 1]).toBeLessThanOrEqual(3); // A -> S must be reachable
   });
 
-  it("fusing everything pulled adds SSR over the pity but stays under 4x of it", () => {
-    // 250 pulls give 250*p heroes per rank; fuse them all upwards.
+  it("fusing everything pulled adds S on top of the pulled S, about +70%", () => {
+    // 250 pulls give 250*p heroes per rank; fuse them all upwards to S.
+    const top = RARITY_IDS.length - 1;
     let extra = 0;
-    RARITY_IDS.slice(0, 8).forEach((r, i) => {
+    RARITY_IDS.slice(0, top).forEach((r, i) => {
       let h = 250 * RARITIES[r].probability;
-      for (const next of RARITY_IDS.slice(i, 8)) h /= HERO_FUSION[next]!.ratio;
+      for (const next of RARITY_IDS.slice(i, top)) h /= HERO_FUSION[next]!.ratio;
       extra += h;
     });
-    const pity = 250 * RARITIES.ssr.probability;
-    expect(extra).toBeGreaterThan(pity);
-    expect(extra).toBeLessThan(4 * pity);
+    const pulled = 250 * RARITIES.s.probability;
+    expect(extra).toBeGreaterThan(0.5 * pulled);
+    expect(extra).toBeLessThan(1.0 * pulled);
   });
 });

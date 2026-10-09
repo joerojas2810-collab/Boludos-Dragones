@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { burn, burnValue, BURN_RATE, LEGACY_BURN_RATE } from "./burn";
 import type { Element } from "./elements";
-import { extraLines, rollQuality } from "./gear";
+import { maxLines, rollQuality } from "./gear";
 import { TRADE_VALUE } from "./market";
 import {
   autoEquipPlan,
@@ -19,12 +19,12 @@ import {
 } from "./profile";
 import { RARITIES, RARITY_IDS } from "./rarity";
 import { createRng } from "./rng";
-import { weaponKey } from "./weapons";
+import { isGearType, weaponKey } from "./weapons";
 
 const rich = (): Profile => ({ ...createProfile(), coins: 1e9 });
 const mk = (
   type: "casco" | "peto" | "espada",
-  rarity: "f" | "ssr" | "c",
+  rarity: "f" | "s" | "c",
   element: Element = "fuego",
   extra: object = {},
 ) => ({ type, element, rarity, name: "x", ...extra });
@@ -35,9 +35,7 @@ describe("piece rolls", () => {
     for (const w of profile.weapons) {
       expect(w.roll).toBeGreaterThanOrEqual(0.85);
       expect(w.roll).toBeLessThanOrEqual(1.15);
-      const n = ["espada", "hacha", "arco", "baston", "daga", "maza", "varita", "libro"].includes(w.type)
-        ? 0
-        : extraLines(w.rarity);
+      const n = isGearType(w.type) ? maxLines(w.rarity) : 0; // hand weapons have no lines; gear: regular + S capstone
       expect(w.lines?.length ?? 0).toBe(n);
     }
   });
@@ -72,8 +70,8 @@ describe("resonance in heroFromOwned", () => {
   it("adds resonance bonus on top of the gear lines", () => {
     let p = pullCharacter(rich(), createRng(3))!.profile;
     const c = p.characters[0];
-    p = grantPiece(p, mk("casco", "ssr", "agua", { roll: 1, lines: [{ stat: "def", roll: 1 }] }));
-    p = grantPiece(p, mk("peto", "ssr", "fuego", { roll: 1, lines: [{ stat: "hp", roll: 1 }] }));
+    p = grantPiece(p, mk("casco", "s", "agua", { roll: 1, lines: [{ stat: "def", roll: 1 }] }));
+    p = grantPiece(p, mk("peto", "s", "fuego", { roll: 1, lines: [{ stat: "hp", roll: 1 }] }));
     for (const w of p.weapons) p = equipWeapon(p, c.id, w.id);
     expect(heroFromOwned(p, c.id)!.gear!.dmgTaken).toBeGreaterThan(0);
   });
@@ -84,9 +82,9 @@ describe("autoEquipPlan modes", () => {
     let p = pullCharacter(rich(), createRng(3), 2)!.profile;
     const [a, b] = p.characters;
     const own = mk("casco", "c", a.element);
-    const other = mk("casco", "ssr", a.element === "agua" ? "fuego" : "agua");
+    const other = mk("casco", "s", a.element === "agua" ? "fuego" : "agua");
     p = grantPiece(grantPiece(p, own), other);
-    return { p, a, b, own: weaponKey("casco", a.element, "c"), other: weaponKey("casco", other.element, "ssr") };
+    return { p, a, b, own: weaponKey("casco", a.element, "c"), other: weaponKey("casco", other.element, "s") };
   };
   it("set prefers the hero's element even if weaker; poder takes the strongest", () => {
     const { p, a, own, other } = setup();

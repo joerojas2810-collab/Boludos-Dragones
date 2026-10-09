@@ -32,8 +32,8 @@ const group = (rank: RarityId, total: number) =>
 
 describe("Ascender", () => {
   it("uses the hero fusion table (total counts the base)", () => {
-    for (const r of RARITY_IDS.slice(0, 8)) expect(ASCEND[r]).toEqual({ total: HERO_FUSION[r]!.ratio, coins: HERO_FUSION[r]!.coins });
-    expect(ASCEND.ssr).toBeUndefined();
+    for (const r of RARITY_IDS.slice(0, -1)) expect(ASCEND[r]).toEqual({ total: HERO_FUSION[r]!.ratio, coins: HERO_FUSION[r]!.coins });
+    expect(ASCEND.s).toBeUndefined(); // S is the top rank
   });
   it("base + materials of any type and element -> the base one rank up, 0 stars and +0", () => {
     const g = group("f", ASCEND.f!.total);
@@ -58,7 +58,7 @@ describe("Ascender", () => {
     const b = ascendPiece(p, p.weapons[0].id, ids, createRng(9));
     expect(a).toEqual(b);
   });
-  it("rejects wrong counts, other ranks, worn pieces, missing coins, SSR and a maxed target", () => {
+  it("rejects wrong counts, other ranks, worn pieces, missing coins, the top rank and a maxed target", () => {
     const g = group("f", ASCEND.f!.total);
     const p = withPieces(...g, piece("espada", "agua", "e"));
     const ids = p.weapons.slice(1, ASCEND.f!.total).map((w) => w.id);
@@ -70,8 +70,8 @@ describe("Ascender", () => {
     expect(ascendPiece({ ...p, equipped: { h: ids[0] } }, base, ids).ok).toBe(false); // worn material
     expect(ascendPiece({ ...p, coins: 0 }, base, ids).ok).toBe(false);
     expect(ascendPiece(p, "w-nada-nada-f", ids).ok).toBe(false);
-    const ssr = withPieces(piece("espada", "agua", "ssr"));
-    expect(ascendPiece(ssr, ssr.weapons[0].id, []).ok).toBe(false);
+    const top = withPieces(piece("espada", "agua", "s"));
+    expect(ascendPiece(top, top.weapons[0].id, []).ok).toBe(false); // S cannot go higher
     // target already owned with 5 stars
     const maxed = grantPiece(p, piece(g[0].type, g[0].element, "e"));
     const full = { ...maxed, weapons: maxed.weapons.map((w) => (w.rarity === "e" && w.type === g[0].type && w.element === g[0].element ? { ...w, stars: 5 } : w)) };
@@ -107,10 +107,10 @@ describe("Mejorar", () => {
     expect(Object.entries(UPGRADE_TABLE).every(([lv, r]) => r.escamas === Number(lv))).toBe(true);
     expect([DADO_BONUS, STREAK_BONUS, PLUS_BONUS_PER_LEVEL]).toEqual([0.2, 0.05, 0.04]);
   });
-  it("canUpgrade: S or above, 5 stars, below +10", () => {
+  it("canUpgrade: S, 5 stars, below +10", () => {
     const w = (rarity: RarityId, stars: number, plus = 0) => ({ rarity, stars, plus });
     expect(canUpgrade(w("s", 5)).ok).toBe(true);
-    expect(canUpgrade(w("ssr", 5, 9)).ok).toBe(true);
+    expect(canUpgrade(w("s", 5, 9)).ok).toBe(true);
     expect(canUpgrade(w("a", 5)).ok).toBe(false);
     expect(canUpgrade(w("s", 4)).ok).toBe(false);
     expect(canUpgrade(w("s", 5, 10)).ok).toBe(false);

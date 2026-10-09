@@ -66,13 +66,12 @@ describe("trait rules: generation", () => {
     expect([hi.name, hi.element]).toEqual([lo.name, lo.element]);
   });
 
-  it("traitPlan by rank: F-D 1 classic, C-A 2, S-SSR 1 classic + rule", () => {
+  it("traitPlan by rank: F-D 1 classic, C-A 2, S 1 classic + rule", () => {
     expect(traitPlan("f")).toEqual({ classic: 1, rule: false });
     expect(traitPlan("d")).toEqual({ classic: 1, rule: false });
     expect(traitPlan("c")).toEqual({ classic: 2, rule: false });
     expect(traitPlan("a")).toEqual({ classic: 2, rule: false });
     expect(traitPlan("s")).toEqual({ classic: 1, rule: true });
-    expect(traitPlan("ssr")).toEqual({ classic: 1, rule: true });
   });
 
   it("generateCharacter by rank; Espinas never on a Caballero", () => {
@@ -83,7 +82,6 @@ describe("trait rules: generation", () => {
         ["f", 1, 0],
         ["c", 2, 0],
         ["s", 2, 1],
-        ["ssr", 2, 1],
       ] as const) {
         const c = generateCharacter(rng, "caballero", rank);
         expect(c.traits).not.toContain("espinas");

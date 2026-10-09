@@ -7,7 +7,7 @@ import { CLASS_IDS, generateCharacter } from "../src/lib/game/characters";
 import { step } from "../src/lib/game/combat";
 import { applyGear, gearBonus, rollGear } from "../src/lib/game/gear";
 import { levelsOf } from "../src/lib/game/levels";
-import { dropRank, DUNGEON_IDS, scaleStats, type DungeonId } from "../src/lib/game/rarity";
+import { itemRankOf, DUNGEON_IDS, scaleStats, type DungeonId } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
 import { heroSkill } from "../src/lib/game/skills";
 import { RANK_TUNE, createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
@@ -19,7 +19,7 @@ const STARS = Number(process.env.STARS ?? 3);
 const LEVEL = Number(process.env.LEVEL ?? 20);
 
 function hero(tier: DungeonId, seed: number) {
-  const rank = dropRank(tier); // tiers above S use S items
+  const rank = itemRankOf(tier); // tiers above S use S items
   const rng = createRng(seed);
   const c = generateCharacter(rng, rng.pick(CLASS_IDS), rank);
   const pieces = GEAR_TYPES.map((type) => ({ type, rarity: rank, stars: 0, element: c.element, ...rollGear(rng, type, rank) }));

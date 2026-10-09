@@ -5,13 +5,12 @@ import { startBattle, estimateDamage } from "./combat";
 import { normalizeHero } from "./nivelado";
 import {
   MAX_STARS,
-  PITY_SSR_THRESHOLD,
-  PITY_THRESHOLD,
   RARITIES,
   RARITY_IDS,
   itemMult,
   rollRarity,
   scaleStats,
+  STAR_BONUS,
 } from "./rarity";
 import {
   bankRun,
@@ -57,7 +56,7 @@ describe("rarity", () => {
     const n = 200_000;
     const count: Record<string, number> = {};
     for (let i = 0; i < n; i++) {
-      const { rarity } = rollRarity(rng, 0);
+      const rarity = rollRarity(rng);
       count[rarity] = (count[rarity] ?? 0) + 1;
     }
     for (const r of RARITY_IDS)
@@ -66,39 +65,32 @@ describe("rarity", () => {
       );
   });
   it("scales stats by rarity x stars", () => {
-    expect(itemMult("s", 5)).toBeCloseTo(3.525, 10);
+    const top = RARITIES.s.multiplier * (1 + STAR_BONUS * 5);
+    expect(itemMult("s", 5)).toBeCloseTo(top, 10);
     const s = CLASSES.mago.stats;
     const e = scaleStats(s, "s", 5);
-    expect(e.hp).toBe(Math.round(85 * 3.525));
-    expect(e.atk).toBeCloseTo(s.atk * 3.525, 1);
+    expect(e.hp).toBe(Math.round(85 * top));
+    expect(e.atk).toBeCloseTo(s.atk * top, 1);
     expect(e.crit).toBe(s.crit);
     expect(e.speed).toBe(s.speed);
     expect(scaleStats(s, "f", 0)).toEqual(s);
   });
 });
 
-describe("pity", () => {
-  it("only SSR has pity (at 250) and it resets", () => {
+describe("no pity", () => {
+  it("S keeps its plain odds and the pity counters never move", () => {
     const rng = createRng(5);
-    // the legacy SS counter no longer guarantees anything
-    expect(rollRarity(rng, PITY_THRESHOLD).pityTriggered).toBe(false);
-    expect(rollRarity(rng, 0, PITY_SSR_THRESHOLD - 1).pityTriggered).toBe(
-      false,
-    );
-    expect(rollRarity(rng, 0, PITY_SSR_THRESHOLD)).toEqual({
-      rarity: "ssr",
-      pityTriggered: true,
-    });
     let p = rich();
-    let sinceSsr = 0;
-    for (let i = 0; i < 3000; i++) {
+    let tops = 0;
+    const n = 3000;
+    for (let i = 0; i < n; i++) {
       const r = pullCharacter(p, rng)!;
       p = r.profile;
-      const res = r.results[0];
-      sinceSsr = res.rarity === "ssr" ? 0 : sinceSsr + 1;
-      expect(sinceSsr).toBeLessThanOrEqual(PITY_SSR_THRESHOLD);
-      expect(p.pitySsr.character).toBe(sinceSsr);
+      if (r.results[0].rarity === "s") tops++;
+      expect(p.pity.character).toBe(0);
+      expect(p.pitySsr.character).toBe(0);
     }
+    expect(Math.abs(tops / n - RARITIES.s.probability)).toBeLessThan(0.02);
   });
   it("legacy rarity ids and ids migrate to ranks", () => {
     const p = migrate({
@@ -269,15 +261,15 @@ describe("heroPower (hero sort order)", () => {
       ...mk("f", 0),
       weapons: [
         {
-          ...generateWeapon(createRng(1), "ssr"),
+          ...generateWeapon(createRng(1), "s"),
           type: "casco",
-          id: weaponKey("casco", "fuego", "ssr"),
+          id: weaponKey("casco", "fuego", "s"),
           element: "fuego",
           atkBonus: 0,
         },
       ],
     };
-    const worn = equipWeapon(geared, "x", weaponKey("casco", "fuego", "ssr"));
+    const worn = equipWeapon(geared, "x", weaponKey("casco", "fuego", "s"));
     expect(heroPower(worn, "x")).toBeGreaterThan(heroPower(geared, "x"));
   });
 });
@@ -285,7 +277,7 @@ describe("heroPower (hero sort order)", () => {
 describe("gear", () => {
   const piece = (
     type: "casco" | "peto" | "piernas" | "zapatos" | "collar",
-    rarity: "f" | "ssr" = "f",
+    rarity: "f" | "s" = "f",
   ) => ({
     ...generateWeapon(createRng(1), rarity),
     type,
@@ -318,11 +310,11 @@ describe("gear", () => {
     const plain = heroFromOwned(p, c.id)!;
     const all = (
       ["casco", "peto", "piernas", "zapatos", "collar"] as const
-    ).map((t) => ({ ...piece(t, "ssr"), stars: 5 }));
+    ).map((t) => ({ ...piece(t, "s"), stars: 5 }));
     p = { ...p, weapons: all };
     for (const w of all) p = equipWeapon(p, c.id, w.id);
     const h = heroFromOwned(p, c.id)!;
-    expect(h.stats.hp).toBeGreaterThan(plain.stats.hp * 1.5);
+    expect(h.stats.hp).toBeGreaterThan(plain.stats.hp * 1.4); // a full S 5★ set
     expect(h.stats.hp).toBeLessThanOrEqual(
       Math.round(plain.stats.hp * (1 + GEAR_CAP.hp)),
     );
@@ -346,8 +338,8 @@ describe("gear", () => {
     const [a, b] = p.characters;
     const low = piece("casco", "f");
     const high = {
-      ...piece("casco", "ssr"),
-      id: "w-casco-agua-ssr",
+      ...piece("casco", "s"),
+      id: "w-casco-agua-s",
       element: "agua" as const,
     };
     const chest = piece("peto", "f");
@@ -372,7 +364,7 @@ describe("gear", () => {
     const base = normalizeHero(heroFromOwned(p, c.id)!, "nivelado");
     const all = (
       ["casco", "peto", "piernas", "zapatos", "collar"] as const
-    ).map((t) => ({ ...piece(t, "ssr"), stars: 5 }));
+    ).map((t) => ({ ...piece(t, "s"), stars: 5 }));
     p = { ...p, weapons: all };
     for (const w of all) p = equipWeapon(p, c.id, w.id);
     const geared = normalizeHero(heroFromOwned(p, c.id)!, "nivelado").stats;
@@ -406,24 +398,27 @@ describe("weapons", () => {
   });
   it("atkBonus = round(base x rarity x stars)", () => {
     expect(weaponAtk("f", 0)).toBe(WEAPON_BASE_ATK);
-    expect(weaponAtk("s", 5)).toBeCloseTo(14.1, 10);
+    expect(weaponAtk("s", 5)).toBeCloseTo(
+      WEAPON_BASE_ATK * RARITIES.s.multiplier * (1 + STAR_BONUS * 5),
+      10,
+    );
     const w = generateWeapon(createRng(1), "c");
     expect(w.name).toMatch(
-      new RegExp(`^${WEAPON_TYPE_DATA[w.type].label} de `),
+      new RegExp(`^${WEAPON_TYPE_DATA[w.type].noun} \\S+ de `),
     );
     expect(w.atkBonus).toBe(weaponAtk("c", 0, w.type));
     expect(weaponAtk("c", 0, "espada")).toBe(6);
-    expect(weaponAtk("f", 0, "hacha")).toBe(4.8);
+    expect(weaponAtk("f", 0, "hacha")).toBe(4.4);
   });
-  it("key space is 13 types x 5 elements x 9 ranks = 585", () => {
-    expect(WEAPON_KEY_SPACE).toBe(585);
+  it("key space is 15 types x 5 elements x 7 ranks = 525", () => {
+    expect(WEAPON_KEY_SPACE).toBe(525);
     const rng = createRng(77);
     const keys = new Set<string>();
     for (let i = 0; i < 20000; i++)
-      keys.add(generateWeapon(rng, RARITY_IDS[i % 9]).id);
-    expect(keys.size).toBe(585);
+      keys.add(generateWeapon(rng, RARITY_IDS[i % RARITY_IDS.length]).id);
+    expect(keys.size).toBe(525);
     expect(weaponKey("daga", "rayo", "a")).toBe("w-daga-rayo-a");
-    expect(WEAPON_TYPES.length * ELEMENTS.length * RARITY_IDS.length).toBe(585);
+    expect(WEAPON_TYPES.length * ELEMENTS.length * RARITY_IDS.length).toBe(525);
   });
   it("secondary effect is applied exactly once", () => {
     const base = rich();
@@ -568,7 +563,7 @@ describe("bankRun + migrate", () => {
       bestFloor: Infinity,
     });
     expect(p.coins).toBe(4 * FRAGMENT_REFUND);
-    expect(p.pity).toEqual({ character: PITY_THRESHOLD, weapon: 0 });
+    expect(p.pity).toEqual({ character: 0, weapon: 0 }); // pity is gone: old counters clamp to 0
     expect(p.characters).toHaveLength(0);
     expect(p.weapons).toHaveLength(1);
     expect(p.weapons[0].stars).toBe(MAX_STARS);

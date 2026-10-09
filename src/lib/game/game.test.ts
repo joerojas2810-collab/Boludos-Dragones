@@ -13,18 +13,23 @@ describe("rng", () => {
 });
 
 describe("elements", () => {
-  it("each element beats 2, loses to 2, neutral vs itself", () => {
+  it("each element beats 1, loses to 1, neutral vs the other 3", () => {
     for (const a of ELEMENTS) {
       const ms = ELEMENTS.map((b) => elementMultiplier(a, b));
-      expect(ms.filter((m) => m === 1.25)).toHaveLength(2);
-      expect(ms.filter((m) => m === 0.75)).toHaveLength(2);
-      expect(elementMultiplier(a, a)).toBe(1);
+      expect(ms.filter((m) => m === 1.25)).toHaveLength(1);
+      expect(ms.filter((m) => m === 0.75)).toHaveLength(1);
+      expect(ms.filter((m) => m === 1)).toHaveLength(3); // itself and two more
     }
   });
-  it("follows the cycle agua > fuego > viento", () => {
+  it("follows the cycle agua > fuego > viento > tierra > rayo > agua", () => {
     expect(elementMultiplier("agua", "fuego")).toBe(1.25);
-    expect(elementMultiplier("agua", "viento")).toBe(1.25);
+    expect(elementMultiplier("fuego", "viento")).toBe(1.25);
+    expect(elementMultiplier("viento", "tierra")).toBe(1.25);
+    expect(elementMultiplier("tierra", "rayo")).toBe(1.25);
+    expect(elementMultiplier("rayo", "agua")).toBe(1.25);
     expect(elementMultiplier("agua", "rayo")).toBe(0.75);
+    expect(elementMultiplier("agua", "viento")).toBe(1);
+    expect(elementMultiplier("agua", "tierra")).toBe(1);
   });
 });
 

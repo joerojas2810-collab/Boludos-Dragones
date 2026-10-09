@@ -11,6 +11,7 @@ import {
   DEFEND_FACTOR,
   ENRAGE_AFTER_TURN,
   estimateDamage,
+  GUARD_HEAL,
   livingEnemies,
   MAX_ACTIONS_PER_ROUND,
   pendingIntents,
@@ -333,7 +334,7 @@ describe("class skills (Ataque 3)", () => {
     );
     const b = { ...b0, player: { ...b0.player, hp: 100 } };
     const s = step(b, "attack3", always);
-    expect(s.player.riposte).toBe(true);
+    expect(s.log.some((l) => l.startsWith("¡Guardia perfecta!"))).toBe(true);
     const guarded = estimateDamage(
       b.enemies[0],
       { ...b.player, defending: true, guard: true },
@@ -341,7 +342,8 @@ describe("class skills (Ataque 3)", () => {
     );
     expect(s.player.hp).toBe(
       100 +
-        Math.round(200 * (SKILLS.santuario.heal ?? 0)) -
+        Math.round(200 * (SKILLS.santuario.heal ?? 0)) +
+        Math.round(200 * GUARD_HEAL) - // Clérigo's perfect guard heals
         guarded +
         Math.round(200 * CLASS_PASSIVE_REGEN),
     );

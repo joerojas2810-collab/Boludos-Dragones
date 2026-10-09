@@ -29,7 +29,7 @@ export const DUNGEON_INFO: Record<DungeonId, { label: string; color: string }> =
   ssr: { label: "SSR", color: "#f43f5e" },
 };
 // Rank of the items a dungeon drops.
-export const dropRank = (d: DungeonId): RarityId =>
+export const itemRankOf = (d: DungeonId): RarityId =>
   d === "ss" || d === "ssr" ? "s" : d;
 // Enemy strength multiplier of a tier (kept from the nine-rank scale: RANK_TUNE is calibrated on it).
 export const DUNGEON_MULT: Record<DungeonId, number> = {

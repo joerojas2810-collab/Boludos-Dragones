@@ -48,10 +48,10 @@ describe("duel", () => {
     expect(sanitize(cd, "attack1")).toBe("attack1");
   });
 
-  it("perfect guard: Defender against Ataque 2 earns the riposte", () => {
-    const d = duelRound(startDuel(hero(), hero()), "defend", "attack2", createRng(3));
+  it("perfect guard: Defender against Ataque 2 earns the class bonus", () => {
+    const d = duelRound(startDuel(hero("picaro"), hero()), "defend", "attack2", createRng(3));
     expect(d.guard.a).toBe(true);
-    expect(d.a.riposte).toBe(true);
+    expect(d.a.riposte).toBe(true); // Pícaro: Ojo certero waits for the next hit
     expect(d.log.some((l) => l.startsWith("¡Guardia perfecta!"))).toBe(true);
     // guarding a weak hit is not perfect
     const e = duelRound(startDuel(hero(), hero()), "defend", "attack1", createRng(3));

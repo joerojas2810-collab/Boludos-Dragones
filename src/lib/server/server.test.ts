@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ASCEND } from "../game/ascend";
 import { generateCharacter } from "../game/characters";
 import { ENGINE_VERSION } from "../game/stage";
 import { replayTower } from "../game/tower";
@@ -378,11 +379,11 @@ describe("pull service (fake DB)", () => {
     });
     expect(db.calls.some((c) => c.name === "apply_pull")).toBe(false);
   });
-  it("weapon banner persists a weapon with pity after the pull", async () => {
+  it("weapon banner persists a weapon and keeps the (removed) pity counter at 0", async () => {
     const db = new FakeDb();
     await doPull(db.deps, "u1", body({ banner: "weapon" }));
     expect(db.rows[0].kind).toBe("weap");
-    expect(db.pity.weapon).toBe(1);
+    expect(db.pity.weapon).toBe(0);
   });
 });
 
@@ -591,17 +592,15 @@ describe("forge service (Ascender + Mejorar)", () => {
   it("ascend: runs the pure rule, rolls with the server rng and persists base + materials", async () => {
     const db = new FakeDb();
     db.coins = 100;
-    db.rows.push(
-      piece("espada", "fuego", "f"),
-      ...["a", "b", "c", "d", "e"].map((x, i) => piece(["hacha", "espada", "espada", "espada", "espada"][i], ["agua", "agua", "rayo", "tierra", "viento"][i], "f")),
-    );
-    const r = await doAscend(db.deps, "u1", "w-espada-fuego-f", [
-      "w-hacha-agua-f",
-      "w-espada-agua-f",
-      "w-espada-rayo-f",
-      "w-espada-tierra-f",
-      "w-espada-viento-f",
-    ]);
+    const mats = [
+      ["hacha", "agua"],
+      ["espada", "agua"],
+      ["espada", "rayo"],
+      ["espada", "tierra"],
+    ];
+    expect(mats).toHaveLength(ASCEND.f!.total - 1); // the base plus these are what F -> E asks for
+    db.rows.push(piece("espada", "fuego", "f"), ...mats.map(([t, e]) => piece(t, e, "f")));
+    const r = await doAscend(db.deps, "u1", "w-espada-fuego-f", mats.map(([t, e]) => `w-${t}-${e}-f`));
     expect(r.newId).toBe("w-espada-fuego-e");
     expect(db.forged[0]).toMatchObject({
       name: "apply_ascend",
@@ -832,7 +831,7 @@ describe("burn / skill / profile mapping (fake DB)", () => {
       await catchErr(doBurn(db.deps, "u1", "piece", "w-espada-fuego-f")),
     ).toMatchObject({ code: "burn_invalid" });
   });
-  it("choose skill validates ownership/class/unlock before SQL", async () => {
+  it("choose skill validates ownership and class before SQL, at any rank", async () => {
     const db = new FakeDb();
     const high = heroRow(h0, "c");
     db.rows.push(high, heroRow(generateCharacter(createRng(8), "picaro"), "f"));
@@ -841,13 +840,12 @@ describe("burn / skill / profile mapping (fake DB)", () => {
     expect(
       await catchErr(doChooseSkill(db.deps, "u1", high.key, "barrido")),
     ).toMatchObject({ code: "skill_locked" }); // a Caballero skill on a Mago
-    expect(
-      await catchErr(doChooseSkill(db.deps, "u1", db.rows[1].key, "golpeDoble")),
-    ).toMatchObject({ code: "skill_locked" }); // rank F needs 3 stars
+    await doChooseSkill(db.deps, "u1", db.rows[1].key, "golpeDoble"); // rank F: no unlock gate any more
+    expect(db.skills[1]).toMatchObject({ p_skill: "golpeDoble" });
     expect(
       await catchErr(doChooseSkill(db.deps, "u1", high.key, "hackeo")),
     ).toMatchObject({ code: "invalid_skill" });
-    expect(db.skills).toHaveLength(1);
+    expect(db.skills).toHaveLength(2);
   });
   it("rows from the database keep their legacy flag and are not 'saved before v5'", async () => {
     const db = new FakeDb();
@@ -889,12 +887,12 @@ describe("burn / skill / profile mapping (fake DB)", () => {
       const f = new FakeDb();
       f.deps.randomSeed = () => seed;
       f.coins = 100;
-      for (const [t, e] of [["casco", "fuego"], ["casco", "agua"], ["casco", "rayo"], ["casco", "tierra"], ["casco", "viento"], ["peto", "agua"]])
+      for (const [t, e] of [["casco", "fuego"], ["casco", "agua"], ["casco", "rayo"], ["casco", "tierra"], ["peto", "agua"]])
         f.rows.push({ key: `w-${t}-${e}-f`, kind: "weap", a: t, element: e, rarity: "f", stars: 0, data: { name: "x", roll: 1 } });
       return f;
     };
     const run = async (f: FakeDb) => {
-      await doAscend(f.deps, "u1", "w-casco-fuego-f", ["w-casco-agua-f", "w-casco-rayo-f", "w-casco-tierra-f", "w-casco-viento-f", "w-peto-agua-f"]);
+      await doAscend(f.deps, "u1", "w-casco-fuego-f", ["w-casco-agua-f", "w-casco-rayo-f", "w-casco-tierra-f", "w-peto-agua-f"]);
       return (f.forged[0].p_new as { roll: number }).roll;
     };
     const ra = await run(mk(1));

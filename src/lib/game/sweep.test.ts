@@ -7,8 +7,8 @@ import { levelFights } from "./stage";
 import { sweepStage } from "./sweep";
 
 const strong = () => {
-  const c = generateCharacter(createRng(1), "caballero", "ssr");
-  return { ...c, stats: scaleStats(c.stats, "ssr", 5, 50) };
+  const c = generateCharacter(createRng(1), "caballero", "s");
+  return { ...c, stats: scaleStats(c.stats, "s", 5, 50) };
 };
 
 describe("sweepStage", () => {

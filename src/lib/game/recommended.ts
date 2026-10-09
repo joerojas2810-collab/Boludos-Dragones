@@ -2,7 +2,7 @@ import { CLASS_IDS, generateCharacter } from "./characters";
 import { applyGear, gearBonus, rollGear } from "./gear";
 import { LEVEL_STEP, ASC_ATK_STEP, ASC_HP_STEP } from "./stage";
 import { LEVELS_PER_RANK } from "./levels";
-import { dropRank, scaleStats, type DungeonId } from "./rarity";
+import { itemRankOf, scaleStats, type DungeonId } from "./rarity";
 import { createRng, hashSeed } from "./rng";
 import { CLASS_WEAPONS, GEAR_TYPES, weaponAtk } from "./weapons";
 import type { Stats } from "./characters";
@@ -22,7 +22,7 @@ function standardPower(rank: DungeonId): number {
   const hit = stdCache.get(rank);
   if (hit !== undefined) return hit;
   let total = 0;
-  const item = dropRank(rank); // tiers above S use the best items (S)
+  const item = itemRankOf(rank); // tiers above S use the best items (S)
   for (let i = 0; i < SAMPLE; i++) {
     const rng = createRng(hashSeed(i, 4411));
     const c = generateCharacter(rng, CLASS_IDS[i % CLASS_IDS.length], item);

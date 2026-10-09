@@ -5,7 +5,7 @@ import { generateCharacter } from "../../../src/lib/game/characters";
 import { createRng } from "../../../src/lib/game/rng";
 import { levelCoins, firstClearChest } from "../../../src/lib/game/levelPay";
 import { burnValue } from "../../../src/lib/game/burn";
-import { RARITY_IDS } from "../../../src/lib/game/rarity";
+import { DUNGEON_IDS, RARITY_IDS } from "../../../src/lib/game/rarity";
 import { LEVELS_PER_RANK, levelsOf } from "../../../src/lib/game/levels";
 import { levelLoot } from "../../../src/lib/game/levelLoot";
 import { heroFromOwned, migrate } from "../../../src/lib/game/profile";
@@ -144,9 +144,9 @@ await err(bank(tr.run_id), "invalid_args", "tower run banked as a level");
 await reset();
 
 // 6. repeat pay and daily decay, first-clear chests, every rank/asc vs TS
-for (const rank of RARITY_IDS) await progress(rank, 0, LEVELS_PER_RANK[rank]);
+for (const rank of DUNGEON_IDS) await progress(rank, 0, LEVELS_PER_RANK[rank]);
 let parity = 0;
-for (const rank of RARITY_IDS) for (const asc of [0, 2, 5]) {
+for (const rank of DUNGEON_IDS) for (const asc of [0, 2, 5]) {
   const last = LEVELS_PER_RANK[rank] - 1;
   await progress(rank, asc, last); // last level not cleared yet at this asc (asc>0 needs all of asc-1)
   for (let a = 0; a < asc; a++) await progress(rank, a, LEVELS_PER_RANK[rank]);
@@ -163,7 +163,7 @@ for (const rank of RARITY_IDS) for (const asc of [0, 2, 5]) {
     parity++;
   }
 }
-ok(parity === 9 * 3 * 8, "parity grid ran");
+ok(parity === DUNGEON_IDS.length * 3 * 8, "parity grid ran");
 const lv = (await rpc("get_profile", { p_player: P })) as any;
 ok(Array.isArray(lv.dungeons.f) && lv.dungeons.f.length === 6 && lv.dungeons.f[5] === LEVELS_PER_RANK.f, "get_profile dungeons arrays");
 ok(lv.levelsDay && lv.levelsDay.n >= 201, "levelsDay exposed");
@@ -210,8 +210,8 @@ await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,s
 await err(rpc("burn_item", { p_player: P, p_version: br.version, p_key: "w-espada-agua-f" }), "equipped");
 await db.exec(`delete from public.equipment`);
 br = await rpc("burn_item", { p_player: P, p_version: br.version, p_key: "w-espada-agua-f" });
-ok(br.gained === burnValue("f", false) && br.gained === 66, "piece burns at 8%: " + br.gained);
-// burn_many: skips equipped / unknown, one version bump, 8% each
+ok(br.gained === burnValue("f", false) && br.gained === 33, "piece burns at 4%: " + br.gained);
+// burn_many: skips equipped / unknown, one version bump, 4% each
 await db.exec(`insert into public.weapons(player_id,type,element,rarity) values ('${P}','hacha','agua','f'),('${P}','lanza','agua','f'),('${P}','arco','agua','f')`);
 await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,slot) values ('${P}','${HERO}','w-arco-agua-f','arma')`);
 const vBefore = Number((await q(`select version from public.player_state where player_id='${P}'`))[0].version);
@@ -222,10 +222,10 @@ await db.exec(`delete from public.equipment where weapon_key='w-arco-agua-f'`);
 await db.exec(`delete from public.weapons where key='w-arco-agua-f'`);
 br = { ...br, version: bm.version };
 for (const r of RARITY_IDS) for (const lg of [false, true]) {
-  const sqlv = (await q(`select (public.trade_value('c-mago-fuego-${r}') * ${lg ? 50 : 8} / 100) v`))[0].v;
+  const sqlv = (await q(`select (public.trade_value('c-mago-fuego-${r}') * ${lg ? 50 : 4} / 100) v`))[0].v;
   if (sqlv !== burnValue(r, lg)) { fail++; console.log("FAIL burn parity", r, lg, sqlv, burnValue(r, lg)); } else pass++;
 }
-ok((await q(`select public.trade_value('c-mago-fuego-ssr') v`))[0].v === 36000, "trade_value ssr 36000");
+ok((await q(`select public.trade_value('c-mago-fuego-s') v`))[0].v === 5000, "trade_value s 5000");
 
 // 9. hero skill
 await err(rpc("choose_hero_skill", { p_player: P, p_character_id: HERO, p_skill: "tormenta" }), "invalid_skill", "other class skill");
