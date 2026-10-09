@@ -20,3 +20,15 @@
   top: round(nearest, calc((100cqh - var(--pixel-render-height)) / 2), 1px);
   image-rendering: pixelated;
 }
+
+/* A card sparkle decorates its crown, never the full hero portrait. */
+.pixel-card-glint .pixel-effect-vfx-native {
+  --pixel-render-width: 32px;
+}
+
+/* Wide boss/result sheets use an exact half-size when a phone cannot fit 1x. */
+@media (max-width: 480px) {
+  .pixel-effect-vfx-wide .pixel-effect-vfx-native {
+    --pixel-render-width: max(calc(var(--pixel-cell-w) / 2), round(down, 100cqw, var(--pixel-cell-w)));
+  }
+}

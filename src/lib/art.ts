@@ -22,10 +22,11 @@ export const GEAR_ART: Record<GearType, string> = {
 
 // ?v= busts the 7-day static cache when art files are replaced under the same name.
 export const ART_V = 2;
+const PIXEL_ICON_V = 3;
 export const uiAsset = (name: string) =>
   `/art/${isPixel() ? "ui-px" : "ui"}/${name}.${isPixel() ? "png" : "webp"}?v=${ART_V}`;
 export const icon = (name: string) => isPixelIcon(name)
-  ? `/art/icons-px/icon_${name}.png?v=${ART_V}`
+  ? `/art/icons-px/icon_${name}.png?v=${PIXEL_ICON_V}`
   : `/art/icons/icon_${name}.webp?v=${ART_V}`;
 export const elementIconSrc = (e: Element) => icon(`element_${ELEMENT_ART[e]}`);
 export const gearIconSrc = (t: GearType, e: Element) =>

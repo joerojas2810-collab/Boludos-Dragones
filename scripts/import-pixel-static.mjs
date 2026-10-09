@@ -24,6 +24,10 @@ const phase3Names = {
   icons: [...weaponTypes, ...equipmentTypes].map((type) => `icon_part_${type}.png`).concat(elements.map((el) => `icon_core_${el}.png`)),
   ui: ranks.map((rank) => `card_${rank}.png`),
 };
+const registeredIcons = JSON.parse(readFileSync(join(repo, "src/lib/art/pixel-icons.generated.json"), "utf8"));
+const systemIconNames = registeredIcons.map((entry) => typeof entry === "string" ? entry : entry.name)
+  .filter((name) => !name.startsWith("part_") && !name.startsWith("core_")).map((name) => `icon_${name}.png`).sort();
+if (systemIconNames.length !== 238 || new Set(systemIconNames).size !== 238) throw new Error("Expected the 238 registered phase 4 icon names");
 const prepared = [];
 let written = 0;
 
@@ -51,7 +55,11 @@ for (const [folder, target] of jobs) {
   const manifest = JSON.parse(readFileSync(join(source, "manifest.json"), "utf8"));
   const out = join(repo, "public/art", target);
   const selected = manifest.files.filter((entry) => (folder !== "ui" || entry.kind === "card_frame") &&
-    (folder !== "icons" || mode !== "items" || ["forge_part", "forge_core"].includes(entry.kind)));
+    (folder !== "icons" || (mode === "items" ? ["forge_part", "forge_core"].includes(entry.kind) : mode === "icons" ? entry.kind === "system_icon" : true)));
+  if (folder === "icons" && mode !== "items") {
+    const actual = selected.filter((entry) => entry.kind === "system_icon").map((entry) => entry.file).sort();
+    if (JSON.stringify(actual) !== JSON.stringify(systemIconNames)) throw new Error("Expected the exact 238 phase 4 icons");
+  }
   if (mode !== "icons") {
     const phase3 = selected.filter((entry) => folder !== "icons" || ["forge_part", "forge_core"].includes(entry.kind));
     const expected = phase3Names[folder].slice().sort();
@@ -63,13 +71,21 @@ for (const [folder, target] of jobs) {
     const { data, info } = await sharp(join(source, entry.file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     if (info.width !== entry.frame_width || info.height !== entry.frame_height) throw new Error("manifest dimensions differ: " + entry.file);
     const phase3 = phase3Names[folder].includes(entry.file);
+    const phase4 = folder === "icons" && systemIconNames.includes(entry.file);
     if (phase3) {
       const sizes = folder === "ui" ? [[60, 80], [120, 160]] : [[32, 32], [64, 64]];
       if (!sizes.some(([width, height]) => info.width === width && info.height === height)) throw new Error("unsupported native phase 3 size: " + entry.file);
       if (entry.fps !== 0 || entry.loop !== false || entry.anchor?.type !== "center" || entry.anchor.x !== info.width / 2 || entry.anchor.y !== info.height / 2) throw new Error("invalid static center anchor: " + entry.file);
     } else if (["forge_part", "forge_core", "card_frame"].includes(entry.kind)) throw new Error("unknown phase 3 asset: " + entry.file);
+    if (phase4 && (entry.kind !== "system_icon" || entry.phase !== 4 || ![32, 64].includes(info.width) || info.height !== info.width || entry.fps !== 0 || entry.loop !== false || entry.anchor?.type !== "center" || entry.anchor.x !== info.width / 2 || entry.anchor.y !== info.height / 2)) throw new Error("invalid native phase 4 icon: " + entry.file);
     for (let p = 3; p < data.length; p += 4) if (data[p] !== 0 && data[p] !== 255) throw new Error("non-binary alpha: " + entry.file);
-    if (phase3) for (let p = 3; p < data.length; p += 4) if (data[p] === 0 && (data[p - 1] || data[p - 2] || data[p - 3])) throw new Error("transparent RGB must be zero: " + entry.file);
+    if (phase3 || phase4) for (let p = 3; p < data.length; p += 4) if (data[p] === 0 && (data[p - 1] || data[p - 2] || data[p - 3])) throw new Error("transparent RGB must be zero: " + entry.file);
+    if (phase4) {
+      const palette = new Set();
+      for (let p = 0; p < data.length; p += 4) if (data[p + 3]) palette.add("#" + [data[p], data[p + 1], data[p + 2]].map((c) => c.toString(16).padStart(2, "0")).join("").toUpperCase());
+      const declared = entry.palette_hex?.map((hex) => hex.toUpperCase());
+      if (!Array.isArray(declared) || declared.length !== palette.size || new Set(declared).size !== palette.size || !declared.every((hex) => palette.has(hex))) throw new Error("phase 4 palette differs from pixels: " + entry.file);
+    }
     if (folder === "weapons" || folder === "equipment" || entry.kind === "forge_core") {
       const from = entry.kind === "forge_core" ? manifest.element_core_palettes_hex?.[entry.element] : manifest.recolor?.exclusive_ramp_hex;
       if (!Array.isArray(from) || from.length !== 4 || new Set(from).size !== 4 || from.some((hex) => !/^#[0-9a-f]{6}$/i.test(hex))) throw new Error("invalid source elemental ramp: " + entry.file);
@@ -97,21 +113,28 @@ for (const { folder, out, manifest, entry, data, info } of prepared) {
 }
 
 // Register only the 98 phase 3 runtime paths; system icons keep their own size.
-const inventory = {};
-for (const [folder, target] of [["weapons", "weapons-px"], ["equipment", "equipment-px"], ["icons", "icons-px"], ["ui", "frames-px"]]) {
-  const filenames = folder === "weapons" || folder === "equipment"
-    ? phase3Names[folder].flatMap((file) => elements.map((el) => file.replace(/_fire\.png$/, `_${el}.png`)))
-    : phase3Names[folder];
-  for (const file of filenames) {
-    const info = await sharp(join(repo, "public/art", target, file)).metadata();
-    inventory[`${target}/${file.slice(0, -4)}`] = { width: info.width, height: info.height };
+if (mode !== "icons") {
+  const inventory = {};
+  for (const [folder, target] of [["weapons", "weapons-px"], ["equipment", "equipment-px"], ["icons", "icons-px"], ["ui", "frames-px"]]) {
+    const filenames = folder === "weapons" || folder === "equipment"
+      ? phase3Names[folder].flatMap((file) => elements.map((el) => file.replace(/_fire\.png$/, `_${el}.png`)))
+      : phase3Names[folder];
+    for (const file of filenames) {
+      const info = await sharp(join(repo, "public/art", target, file)).metadata();
+      inventory[`${target}/${file.slice(0, -4)}`] = { width: info.width, height: info.height };
+    }
   }
+  writeFileSync(join(repo, "src/lib/art/pixel-items.generated.json"), JSON.stringify(inventory, null, 2) + "\n");
 }
-writeFileSync(join(repo, "src/lib/art/pixel-items.generated.json"), JSON.stringify(inventory, null, 2) + "\n");
 
 // Runtime membership guarantees that unavailable pixel families use their painted fallback.
 const names = readdirSync(join(repo, "public/art/icons-px"))
   .filter((file) => /^icon_[a-z0-9_]+\.png$/.test(file))
   .map((file) => file.slice(5, -4)).sort();
-writeFileSync(join(repo, "src/lib/art/pixel-icons.generated.json"), JSON.stringify(names, null, 2) + "\n");
+const iconSizes = [];
+for (const name of names) {
+  const info = await sharp(join(repo, "public/art/icons-px", `icon_${name}.png`)).metadata();
+  iconSizes.push({ name, width: info.width, height: info.height });
+}
+writeFileSync(join(repo, "src/lib/art/pixel-icons.generated.json"), JSON.stringify(iconSizes, null, 2) + "\n");
 console.log({ mode, written, registeredIcons: names.length });

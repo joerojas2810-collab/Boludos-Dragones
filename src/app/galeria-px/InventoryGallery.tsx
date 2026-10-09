@@ -1,5 +1,6 @@
 import { ItemCard } from "@/components/ItemCard";
-import { PIXEL_ICON_NAMES } from "@/lib/art/pixel";
+import { PullRevealPreview } from "./PullRevealPreview";
+import { PIXEL_ICON_NAMES, pixelIconSize } from "@/lib/art/pixel";
 import { RARITY_IDS } from "@/lib/game/rarity";
 import { DUNGEON_THEMES as DUNGEONS } from "@/lib/game/levels";
 import artIds from "@/lib/artIds.json";
@@ -129,7 +130,8 @@ const DOOR_LABELS: Record<string, string> = {
 function PixelImage({ path, label, zoom, width = 32, height = width, bg }: {
   path: string; label: string; zoom: number; width?: number; height?: number; bg: string;
 }) {
-  const native = NATIVE_SIZES[path] ?? { width, height };
+  const iconSize = path.startsWith("icons-px/icon_") ? pixelIconSize(path.slice("icons-px/icon_".length)) : undefined;
+  const native = NATIVE_SIZES[path] ?? iconSize ?? { width, height };
   return (
     <div className="flex items-center justify-center p-2" style={{ background: bg }}>
       {/* Native PNG shown only at integer zoom in the development gallery. */}
@@ -163,6 +165,7 @@ export function InventoryGallery({ lot, zoom, bg }: { lot: "items" | "icons" | "
   if (lot === "frames") return (
     <section className="space-y-5">
       <h2 className="text-lg font-bold">Marcos de tarjeta</h2>
+      <PullRevealPreview />
       <div className="flex flex-wrap gap-3">
         {RARITY_IDS.map((rank) => <figure key={rank}>
           <PixelImage path={`frames-px/card_${rank}`} label={"Rango " + rank.toUpperCase()} width={60} height={80} zoom={zoom} bg={bg} />
@@ -170,8 +173,17 @@ export function InventoryGallery({ lot, zoom, bg }: { lot: "items" | "icons" | "
         </figure>)}
       </div>
       <h2 className="text-lg font-bold">Tarjetas dentro del juego</h2>
-      <div className="flex flex-wrap gap-3">
-        {RARITY_IDS.map((rarity) => <ItemCard key={rarity} size={96}
+        <div className="flex flex-wrap gap-3">
+          {(["caballero", "mago", "picaro", "clerigo"] as const).map((classId, index) => <ItemCard key={classId} size={96}
+            item={{ kind: "character", classId, name: ["Caballero", "Mago", "Pícaro", "Clérigo"][index], element: (["rayo", "agua", "tierra", "viento"] as const)[index], rarity: "ssr", stars: 3 }} />)}
+        </div>
+        <h3 className="text-base font-bold">Objetos dentro del juego</h3>
+        <div className="flex flex-wrap gap-3">
+          {(["espada", "arco", "libro", "varita", "peto", "collar"] as const).map((type, index) => <ItemCard key={type} size={96}
+            item={{ kind: "weapon", type, name: ["Espada", "Arco", "Libro", "Varita", "Peto", "Collar"][index], element: "agua", rarity: "ssr", stars: 3, lines: [index < 4 ? "ATQ +8" : "DEF +8"] }} />)}
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {RARITY_IDS.map((rarity) => <ItemCard key={rarity} size={96}
           item={{ kind: "weapon", type: "espada", name: "Espada de fuego", element: "fuego", rarity, stars: 3 }} />)}
       </div>
     </section>

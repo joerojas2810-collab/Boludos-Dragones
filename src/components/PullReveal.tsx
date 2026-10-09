@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { RARITIES, RARITY_IDS, isTopRank } from "@/lib/game/rarity";
 import { playPullSound } from "@/lib/sfx";
 import { Vfx } from "@/components/fx/Vfx";
 import { ItemCard, type ItemView } from "./ItemCard";
+import { ELEMENT_LABEL } from "@/lib/game/elements";
+import { WEAPON_TYPE_DATA } from "@/lib/game/weapons";
 import "./fx.css";
 
 // Light rays behind a Legendario reveal (CSS-rotated SVG, no image files).
@@ -67,9 +69,21 @@ const best = (items: ItemView[]) =>
 
 export function PullReveal({ items, onDone, legacy = false }: Props) {
   const [shown, setShown] = useState(-1); // -1 = summoning
+  const continueButton = useRef<HTMLButtonElement>(null);
   const bestId = best(items);
   const color = RARITIES[bestId].color;
   const finished = shown >= items.length - 1;
+
+  useEffect(() => {
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    continueButton.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus instanceof HTMLElement) previousFocus.focus();
+    };
+  }, []);
 
   useEffect(() => {
     if (finished) return;
@@ -88,15 +102,32 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
   const legendNow = shown >= 0 && isTopRank(items[shown].rarity);
   // Portal: an ancestor stacking context would leave the overlay under the top bar.
   const ui = (
-    <div className="fixed inset-0 z-50 flex flex-col items-center gap-4 overflow-y-auto bg-black/95 p-4 [&>*:first-child]:mt-auto [&>*:last-child]:mb-auto">
+    <div className="fixed inset-0 z-50 flex overflow-y-auto bg-[#050b16]/90 p-2 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="pull-results-title"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          if (finished) onDone();
+          else setShown(items.length - 1);
+        }
+        if (event.key === "Tab") {
+          event.preventDefault();
+          continueButton.current?.focus();
+        }
+      }}>
       {legendNow && (
         <div
           key={shown}
           className="fx-flash pointer-events-none fixed inset-0 bg-yellow-300/50"
         />
       )}
+      <section className="relative m-auto flex w-full max-w-[1040px] flex-col gap-5 border-2 border-[#637f9b] bg-[#101c2e] p-3 text-white shadow-[0_0_0_3px_#050b16,0_24px_80px_#000] sm:p-6">
+      <header className="border-b border-[#40546c] pb-4 text-center">
+        <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-[#c2a66c]">Boludos & Dragones</p>
+        <h2 id="pull-results-title" className="text-2xl font-bold text-[#ffe0a3] sm:text-3xl">{shown < 0 ? "Abriendo la invocación" : "Tu botín de invocación"}</h2>
+        <p className="mt-2 text-sm text-[#bdcce0]">{shown < 0 ? "La próxima aventura empieza acá." : finished ? `${items.length} ${single ? "resultado" : "resultados"} · Mejor rango: ${RARITIES[bestId].label}` : `Revelando ${shown + 1} de ${items.length}...`}</p>
+      </header>
       {shown < 0 ? (
-        <div className="relative flex h-40 w-40 items-center justify-center">
+        <div className="relative mx-auto mb-8 flex h-40 w-40 items-center justify-center">
           {isTopRank(bestId) && <Rays color={color} />}
           {legacy ? (
             <Chest color={color} />
@@ -107,10 +138,11 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
         </div>
       ) : (
         <div
-          className={`${legendNow ? "fx-bigshake-a" : ""} grid gap-x-2 gap-y-4 ${single ? "grid-cols-1" : "grid-cols-3 sm:grid-cols-5"}`}
+          className={`grid justify-items-center gap-x-3 gap-y-5 ${single ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"}`}
         >
           {items.slice(0, shown + 1).map((it, i) => (
-            <div key={i} className="relative fx-flip">
+            <article key={i} className="pull-result fx-flip relative flex min-w-0 flex-col items-center gap-2 text-center">
+              <div className="relative isolate overflow-hidden">
               {isTopRank(it.rarity) && i === shown && <Rays color={color} />}
               {isTopRank(it.rarity) && (
                 <div
@@ -121,34 +153,38 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
               {!legacy && i === shown && (
                 <Vfx
                   id={`gacha_reveal_${it.rarity}`}
-                  className="pointer-events-none absolute left-1/2 top-1/2 w-[200%] max-w-none -translate-x-1/2 -translate-y-1/2"
-                />
-              )}
-              {!legacy && i === shown && /^(\+1|REEMBOLSO)/.test(it.badge ?? "") && (
-                <Vfx
-                  id="gacha_duplicate"
-                  className="pointer-events-none absolute left-1/2 top-1/2 w-[180%] max-w-none -translate-x-1/2 -translate-y-1/2"
+                  className="pointer-events-none absolute inset-0 -z-10 w-full max-w-none opacity-40"
                 />
               )}
               {!legacy && i === shown && it.pity && (
                 <Vfx
                   id={`gacha_pity_${it.pity}`}
-                  className="pointer-events-none absolute left-1/2 top-1/2 w-[220%] max-w-none -translate-x-1/2 -translate-y-1/2"
+                  className="pointer-events-none absolute inset-0 -z-10 w-full max-w-none opacity-40"
                 />
               )}
               <div className="relative">
-                <ItemCard item={it} size={single ? 144 : 76} />
+                <ItemCard item={{ ...it, badge: undefined, lines: undefined }} size={144} className="pull-result-card" />
               </div>
-            </div>
+              </div>
+              <h3 className="w-full break-words text-sm font-bold leading-tight text-white">{it.name}</h3>
+              <p className="text-xs text-[#bdcce0]">{it.kind === "character" ? ({ caballero: "Caballero", mago: "Mago", picaro: "Pícaro", clerigo: "Clérigo" }[it.classId]) : WEAPON_TYPE_DATA[it.type ?? "espada"].label} · {ELEMENT_LABEL[it.element]}</p>
+              <p className="text-xs font-bold" style={{ color: RARITIES[it.rarity].color }}>Rango {RARITIES[it.rarity].label}{it.pity ? " · Garantizado" : ""}</p>
+              <span className={`w-full border px-2 py-1.5 text-xs font-bold ${it.badge?.startsWith("REEMBOLSO") ? "border-[#aa8747] bg-[#382c16] text-[#ffe0a3]" : it.badge?.startsWith("+1") ? "border-[#567faa] bg-[#1c3454] text-[#d3e8ff]" : "border-[#43846b] bg-[#15362d] text-[#baf3d9]"}`}>
+                {it.badge?.startsWith("REEMBOLSO") ? it.badge.replace("REEMBOLSO", "Reembolso") + " monedas" : it.badge?.startsWith("+1") ? "Duplicado · +1 estrella" : it.badge === "NUEVO" ? "Nuevo" : it.badge ?? "Obtenido"}
+              </span>
+            </article>
           ))}
         </div>
       )}
-      <button
-        className="btn btn-gray text-center"
+      <footer className="sticky -bottom-3 flex justify-center border-t border-[#40546c] bg-[#101c2e] pt-4 pb-1 sm:-bottom-6">
+      <button ref={continueButton}
+        className="btn min-w-40 text-center"
         onClick={() => (finished ? onDone() : setShown(items.length - 1))}
       >
         {finished ? "Continuar" : "Saltar"}
       </button>
+      </footer>
+      </section>
     </div>
   );
   return typeof document === "undefined" ? ui : createPortal(ui, document.body);

@@ -96,6 +96,20 @@
     color 120ms,
     background 120ms;
 }
+.shell-nav-art {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  object-fit: contain;
+}
+@media (min-width: 521px) {
+  .shell-tab { height: 104px; justify-content: center; gap: 4px; }
+  .shell-body { padding-bottom: 8rem; }
+}
+@media (max-width: 520px) {
+  .shell-nav-art { width: 32px; height: 32px; }
+  .shell-tab { justify-content: center; gap: 4px; }
+}
 .shell-tab:hover:not([data-disabled]) {
   color: #fff;
   border-image-source: url("/art/ui/tab_hover.webp");

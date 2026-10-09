@@ -59,7 +59,9 @@ export function RarityFrame({
         rarity === "s" && (
           <Vfx
             id={`rank_glint_${rarity}`}
-            className="pointer-events-none absolute inset-y-0 left-1/2 z-10 h-full -translate-x-1/2"
+            className={isPixel()
+              ? "pixel-card-glint pointer-events-none absolute -top-5 left-1/2 z-10 h-11 w-8 -translate-x-1/2"
+              : "pointer-events-none absolute inset-y-0 left-1/2 z-10 h-full -translate-x-1/2"}
           />
         )}
       {size >= 64 && (
