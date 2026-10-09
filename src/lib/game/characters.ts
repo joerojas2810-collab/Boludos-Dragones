@@ -1,14 +1,12 @@
 import { ELEMENTS, type Element } from "./elements";
 import type { RarityId } from "./rarity";
-import { createRng, hashSeed, type Rng } from "./rng";
+import type { Rng } from "./rng";
 import type { GearBonus } from "./gear";
 import type { SkillId } from "./skills";
 import type { EnemyFamily } from "./worlds";
 import {
   CATCHPHRASES,
-  rollRuleTrait,
-  rollTraits,
-  traitPlan,
+  rollTrait,
   TRAITS,
   type Trait,
   type TraitId,
@@ -311,24 +309,9 @@ function applyTraits(stats: Stats, ids: readonly TraitId[]): Stats {
   };
 }
 
-// Adds the stat mods of extra traits to stats that already carry the mods of their old ones
-// (hero fusion). ponytail: the +-25% cap applies to the new traits alone, so a stack can
-// overshoot the single-roll cap by a little; fine for a rank-up that grants 1-2 traits.
-export function addTraitMods(stats: Stats, ids: readonly TraitId[]): Stats {
-  const s = applyTraits(stats, ids);
-  return {
-    ...s,
-    accuracy: stats.accuracy + s.accuracy,
-    critDmg: stats.critDmg,
-    regen: stats.regen,
-    lifesteal: stats.lifesteal,
-  };
-}
-
 export function generateCharacter(
   rng: Rng,
   classId: ClassId = rng.pick(CLASS_IDS),
-  rank: RarityId = "f",
 ): Character {
   const base = CLASSES[classId].stats;
   // Roll order matters for seeds: keep it equal to the Stats declaration order.
@@ -344,25 +327,7 @@ export function generateCharacter(
     regen: 0,
     lifesteal: 0,
   };
-  const plan = traitPlan(rank);
-  const classic = rollTraits(rng, plan.classic);
-  // Rule traits use their own RNG derived from the raw rolls, so the main stream
-  // (name, element, catchphrase, later characters) is not disturbed.
-  const traits = plan.rule
-    ? [
-        ...classic,
-        rollRuleTrait(
-          createRng(
-            hashSeed(
-              Math.round(raw.hp * 1e4),
-              Math.round(raw.atk * 1e4),
-              Math.round(raw.speed * 1e4),
-            ),
-          ),
-          classId,
-        ),
-      ]
-    : classic;
+  const traits = [rollTrait(rng, classId)];
   const stats = applyTraits({ ...raw, accuracy: 0 }, traits);
   const name = Array.from({ length: rng.int(2, 3) }, () =>
     rng.pick(SYLLABLES),

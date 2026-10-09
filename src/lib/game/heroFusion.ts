@@ -3,18 +3,9 @@
 // phrase, traits, level and skill; it spends FUSION_STARS stars (leftovers stay) and gains the
 // traits the new rank grants. If a hero of that class + element + next rank is already owned, that one gets +1 star
 // instead (same as a gacha duplicate). Pure over the Profile; the server runs the same code.
-import { addTraitMods } from "./characters";
 import { characterKey, type OwnedCharacter, type Profile } from "./profile";
 import { levelCap } from "./heroLevel";
 import { MAX_STARS, RARITIES, RARITY_IDS, type RarityId } from "./rarity";
-import { createRng, hashSeed, type Rng } from "./rng";
-import {
-  CLASSIC_TRAIT_IDS,
-  RULE_TRAIT_IDS,
-  rollRuleTrait,
-  traitPlan,
-  type TraitId,
-} from "./traits";
 
 // Tune here. `ratio` counts the base hero too. Lots of common heroes, few rare ones: what you
 // can spare shrinks with rank, so the ratio never rises. S is the top rank, so there is no S row.
@@ -40,7 +31,6 @@ export interface HeroFusion {
   rank: RarityId; // rank of the result
   hero?: OwnedCharacter; // the new hero (absent when it became a +1 star)
   starTo?: string; // id of the existing hero that got +1 star
-  addedTraits: TraitId[];
 }
 export type HeroFusionResult =
   | { ok: true; profile: Profile; fusion: HeroFusion; text: string }
@@ -49,26 +39,10 @@ export type HeroFusionResult =
 const fail = (error: string): HeroFusionResult => ({ ok: false, error });
 const nextRank = (r: RarityId): RarityId | null => RARITY_IDS[RARITY_IDS.indexOf(r) + 1] ?? null;
 
-// Traits the base lacks for the next rank (classic ones first, then the rule trait from S).
-export function traitsToAdd(c: OwnedCharacter, next: RarityId, rng: Rng): TraitId[] {
-  const plan = traitPlan(next);
-  const classic = c.traits.filter((t) => CLASSIC_TRAIT_IDS.includes(t)).length;
-  const hasRule = c.traits.some((t) => RULE_TRAIT_IDS.includes(t));
-  const pool = CLASSIC_TRAIT_IDS.filter((t) => !c.traits.includes(t));
-  const add: TraitId[] = [];
-  for (let i = classic; i < plan.classic; i++)
-    add.push(pool.splice(rng.int(0, pool.length - 1), 1)[0]);
-  if (plan.rule && !hasRule) add.push(rollRuleTrait(rng, c.classId));
-  return add;
-}
-
-const stateRng = (p: Profile, tag: number): Rng =>
-  createRng(hashSeed(tag, p.coins, p.characters.length, p.runsPlayed));
 
 export function fuseHeroes(
   p: Profile,
   a: { baseId: string; materialIds: string[] },
-  rng: Rng = stateRng(p, 3),
 ): HeroFusionResult {
   const base = p.characters.find((c) => c.id === a.baseId);
   if (!base) return fail("Ese héroe no es tuyo.");
@@ -94,7 +68,6 @@ export function fuseHeroes(
     return fail("Ya tienes a ese héroe con el máximo de estrellas.");
 
   const gone = new Set([base.id, ...ids]);
-  const addedTraits = existing ? [] : traitsToAdd(base, next, rng);
   let hero: OwnedCharacter | undefined;
   let characters = p.characters.filter((c) => !gone.has(c.id));
   if (existing) {
@@ -108,8 +81,6 @@ export function fuseHeroes(
       id: newId,
       rarity: next,
       stars,
-      stats: addedTraits.length ? addTraitMods(base.stats, addedTraits) : base.stats,
-      traits: [...base.traits, ...addedTraits],
       level: Math.min(base.level, cap),
       xp: capped ? 0 : base.xp,
       legacy: false,
@@ -128,7 +99,7 @@ export function fuseHeroes(
   return {
     ok: true,
     profile: out,
-    fusion: { baseId: base.id, materialIds: ids, coins: rule.coins, rank: next, hero, starTo: existing?.id, addedTraits },
+    fusion: { baseId: base.id, materialIds: ids, coins: rule.coins, rank: next, hero, starTo: existing?.id },
     text: existing
       ? `Fusionas ${rule.ratio} héroes: ${existing.name} ya existía en ${label} y sube a ${existing.stars + 1}★.`
       : `Fusionas ${rule.ratio} héroes: ${base.name} sube a rango ${label}.`,

@@ -8,7 +8,7 @@ import { ELEMENTS } from "./elements";
 
 let n = 0;
 function hero(rank: RarityId, classId: ClassId = "mago", el = ELEMENTS[n % 5], stars = 0): OwnedCharacter {
-  const c = generateCharacter(createRng(++n), classId, rank);
+  const c = generateCharacter(createRng(++n), classId);
   return { ...c, element: el, id: characterKey(classId, el, rank), rarity: rank, stars };
 }
 const profile = (characters: OwnedCharacter[], coins = 100000, equipped: Record<string, string> = {}) =>
@@ -47,15 +47,14 @@ describe("fuseHeroes", () => {
     if (!f.ok) expect(f.error).toContain("3★");
   });
 
-  it("adds the traits the new rank grants (2 at C, a rule trait at S)", () => {
-    const toC = five("d");
-    const r = fuseHeroes(profile(toC), { baseId: toC[0].id, materialIds: toC.slice(1).map((h) => h.id) });
-    if (!r.ok) throw new Error(r.error);
-    expect(r.profile.characters[0].traits).toHaveLength(2);
+  it("keeps the hero's single trait and stats when it ranks up (nothing is added)", () => {
     const toS = five("a");
-    const s = fuseHeroes(profile(toS), { baseId: toS[0].id, materialIds: toS.slice(1).map((h) => h.id) });
-    if (!s.ok) throw new Error(s.error);
-    expect(s.fusion.addedTraits.length).toBeGreaterThanOrEqual(1);
+    const r = fuseHeroes(profile(toS), { baseId: toS[0].id, materialIds: toS.slice(1).map((h) => h.id) });
+    if (!r.ok) throw new Error(r.error);
+    const up = r.profile.characters[0];
+    expect(up.rarity).toBe("s");
+    expect(up.traits).toEqual(toS[0].traits);
+    expect(up.stats).toEqual(toS[0].stats);
   });
 
   it("an owned hero of the result rank gets +1 star instead", () => {

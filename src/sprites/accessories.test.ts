@@ -38,7 +38,7 @@ describe("accessories", () => {
     const pairs: [TraitId, TraitId][] = [
       ["terco", "veloz"],
       ["gafe", "paciente"],
-      ["cobarde", "afortunado"],
+      ["estoico", "fanfarron"],
       ["tenaz", "furioso"],
     ];
     for (const [a, b] of pairs)

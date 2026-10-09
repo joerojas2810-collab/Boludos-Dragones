@@ -19,7 +19,7 @@ const room = process.argv[6] === "room"; // room round: difficulty = `rank` offs
 const floors: number[] = [];
 for (let i = 0; i < n; i++) {
   const rng = createRng(hashSeed(i, 77));
-  const c = generateCharacter(rng, rng.pick(CLASS_IDS), rank);
+  const c = generateCharacter(rng, rng.pick(CLASS_IDS));
   const level = levelCap(stars);
   const owned = {
     ...c,

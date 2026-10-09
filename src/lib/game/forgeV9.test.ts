@@ -144,7 +144,7 @@ describe("Mejorar", () => {
     for (const k of Object.keys(base) as (keyof typeof base)[]) if (base[k] > 0) expect(plus10[k] / base[k]).toBeCloseTo(1.4, 1);
   });
   it("the +N reaches the hero's stats (armor and weapon)", () => {
-    const c = generateCharacter(createRng(3), "caballero", "s");
+    const c = generateCharacter(createRng(3), "caballero");
     const oc = { ...c, id: characterKey("caballero", c.element, "s"), rarity: "s" as const, stars: 0 };
     const mk = (plus: number) => {
       let p: Profile = { ...createProfile(), characters: [oc] };

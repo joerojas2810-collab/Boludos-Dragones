@@ -20,7 +20,7 @@ const asc = Number(process.argv[6] ?? 0);
 
 function hero(rank: RarityId, seed: number) {
   const rng = createRng(seed);
-  const c = generateCharacter(rng, rng.pick(CLASS_IDS), rank);
+  const c = generateCharacter(rng, rng.pick(CLASS_IDS));
   const level = Math.min(lvl, levelCap(stars));
   const gearStars = Number(process.env.GEAR_STARS ?? 0);
   const gearRank = (process.env.GEAR_RANK as RarityId | undefined) ?? rank;

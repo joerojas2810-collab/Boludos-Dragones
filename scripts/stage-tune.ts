@@ -21,7 +21,7 @@ const LEVEL = Number(process.env.LEVEL ?? 20);
 function hero(tier: DungeonId, seed: number) {
   const rank = itemRankOf(tier); // tiers above S use S items
   const rng = createRng(seed);
-  const c = generateCharacter(rng, rng.pick(CLASS_IDS), rank);
+  const c = generateCharacter(rng, rng.pick(CLASS_IDS));
   const pieces = GEAR_TYPES.map((type) => ({ type, rarity: rank, stars: 0, element: c.element, ...rollGear(rng, type, rank) }));
   const base = scaleStats(c.stats, rank, STARS, LEVEL);
   const g = applyGear(base, gearBonus(pieces));

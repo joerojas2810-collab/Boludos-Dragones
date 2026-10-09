@@ -25,7 +25,7 @@ function standardPower(rank: DungeonId): number {
   const item = itemRankOf(rank); // tiers above S use the best items (S)
   for (let i = 0; i < SAMPLE; i++) {
     const rng = createRng(hashSeed(i, 4411));
-    const c = generateCharacter(rng, CLASS_IDS[i % CLASS_IDS.length], item);
+    const c = generateCharacter(rng, CLASS_IDS[i % CLASS_IDS.length]);
     const pieces = GEAR_TYPES.map((type) => ({
       type,
       rarity: item,

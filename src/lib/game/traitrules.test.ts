@@ -13,10 +13,9 @@ import {
 } from "./combat";
 import { createRng } from "./rng";
 import {
-  RULE_TRAIT_IDS,
-  rollRuleTrait,
-  traitPlan,
-  traitTotals,
+  RAGE_MAX,
+  rollTrait,
+  TRAIT_IDS,
   TRAITS,
   type TraitId,
 } from "./traits";
@@ -57,46 +56,22 @@ const open = (p: Character, e: Character, opts = {}): Battle =>
   startBattle(p, e, createRng(3), opts);
 
 describe("trait rules: generation", () => {
-  it("is deterministic per seed and keeps name/element independent of the rule trait", () => {
+  it("is deterministic per seed", () => {
     const a = generateCharacter(createRng(1));
     expect(generateCharacter(createRng(1))).toEqual(a);
-    // same stream: a rank-S roll only adds a rule trait, same name/element
-    const lo = generateCharacter(createRng(5), "mago", "d");
-    const hi = generateCharacter(createRng(5), "mago", "s");
-    expect([hi.name, hi.element]).toEqual([lo.name, lo.element]);
   });
 
-  it("traitPlan by rank: F-D 1 classic, C-A 2, S 1 classic + rule", () => {
-    expect(traitPlan("f")).toEqual({ classic: 1, rule: false });
-    expect(traitPlan("d")).toEqual({ classic: 1, rule: false });
-    expect(traitPlan("c")).toEqual({ classic: 2, rule: false });
-    expect(traitPlan("a")).toEqual({ classic: 2, rule: false });
-    expect(traitPlan("s")).toEqual({ classic: 1, rule: true });
-  });
-
-  it("generateCharacter by rank; Espinas never on a Caballero", () => {
+  it("every hero rolls exactly one trait, whatever its rank; Espinas never on a Caballero", () => {
     const rng = createRng(77);
-    const isRule = (t: string) => RULE_TRAIT_IDS.includes(t as never);
     for (let i = 0; i < 500; i++) {
-      for (const [rank, n, rule] of [
-        ["f", 1, 0],
-        ["c", 2, 0],
-        ["s", 2, 1],
-      ] as const) {
-        const c = generateCharacter(rng, "caballero", rank);
-        expect(c.traits).not.toContain("espinas");
-        expect(c.traits).toHaveLength(n);
-        expect(c.traits.filter(isRule)).toHaveLength(rule);
-        expect(new Set(c.traits).size).toBe(c.traits.length);
-      }
+      const c = generateCharacter(rng, "caballero");
+      expect(c.traits).toHaveLength(1);
+      expect(c.traits).not.toContain("espinas");
     }
-    let thorns = 0;
-    for (let i = 0; i < 500; i++)
-      if (traitTotals(generateCharacter(rng, "mago", "s").traits).thorns > 0)
-        thorns++;
-    expect(thorns).toBeGreaterThan(0);
-    for (let i = 0; i < 100; i++)
-      expect(isRule(rollRuleTrait(rng, "caballero"))).toBe(true);
+    const seen = new Set<string>();
+    for (let i = 0; i < 2000; i++) seen.add(rollTrait(rng, "mago"));
+    expect(seen.size).toBe(TRAIT_IDS.length); // all twenty can show up, Espinas included
+    for (let i = 0; i < 300; i++) expect(rollTrait(rng, "caballero")).not.toBe("espinas");
   });
 });
 
@@ -200,5 +175,80 @@ describe("trait rules: combat", () => {
     step(withRound(a, false, []), "attack1", r1);
     step(withRound(a, false, []), "attack1", r2);
     expect(r1.next()).toBe(r2.next());
+  });
+});
+
+describe("trait rules: personality traits", () => {
+  const dmg = (b: Battle) => estimateDamage(b.player, b.enemies[0], "attack1");
+  const plainDmg = () => dmg(open(hero([]), foe()));
+
+  it("Terco: the hit after a miss has +10 accuracy", () => {
+    const b = open(hero(["terco"], "mago", { accuracy: -0.3 }), foe());
+    const retry = { ...b.player, missed: true };
+    expect(hitChance(retry, "attack1")).toBeCloseTo(hitChance(b.player, "attack1") + 0.1);
+    expect(hitChance({ ...hero([], "mago", { accuracy: -0.3 }) && b.player, missed: false }, "attack1")).toBe(hitChance(b.player, "attack1"));
+  });
+
+  it("Orgulloso: +8% ATQ above half hp, -8% below", () => {
+    const b = open(hero(["orgulloso"]), foe());
+    const high = estimateDamage(b.player, b.enemies[0], "attack1");
+    const low = estimateDamage({ ...b.player, hp: 40 }, b.enemies[0], "attack1");
+    expect(high / plainDmg()).toBeCloseTo(1.08, 1);
+    expect(low / plainDmg()).toBeCloseTo(0.92, 1);
+  });
+
+  it("Sanguinario: +10% damage against enemies under 40% hp", () => {
+    const b = open(hero(["sanguinario"]), foe());
+    const weak = { ...b.enemies[0], hp: 30 };
+    const base = estimateDamage(b.player, b.enemies[0], "attack1");
+    expect(estimateDamage(b.player, weak, "attack1") / base).toBeCloseTo(1.1, 1);
+  });
+
+  it("Paciente: +8% on the hit after a defended round, spent by that hit; defending arms it", () => {
+    const b = open(hero(["paciente"]), foe());
+    const base = dmg(b);
+    expect(estimateDamage({ ...b.player, guardedLast: true }, b.enemies[0], "attack1") / base).toBeCloseTo(1.08, 1);
+    const armed = step(withRound(b, false, [[]], 1), "defend", createRng(2));
+    expect(armed.player.guardedLast).toBe(true);
+    const spent = step(withRound({ ...b, player: { ...b.player, guardedLast: true } }, false, [[]], 1), "attack1", createRng(2));
+    expect(spent.player.guardedLast).toBe(false);
+  });
+
+  it("Glotón: heals 3% of max hp when it takes an enemy down", () => {
+    const b = open(hero(["glotón"], "mago", { hp: 100, accuracy: 1 }), foe([], "mago"), { playerHp: 50 });
+    const dying = { ...b, enemies: [{ ...b.enemies[0], hp: 1 }] };
+    const s = step(withRound(dying, false, [[]], 1), "attack1", createRng(2));
+    expect(s.status).toBe("won");
+    expect(s.player.hp).toBe(50 + Math.round(100 * TRAITS["glotón"].rules.killHeal));
+  });
+
+  it("Fanfarrón: the first hit of a fight is +20%, the next ones are normal", () => {
+    const b = open(hero(["fanfarron"]), foe());
+    expect(dmg(b) / plainDmg()).toBeCloseTo(1.2, 1);
+    const after = step(withRound(b, false, [[]], 1), "attack1", createRng(2));
+    expect(after.player.opened).toBe(true);
+    expect(estimateDamage(after.player, after.enemies[0], "attack1")).toBeLessThan(dmg(b));
+  });
+
+  it("Curioso: +10% damage against a rival that carries a status", () => {
+    const b = open(hero(["curioso"]), foe());
+    const marked = { ...b.enemies[0], statuses: [{ id: "ruptura" as const, stacks: 1, turns: 2 }] };
+    const base = estimateDamage(b.player, b.enemies[0], "attack1");
+    expect(estimateDamage(b.player, marked, "attack1") / base).toBeCloseTo(1.1, 1);
+  });
+
+  it("Cauteloso: -10% damage taken while above 80% hp, nothing below", () => {
+    const b = open(hero(["cauteloso"]), foe());
+    expect(dmgReductionOf(b.player)).toBeCloseTo(0.1);
+    expect(dmgReductionOf({ ...b.player, hp: 50 })).toBe(0);
+  });
+
+  it("Furioso: +4% damage per hit taken, up to five hits", () => {
+    const b = open(hero(["furioso"]), foe());
+    const base = dmg(b);
+    expect(estimateDamage({ ...b.player, rage: 3 }, b.enemies[0], "attack1") / base).toBeCloseTo(1.12, 1);
+    expect(estimateDamage({ ...b.player, rage: 99 }, b.enemies[0], "attack1") / base).toBeCloseTo(1 + 0.04 * RAGE_MAX, 1);
+    const hurt = step(withRound(b, true, [["attack1"]], 1), "defend", createRng(2));
+    expect(hurt.player.rage).toBe(1);
   });
 });

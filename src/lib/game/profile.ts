@@ -194,7 +194,7 @@ function pull(
     let status: PullResult["status"] = "new";
     let refund = 0;
     if (banner === "character") {
-      const c = generateCharacter(rng, undefined, rarity);
+      const c = generateCharacter(rng);
       const id = characterKey(c.classId, c.element, rarity);
       const owned = p.characters.find((x) => x.id === id);
       let item: OwnedCharacter = { ...c, id, rarity, stars: 0 };
@@ -715,7 +715,7 @@ function parseCharacter(v: unknown, legacyAll: boolean): OwnedCharacter | null {
   if (!classId || !element || !stats || !rarity) return null;
   const traits = (Array.isArray(v.traits) ? v.traits : [])
     .filter((t): t is TraitId => (TRAIT_IDS as readonly unknown[]).includes(t))
-    .slice(0, 2);
+    .slice(0, 1); // one trait per hero
   return {
     id: characterKey(classId, element, rarity),
     name: str(v.name, "Sin nombre"),

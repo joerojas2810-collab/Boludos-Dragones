@@ -165,9 +165,6 @@ export function HeroFusionPanel({
                       ? `Ya lo tenías en rango ${RARITIES[result.rarity].label}: sube a ${result.stars}★.`
                       : `Rango ${RARITIES[rank].label} → ${RARITIES[result.rarity].label}, queda con ${result.stars}★.`}
                   </div>
-                  {dry.fusion.addedTraits.length > 0 && (
-                    <div className="opacity-90">Gana {dry.fusion.addedTraits.length} rasgo(s) nuevo(s) al ascender.</div>
-                  )}
                   <div>
                     Gastas {rule.ratio - 1} héroes y {rule.coins} monedas.
                   </div>

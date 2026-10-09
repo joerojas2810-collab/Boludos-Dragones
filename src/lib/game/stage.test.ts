@@ -46,7 +46,7 @@ describe("levels", () => {
 });
 
 describe("stage", () => {
-  const hero = generateCharacter(createRng(3), "caballero", "f");
+  const hero = generateCharacter(createRng(3), "caballero");
   const strong = {
     ...hero,
     stats: { ...hero.stats, hp: hero.stats.hp * 20, atk: hero.stats.atk * 10 },
@@ -97,7 +97,7 @@ describe("stage", () => {
 describe("stage replay", () => {
   it("replays a recorded auto/fin log to the same result and rejects illegal actions", async () => {
     const { replayStage } = await import("./stageReplay");
-    const h = generateCharacter(createRng(3), "caballero", "f");
+    const h = generateCharacter(createRng(3), "caballero");
     const strong = { ...h, stats: { ...h.stats, hp: h.stats.hp * 20, atk: h.stats.atk * 10 } };
     const fights = levelFights(levelsOf("f")[0], 0);
     const log = fights.flatMap(() => [{ t: "auto" as const }, { t: "fin" as const }]);

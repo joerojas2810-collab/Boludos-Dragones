@@ -74,7 +74,7 @@ export function createStarterHero(
 ): Profile {
   if (tutorialStep(profile) !== 0 || profile.characters.length > 0)
     return profile;
-  const base = generateCharacter(rng, classId, "f");
+  const base = generateCharacter(rng, classId);
   const hero: OwnedCharacter = {
     ...base,
     id: characterKey(classId, base.element, "f"),

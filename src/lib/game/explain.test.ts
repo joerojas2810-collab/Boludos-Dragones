@@ -126,8 +126,8 @@ describe("explain: elements, traits, actions", () => {
   it("every trait has a tip with its numbers", () => {
     for (const id of TRAIT_IDS)
       expect(traitTip(id).lines.length).toBeGreaterThan(0);
-    expect(text(traitTip("terco"))).toContain("+25% DEF");
-    expect(text(traitTip("terco"))).toContain("−3 puntos de resistencia");
+    expect(text(traitTip("terco"))).toContain("+10% DEF");
+    expect(text(traitTip("estoico"))).toContain("+10 puntos de resistencia");
     expect(text(traitTip("sediento"))).toContain("10%");
   });
 

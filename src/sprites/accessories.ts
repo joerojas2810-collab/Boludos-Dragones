@@ -238,7 +238,7 @@ export const ACCESSORIES: Record<
     },
   ],
   // four-leaf clover tied to the head
-  afortunado: [
+  fanfarron: [
     {
       at: "ml",
       px: [
@@ -252,26 +252,12 @@ export const ACCESSORIES: Record<
     },
   ],
   // leather shoulder pads
-  robusto: [
+  estoico: [
     { at: "shL", px: pad },
     { at: "shR", px: pad },
   ],
-  // sweat drop stuck to the head
-  cobarde: [
-    {
-      at: "sl",
-      px: [
-        [0, 2, "q"],
-        [1, 1, "qqq"],
-        [2, 0, "qqwqq"],
-        [3, 0, "qqqqq"],
-        [4, 1, "qqq"],
-        [5, 4, "n"],
-      ],
-    },
-  ],
   // golden monocle with chain
-  certero: [
+  curioso: [
     {
       at: "eR",
       px: [
@@ -298,47 +284,14 @@ export const ACCESSORIES: Record<
       ],
     },
   ],
-  // bright bandage with a red center mark
-  fragil: [
-    {
-      at: "ck",
-      px: [
-        [0, 0, ".ooo."],
-        [1, 0, "okkk."],
-        [2, 0, "okrro"],
-        [3, 0, ".kkko"],
-        [4, 0, ".ooo."],
-        [2, 2, "w"],
-      ],
-    },
-  ],
   // gold-rimmed chest badge
-  blindado: [
+  orgulloso: [
     {
       at: "chest",
       px: [
         [0, 0, "yyyy"],
         [1, 0, "ynny"],
         [2, 1, "yy"],
-      ],
-    },
-  ],
-  // short elemental speed streaks at the feet
-  escurridizo: [
-    {
-      at: "pL",
-      px: [
-        [0, 0, "..wcc"],
-        [1, 0, ".ccccc"],
-        [2, 0, "cc.."],
-      ],
-    },
-    {
-      at: "pR",
-      px: [
-        [0, 0, "ccw.."],
-        [1, 0, "ccccc"],
-        [2, 0, "..cc"],
       ],
     },
   ],
@@ -382,16 +335,6 @@ export const ACCESSORIES: Record<
         [3, 0, "onyyo"],
         [4, 0, "onnno"],
         [5, 1, ".ooo."],
-      ],
-    },
-  ],
-  // wide belt with gold buckle
-  fornido: [
-    {
-      at: "belt",
-      px: [
-        [0, 0, "hhhhhyyhhhhh"],
-        [1, 0, "hhhhhyyhhhhh"],
       ],
     },
   ],

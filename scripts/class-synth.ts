@@ -38,7 +38,7 @@ const POL = process.env.POLICY ?? "both";
 
 function hero(classId: ClassId, skill: SkillId, seed: number, wt: HandType) {
   const rng = createRng(seed);
-  const c = generateCharacter(rng, classId, rank);
+  const c = generateCharacter(rng, classId);
   const pieces = GEAR
     ? GEAR_TYPES.map((type) => ({ type, rarity: rank, stars: 0, element: c.element, ...rollGear(rng, type, rank) }))
     : [];

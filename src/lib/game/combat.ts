@@ -66,7 +66,7 @@ import {
   STANCES,
   type BossState,
 } from "./bossRules";
-import { traitTotals } from "./traits";
+import { EXECUTE_HP, HIGH_HP, RAGE_MAX, traitTotals } from "./traits";
 import { weaponSpecial } from "./weapons";
 
 export type AttackKey = "attack1" | "attack2";
@@ -163,6 +163,10 @@ export interface Combatant {
   perks?: Perks;
   statuses?: StatusEffect[]; // elemental effects (statuses.ts)
   charge?: number; // Rayo hits since the last overload
+  missed?: boolean; // Terco: the last hit missed
+  guardedLast?: boolean; // Paciente: it spent the last round defending (spent by its next hit)
+  opened?: boolean; // Fanfarrón: it has already thrown its first hit
+  rage?: number; // Furioso: hits taken so far
   boss?: BossState; // dungeon boss mechanic state (bossRules.ts)
   healCut?: number; // rounds left with the heals cut (Reina Marchita ritual)
   applies?: boolean; // enemies: strong hits apply their element's status (elites, bosses)
@@ -202,9 +206,11 @@ export const dmgReductionOf = (c: Combatant): number => {
   const low = rulesOf(c).lowHpReduction;
   const missing = 1 - clamp(c.hp / c.char.stats.hp, 0, 1);
   const perk = c.perks?.dmgReduction ?? 0;
+  // Cauteloso: sturdier while healthy
+  const high = c.hp / c.char.stats.hp > HIGH_HP ? rulesOf(c).highHpReduction : 0;
   return Math.min(
     Math.max(perk, TRAIT_CAPS.dmgReduction),
-    perk + low * missing,
+    perk + low * missing + high,
   );
 };
 
@@ -528,7 +534,21 @@ export function startBattle(
 
 // No dodge in engine v11: only accuracy decides a hit.
 export function hitChance(att: Combatant, key: MoveKey): number {
-  return clamp(attackOf(att, key).accuracy + att.char.stats.accuracy, 0.05, 1);
+  const retry = att.missed ? rulesOf(att).retryAccuracy : 0; // Terco insists after a miss
+  return clamp(attackOf(att, key).accuracy + att.char.stats.accuracy + retry, 0.05, 1);
+}
+
+// Personality traits that change the damage of a hit (see traits.ts).
+function traitDealtMult(att: Combatant, def: Combatant): number {
+  const r = rulesOf(att);
+  let m = 1;
+  if (r.pride) m += att.hp / att.char.stats.hp > 0.5 ? r.pride : -r.pride;
+  if (r.executeBonus && def.hp < def.char.stats.hp * EXECUTE_HP) m += r.executeBonus;
+  if (r.guardedBonus && att.guardedLast) m += r.guardedBonus;
+  if (r.openingBonus && !att.opened) m += r.openingBonus;
+  if (r.statusBonus && def.statuses?.length) m += r.statusBonus;
+  if (r.rageStep) m += r.rageStep * Math.min(RAGE_MAX, att.rage ?? 0);
+  return m;
 }
 
 // Damage multiplier of the defender's stance against this move.
@@ -605,6 +625,7 @@ export function estimateDamage(
         selfFactor(att, key) *
         detonateFactor(att, def, key) *
         bossDealtMult(att) *
+        traitDealtMult(att, def) *
         bossTakenMult(def) *
         (1 + furyBonus(att)),
     ),
@@ -791,7 +812,7 @@ export function strike(
   if (!rng.chance(hitChance(att, key))) {
     if (a.heal === 0) log.push(`${who} usa ${a.name}${on} y falla.`);
     ev("miss");
-    return { attacker, defender: def, dmg: 0 };
+    return { attacker: { ...attacker, missed: true, opened: true }, defender: def, dmg: 0 };
   }
   const crit = rng.chance(
     att.char.stats.crit +
@@ -888,10 +909,12 @@ export function strike(
     attacker: {
       ...attacker,
       hp: Math.max(0, Math.min(att.char.stats.hp, attacker.hp + steal) - back),
+      missed: false,
+      opened: true,
       ...(ownStatuses && { statuses: ownStatuses }),
       ...(charge !== (att.charge ?? 0) && { charge }),
     },
-    defender,
+    defender: { ...defender, rage: Math.min(RAGE_MAX, (defender.rage ?? 0) + 1) },
     dmg,
   };
 }
@@ -977,6 +1000,7 @@ export function step(
       const dealt = hit(tIdx, action);
       if (dealt > 0 && !(guardFree(player) && action === "attack1"))
         player.riposte = false;
+      if (dealt > 0) player.guardedLast = false;
       return;
     }
     if (!skill) return;
@@ -1021,7 +1045,10 @@ export function step(
         dealt += hit(tIdx, "attack3");
     }
     player.cooldown3 = cd;
-    if (dealt > 0) player.riposte = false;
+    if (dealt > 0) {
+      player.riposte = false;
+      player.guardedLast = false;
+    }
   };
 
   while (queue.length && !end) {
@@ -1090,6 +1117,15 @@ export function step(
       if (e.hp <= 0 && !fallen[i]) {
         fallen[i] = true;
         log.push(`${e.char.name} cae.`);
+        const kh = rulesOf(player).killHeal; // Glotón feeds on the fallen
+        if (kh > 0 && player.hp > 0) {
+          const hp = Math.min(
+            player.char.stats.hp,
+            player.hp + Math.round(player.char.stats.hp * kh * healMult(player)),
+          );
+          if (hp > player.hp) log.push(`${player.char.name} se alimenta: recupera ${hp - player.hp}.`);
+          player = { ...player, hp };
+        }
       }
     });
     if (enemies.every((e) => e.hp <= 0)) end = "won";
@@ -1115,8 +1151,10 @@ export function step(
 
   // ---- end of round ----
   const guarded = !!player.guard; // perfect guard earned this round (Reina Marchita ritual)
+  const defended = !!player.defending; // Paciente: this round was spent defending
   player = {
     ...player,
+    guardedLast: defended,
     healCut: Math.max(0, (player.healCut ?? 0) - 1),
     defending: false,
     guard: false,

@@ -22,7 +22,7 @@ let sat = 0, satN = 0;
 
 function hero(rank: RarityId, seed: number, mult: number) {
   const rng = createRng(seed);
-  const c = generateCharacter(rng, rng.pick(CLASS_IDS), rank);
+  const c = generateCharacter(rng, rng.pick(CLASS_IDS));
   const sum = { ...NO_GEAR };
   for (const type of GEAR_TYPES) {
     const b = gearBonus([{ type, rarity: rank, stars: STARS, element: c.element, ...rollGear(rng, type, rank) }]);

@@ -91,7 +91,7 @@ import {
   type BossRule,
 } from "./bossRules";
 import { TOWER_XP_FACTOR } from "./tower";
-import { TRAITS, type TraitId, type TraitMods } from "./traits";
+import { EXECUTE_HP, HIGH_HP, RAGE_MAX, TRAITS, type TraitId, type TraitMods, type TraitRules } from "./traits";
 
 export type TipKind =
   | "passive"
@@ -308,6 +308,19 @@ const MOD_LABEL_LOWER: Record<keyof TraitMods, string> = {
   accuracy: "precisión",
 };
 
+// Personality-trait rules (traits.ts): one sentence each, with the real numbers.
+const PERSONALITY_TEXT: Partial<Record<keyof TraitRules, (v: number) => string>> = {
+  retryAccuracy: (v) => `Si falla un golpe, el siguiente tiene +${Math.round(v * 100)} de precisión.`,
+  pride: (v) => `+${pct(v)} de ATQ con más de la mitad de tu vida y −${pct(v)} con menos.`,
+  executeBonus: (v) => `+${pct(v)} de daño contra enemigos con menos del ${pct(EXECUTE_HP)} de vida.`,
+  guardedBonus: (v) => `Si defendiste la ronda anterior, tu siguiente golpe hace +${pct(v)}.`,
+  killHeal: (v) => `Al derrotar a un enemigo recuperas ${pct(v)} de tu vida máxima.`,
+  openingBonus: (v) => `El primer golpe de cada pelea hace +${pct(v)}.`,
+  statusBonus: (v) => `+${pct(v)} de daño contra rivales con algún estado elemental.`,
+  highHpReduction: (v) => `Recibes −${pct(v)} de daño mientras tengas más del ${pct(HIGH_HP)} de vida.`,
+  rageStep: (v) => `Cada golpe que recibes te da +${pct(v)} de daño (hasta ${RAGE_MAX} golpes, +${pct(v * RAGE_MAX)}).`,
+};
+
 export function traitTip(id: TraitId): Tip {
   const t = TRAITS[id];
   const mods: TraitMods = t.mods;
@@ -354,6 +367,9 @@ export function traitTip(id: TraitId): Tip {
     tags.push(
       `Cada golpe que acierta pega entre x${n1(1 - r.spread)} y x${n1(1 + r.spread)} de su daño; el promedio es el mismo y la precisión no cambia. El daño estimado muestra el promedio.`,
     );
+  const rules: TraitRules = r ?? {};
+  for (const [k, text] of Object.entries(PERSONALITY_TEXT) as [keyof TraitRules, (v: number) => string][])
+    if (rules[k]) tags.push(text(rules[k] as number));
   const lines = [...effects.map((e) => `${e}.`), ...tags];
   return {
     title: t.name,

@@ -1031,7 +1031,7 @@ export async function doFuseHeroes(
 ) {
   await limit(d.rpc, `fuse:${playerId}`, 30, 60);
   const me = await loadMe(d.rpc, playerId);
-  const r = fuseHeroes(me.profile, { baseId, materialIds }, createRng(d.randomSeed()));
+  const r = fuseHeroes(me.profile, { baseId, materialIds });
   if (!r.ok) throw new ApiError(400, "fusion_invalid", r.error);
   const h = r.fusion.hero;
   try {

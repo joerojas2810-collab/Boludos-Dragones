@@ -232,30 +232,33 @@ Los tamaños de grupo actuales se mantienen (ya van de 1 a 3 según el rango). U
 
 ---
 
-## 7b. Rasgos: catálogo [DECIDIDO parcial: 18 de 20]
+## 7b. Rasgos: catálogo final [DECIDIDO 2026-10-09, implementado]
 
-Dirección [DECIDIDO]: rasgo = personalidad del héroe, manía suave (un sesgo pequeño y una regla corta, con voz propia en el registro de combate). **Un rasgo por héroe**, sin importar el rango (se acaba `traitPlan` por rango y el rasgo de regla garantizado en S+). Valores de prueba.
+Rasgo = personalidad del héroe: manía suave con un sesgo pequeño y una regla corta. **Un rasgo por héroe**, sin importar el rango, tirado de forma uniforme entre 20 (Espinas no sale en Caballeros). La fusión conserva el rasgo. Valores de prueba.
 
-Se conservan tal cual (6): Filo del azar, Último aliento, Espinas (no Caballero), Apostador, Sediento, Gafe.
-
-Elegidos (12):
-
-| Rasgo | Manía |
+| Rasgo (arte reutilizado) | Manía |
 |---|---|
-| Terco | +10 % DEF; tras fallar un golpe, el siguiente tiene +10 % de precisión. |
-| Temerario | +10 % ATQ, −8 % DEF. |
-| Orgulloso | +8 % ATQ con la vida por encima del 50 %; −8 % ATQ por debajo. |
-| Sanguinario | +8 % crítico; +10 % de daño contra enemigos bajo 40 % de vida. |
-| Paciente | +5 % de precisión; si defendió la ronda anterior, su siguiente golpe hace +8 %. |
-| Estoico | +10 % de resistencia a estados, −5 % velocidad. |
-| Glotón | +8 % de vida; cura 3 % de su vida máxima al derrotar a un enemigo. |
-| Tenaz | +8 % de vida, −5 % velocidad. |
-| Veloz | +6 % velocidad, −5 % de precisión. |
-| Fanfarrón | El primer golpe de cada pelea hace +20 %. |
-| Lúcido | +3 % crítico, +3 % precisión, +2 % ATQ (sin cambios). |
-| Curioso | +10 % de daño contra rivales que tengan algún estado elemental. |
+| Terco (stubborn) | +10 % DEF; tras fallar un golpe, el siguiente tiene +10 de precisión. |
+| Temerario (reckless) | +10 % ATQ, −8 % DEF. |
+| Orgulloso (armored) | +8 % ATQ con más de la mitad de la vida, −8 % con menos. |
+| Sanguinario (bloodthirsty) | +8 crítico; +10 % de daño contra enemigos con menos del 40 % de vida. |
+| Paciente (patient) | +5 precisión; si defendió la ronda anterior, su siguiente golpe hace +8 %. |
+| Estoico (sturdy) | +10 de resistencia a estados, −5 % velocidad. |
+| Glotón (glutton) | +8 % vida; recupera 3 % de su vida máxima al derrotar a un enemigo. |
+| Tenaz (tenacious) | +8 % vida, −5 % velocidad. |
+| Veloz (swift) | +6 % velocidad, −5 precisión. |
+| Fanfarrón (lucky) | El primer golpe de cada pelea hace +20 %. |
+| Lúcido (lucid) | +3 crítico, +3 precisión, +2 % ATQ. |
+| Curioso (accurate) | +10 % de daño contra rivales con algún estado elemental. |
+| Cauteloso (cautious) | Recibe −10 % de daño con más del 80 % de vida; −5 % ATQ. |
+| Furioso (furious) | Cada golpe que recibe le da +4 % de daño (hasta 5 golpes). |
+| Sediento (thirsty) | Cura al ganar. |
+| Gafe (jinxed) | −5 crítico, más EXP al perder. |
+| Filo del azar, Último aliento, Espinas, Apostador | Sin cambios (reglas de run). |
 
-Descartados: Cobarde, Metódico, Rencoroso, Supersticioso. Faltan 2 rasgos para llegar a 20 (o quedarse en 18). Salen los de solo números (Afortunado, Robusto, Certero, Frágil, Blindado, Escurridizo, Furioso, Fornido, Cauteloso, Cobarde anterior, Glotón y Terco anteriores se reconvierten). Fanfarrón y Curioso necesitan arte nuevo; cada rasgo lleva 2 o 3 frases propias para el registro.
+Salen: Afortunado, Robusto, Certero, Frágil, Blindado, Escurridizo, Fornido y Cobarde (de solo números). Sus hojas de arte se reutilizan para Fanfarrón, Estoico, Curioso y Orgulloso, así que no hace falta arte nuevo por ahora; el arte propio queda para cuando se quiera. Descartados en la votación: Metódico, Rencoroso, Supersticioso.
+
+Implementación: `traits.ts` (catálogo y reglas), `combat.ts` (estado por combatiente: falló, defendió, abrió, rabia), `explain.ts` (textos), `artIds.json` y `sprites/accessories.ts` (arte). Los perfiles viejos descartan solos los rasgos que ya no existen (el reset de progreso ya estaba planeado).
 
 ## 7c. Rangos: F a S [DECIDIDO 2026-10-09]
 
@@ -327,4 +330,3 @@ Reemplazar en "Reglas del juego":
 7. Mapa jefe ↔ dungeon. (sección 6)
 8. ¿Se retoma el Invocador o se sustituye por el Monje? (sección 3)
 9. Los otros 6 jefes y los ataques cargados. (sección 5)
-10. Rasgos de regla nuevos: cuáles y cuántos, y cantidad por rango sin los de números. (sección 7)

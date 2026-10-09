@@ -14,7 +14,7 @@ import {
   levelElement,
   type LevelSpec,
 } from "./levels";
-import { itemRankOf, DUNGEON_IDS, DUNGEON_MULT, type DungeonId } from "./rarity";
+import { DUNGEON_IDS, DUNGEON_MULT, type DungeonId } from "./rarity";
 import { TRAITS, type Trait } from "./traits";
 import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
@@ -142,7 +142,7 @@ function makeFight(
   const seen = new Map<string, number>();
   for (let i = 0; i < size; i++) {
     const isLead = hasBoss && i === 0;
-    const base = generateCharacter(rng, rng.pick(CLASS_IDS), itemRankOf(rank));
+    const base = generateCharacter(rng, rng.pick(CLASS_IDS));
     const family = role === "final" && isLead ? theme.families[0] : pickFamily(rng, rank);
     const element: Element =
       role === "final" && isLead

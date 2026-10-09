@@ -7,7 +7,7 @@ import { levelFights } from "./stage";
 import { sweepStage } from "./sweep";
 
 const strong = () => {
-  const c = generateCharacter(createRng(1), "caballero", "s");
+  const c = generateCharacter(createRng(1), "caballero");
   return { ...c, stats: scaleStats(c.stats, "s", 5, 50) };
 };
 
@@ -20,7 +20,7 @@ describe("sweepStage", () => {
   });
 
   it("does not clear a top dungeon with a weak hero", () => {
-    const weak = generateCharacter(createRng(2), "mago", "f");
+    const weak = generateCharacter(createRng(2), "mago");
     const fights = levelFights(levelsOf("ssr")[0], 0);
     expect(sweepStage(7, weak, fights, 0).status).not.toBe("cleared");
   });

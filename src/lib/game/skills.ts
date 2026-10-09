@@ -8,7 +8,7 @@ export const SWEEP_POWER = 1; // Barrido: damage vs EACH enemy
 export const STORM_POWER = 1.3; // Tormenta: damage vs EACH enemy
 export const COUNTER_ROUNDS = 2; // Contraataque lasts this many round ends
 export const COUNTER_TAKEN = 1; // damage taken by the hero while it is up (1 = full: it is not a guard)
-export const COUNTER_REFLECT = 1.2; // x the unreduced hit, sent back
+export const COUNTER_REFLECT = 1.5; // x the unreduced hit, sent back
 export const DETONATE_POWER = 1; // Detonar: single-target strike
 export const DETONATE_PER_STACK = 0.25; // extra damage per status stack on the target
 export const DOUBLE_STRIKE_POWER = 0.95; // per hit (two hits)
