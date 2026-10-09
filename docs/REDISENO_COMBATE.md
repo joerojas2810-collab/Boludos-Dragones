@@ -216,34 +216,30 @@ Falta mapear qué jefe corresponde a qué dungeon (CLAUDE.md solo dice "jefe con
 
 ---
 
-## 7b. Rasgos: catálogo propuesto [POR DEFECTO, a validar]
+## 7b. Rasgos: catálogo [DECIDIDO parcial: 18 de 20]
 
-Dirección [DECIDIDO]: rasgo = personalidad del héroe, manía suave (un sesgo pequeño y una regla corta, con voz propia en el registro de combate). 20 rasgos en total. **Un rasgo por héroe**, sin importar el rango (se acaba `traitPlan` por rango y el rasgo de regla garantizado en S+). Valores de prueba.
+Dirección [DECIDIDO]: rasgo = personalidad del héroe, manía suave (un sesgo pequeño y una regla corta, con voz propia en el registro de combate). **Un rasgo por héroe**, sin importar el rango (se acaba `traitPlan` por rango y el rasgo de regla garantizado en S+). Valores de prueba.
 
 Se conservan tal cual (6): Filo del azar, Último aliento, Espinas (no Caballero), Apostador, Sediento, Gafe.
 
-Nuevos o reconvertidos (14):
+Elegidos (12):
 
 | Rasgo | Manía |
 |---|---|
 | Terco | +10 % DEF; tras fallar un golpe, el siguiente tiene +10 % de precisión. |
-| Cobarde | Bajo el 30 % de vida recibe −10 % de daño; −5 % ATQ siempre. |
-| Glotón | +8 % de vida; cura 3 % de su vida máxima al derrotar a un enemigo. |
-| Paciente | +5 % de precisión; si defendió la ronda anterior, su siguiente golpe hace +8 %. |
 | Temerario | +10 % ATQ, −8 % DEF. |
+| Orgulloso | +8 % ATQ con la vida por encima del 50 %; −8 % ATQ por debajo. |
+| Sanguinario | +8 % crítico; +10 % de daño contra enemigos bajo 40 % de vida. |
+| Paciente | +5 % de precisión; si defendió la ronda anterior, su siguiente golpe hace +8 %. |
+| Estoico | +10 % de resistencia a estados, −5 % velocidad. |
+| Glotón | +8 % de vida; cura 3 % de su vida máxima al derrotar a un enemigo. |
+| Tenaz | +8 % de vida, −5 % velocidad. |
+| Veloz | +6 % velocidad, −5 % de precisión. |
 | Fanfarrón | El primer golpe de cada pelea hace +20 %. |
 | Lúcido | +3 % crítico, +3 % precisión, +2 % ATQ (sin cambios). |
-| Sanguinario | +8 % crítico; +10 % de daño contra enemigos bajo 40 % de vida. |
-| Veloz | +6 % velocidad, −5 % de precisión. |
-| Tenaz | +8 % de vida, −5 % velocidad. |
 | Curioso | +10 % de daño contra rivales que tengan algún estado elemental. |
-| Metódico | Sus efectos elementales duran 1 ronda más; −5 % daño crítico. |
-| Orgulloso | +8 % ATQ con la vida por encima del 50 %; −8 % ATQ por debajo. |
-| Estoico | +10 % de resistencia a estados, −5 % velocidad. |
 
-Desaparecen (14): Afortunado, Robusto, Certero, Glotón anterior, Frágil, Blindado, Escurridizo, Furioso, Fornido, Cauteloso y otros de solo números. Pierden uso las hojas de arte de esos accesorios; Fanfarrón, Curioso, Metódico, Orgulloso y Estoico necesitan arte nuevo (o provisional).
-
-Cada rasgo lleva además 2 o 3 frases propias para el registro de combate.
+Descartados: Cobarde, Metódico, Rencoroso, Supersticioso. Faltan 2 rasgos para llegar a 20 (o quedarse en 18). Salen los de solo números (Afortunado, Robusto, Certero, Frágil, Blindado, Escurridizo, Furioso, Fornido, Cauteloso, Cobarde anterior, Glotón y Terco anteriores se reconvierten). Fanfarrón y Curioso necesitan arte nuevo; cada rasgo lleva 2 o 3 frases propias para el registro.
 
 ## 8. Equipo
 
