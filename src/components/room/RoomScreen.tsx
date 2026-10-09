@@ -29,7 +29,7 @@ import {
   type RoomMode,
 } from "@/lib/game/room";
 import { roomDoors } from "@/lib/game/floorFights";
-import { RARITIES, RARITY_IDS, type RarityId } from "@/lib/game/rarity";
+import { RARITIES, RARITY_IDS } from "@/lib/game/rarity";
 import { useProfile } from "@/lib/useProfile";
 import { useNow, useRoom, type LiveFight } from "@/lib/useRoom";
 import { characterView } from "@/lib/viewModels";
@@ -37,6 +37,7 @@ import { filterSortCharacters } from "@/lib/viewModels";
 import { AWARD_INFO, nightTitles } from "@/lib/game/awards";
 import { DEFAULT_HERO, parsePickKey, pickHeroKey } from "@/lib/game/room";
 import { Vfx } from "@/components/fx/Vfx";
+import { GameSelect } from "@/components/GameSelect";
 import type { EmoteId, RoomClient, RoomView } from "@/lib/roomui/types";
 import {
   DOOR_NAME,
@@ -148,34 +149,18 @@ export function RoomScreen({
                       {m === "nivelado" ? "Modo nivelado" : "Poder completo"}
                     </button>
                   ))}
-                  <select
-                    aria-label="Rango del dungeon"
-                    className="btn btn-gray"
+                  <GameSelect
+                    label="Rango del dungeon"
                     value={view.rank}
-                    onChange={(e) =>
-                      void run(client.setRank(e.target.value as RarityId))
-                    }
-                  >
-                    {RARITY_IDS.map((r) => (
-                      <option key={r} value={r}>
-                        Rango {RARITIES[r].label}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    aria-label="Segundos por turno"
-                    className="btn btn-gray"
-                    value={view.turnSeconds}
-                    onChange={(e) =>
-                      void run(client.setTurnSeconds(Number(e.target.value)))
-                    }
-                  >
-                    {[20, 30, 45, 60].map((s) => (
-                      <option key={s} value={s}>
-                        {s} s por turno
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(r) => void run(client.setRank(r))}
+                    options={RARITY_IDS.map((r) => ({ value: r, label: `Rango ${RARITIES[r].label}` }))}
+                  />
+                  <GameSelect
+                    label="Segundos por turno"
+                    value={String(view.turnSeconds)}
+                    onChange={(v) => void run(client.setTurnSeconds(Number(v)))}
+                    options={[20, 30, 45, 60].map((n) => ({ value: String(n), label: `${n} s por turno` }))}
+                  />
                 </div>
               ) : (
                 <div className="text-center text-sm">
@@ -397,6 +382,15 @@ export function RoomScreen({
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-3 p-3 pt-6 text-base">
+      {/* Emotes float over the screen for everybody, with the sender's name. */}
+      <div aria-live="polite" className="pointer-events-none fixed bottom-24 right-3 z-40 flex flex-col items-end gap-2">
+        {Object.entries(emotes).map(([pid, em]) => (
+          <div key={`${pid}:${em.id}`} className="flex items-center gap-2 rounded-md border-2 border-yellow-300/70 bg-black/80 px-3 py-1 text-sm text-yellow-200 shadow-lg">
+            <Vfx id={`emote_${em.id}`} className="h-12 w-12" />
+            <span className="font-bold">{view.players.find((x) => x.id === pid)?.name ?? "?"}</span>
+          </div>
+        ))}
+      </div>
       <Panel>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>

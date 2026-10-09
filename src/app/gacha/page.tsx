@@ -141,11 +141,11 @@ export default function GachaPage() {
         </div>
         <p className="mb-2 text-center text-base text-[#d9d2ca]">{b.text}</p>
 
-        <ul className="mb-2 grid grid-cols-5 gap-1 text-center sm:grid-cols-9 text-xs sm:text-sm">
+        <ul className="mb-2 flex flex-wrap justify-center gap-1 text-center text-xs sm:text-sm">
           {RARITY_IDS.map((id) => (
             <li
               key={id}
-              className="border-2 border-[var(--edge)] px-0.5 py-1"
+              className="w-[4.6rem] border-2 border-[var(--edge)] px-0.5 py-1 sm:w-24"
               style={{ color: RARITIES[id].color }}
             >
               <RankIcon rank={id} className="mx-auto h-12 w-12 sm:h-[min(3.5rem,4.5vh)] sm:w-[min(3.5rem,4.5vh)]" />

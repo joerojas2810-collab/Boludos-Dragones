@@ -30,9 +30,15 @@ export function ClassElementPicker({
         {CLASS_IDS.map((id) => (
           <button
             key={id}
-            className={`pixel-frame p-2 text-sm ${c === id ? "!border-green-400" : ""}`}
+            aria-pressed={c === id}
+            className={`pixel-frame relative p-2 text-sm transition ${c === id ? "scale-105 bg-green-400/20 ring-4 ring-green-400" : "opacity-80"}`}
             onClick={() => choose(id, e)}
           >
+            {c === id && (
+              <span className="absolute right-1 top-1 z-10 grid h-6 w-6 place-items-center rounded-full bg-green-400 text-sm font-bold text-black">
+                ✓
+              </span>
+            )}
             <HeroSprite classId={id} element={e ?? "fuego"} className="mx-auto w-20" crop />
             {CLASSES[id].name}
           </button>
