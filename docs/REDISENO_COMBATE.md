@@ -118,7 +118,7 @@ Fantasía: convierte el peligro en daño.
 - Cuidado: en dungeons la vida es única y se arrastra, así que Furia necesita tope y ningún coste de vida puede matar.
 - Anti-sinergia: curar al Berserker le baja la Furia (por eso su bono de Guardia no cura).
 
-### Invocador [PENDIENTE: el usuario no está seguro de la clase]
+### Invocador y Monje [EN PAUSA 2026-10-09: no de momento; 5 clases bastan]
 Semilla guardada, sin cerrar nada:
 - Pasivo Vínculo = **Conductor elemental**: el familiar usa tu elemento y cada golpe suyo aplica 1 acumulación del efecto elemental.
 - El familiar sería un estado con duración (3 turnos, enfriamiento 4), sin vida propia ni entidad nueva en el motor.
@@ -210,10 +210,8 @@ Hoy los 9 jefes tienen 5 versiones visuales (una por elemento) asignadas al azar
 | Tierra | Coloso Hueco (hollow_colossus), Gran Devorador (great_devourer) |
 | Rayo | Rey del Trueno (thunder_king) |
 
-### Los otros 6 jefes [PENDIENTE]
-Se diseñan después de probar los pilotos. Ideas de partida (hipótesis por nombre, no decisiones):
-Observador Eterno (aprende de acciones repetidas), El Sin Rostro (alterna posturas anunciadas), Gran Devorador (acumula Hambre), Señor de las Moscas (plaga y desgaste), Madre Hidra (varias cabezas), Reina Marchita (debilitamiento y rituales).
-Los ataques cargados (y con ellos "romper carga") se definen aquí.
+### Los otros 6 jefes y los ataques cargados [CERRADO 2026-10-09]
+Los 9 jefes ya tienen mecánica (tabla de arriba). Los ataques cargados y "romper carga" se **descartan**: los golpes fuertes anunciados y la guardia perfecta ya cumplen esa función.
 
 ---
 
@@ -341,12 +339,7 @@ Reemplazar en "Reglas del juego":
 
 ## 11. Preguntas abiertas
 
-Cerradas el 2026-10-09: rarezas (7 rangos F a S, 7c), fusión de héroes (7d), 9 rangos o 7, tabla elemental (2), quema de héroes (retirada).
+Cerradas el 2026-10-09: rarezas (7 rangos F a S, 7c), fusión de héroes (7d), 9 rangos o 7, tabla elemental (2), quema de héroes (retirada), Dado cargado (puntos porcentuales: +20 puntos de éxito, como ya funciona), Invocador y Monje (en pausa), otros 6 jefes y ataques cargados (cerrados), frecuencia de S (se deja en 3 % y se revisa con jugadores reales).
 
-1. ¿Qué ataques llevan el elemento y aplican efecto? Hoy solo el especial de clase aplica estados; revisar con pruebas.
-2. ¿Qué hace "Drenar maná" sin maná? (sección 3; el Mago ya usa Tormenta o Detonar)
-3. ¿Los eventos entre combates chocan con la decisión de v8? (sección 6; decidido que no se hacen)
-4. ¿Dado cargado: puntos porcentuales o relativo? (sección 7)
-5. Mapa jefe ↔ dungeon. (sección 6)
-6. ¿Se retoma el Invocador o se sustituye por el Monje? (sección 3)
-7. Los otros 6 jefes y los ataques cargados. (sección 5)
+1. ¿Qué ataques llevan el elemento y aplican estados? Hoy solo el especial de clase; revisar con pruebas.
+2. Arte propio del Berserker (hoy usa el del Caballero): para después.

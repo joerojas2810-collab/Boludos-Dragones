@@ -37,9 +37,10 @@ export function HeroFusionPanel({
 }: {
   profile: Profile;
   busy: boolean;
-  onStarUp: (baseId: string, materials: Material[]) => void;
-  onFuse: (baseId: string, materials: Material[], keep: "base" | "existing") => void;
-  onSwap: (heroId: string, index: number) => void;
+  // `gave` = what the player hands over, for the result screen.
+  onStarUp: (baseId: string, materials: Material[], gave: string[]) => void;
+  onFuse: (baseId: string, materials: Material[], keep: "base" | "existing", gave: string[]) => void;
+  onSwap: (heroId: string, index: number, gave: string[]) => void;
 }) {
   const ranks = RARITY_IDS.filter((r) => profile.characters.some((c) => c.rarity === r));
   const [picker, setRank] = useState<RarityId | null>(null);
@@ -74,6 +75,14 @@ export function HeroFusionPanel({
     .filter(({ m, c }) => m.n === unitsOf(c) && (c.stars > 0 || c.level > 1))
     .map(({ c }) => c.name);
 
+  const gave = [
+    ...materials.map(({ id, n }) => {
+      const c = pool.find((h) => h.id === id)!;
+      const spare = c.copies?.length ?? 0;
+      return `${c.name} (${n === unitsOf(c) ? (spare ? `el héroe y ${spare} ${spare === 1 ? "copia" : "copias"}` : "el héroe") : `${n} ${n === 1 ? "copia" : "copias"}`})`;
+    }),
+    ...(mode === "rank" && rule ? [`${rule.coins} monedas`] : []),
+  ];
   const reset = (r?: RarityId) => {
     if (r) setRank(r);
     setBaseId(null);
@@ -172,7 +181,7 @@ export function HeroFusionPanel({
       </div>
 
       {mode === "trait" ? (
-        <TraitSwap hero={base} busy={busy} onSwap={onSwap} />
+        <TraitSwap hero={base} busy={busy} onSwap={(id, i) => onSwap(id, i, [`Su rasgo anterior pasa a ser una copia`])} />
       ) : mode === "rank" && !(rule && next) ? null : (
         <>
           <div className="space-y-1.5">
@@ -287,7 +296,7 @@ export function HeroFusionPanel({
           <button
             className="btn w-full"
             disabled={busy || !!status}
-            onClick={() => base && (mode === "star" ? onStarUp(base.id, materials) : onFuse(base.id, materials, existing ? keep : "base"))}
+            onClick={() => base && (mode === "star" ? onStarUp(base.id, materials, gave) : onFuse(base.id, materials, existing ? keep : "base", gave))}
           >
             {mode === "star" ? "Subir ★" : "Subir de rango"}
           </button>
