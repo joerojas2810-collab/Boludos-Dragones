@@ -17,7 +17,6 @@ import { filterPieces, isFiltering, NO_PIECE_FILTER, type PieceFilter } from "@/
 import {
   CLASSES,
   CLASS_IDS,
-  type ClassId,
   type Stats,
 } from "@/lib/game/characters";
 import { burnMany, burnValue } from "@/lib/game/burn";
@@ -35,10 +34,8 @@ import {
   type Profile,
 } from "@/lib/game/profile";
 import {
-  MAX_STARS,
   RARITIES,
   RARITY_IDS,
-  type RarityId,
 } from "@/lib/game/rarity";
 import { TRAITS } from "@/lib/game/traits";
 import { repo, useProfile } from "@/lib/useProfile";

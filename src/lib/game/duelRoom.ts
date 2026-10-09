@@ -37,15 +37,6 @@ export interface DuelDb {
   live: Record<string, DuelLive>;
 }
 
-export const emptyDuelDb = (): DuelDb => ({
-  duels: [],
-  mode: "balanceado",
-  round: 0,
-  from: "lobby",
-  picks: {},
-  wins: {},
-  live: {},
-});
 
 /** RoomState as the room reducer sees it, with the duel part filled in. */
 export function overlayDuel(s: RoomState, db: DuelDb | null): RoomState {

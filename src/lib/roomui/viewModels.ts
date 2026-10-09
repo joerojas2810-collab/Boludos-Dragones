@@ -4,7 +4,6 @@ import {
   ROOM_K,
   isAid,
   isBossFloor,
-  revealMsFor,
   settlePool,
   validateBet,
   type DoorKind,
@@ -51,29 +50,6 @@ export function formatCountdown(ms: number | null): string {
 export const msLeft = (deadline: number, now: number) =>
   deadline > 0 ? Math.max(0, deadline - now) : null;
 
-/** Phase length used for the progress bar (ms); 0 = no bar. */
-export function phaseTotalMs(phase: Phase, floor: number): number {
-  switch (phase) {
-    case "round_setup":
-      return ROOM_K.setupMs;
-    case "floor_intro":
-      return ROOM_K.introMs;
-    case "doors":
-      return ROOM_K.doorsMs;
-    case "betting":
-      return ROOM_K.bettingMs;
-    case "fighting":
-      return ROOM_K.fightCapMs + (isBossFloor(floor) ? ROOM_K.bossExtraMs : 0);
-    case "reveal":
-      return revealMsFor(floor);
-    case "round_end":
-      return ROOM_K.roundEndMs;
-    case "coop_boss":
-      return ROOM_K.coopMs;
-    default:
-      return 0;
-  }
-}
 
 export interface Banner {
   title: string;
@@ -221,13 +197,6 @@ export function betMessage(
   return e ? errorText(e) : null;
 }
 
-export function betBlockReason(v: RoomView, fighterId: string): string | null {
-  const b = v.battles[fighterId];
-  if (!b || b.status !== "open") return errorText("battle_not_found");
-  if (fighterId === v.me) return errorText("self_bet");
-  if (b.bets.some((x) => x.bettor === v.me)) return errorText("duplicate_bet");
-  return null;
-}
 
 export interface Settlement {
   fighter: string;

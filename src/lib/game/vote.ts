@@ -4,7 +4,7 @@
 // decides (secretly) whether opening pays or costs; the amount is the same for
 // every present player and grows when fewer players are in the room.
 import { hashSeed, createRng } from "./rng";
-import { hasVote, ROOM_K } from "./room";
+import { ROOM_K } from "./room";
 
 export interface VoteEvent {
   title: string;
@@ -21,7 +21,6 @@ export const VOTE_EVENT: VoteEvent = {
   bad: "¡Maldición! Todos pierden fichas.",
 };
 
-export const voteFloor = hasVote;
 /** Voting stops (and the result is paid) this long before the reveal ends. */
 export const voteClosesAt = (revealDeadline: number) =>
   revealDeadline - ROOM_K.voteShowMs;

@@ -4,7 +4,6 @@
 import type { ClassId } from "./characters";
 import { ELEMENT_LABEL, ELEMENTS } from "./elements";
 import { rollGear } from "./gear";
-import { levelDecay } from "./levelPay";
 import { levelElement, type LevelSpec } from "./levels";
 import { gachaDropRank, type RunPiece } from "./loot";
 import { RARITY_IDS, type RarityId } from "./rarity";

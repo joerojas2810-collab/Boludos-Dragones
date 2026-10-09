@@ -1,14 +1,9 @@
 // Dungeon drops: the piece shape (RunPiece), the drop-rank rule and its one-line summary.
 import type { Element } from "./elements";
-import { type GearLine, gearLine } from "./gear";
+import type { GearLine } from "./gear";
 import { RARITIES, RARITY_IDS, type RarityId } from "./rarity";
 import type { Rng } from "./rng";
-import {
-  WEAPON_TYPE_DATA,
-  isGearType,
-  weaponAtk,
-  type WeaponType,
-} from "./weapons";
+import type { WeaponType } from "./weapons";
 
 export interface RunPiece {
   type: WeaponType;
@@ -55,10 +50,3 @@ export function gachaDropRank(rng: Rng, rank: RarityId, tilt = 1): RarityId {
 }
 
 // One-line description: gear shows its bonuses, a weapon its attack and effect.
-export function pieceSummary(p: RunPiece): string {
-  const info = WEAPON_TYPE_DATA[p.type];
-  const worn = { type: p.type, rarity: p.rarity, stars: 0 };
-  return isGearType(p.type)
-    ? `${info.label} · rango ${RARITIES[p.rarity].label}: ${gearLine(worn)}`
-    : `${info.label} · rango ${RARITIES[p.rarity].label}: ATQ +${weaponAtk(p.rarity, 0, p.type)} · ${info.description}`;
-}

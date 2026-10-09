@@ -12,7 +12,6 @@ import {
   DUNGEON_THEMES,
   dominantShare,
   levelElement,
-  levelsOf,
   type LevelSpec,
 } from "./levels";
 import { RARITIES, RARITY_IDS, type RarityId } from "./rarity";
@@ -208,8 +207,6 @@ export function levelFights(spec: LevelSpec, asc = 0): FightSpec[] {
   );
 }
 
-export const levelAt = (rank: RarityId, index: number): LevelSpec | undefined =>
-  levelsOf(rank)[index];
 
 // ---- runtime ----
 export type StageStatus = "playing" | "cleared" | "lost";

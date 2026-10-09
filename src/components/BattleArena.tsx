@@ -10,7 +10,6 @@ import { HeroSprite } from "@/components/HeroSprite";
 import { ACCESSORY_SHEETS, HERO_ACTIONS, TRAIT_ASSET } from "@/lib/art/heroes";
 import { isPixel } from "@/lib/art/pixel";
 import { CLASS_ART, ELEMENT_ART } from "@/lib/art";
-import { Tooltip } from "@/components/Tooltip";
 import type { HeroAction } from "@/lib/art/heroes";
 import { Vfx } from "@/components/fx/Vfx";
 import { attackOf, enemyIntents, type Battle, type Combatant } from "@/lib/game/combat";
@@ -246,7 +245,6 @@ export function BattleArena({
           const dead = c.hp <= 0;
           const selected = i === enemy && !dead;
           const intents = dead ? [] : enemyIntents(b, i);
-          const isBoss = !!boss && i === 0;
           return (
             <div
               key={i}

@@ -280,30 +280,6 @@ export function combineGear(a: GearBonus, b: GearBonus): GearBonus {
 }
 
 // Stats already include `base` gear; swap it for `total` (run loot adds to it).
-export const applyGearDelta = (
-  s: Stats,
-  base: GearBonus,
-  total: GearBonus,
-): Stats => ({
-  ...s,
-  atk:
-    Math.round(
-      ((s.atk * (1 + (total.atk ?? 0))) / (1 + (base.atk ?? 0))) * 10,
-    ) / 10,
-  hp: Math.max(1, Math.round((s.hp * (1 + total.hp)) / (1 + base.hp))),
-  def: Math.round(((s.def * (1 + total.def)) / (1 + base.def)) * 10) / 10,
-  speed:
-    Math.round(((s.speed * (1 + total.speed)) / (1 + base.speed)) * 10) / 10,
-  dodge:
-    Math.round(Math.min(0.6, s.dodge + total.dodge - base.dodge) * 1000) / 1000,
-  crit:
-    Math.round(Math.min(0.6, s.crit + total.crit - base.crit) * 1000) / 1000,
-  accuracy:
-    Math.round((s.accuracy + total.accuracy - base.accuracy) * 1000) / 1000,
-  critDmg: round3(s.critDmg + total.critDmg - base.critDmg),
-  regen: round3(s.regen + total.regen - base.regen),
-  lifesteal: round3(s.lifesteal + total.lifesteal - base.lifesteal),
-});
 
 // ---- Element sets ----
 // Worn pieces (weapon + armour) of the same element: 2 give a small bonus, 4 a bigger one,

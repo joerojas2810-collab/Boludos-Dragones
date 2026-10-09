@@ -64,7 +64,7 @@ export const TOWER_DAILY_PRIZE = {
   coins: 350,
   title: "Rey de la torre",
 } as const;
-export const TOWER_DAILY_HOUR_ART = 21; // Argentina is UTC-3 all year
+ // Argentina is UTC-3 all year
 const ART_OFFSET_H = 3;
 const DAY_MS = 86_400_000;
 /**

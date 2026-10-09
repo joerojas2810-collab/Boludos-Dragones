@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { isFairTrade, isPieceKey } from "../game/market";
 import { RARITY_IDS } from "../game/rarity";
-import { SLOTS, WEAPON_TYPES } from "../game/weapons";
+import { SLOTS } from "../game/weapons";
 
 // ---- name / PIN ----
 export const NAME_MIN = 3;
@@ -30,7 +30,6 @@ export const nameSchema = z
 export const pinSchema = z.string().regex(/^\d{4}$/);
 
 export const uuidSchema = z.uuid();
-export const seedSchema = z.number().int().min(0).max(4294967295);
 
 // ---- request bodies (strict: unknown keys are rejected) ----
 export const credsBody = z.strictObject({ name: nameSchema, pin: pinSchema });

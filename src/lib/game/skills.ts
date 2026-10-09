@@ -153,12 +153,7 @@ export const SKILLS_BY_CLASS: Record<ClassId, readonly [SkillId, SkillId]> = {
   clerigo: ["santuario", "castigo"],
 };
 
-export const SKILL_IDS = Object.keys(SKILLS) as SkillId[];
 export const isSkillId = (s: string): s is SkillId => s in SKILLS;
-
-// The hero still owes the skill pick (reached SKILL_LEVEL without one).
-export const needsSkill = (c: { skill?: SkillId; level: number }): boolean =>
-  !c.skill && c.level >= SKILL_LEVEL;
 
 export const SKILL_UNLOCK_STARS = 3;
 export const skillUnlocked = (rank: RarityId, stars: number): boolean =>

@@ -135,24 +135,6 @@ export function autoPolicy(b: Battle, opts: AutoOptions = {}): AutoPick {
 
 // Expected fraction of the hero's current hp lost if the fight is played with
 // the plain attack, killing the weakest enemy first.
-export function fightDanger(b: Battle): number {
-  const p = b.player;
-  const order = livingEnemies(b)
-    .map((i) => b.enemies[i])
-    .sort((x, y) => x.hp + (x.shield ?? 0) - (y.hp + (y.shield ?? 0)));
-  const perRound = order.map(
-    (e) => hitChance(e, p, "attack1") * estimateDamage(e, p, "attack1"),
-  );
-  let danger = 0;
-  order.forEach((e, k) => {
-    const rounds =
-      (e.hp + (e.shield ?? 0)) /
-      Math.max(1, ev(p, e, "attack1") * b.playerActions);
-    const alive = perRound.slice(k).reduce((s, v) => s + v, 0);
-    danger += rounds * alive;
-  });
-  return danger / Math.max(1, p.hp);
-}
 
 // null when quick resolve is allowed, otherwise the reason (Spanish, for the UI).
 // Any fight kind and hp is allowed (the risk is the player's); only mid-fight is blocked.

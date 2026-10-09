@@ -4,7 +4,6 @@
 import { z } from "zod";
 import type { Climb } from "../game/floorFights";
 import type { FightSpec } from "../game/stage";
-import type { Phase } from "../game/room";
 import {
   doorKindEnum,
   phaseMsg,
@@ -36,44 +35,6 @@ export const ROOM_ROUTES = {
   action: (id: string, type: string) => `/api/rooms/${id}/${type}`, // POST
 } as const;
 
-/** Every error body: { error: { code, message, retryAfter? } } */
-export const ROOM_ERROR_CODES = [
-  "unauthorized",
-  "forbidden",
-  "invalid_input",
-  "too_large",
-  "rate_limited",
-  "room_not_found",
-  "room_full",
-  "room_closed",
-  "not_member",
-  "not_active",
-  "wrong_phase",
-  "wrong_floor",
-  "door_locked",
-  "invalid_door",
-  "not_fighting",
-  "not_enough_players",
-  "max_rounds",
-  "coop_disabled",
-  "conflict",
-  "battle_not_found",
-  "battle_locked",
-  "self_bet",
-  "self_interfere",
-  "stake_too_low",
-  "insufficient_chips",
-  "duplicate_bet",
-  "already_interfered",
-  "hero_not_owned",
-  "hero_wrong_rank",
-  "rank_locked",
-  "engine_outdated",
-  "invalid_log",
-  "target_hosts_other_room",
-  "room_limit",
-  "server_error",
-] as const;
 
 // ---------------------------------------------------------------- shared views
 export const phaseView = z.object({
@@ -238,18 +199,15 @@ export const createRoomRes = z.object({
   expiresAt: z.string(),
   state: phaseView,
 });
-export type CreateRoomRes = z.infer<typeof createRoomRes>;
 
 export const joinRoomRes = z.object({
   roomId: uuid,
   code: z.string(),
   hostId: uuid,
 });
-export type JoinRoomRes = z.infer<typeof joinRoomRes>;
 
 /** Default response of every POST /api/rooms/{id}/{type}: the new state. */
 export const actionRes = z.object({ ok: z.literal(true), state: phaseView });
-export type ActionRes = z.infer<typeof actionRes>;
 
 export const advanceRes = z.object({
   advanced: z.boolean(),
@@ -258,11 +216,6 @@ export const advanceRes = z.object({
 });
 export type AdvanceRes = z.infer<typeof advanceRes>;
 
-export const doorRes = actionRes.extend({
-  door: doorKindEnum,
-  replayed: z.boolean(),
-});
-export const chipsRes = actionRes.extend({ chips: int });
 export const submitRes = actionRes.extend({
   outcome: z.enum(["won", "lost", "fled", "timeout"]).nullable(), // null: non-fight floor saved
   replayed: z.boolean(),
@@ -335,12 +288,6 @@ export const settleEv = z.strictObject({
   fighter: uuid,
   out: z.enum(["win", "lose", "void"]),
 });
-export type RankEv = z.infer<typeof rankEv>;
-export type SettleEv = z.infer<typeof settleEv>;
-
-export const SERVER_EVENTS = ["phase", "rank", "settle"] as const;
-export type ServerEventType = (typeof SERVER_EVENTS)[number];
-export type PhaseName = Phase;
 
 const serverEv = z.discriminatedUnion("type", [phaseMsg, rankEv, settleEv]);
 export type ServerEvent = z.infer<typeof serverEv>;

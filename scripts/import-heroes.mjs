@@ -6,7 +6,6 @@ import { join } from "node:path";
 
 const base = process.argv[2];
 if (!base) throw new Error("pass the downloads directory");
-const FRAME = 256;
 
 // Every art/ folder the Drive download was split into.
 const roots = readdirSync(base)

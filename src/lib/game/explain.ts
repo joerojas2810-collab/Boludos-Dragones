@@ -46,18 +46,10 @@ import {
 import { AUTO_STOP_HP } from "./auto";
 import { WEAPON_TYPE_DATA, weaponSpecial, type WeaponType } from "./weapons";
 import { BURN_RATE, LEGACY_BURN_RATE } from "./burn";
-import { DAY_LEVEL_TIERS, REPEAT_COIN_MULT } from "./levelPay";
 import {
-  BUILD_LABEL,
   extraLines,
   GEAR_CAP,
-  RESONANCE_BONUS,
-  RESONANCE_MIN_LINES,
-  RESONANCE_STYLE_MULT,
   ROLL_SPREAD,
-  SET_AFFINITY,
-  SET_BONUS,
-  SET_TIERS,
 } from "./gear";
 import {
   GAP_BANDS,
@@ -695,25 +687,6 @@ export function intentTip(intent: Intent, b: Battle, idx?: number): Tip {
 }
 
 // Tip for choosing an enemy as the target.
-export function targetTip(
-  b: Battle,
-  idx: number,
-  key: MoveKey = "attack1",
-): Tip {
-  const e = b.enemies[idx];
-  const p = b.player;
-  const em = attackElementMultiplier(p, e);
-  const lines = [
-    `Vida ${Math.round(e.hp)} de ${Math.round(e.char.stats.hp)}${e.shield ? ` (+${Math.round(e.shield)} de escudo)` : ""}.`,
-    `${attackOf(p, key === "attack3" ? "attack1" : key).name}: ${pct(hitChance(p, e, key))} de acierto, ~${estimateDamage(p, e, key)} de daño.`,
-    em !== 1
-      ? `Elemento: x${em.toFixed(2)} (${em > 1 ? "ventaja" : "desventaja"}).`
-      : "Elemento: neutro.",
-    `Su ataque: ~${estimateDamage(e, p, "attack1")} por golpe (ATQ ${n1(e.char.stats.atk)}).`,
-    "Elige el objetivo con clic en su tarjeta, con las teclas 1 a 3 o con Tab.",
-  ];
-  return { title: `Objetivo: ${e.char.name}`, kind: "info", lines };
-}
 
 export const riposteTip = (): Tip => ({
   title: "Guardia perfecta lista",
@@ -849,9 +822,6 @@ export function freeHitsTip(c: Combatant): Tip {
 
 // ---------- classes ----------
 
-export function classStatTip(classId: ClassId, stat: keyof Stats): Tip {
-  return statTip(stat, previewCombatant(classId));
-}
 
 // ---------- Run v2 rules (levels, rank traits, gear, sets, burning, pay, pity) ----------
 
@@ -870,16 +840,6 @@ export const levelTip = (level: number, xp: number, stars: number): Tip => ({
   source: "Nivel del héroe",
 });
 
-export const rankTraitsTip = (): Tip => ({
-  title: "Rasgos por rango",
-  kind: "trait",
-  lines: [
-    "F a D: 1 rasgo.",
-    "C a A: 2 rasgos.",
-    "S a SSR: 1 rasgo y además 1 rasgo de regla (con un costo), siempre.",
-  ],
-  source: "Se fijan al invocar al héroe",
-});
 
 export const gearTip = (): Tip => ({
   title: "Piezas de equipo",
@@ -894,26 +854,7 @@ export const gearTip = (): Tip => ({
   source: "Equipo",
 });
 
-export const setTip = (): Tip => ({
-  title: "Sets de elemento",
-  kind: "info",
-  lines: [
-    `Piezas del mismo elemento: ${SET_TIERS.join(", ")} piezas dan bono (fuego ATQ +${pct(SET_BONUS.fuego[0].atk ?? 0)} / +${pct(SET_BONUS.fuego[1].atk ?? 0)} / +${pct(SET_BONUS.fuego[2].atk ?? 0)}, tierra DEF, agua vida y regeneración, viento velocidad y esquive, rayo crítico).`,
-    `Si el set es del elemento del héroe, el bono se multiplica ×${SET_AFFINITY}.`,
-  ],
-  source: "Equipo",
-});
 
-export const resonanceTip = (): Tip => ({
-  title: "Resonancia de estilo",
-  kind: "info",
-  lines: [
-    `Si al menos ${RESONANCE_MIN_LINES} líneas extra de tu equipo son del mismo estilo (${Object.values(BUILD_LABEL).join(", ")}), ganas un bono pequeño y otro mayor.`,
-    `Daño +${pct(RESONANCE_BONUS.dano[0].dmgDealt ?? 0)} / +${pct(RESONANCE_BONUS.dano[1].dmgDealt ?? 0)}; Tanque −${pct(RESONANCE_BONUS.tanque[0].dmgTaken ?? 0)} / −${pct(RESONANCE_BONUS.tanque[1].dmgTaken ?? 0)} de daño recibido.`,
-    `Si el estilo coincide con tu tercera habilidad, el bono se multiplica ×${RESONANCE_STYLE_MULT}.`,
-  ],
-  source: "Equipo",
-});
 
 export const burnTip = (): Tip => ({
   title: "Quemar",
@@ -926,16 +867,6 @@ export const burnTip = (): Tip => ({
   source: "Colección",
 });
 
-export const levelPayTip = (): Tip => ({
-  title: "Monedas por nivel",
-  kind: "gold",
-  lines: [
-    "Un nivel nuevo paga el 100% una sola vez; la primera limpieza de un dungeon o ascensión da un cofre grande.",
-    `Repetir un nivel paga ${pct(REPEAT_COIN_MULT)}, y baja con las repeticiones del día: ${DAY_LEVEL_TIERS.map((t) => `hasta la ${t.upTo}.ª al ${pct(t.mult)}`).join(", ")}, y después 10%.`,
-    "El pago por nivel es casi igual en todos los rangos: los rangos altos premian con partes, núcleos y piezas.",
-  ],
-  source: "Dungeons",
-});
 
 export const pityTip = (): Tip => ({
   title: "Garantía (pity)",

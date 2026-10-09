@@ -1,12 +1,12 @@
 // Pure mapping of game objects to display models (no React, relative imports).
 import type { ItemView } from "../components/ItemCard";
-import { ELEMENT_LABEL, type Element } from "./game/elements";
+import { ELEMENT_LABEL } from "./game/elements";
 import type { Tip } from "./game/explain";
 import type { ClassId, Stats } from "./game/characters";
 import type { OwnedCharacter, OwnedWeapon, PullResult } from "./game/profile";
 import { RARITIES, RARITY_IDS, scaleStats, type RarityId } from "./game/rarity";
 import { gearBonus, gearLine, type GearBonus } from "./game/gear";
-import { WEAPON_TYPE_DATA, isGearType, weaponAtk, type WeaponType } from "./game/weapons";
+import { WEAPON_TYPE_DATA, isGearType, type WeaponType } from "./game/weapons";
 
 export const statLine = (s: Stats) =>
   `PV ${Math.round(s.hp)} · ATQ ${s.atk} · DEF ${s.def}`;
@@ -206,22 +206,3 @@ export function pieceTip(w: OwnedWeapon): Tip {
 }
 
 // Card of a piece TYPE at a given rank and element (forge pickers, before anything exists).
-export function typeTip(type: WeaponType, rank: RarityId, element: Element): Tip {
-  const info = WEAPON_TYPE_DATA[type];
-  const stub: OwnedWeapon = {
-    id: `${type}-${element}-${rank}`,
-    name: `${info.label} de ${ELEMENT_LABEL[element]}`,
-    type,
-    element,
-    rarity: rank,
-    stars: 0,
-    atkBonus: weaponAtk(rank, 0, type),
-  };
-  const t = pieceTip(stub);
-  // a type card shows the base values: no star line, a note that each copy rolls its own
-  return {
-    ...t,
-    title: `${info.label} · ${RARITIES[rank].label}`,
-    lines: [...t.lines.slice(0, -1), "Cada pieza forjada sale con su propia tirada (±15 %)."],
-  };
-}

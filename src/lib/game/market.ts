@@ -23,7 +23,6 @@ export const TRADE_VALUE: Record<RarityId, number> = {
   ssr: 36000, // ~143 pulls on average with the 250 pity
 };
 export const TRADE_TOLERANCE = 0.25;
-export const MAX_TRADE_COINS = 100000;
 
 export type PieceKind = "character" | "weapon";
 export interface PieceRef {

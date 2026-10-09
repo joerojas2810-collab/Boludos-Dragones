@@ -179,7 +179,6 @@ export function missionDeltas(r: StageResult): Record<string, number> {
 }
 
 export const MISSIONS_PER_SCOPE = 3;
-export const MAX_REROLLS = 1;
 
 const strHash = (s: string) => {
   let h = 0;

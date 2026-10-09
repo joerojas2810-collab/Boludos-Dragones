@@ -1062,14 +1062,6 @@ export function missTurn(s: RoomState, id: string): Result {
   if (q.missedTurns >= ROOM_K.missedTurnsToFlee) q.outcome = "fled";
   return done(n);
 }
-export function turnPlayed(s: RoomState, id: string): Result {
-  const p = byId(s, id);
-  if (!p) return fail("not_member");
-  if (p.missedTurns === 0) return done(s);
-  const n = clone(s);
-  byId(n, id)!.missedTurns = 0;
-  return done(n);
-}
 
 // ------------------------------------------------------------ phase engine
 function setPhase(

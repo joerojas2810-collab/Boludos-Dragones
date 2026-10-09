@@ -1,7 +1,6 @@
 import ids from "./artIds.json";
 import { isPixel, isPixelIcon } from "./art/pixel";
 import type { Element } from "@/lib/game/elements";
-import type { DoorKind } from "@/lib/game/room";
 import type { ClassId } from "@/lib/game/characters";
 import type { GearType, HandType } from "@/lib/game/weapons";
 
@@ -12,15 +11,6 @@ export const ELEMENT_ART: Record<Element, string> = {
   tierra: "earth",
   rayo: "lightning",
   viento: "wind",
-};
-export const DOOR_ART: Record<DoorKind, string> = {
-  easy: "easy_fight",
-  hard: "hard_fight",
-  boss: "boss",
-  chest: "chest",
-  merchant: "merchant",
-  rest: "rest",
-  event: "event",
 };
 export const GEAR_ART: Record<GearType, string> = {
   casco: "helmet",

@@ -151,9 +151,9 @@ export function useProfile() {
   }, []);
   useEffect(() => {
     // full reload on purpose: resets the module-level store
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     // AppShell calls this hook on /login too: redirecting from there is a reload loop.
     if (s.session.status === "anon" && location.pathname !== "/login")
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       location.href = "/login";
   }, [s.session.status]);
   return {
