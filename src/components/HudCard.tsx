@@ -1,7 +1,5 @@
 "use client";
 
-import { STATUS_DATA, STATUS_OF_ELEMENT, type StatusId } from "@/lib/game/statuses";
-import type { Element } from "@/lib/game/elements";
 import { iconFor } from "@/lib/art";
 import { useState, type ReactNode } from "react";
 import { Chip } from "@/components/Chip";
@@ -19,7 +17,6 @@ import {
   reflectTip,
   bossBadge,
   riposteTip,
-  statusTip,
   shieldTip,
   skillTip,
   statTip,
@@ -50,11 +47,6 @@ type Props = {
   footer?: ReactNode; // row under the health bar (announced actions)
   children?: ReactNode; // extra chips (enemy modifiers, ...)
 };
-
-// A status is drawn with the icon of its element (Escarcha = agua, Quemadura = fuego, ...).
-const STATUS_ELEMENT = Object.fromEntries(
-  Object.entries(STATUS_OF_ELEMENT).map(([el, id]) => [id, el]),
-) as Record<StatusId, Element>;
 
 const pct = (v: number) => `${+(v * 100).toFixed(1)}%`;
 const n1 = (v: number) => `${+v.toFixed(1)}`;
@@ -120,17 +112,6 @@ export function HudCard({
         )}
         <span className={`truncate font-[family-name:var(--font-title)] ${compact ? "text-lg" : "text-xl"} font-bold leading-tight text-[#f6ead6]`}>{c.char.name}</span>
         <span className="ml-auto flex shrink-0 items-center gap-1.5">
-          {c.statuses?.map((st) => (
-            <span
-              key={st.id}
-              className={`relative inline-flex rounded-full p-0.5 ${STATUS_DATA[st.id].negative ? "bg-[#5b1f1f]/80 ring-1 ring-[#e06b5a]" : "bg-[#1f4a2a]/80 ring-1 ring-[#6bd08a]"}`}
-            >
-              <ElementIcon element={STATUS_ELEMENT[st.id]} className="h-5" tip={statusTip(st)} />
-              <span className="absolute -bottom-1 -right-1 rounded bg-black/80 px-0.5 text-[10px] font-bold leading-3 text-white">
-                {st.stacks}
-              </span>
-            </span>
-          ))}
           <button
             type="button"
             className="text-[13px] leading-5 text-[#9fb0c0] hover:text-white"

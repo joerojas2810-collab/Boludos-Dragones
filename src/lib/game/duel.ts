@@ -44,10 +44,10 @@ const other = (x: DuelSide): DuelSide => (x === "a" ? "b" : "a");
 // Balanced mode evens the classes out (scripts/duel-sim.ts): the class templates are tuned for
 // dungeons with gear and weapons, so in a plain 1v1 some are far ahead and some far behind.
 export const DUEL_TUNE: Record<ClassId, { hp: number; atk: number }> = {
-  caballero: { hp: 1.05, atk: 1.02 },
-  mago: { hp: 1.03, atk: 1.01 },
+  caballero: { hp: 1.02, atk: 0.99 },
+  mago: { hp: 1.0, atk: 0.99 },
   picaro: { hp: 1.1, atk: 1.04 },
-  clerigo: { hp: 1.09, atk: 1.09 },
+  clerigo: { hp: 1.14, atk: 1.12 },
   berserker: { hp: 1.0, atk: 0.98 },
 };
 

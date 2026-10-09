@@ -602,7 +602,7 @@ function executeFactor(att: Combatant, def: Combatant, key: MoveKey): number {
 
 // Expected damage of a non-critical hit (one strike).
 // Every hit (both sides) is scaled by this: longer fights, so statuses, guard and cooldowns matter.
-export const DAMAGE_SCALE = 0.65;
+export const DAMAGE_SCALE = 0.8;
 
 export function estimateDamage(
   att: Combatant,

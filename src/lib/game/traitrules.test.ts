@@ -79,9 +79,12 @@ describe("trait rules: combat", () => {
   it("Filo del azar: non-crits -20%, crit multiplier +0.5, capped with relics", () => {
     const b0 = open(hero([]), foe());
     const b1 = open(hero(["filoAzar"]), foe());
-    expect(estimateDamage(b1.player, b1.enemies[0], "attack1")).toBe(
-      Math.round(estimateDamage(b0.player, b0.enemies[0], "attack1") * 0.8),
-    );
+    expect(
+      Math.abs(
+        estimateDamage(b1.player, b1.enemies[0], "attack1") -
+          estimateDamage(b0.player, b0.enemies[0], "attack1") * 0.8,
+      ),
+    ).toBeLessThanOrEqual(1); // one rounding at the end
     expect(critMultiplier(b1.player)).toBeCloseTo(
       critMultiplier(b0.player) + 0.5,
     );

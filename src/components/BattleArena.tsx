@@ -5,6 +5,7 @@ import { ArenaBackground } from "@/components/ArenaBackground";
 import { Chip } from "@/components/Chip";
 import { BossIntro, FxLayer, useBattleFx } from "@/components/fx/BattleFx";
 import { EnemyCueContext, type EnemyCue } from "@/components/EnemySprite";
+import { StatusIcons } from "@/components/StatusIcons";
 import { HudCard } from "@/components/HudCard";
 import { HeroSprite } from "@/components/HeroSprite";
 import { ACCESSORY_SHEETS, HERO_ACTIONS, TRAIT_ASSET } from "@/lib/art/heroes";
@@ -220,6 +221,7 @@ export function BattleArena({
             <CuedHero b={b} />
           </div>
         </div>
+        <StatusIcons c={b.player} />
       </div>
       <div className="absolute left-2 top-2 z-10 w-[min(15rem,46%)]">
         <HudCard
@@ -315,9 +317,10 @@ export function BattleArena({
               </div>
               <div
                 key={`e${i}-${b.log.length}`}
-                className="stage-foe-art"
+                className="stage-foe-art relative"
                 style={fxStyle(b, "enemy", i)}
               >
+                <StatusIcons c={c} />
                 <div className="fx-breathe fx-breathe-b h-full w-full">
                   <EnemyCueContext.Provider value={enemyCue(b, i, boss)}>
                     {enemyArt(i, c)}
