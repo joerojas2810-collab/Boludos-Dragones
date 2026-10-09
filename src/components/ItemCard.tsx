@@ -82,7 +82,9 @@ export function ItemCard({
                 classId={item.classId}
                 element={item.element}
                 traits={item.traits}
-                className="absolute bottom-0 left-1/2 aspect-square h-full -translate-x-1/2"
+                className={isPixel()
+                  ? "absolute inset-x-0 bottom-[24%] top-[2%]"
+                  : "absolute bottom-0 left-1/2 aspect-square h-full -translate-x-1/2"}
                 crop
               />
             ) : (

@@ -330,6 +330,23 @@
   justify-self: center;
   width: min(100%, 9rem);
 }
+body[data-art="pixel"] .doll {
+  container-type: inline-size;
+  min-height: 208px;
+}
+body[data-art="pixel"] .doll-hero {
+  width: 140px;
+  height: 192px;
+  aspect-ratio: 140 / 192;
+  --pixel-min-height: 192px;
+}
+@container (max-width: 280px) {
+  body[data-art="pixel"] .doll-hero {
+    width: 105px;
+    height: 144px;
+    --pixel-min-height: 144px;
+  }
+}
 .doll > .doll-col:nth-child(2) {
   grid-column: 3;
   grid-row: 1;

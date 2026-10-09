@@ -18,6 +18,13 @@ import "./pixel-sprites.css";
 
 // Hero dimensions are imported independently from the unchanged enemy sprites.
 const PX_ASPECT = pixelHeroes.runtime_frame_width / pixelHeroes.frame_height;
+// Opaque bounds of the first HD idle frame; thumbnails exclude transparent margins.
+const PX_IDLE_BOUNDS: Record<ClassId, readonly [number, number, number, number]> = {
+  caballero: [10, 25, 121, 155],
+  mago: [13, 13, 113, 167],
+  picaro: [16, 33, 112, 147],
+  clerigo: [10, 25, 107, 155],
+};
 
 type Props = {
   classId: ClassId;
@@ -98,6 +105,24 @@ function Hero({
   if (isPixel()) {
     // ponytail: no trait accessories in pixel art yet (needs a phase 1b layer set).
     const src = `/art/heroes-px/hero_${cls}_${ELEMENT_ART[element]}_${a}.png`;
+    if (crop && !animated) {
+      const [x, y, width, height] = PX_IDLE_BOUNDS[classId];
+      const sheetWidth = pixelHeroes.runtime_frame_width * HERO_ACTIONS.idle.frames;
+      return <div role="img" aria-hidden="true" className={`pixel-hero-thumbnail ${className}`}>
+        <div style={{
+          aspectRatio: `${width} / ${height}`,
+          height: "100%",
+          maxWidth: "100%",
+          maxHeight: "100%",
+          backgroundImage: `url(${src})`,
+          backgroundRepeat: "no-repeat",
+          backgroundSize: `${sheetWidth / width * 100}% ${pixelHeroes.frame_height / height * 100}%`,
+          backgroundPosition: `${x / (sheetWidth - width) * 100}% ${y / (pixelHeroes.frame_height - height) * 100}%`,
+          transform: flip ? "scaleX(-1)" : undefined,
+          imageRendering: "pixelated",
+        }} />
+      </div>;
+    }
     const anim = { ...sheet(src, a), aspect: PX_ASPECT };
     const frame = animated ? (
       <AnimSheet anim={anim} onDone={notHoldOf(action) ? () => setDone(true) : undefined} />

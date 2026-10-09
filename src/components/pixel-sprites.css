@@ -2,6 +2,12 @@
   position: relative;
   container-type: size;
 }
+.pixel-hero-thumbnail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
 .pixel-sprite-frame {
   position: absolute;
   bottom: 0;
