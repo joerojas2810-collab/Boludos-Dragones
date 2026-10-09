@@ -22,7 +22,7 @@ import {
 import { CLASSES, type Character, type ClassId } from "./characters";
 import type { Element } from "./elements";
 import type { Rng } from "./rng";
-import { COUNTER_ROUNDS, SKILLS_BY_CLASS, type SkillId } from "./skills";
+import { COUNTER_REFLECT, COUNTER_ROUNDS, COUNTER_TAKEN, SKILLS_BY_CLASS, type SkillId } from "./skills";
 
 export const DUEL_MAX_TURN = 60; // hard cap; the higher hp fraction wins
 export type DuelStatus = "ongoing" | "a" | "b" | "draw";
@@ -179,7 +179,14 @@ export function duelRound(
       }
       if (sk.counter) {
         att = { ...att, reflect: COUNTER_ROUNDS };
-        bits.push("se prepara para devolver el próximo golpe");
+        const taken = att.taken ?? 0;
+        if (taken > 0 && s[y].hp > 0) {
+          // The rival already hit this round: the hit is returned right now.
+          const back = Math.round((taken / COUNTER_TAKEN) * COUNTER_REFLECT);
+          s[y] = { ...s[y], hp: Math.max(0, s[y].hp - back) };
+          att = { ...att, taken: 0 };
+          bits.push(`devuelve ${back} a ${s[y].char.name}`);
+        } else bits.push("se prepara para devolver el próximo golpe");
       }
       if (sk.guard) bits.push("se protege");
       log.push(`${att.char.name} usa ${sk.name}: ${bits.join(" y ")}.`);
@@ -231,6 +238,7 @@ export function duelRound(
       cooldown: Math.max(0, c.cooldown - 1),
       cooldown3: Math.max(0, (c.cooldown3 ?? 0) - 1),
       reflect: Math.max(0, (c.reflect ?? 0) - 1),
+      taken: 0,
     };
     n = statusTick(passiveHeal(n, log), log);
     if (turn > ENRAGE_AFTER_TURN) {

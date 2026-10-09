@@ -6,7 +6,7 @@ import type { ClassId } from "./characters";
 // ---- tuning (scripts/run-sim.ts) ----
 export const SWEEP_POWER = 1; // Barrido: damage vs EACH enemy
 export const STORM_POWER = 1.3; // Tormenta: damage vs EACH enemy
-export const COUNTER_ROUNDS = 2; // Contraataque lasts this many round ends
+export const COUNTER_ROUNDS = 1; // Contraataque resolves within the round it is used
 export const COUNTER_TAKEN = 1; // damage taken by the hero while it is up (1 = full: it is not a guard)
 export const COUNTER_REFLECT = 1.5; // x the unreduced hit, sent back
 export const DETONATE_POWER = 1.2; // Detonar: single-target strike
@@ -77,8 +77,8 @@ export const SKILLS: Record<SkillId, Skill> = {
     id: "contraataque",
     classId: "caballero",
     name: "Contraataque",
-    blurb: "Devuelve el próximo golpe",
-    description: `Aguantas el próximo golpe sin reducirlo y devuelves ${pc(COUNTER_REFLECT)} del daño al atacante, después de recibirlo (dura ${COUNTER_ROUNDS} rondas).`,
+    blurb: "Devuelve el golpe de la ronda",
+    description: `Aguantas el golpe de esta ronda sin reducirlo y devuelves ${pc(COUNTER_REFLECT)} del daño al atacante, justo después de recibirlo (también si ya te había golpeado antes de que actuaras). No dura más de una ronda.`,
     cooldown: 3,
     power: 0,
     accuracy: 1,

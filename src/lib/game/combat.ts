@@ -157,6 +157,8 @@ export interface Combatant {
   guard?: boolean; // perfect guard earned this round (see PERFECT_GUARD_FACTOR)
   riposte?: boolean; // Mago / Pícaro guard bonus, spent by the next damaging action
   reflect?: number; // rounds left of Contraataque
+  taken?: number; // damage received this round (Contraataque returns what already landed)
+  takenFrom?: number; // enemy slot of the last hit received this round
   carry?: number; // enemies: speed remainder against the hero
   shield?: number;
   freeHits?: number;
@@ -915,7 +917,12 @@ export function strike(
       ...(ownStatuses && { statuses: ownStatuses }),
       ...(charge !== (att.charge ?? 0) && { charge }),
     },
-    defender: { ...defender, rage: Math.min(RAGE_MAX, (defender.rage ?? 0) + 1) },
+    defender: {
+      ...defender,
+      rage: Math.min(RAGE_MAX, (defender.rage ?? 0) + 1),
+      taken: (def.taken ?? 0) + Math.max(0, dmg - absorbed),
+      takenFrom: enemy,
+    },
     dmg,
   };
 }
@@ -1025,7 +1032,15 @@ export function step(
       }
       if (skill.counter) {
         player.reflect = COUNTER_ROUNDS;
-        bits.push("se prepara para devolver el próximo golpe");
+        const taken = player.taken ?? 0;
+        const foe = enemies[player.takenFrom ?? tIdx];
+        if (taken > 0 && foe && foe.hp > 0) {
+          // The rival already hit this round: the hit is returned right now.
+          const back = Math.round((taken / COUNTER_TAKEN) * COUNTER_REFLECT);
+          enemies[player.takenFrom ?? tIdx] = { ...foe, hp: Math.max(0, foe.hp - back) };
+          bits.push(`devuelve ${back} a ${foe.char.name}`);
+          player.taken = 0;
+        } else bits.push("se prepara para devolver el próximo golpe");
       }
       if (skill.guard) bits.push("se protege");
       log.push(`${player.char.name} usa ${skill.name}: ${bits.join(" y ")}.`);
@@ -1162,6 +1177,7 @@ export function step(
     cooldown: Math.max(0, player.cooldown - 1),
     cooldown3: Math.max(0, (player.cooldown3 ?? 0) - 1),
     reflect: Math.max(0, (player.reflect ?? 0) - 1),
+    taken: 0,
   };
   player = statusTick(passiveHeal(player, log), log);
   const bosses = enemies.filter((e) => e.hp > 0 && e.boss);

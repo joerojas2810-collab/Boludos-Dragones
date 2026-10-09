@@ -335,3 +335,17 @@ describe("dungeon boss mechanics", () => {
     expect(x.log.some((l) => l.includes("te lee"))).toBe(true);
   });
 });
+
+describe("Contraataque resolves within the round", () => {
+  const caballero = { ...generateCharacter(createRng(3), "caballero"), skill: "contraataque" as const };
+  const foe = generateCharacter(createRng(9), "mago");
+  // seed 1 and 3: the hero acts first; seed 2: the enemy opens the round
+  for (const seed of [1, 2, 3])
+    it(`returns the hit of the round either way (seed ${seed})`, () => {
+      const rng = createRng(seed);
+      const b = step(startBattle(caballero, [foe], rng), "attack3", rng);
+      expect(b.log.some((l) => /devuelve \d+ a/.test(l))).toBe(true);
+      expect(b.enemies[0].hp).toBeLessThan(foe.stats.hp);
+      expect(b.player.reflect ?? 0).toBe(0); // nothing is left charged for the next round
+    });
+});
