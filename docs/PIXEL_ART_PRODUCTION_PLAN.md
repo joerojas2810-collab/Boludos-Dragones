@@ -1,6 +1,6 @@
 # Continuación de producción pixel art
 
-Plan de trabajo mediante bases compartidas y exportaciones automatizadas. Las siete fases originales están completadas; las secciones históricas conservan sus cantidades y decisiones. Héroes y fondos de combate ya fueron adaptados a HD. El trabajo actual es la conversión de Fase 2: enemigos y jefes a 128×192.
+Plan de trabajo mediante bases compartidas y exportaciones automatizadas. Las siete fases originales están completadas; las secciones históricas conservan sus cantidades y decisiones. Héroes, enemigos, fondos de combate y objetos ya fueron adaptados a HD. La actualización más reciente corresponde a Fase 3: armas, equipo, partes, núcleos y marcos.
 
 ## Reglas de trabajo
 
@@ -30,6 +30,14 @@ Producción completa: 24 diseños, cinco familias con normal, élite y jefe más
 Los atlas originales aportan cuatro poses distintas por diseño. La extracción conserva la anatomía mediante escala uniforme y alineación de pies; las transiciones usan desplazamientos de un píxel de la parte superior y entrada por revelado binario. La máscara elemental roja y sus brillos cálidos se normalizan a la rampa exclusiva de cuatro tonos; las variantes cambian únicamente esa rampa, conservando marfil y acero neutros. Sin los filtros de brillo del importador antiguo para HD. Alfa binario, RGB transparente cero y máximo 96 colores por tira base.
 
 La integración usa `pixel-enemies.generated.json`, independiente de los héroes. El importador valida nombres, cuadros, fps, loop, derrota mantenida y anclajes; la galería no solicita entrada para normales ni élites. Recursos pintados y reglas de juego conservados. Entrega: 110 bases y manifiesto en `phase_2_enemies.zip`, 111 entradas y 3.223.212 bytes; borradores y atlas fuera del repositorio. Activos, paletas, alfa, recoloreado exacto y ZIP aprobados; TypeScript y ESLint sin errores; Vitest 45 archivos / 423 pruebas aprobadas. El mapa de muestra se presenta sin las 120 animaciones del catálogo, que se abre mediante un botón. Revisión visual aprobada: cuatro poses de los 24 diseños y muestra con componentes reales en 1080p, 2K y móvil. Catálogo desplegable, entrada de jefe con retorno a reposo y derrota mantenida comprobados. Fase terminada y lista para commit y push.
+
+## Actualización de Fase 3: objetos HD
+
+Completada el 8 de octubre de 2026: nueve armas y cinco piezas de equipo de Fuego, catorce partes de forja y cinco núcleos a 64×64, más nueve marcos a 120×160. Total 42 bases y 98 recursos importados después del recoloreado exacto de armas y equipo a cinco elementos. Cada PNG tiene un cuadro, fps 0, loop falso, anclaje central, alfa binario, RGB transparente cero y máximo 96 colores. Los marcos conservan la abertura común y distinguen los rangos por ornamentos y silueta; las partes muestran componentes sueltos, no objetos completos.
+
+Se generaron diseños nuevos mediante la herramienta integrada de imágenes; la exportación conserva píxeles neutros de acero, oro, madera y cuero al recolorear únicamente la rampa `#8F2035`, `#D94728`, `#F88636`, `#FFD36B`. El importador prevalida las 42 bases y registra tamaños por archivo en `pixel-items.generated.json`; los otros 238 íconos mantienen su tamaño anterior. Sin cambios de gameplay ni de la vista de héroes corregida. Se conservaron las tres actualizaciones remotas de duelos hasta `0c04658` antes de validar.
+
+Entrega `phase_3_items.zip`: 42 PNG y cuatro manifiestos filtrados, 46 entradas, 224.644 bytes; integridad e igualdad de PNG entre paquete, entrega e importación verificadas. SHA-256 `d0c29c9855fe0df7fa457aa5d984e3b306cd80a75473c63e6a32212be93840c2`. Revisión visual de todos los diseños y variantes en galería, nueve marcos en tarjetas reales y objeto de inventario en móvil 390×844 sin desbordamiento ni recursos faltantes. TypeScript y ESLint aprobados; Vitest 49 archivos / 452 pruebas aprobadas. Lista para commit y push; esperar la siguiente instrucción antes de adaptar Fase 4.
 
 ## Fase 4: estadísticas, sistema y reliquias
 

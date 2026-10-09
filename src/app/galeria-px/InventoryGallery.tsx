@@ -3,6 +3,9 @@ import { PIXEL_ICON_NAMES } from "@/lib/art/pixel";
 import { RARITY_IDS } from "@/lib/game/rarity";
 import { DUNGEON_THEMES as DUNGEONS } from "@/lib/game/levels";
 import artIds from "@/lib/artIds.json";
+import pixelItems from "@/lib/art/pixel-items.generated.json";
+
+const NATIVE_SIZES = pixelItems as Record<string, { width: number; height: number }>;
 
 const RELIC_LABELS: Record<string, string> = Object.fromEntries(
   Object.entries(artIds.relic).map(([id, name]) => [name, id]),
@@ -123,33 +126,35 @@ const DOOR_LABELS: Record<string, string> = {
   chest: "Cofre", merchant: "Mercader", rest: "Descanso", event: "Evento",
 };
 
-function PixelImage({ path, label, width, height = width, bg }: {
-  path: string; label: string; width: number; height?: number; bg: string;
+function PixelImage({ path, label, zoom, width = 32, height = width, bg }: {
+  path: string; label: string; zoom: number; width?: number; height?: number; bg: string;
 }) {
+  const native = NATIVE_SIZES[path] ?? { width, height };
   return (
     <div className="flex items-center justify-center p-2" style={{ background: bg }}>
       {/* Native PNG shown only at integer zoom in the development gallery. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={"/art/" + path + ".png"} alt={label} draggable={false}
-        width={width} height={height} style={{ imageRendering: "pixelated" }} />
+        width={native.width * zoom} height={native.height * zoom} style={{ imageRendering: "pixelated" }} />
     </div>
   );
 }
 
 export function InventoryGallery({ lot, zoom, bg }: { lot: "items" | "icons" | "frames"; zoom: number; bg: string }) {
+  const itemWidth = Math.max(32, ...Object.entries(NATIVE_SIZES).filter(([path]) => /^(weapons|equipment)-px\//.test(path) || path.startsWith("icons-px/icon_core_")).map(([, size]) => size.width));
   if (lot === "items") return (
     <section className="space-y-5">
       <h2 className="text-lg font-bold">Armas y equipo</h2>
-      <div className="grid items-center gap-1" style={{ gridTemplateColumns: `8rem repeat(5, ${32 * zoom + 16}px)` }}>
+      <div className="grid items-center gap-1" style={{ gridTemplateColumns: `8rem repeat(5, ${itemWidth * zoom + 16}px)` }}>
         <div />{ELEMENTS.map(([id, label]) => <div key={id} className="text-center text-xs">{label}</div>)}
         {ITEMS.map(([id, label], i) => <ItemRow key={id} id={id} label={label} gear={i >= 9} zoom={zoom} bg={bg} />)}
         <div className="text-xs">Núcleos</div>
-        {ELEMENTS.map(([id, label]) => <PixelImage key={id} path={`icons-px/icon_core_${id}`} label={label} width={32 * zoom} bg={bg} />)}
+        {ELEMENTS.map(([id, label]) => <PixelImage key={id} path={`icons-px/icon_core_${id}`} label={label} zoom={zoom} bg={bg} />)}
       </div>
       <h2 className="text-lg font-bold">Partes de forja</h2>
       <div className="flex flex-wrap gap-3">
         {ITEMS.map(([id, label]) => <figure key={id}>
-          <PixelImage path={`icons-px/icon_part_${id}`} label={label} width={32 * zoom} bg={bg} />
+          <PixelImage path={`icons-px/icon_part_${id}`} label={label} zoom={zoom} bg={bg} />
           <figcaption className="mt-1 text-center text-xs">{label}</figcaption>
         </figure>)}
       </div>
@@ -160,7 +165,7 @@ export function InventoryGallery({ lot, zoom, bg }: { lot: "items" | "icons" | "
       <h2 className="text-lg font-bold">Marcos de tarjeta</h2>
       <div className="flex flex-wrap gap-3">
         {RARITY_IDS.map((rank) => <figure key={rank}>
-          <PixelImage path={`frames-px/card_${rank}`} label={"Rango " + rank.toUpperCase()} width={60 * zoom} height={80 * zoom} bg={bg} />
+          <PixelImage path={`frames-px/card_${rank}`} label={"Rango " + rank.toUpperCase()} width={60} height={80} zoom={zoom} bg={bg} />
           <figcaption className="mt-1 text-center text-xs">{rank.toUpperCase()}</figcaption>
         </figure>)}
       </div>
@@ -191,7 +196,7 @@ export function InventoryGallery({ lot, zoom, bg }: { lot: "items" | "icons" | "
               const dungeon = family === "dungeon" ? RARITY_IDS.find((rank) => id === "rank_" + rank) : undefined;
               const title = family === "relic" ? relicLabel(id) : dungeon ? DUNGEONS[dungeon].name : family === "asc" ? (id === "max_star" ? "Estrella máxima" : "Ascensión " + id) : family === "rank" ? id.toUpperCase() : family === "system" && id === "chest" ? "Cofre" : family === "stat" && id === "flee" ? "Huida" : (family === "door" ? DOOR_LABELS[id] : LABELS[id]) ?? id;
               return <figure key={name}>
-                <PixelImage path={"icons-px/icon_" + name} label={title} width={32 * zoom} bg={bg} />
+                <PixelImage path={"icons-px/icon_" + name} label={title} zoom={zoom} bg={bg} />
                 <figcaption className="mt-1 text-center text-xs">{title}</figcaption>
               </figure>;
             })}
@@ -208,6 +213,6 @@ function ItemRow({ id, label, gear, zoom, bg }: { id: string; label: string; gea
   const prefix = gear ? "equipment" : "weapon";
   return <>
     <div className="text-xs">{label}</div>
-    {ELEMENTS.map(([element]) => <PixelImage key={element} path={`${folder}-px/icon_${prefix}_${id}_${element}`} label={label} width={32 * zoom} bg={bg} />)}
+    {ELEMENTS.map(([element]) => <PixelImage key={element} path={`${folder}-px/icon_${prefix}_${id}_${element}`} label={label} zoom={zoom} bg={bg} />)}
   </>;
 }

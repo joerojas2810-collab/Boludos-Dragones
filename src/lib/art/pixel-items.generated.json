@@ -1,0 +1,394 @@
+{
+  "weapons-px/icon_weapon_sword_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_sword_water": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_sword_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_sword_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_sword_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_axe_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_axe_water": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_axe_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_axe_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_axe_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_spear_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_spear_water": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_spear_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_spear_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_spear_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_bow_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_bow_water": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_bow_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_bow_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_bow_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_staff_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_staff_water": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_staff_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_staff_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_staff_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_dagger_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_dagger_water": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_dagger_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_dagger_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_dagger_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_mace_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_mace_water": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_mace_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_mace_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_mace_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_wand_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_wand_water": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_wand_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_wand_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_wand_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_book_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_book_water": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_book_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_book_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "weapons-px/icon_weapon_book_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_helmet_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_helmet_water": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_helmet_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_helmet_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_helmet_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_chest_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_chest_water": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_chest_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_chest_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_chest_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_legs_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_legs_water": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_legs_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_legs_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_legs_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_boots_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_boots_water": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_boots_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_boots_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_boots_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_necklace_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_necklace_water": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_necklace_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_necklace_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "equipment-px/icon_equipment_necklace_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_sword": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_axe": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_spear": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_bow": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_staff": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_dagger": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_mace": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_wand": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_book": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_helmet": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_chest": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_legs": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_boots": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_part_necklace": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_core_fire": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_core_water": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_core_earth": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_core_lightning": {
+    "width": 64,
+    "height": 64
+  },
+  "icons-px/icon_core_wind": {
+    "width": 64,
+    "height": 64
+  },
+  "frames-px/card_f": {
+    "width": 120,
+    "height": 160
+  },
+  "frames-px/card_e": {
+    "width": 120,
+    "height": 160
+  },
+  "frames-px/card_d": {
+    "width": 120,
+    "height": 160
+  },
+  "frames-px/card_c": {
+    "width": 120,
+    "height": 160
+  },
+  "frames-px/card_b": {
+    "width": 120,
+    "height": 160
+  },
+  "frames-px/card_a": {
+    "width": 120,
+    "height": 160
+  },
+  "frames-px/card_s": {
+    "width": 120,
+    "height": 160
+  },
+  "frames-px/card_ss": {
+    "width": 120,
+    "height": 160
+  },
+  "frames-px/card_ssr": {
+    "width": 120,
+    "height": 160
+  }
+}
