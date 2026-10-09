@@ -20,7 +20,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 12; // 12: the basic attack never misses
+export const ENGINE_VERSION = 13; // 13: every hit applies statuses, DAMAGE_SCALE (longer fights), rebalanced classes
 
 export type FightRole = "normal" | "elite" | "final";
 
@@ -40,15 +40,15 @@ export const KIND_POWER: Record<FightRole, number> = {
 };
 // Per-rank difficulty tuning (scripts/stage-tune.ts bisects these to hit the target clear rates).
 export const RANK_TUNE: Record<DungeonId, number> = {
-  f: 1.24,
-  e: 1.26,
-  d: 1.46,
+  f: 1.23,
+  e: 1.54,
+  d: 1.47,
   c: 1.59,
-  b: 1.83,
-  a: 1.98,
-  s: 2.85,
-  ss: 2.79,
-  ssr: 2.62,
+  b: 1.86,
+  a: 2.06,
+  s: 3.09,
+  ss: 2.92,
+  ssr: 2.69,
 };
 export const LEVEL_STEP = 0.05; // enemy power grows this much per level index
 export const ASC_HP_STEP = 0.12; // per ascension level

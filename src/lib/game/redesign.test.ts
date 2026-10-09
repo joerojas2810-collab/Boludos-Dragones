@@ -59,10 +59,10 @@ describe("elemental statuses", () => {
   const mage = (element: Character["element"]) =>
     withWeapon({ ...unit("mago"), skill: "tormenta" }, element);
 
-  it("only the class special (Ataque 2) applies the status of the weapon element, 2 stacks", () => {
+  it("every hit applies the status of the weapon element: 1 stack, the class special 2", () => {
     const b = fight(mage("agua"), [unit("picaro")], [[]]);
-    expect(step(b, "attack1", always).enemies[0].statuses ?? []).toHaveLength(0);
-    expect(step(b, "attack2", always).enemies[0].statuses ?? []).toHaveLength(0);
+    expect(stacksOf(step(b, "attack1", always).enemies[0].statuses, "escarcha")).toBe(1);
+    expect(stacksOf(step(b, "attack2", always).enemies[0].statuses, "escarcha")).toBe(1);
     const s = step(b, "attack3", always);
     expect(stacksOf(s.enemies[0].statuses, "escarcha")).toBe(2);
   });

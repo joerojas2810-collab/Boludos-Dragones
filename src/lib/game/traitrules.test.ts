@@ -28,11 +28,11 @@ function hero(
   const c = generateCharacter(createRng(1), classId);
   return {
     ...c,
-    element: "fuego",
+    element: "viento", // its status (Impulso) is a self buff: no burn ticks to disturb the numbers
     traits,
     stats: {
       hp: 100,
-      atk: 20,
+      atk: 60,
       def: 0,
       crit: 0,
       resist: 0,
@@ -50,7 +50,7 @@ const HEAL = TRAITS.ultimoAliento.rules.healPenalty;
 const THORNS = TRAITS.espinas.rules.thorns;
 const foe = (traits: TraitId[] = [], classId: ClassId = "mago") => ({
   ...hero(traits, classId),
-  element: "fuego" as const,
+  element: "viento" as const,
 });
 const open = (p: Character, e: Character, opts = {}): Battle =>
   startBattle(p, e, createRng(3), opts);

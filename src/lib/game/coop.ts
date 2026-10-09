@@ -15,7 +15,7 @@ import type { StageAction } from "./stageReplay";
 export const COOP_K = {
   bossFloor: 11, // [K] strength of a floor-10 boss at the room's rank
   bossHpMult: 12, // [K] hp of the boss each player fights (keeps it unkillable alone)
-  poolPerPlayer: 1.3, // [K] shared bar = this many normal-boss hp per player present
+  poolPerPlayer: 1.5, // [K] shared bar = this many normal-boss hp per player present
   maxActions: 400,
 } as const;
 

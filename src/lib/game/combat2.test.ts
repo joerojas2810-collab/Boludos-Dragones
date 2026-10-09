@@ -8,6 +8,7 @@ import {
   type ClassId,
 } from "./characters";
 import {
+  DAMAGE_SCALE,
   DEFEND_FACTOR,
   ENRAGE_AFTER_TURN,
   estimateDamage,
@@ -94,8 +95,9 @@ describe("perfect guard", () => {
       { ...b.player, defending: true, guard: true },
       "attack2",
     );
-    expect(normal).toBe(Math.round(plain * DEFEND_FACTOR));
-    expect(perfect).toBe(Math.round(plain * PERFECT_GUARD_FACTOR));
+    // (the scale rounds once at the end, so compare within one point)
+    expect(Math.abs(normal - plain * DEFEND_FACTOR)).toBeLessThanOrEqual(1);
+    expect(Math.abs(perfect - plain * PERFECT_GUARD_FACTOR)).toBeLessThanOrEqual(1);
     // not stacked on top of the normal defend (that would be x0.125)
     expect(perfect).toBeGreaterThan(
       plain * DEFEND_FACTOR * PERFECT_GUARD_FACTOR * 1.5,
@@ -118,6 +120,7 @@ describe("perfect guard", () => {
     );
     const expected =
       (foe.stats.atk * 2.1 * 1 - 0) * // picaro attack2 power
+      DAMAGE_SCALE *
       PERFECT_GUARD_FACTOR *
       0.8 *
       (1 - CLASS_PASSIVE_DMG_REDUCTION);
@@ -304,7 +307,7 @@ describe("class skills (Ataque 3)", () => {
       { ...b.enemies[0], hp: 100 },
       "attack3",
     );
-    expect(low).toBe(Math.round(full * EXECUTE_MULT));
+    expect(Math.abs(low - full * EXECUTE_MULT)).toBeLessThanOrEqual(1); // one rounding at the end
   });
 
   it("Castigo heals the hero for a share of the damage dealt", () => {

@@ -15,12 +15,12 @@ export const DOUBLE_STRIKE_POWER = 0.95; // per hit (two hits)
 export const EXECUTE_POWER = 1.6;
 export const EXECUTE_BELOW = 0.4; // target hp fraction
 export const EXECUTE_MULT = 2;
-export const SANCTUARY_HEAL = 0.08; // fraction of max hp
+export const SANCTUARY_HEAL = 0.06; // fraction of max hp
 export const SMITE_POWER = 1.55;
-export const SMITE_LIFESTEAL = 0.35; // fraction of damage dealt
+export const SMITE_LIFESTEAL = 0.3; // fraction of damage dealt
 export const RIP_POWER = 1.2; // Desgarro
 export const RIP_LIFESTEAL = 0.25;
-export const ANNIHILATE_POWER = 1.6; // Aniquilación
+export const ANNIHILATE_POWER = 1.8; // Aniquilación
 export const ANNIHILATE_BELOW = 0.33; // own hp fraction
 export const ANNIHILATE_MULT = 2.5 / 1.6; // 250% total
 

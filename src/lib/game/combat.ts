@@ -94,7 +94,7 @@ export const MAX_ENEMIES = 3;
 export const PERFECT_GUARD_FACTOR = 0.25;
 export const GUARD_REFLECT = 0.4; // Caballero: share of the avoided damage sent back
 export const GUARD_CRIT_BONUS = 0.5; // Pícaro: extra crit chance on the next hit
-export const GUARD_HEAL = 0.05; // Clérigo: fraction of max hp healed
+export const GUARD_HEAL = 0.04; // Clérigo: fraction of max hp healed
 export const isStrongIntent = (k: MoveKey | Intent): boolean => k === "attack2";
 
 // Speed -> actions ("acciones acumuladas"). Per (hero, enemy) pair the slower
@@ -601,6 +601,9 @@ function executeFactor(att: Combatant, def: Combatant, key: MoveKey): number {
 }
 
 // Expected damage of a non-critical hit (one strike).
+// Every hit (both sides) is scaled by this: longer fights, so statuses, guard and cooldowns matter.
+export const DAMAGE_SCALE = 0.65;
+
 export function estimateDamage(
   att: Combatant,
   def: Combatant,
@@ -617,6 +620,7 @@ export function estimateDamage(
     1,
     Math.round(
       raw *
+        DAMAGE_SCALE *
         stanceFactor(def, key) *
         (att.perks?.dmgMult ?? 1) *
         (1 - dmgReductionOf(def)) *
@@ -830,8 +834,10 @@ export function strike(
   // hits when flagged (elites, bosses). Mago's perfect guard doubles the stacks.
   const element = att.char.weapon?.element ?? att.char.element;
   // The class special applies statuses, except Detonar, which only consumes them.
+  // Every hero hit applies its element's status (1 stack; the class special 2), except Detonar,
+  // which only consumes them. Enemies apply theirs only when flagged (elites, bosses) on strong hits.
   const classMove = asHero && key === "attack3" && !skill?.detonate;
-  const canApply = asHero ? classMove : !!att.applies && isStrongIntent(key);
+  const canApply = asHero ? !skill?.detonate : !!att.applies && isStrongIntent(key);
   const guardBoost = att.riposte && att.char.classId === "mago" ? 2 : 1;
   const stacks = guardBoost * (classMove ? CLASS_STACKS : 1);
   // Rayo: any landed hit charges, the overload is spent by the class special.

@@ -58,7 +58,7 @@ export interface Passive {
 }
 
 // Class passive strengths (tuned with scripts/balance.ts).
-export const CLASS_PASSIVE_DMG_REDUCTION = 0.18; // Caballero: incoming damage
+export const CLASS_PASSIVE_DMG_REDUCTION = 0.15; // Caballero: incoming damage
 export const CLASS_PASSIVE_ADVANTAGE_BONUS = 0.55; // Mago: replaces ADVANTAGE_BONUS
 export const CLASS_PASSIVE_CRIT_MULT = 2; // Pícaro: base crit damage multiplier
 export const CLASS_PASSIVE_MAGE_CRIT = 0.1; // Mago: extra crit chance
@@ -155,7 +155,7 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
     },
     stats: {
       hp: 85,
-      atk: 16.2,
+      atk: 17.5,
       def: 4,
       crit: 0.25,
       resist: 0,

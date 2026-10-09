@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  CLASS_PASSIVE_DMG_REDUCTION,
   CLASS_PASSIVE_REGEN,
   generateCharacter,
   type Character,
   type ClassId,
 } from "./characters";
 import {
+  DAMAGE_SCALE,
   critMultiplier,
   estimateDamage,
   startBattle,
@@ -15,6 +17,9 @@ import {
 } from "./combat";
 import type { Element } from "./elements";
 import { createRng } from "./rng";
+
+// Test heroes hit for 20 after the global DAMAGE_SCALE, so the numbers in the comments stay readable.
+const ATK = 20 / DAMAGE_SCALE;
 
 function hero(
   classId: ClassId,
@@ -28,7 +33,7 @@ function hero(
     traits: [],
     stats: {
       hp: 100,
-      atk: 20,
+      atk: ATK,
       def: 0,
       crit: 0,
       resist: 0,
@@ -49,7 +54,7 @@ const comb = (char: Character, hp = char.stats.hp): Combatant => ({
 });
 
 describe("class passives", () => {
-  it("Muralla: caballero takes 18% less (mago 5%)", () => {
+  it("Muralla: caballero takes its reduction less (mago 5%)", () => {
     const att = comb(hero("picaro", "agua"));
     const plain = estimateDamage(att, comb(hero("mago", "agua")), "attack1");
     const wall = estimateDamage(
@@ -58,7 +63,7 @@ describe("class passives", () => {
       "attack1",
     );
     expect(plain).toBe(19); // 20*.95
-    expect(wall).toBe(16); // 20*.82
+    expect(wall).toBe(Math.round(20 * (1 - CLASS_PASSIVE_DMG_REDUCTION))); // 20*.85
   });
 
   it("Muralla composes multiplicatively with relic reduction", () => {
@@ -67,13 +72,13 @@ describe("class passives", () => {
       ...comb(hero("caballero", "agua")),
       perks: { dmgReduction: 0.5 },
     };
-    expect(estimateDamage(att, def, "attack1")).toBe(8); // 20*.5*.82
+    expect(estimateDamage(att, def, "attack1")).toBe(Math.round(20 * 0.5 * (1 - CLASS_PASSIVE_DMG_REDUCTION)));
   });
 
   it("Foco arcano: mago advantage is +55%, disadvantage and neutral unchanged", () => {
     const def = (e: Element) => comb(hero("picaro", e));
-    const mago = comb(hero("mago", "agua", { atk: 20 }));
-    const rogue = comb(hero("picaro", "agua", { atk: 20 }));
+    const mago = comb(hero("mago", "agua", { atk: ATK }));
+    const rogue = comb(hero("picaro", "agua", { atk: ATK }));
     // agua beats fuego
     expect(estimateDamage(mago, def("fuego"), "attack1")).toBe(31); // 20*1*1.55
     expect(estimateDamage(rogue, def("fuego"), "attack1")).toBe(25); // 20*1.25
@@ -100,7 +105,7 @@ describe("class passives", () => {
   });
 
   it("Filo mortal: a guaranteed crit deals x2.0 in battle", () => {
-    const p = hero("picaro", "agua", { crit: 1, atk: 20, speed: 99 });
+    const p = hero("picaro", "agua", { crit: 1, atk: ATK, speed: 99 });
     const e = hero("mago", "agua", { hp: 1000, speed: 1 });
     let b = startBattle(p, e, createRng(3));
     b = withRound(b, false, ["defend"]);
@@ -148,7 +153,7 @@ describe("class passives", () => {
   });
 
   it("no passive-relevant situation: other classes are unchanged", () => {
-    const a = comb(hero("picaro", "agua", { atk: 20 }));
+    const a = comb(hero("picaro", "agua", { atk: ATK }));
     const d = comb(hero("clerigo", "agua"));
     expect(estimateDamage(a, d, "attack1")).toBe(20);
     expect(critMultiplier(d)).toBe(1.5);

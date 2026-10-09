@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateCharacter, type Character, type ClassId } from "./characters";
+import { CLASS_PASSIVE_DMG_REDUCTION, CLASS_PASSIVE_REGEN, generateCharacter, type Character, type ClassId } from "./characters";
 import {
   defReduction,
   estimateDamage,
@@ -59,15 +59,15 @@ const comb = (char: Character): Combatant => ({
 describe("explain: class passives", () => {
   it("Bendición states 0.5% and the right PV for this character", () => {
     const t = text(passiveTip(comb(hero("clerigo", "agua"))));
-    expect(t).toContain("0.5%");
+    expect(t).toContain(`${+(CLASS_PASSIVE_REGEN * 100).toFixed(1)}%`);
     expect(t).toContain("≈1 PV con 106 de vida");
     expect(t).toContain("No cura si caes ni si la pelea terminó");
   });
 
-  it("Muralla states 18% and 20 -> 16", () => {
+  it("Muralla states its percent and 20 -> 17", () => {
     const t = text(passiveTip(comb(hero("caballero", "agua"))));
-    expect(t).toContain("18%");
-    expect(t).toContain("un golpe de 20 pasa a 16");
+    expect(t).toContain(`${Math.round(CLASS_PASSIVE_DMG_REDUCTION * 100)}%`);
+    expect(t).toContain(`un golpe de 20 pasa a ${Math.round(20 * (1 - CLASS_PASSIVE_DMG_REDUCTION))}`);
   });
 
   it("Foco arcano states +55% instead of +25%", () => {

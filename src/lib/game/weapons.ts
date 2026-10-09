@@ -130,7 +130,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0,
     speedMult: 0.95,
     noun: "Maza",
-    special: { name: "Golpe sagrado", power: 2.2, accuracy: 0.85, cooldown: 2, heal: 0.06 },
+    special: { name: "Golpe sagrado", power: 2.2, accuracy: 0.85, cooldown: 2, heal: 0.04 },
   },
   varita: {
     label: "Varita",
@@ -150,7 +150,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0.04,
     speedMult: 1,
     noun: "Libro",
-    special: { name: "Plegaria", power: 0.3, accuracy: 1, cooldown: 2, heal: 0.1 },
+    special: { name: "Plegaria", power: 0.3, accuracy: 1, cooldown: 2, heal: 0.09 },
   },
   mandoble: {
     label: "Mandoble",
@@ -160,7 +160,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0,
     speedMult: 1,
     noun: "Mandoble",
-    special: { name: "Frenesí", power: 2.6, accuracy: 0.9, cooldown: 2, heal: 0, selfCost: 0.08 },
+    special: { name: "Frenesí", power: 2.9, accuracy: 0.9, cooldown: 2, heal: 0, selfCost: 0.08 },
   },
   martillo: {
     label: "Martillo",
