@@ -2,17 +2,17 @@
 // loot), first-clear chests carry the early game, repeats pay 60% with a daily decay.
 import { RARITY_IDS, type RarityId } from "./rarity";
 
-// Tune here (starting values, economy-sim.ts scenario B).
+// Tune here. Target: ~2 ten-pulls a day at the steady state of a high-rank player (economy-sim.ts).
 export const LEVEL_COINS: Record<RarityId, number> = {
-  f: 25,
-  e: 25,
-  d: 26,
-  c: 27,
-  b: 28,
-  a: 30,
-  s: 32,
-  ss: 34,
-  ssr: 36,
+  f: 60,
+  e: 75,
+  d: 95,
+  c: 120,
+  b: 150,
+  a: 180,
+  s: 210,
+  ss: 240,
+  ssr: 270,
 };
 export const FIRST_CLEAR_CHEST: Record<RarityId, number> = {
   f: 1000,

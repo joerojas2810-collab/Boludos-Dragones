@@ -302,8 +302,8 @@ const info = await startLevelService(deps, P, { characterId: HERO, rank: "f", le
 const log = playLevelBot(info.seed, info.hero, "f", 0);
 const coinsBefore = await coins();
 const done = await finishLevelService(deps, P, { runId: info.runId, actions: log, engineVersion: info.engineVersion });
-ok(done.status === "cleared" && done.bank.cleared && done.bank.coins === 25, "service finish cleared " + JSON.stringify(done.bank));
-ok((await coins()) >= coinsBefore + 25, "service paid coins");
+ok(done.status === "cleared" && done.bank.cleared && done.bank.coins === 60, "service finish cleared " + JSON.stringify(done.bank));
+ok((await coins()) >= coinsBefore + 60, "service paid coins");
 const exp = levelLoot(levelsOf("f")[0], 0, "caballero", info.seed, { repeat: false, payMult: 1 });
 ok(JSON.stringify(done.loot.pieces) === JSON.stringify(exp.pieces), "service loot = engine loot for the server seed");
 ok(done.profile.dungeons.f?.[0] === 1, "profile shows progress");

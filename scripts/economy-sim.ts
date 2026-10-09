@@ -24,7 +24,7 @@ function sim(c: Cfg, days = 42) {
 const base = { levelsPerDay: 30, repeat: 0.6, unlockDay: [1,1,1,2,4,7,11,16,22], freePull: 250, start: 500 };
 const scen: Record<string, Cfg> = {
   "A) hoy: pago x1.35 por rango, misiones actuales": { ...base, P: [20,27,36,49,66,89,120,162,219], CHEST: [1000,1600,2500,3500,5000,7000,10000,14000,20000], missionsDay: 500+1250/7+1000/7, torre: 100 },
-  "B) propuesta: pago casi plano, cofres chicos tras D, misiones -45%": { ...base, P: [25,25,26,27,28,30,32,34,36], CHEST: [1000,1600,2500,1200,1500,2000,2500,3000,4000], missionsDay: (275+700/7+550/7), torre: 50 },
+  "B) propuesta: pago casi plano, cofres chicos tras D, misiones -45%": { ...base, P: [60,75,95,120,150,180,210,240,270], CHEST: [1000,1600,2500,1200,1500,2000,2500,3000,4000], missionsDay: (275+700/7+550/7), torre: 50 },
 };
 for (const [name, c] of Object.entries(scen)) {
   const rows = sim(c);

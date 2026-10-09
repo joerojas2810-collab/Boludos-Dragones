@@ -21,7 +21,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 9;
+export const ENGINE_VERSION = 10;
 
 export type FightRole = "normal" | "elite" | "final";
 

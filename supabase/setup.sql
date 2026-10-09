@@ -8925,6 +8925,16 @@ begin
   return jsonb_build_object('version', v_ver);
 end $$;
 
+-- ===== 0044_level_coins.sql =====
+-- 0044: level coins x2.4..7.5 (steady state ~2 ten-pulls a day). Mirror of LEVEL_COINS in
+-- src/lib/game/levelPay.ts. Idempotent.
+create or replace function public.level_base_coins(p_rank text) returns int
+language sql immutable set search_path = ''
+as $$
+  select case p_rank when 'f' then 60 when 'e' then 75 when 'd' then 95 when 'c' then 120
+    when 'b' then 150 when 'a' then 180 when 's' then 210 when 'ss' then 240 when 'ssr' then 270 end
+$$;
+
 -- ===== 0018_lockdown_functions.sql =====
 -- 0018_lockdown_functions: re-apply the function lockdown to EVERY function in public.
 -- Why: a new signature (apply_pull with p_pity_ssr, bank_run with p_clear/p_parts,

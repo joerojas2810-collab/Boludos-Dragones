@@ -80,8 +80,8 @@ describe("level loot", () => {
   });
 
   it("pays flat coins, repeats 60% with daily decay", () => {
-    expect(levelCoins("f", 0, false)).toBe(25);
-    expect(levelCoins("f", 0, true, 1)).toBe(15);
+    expect(levelCoins("f", 0, false)).toBe(60);
+    expect(levelCoins("f", 0, true, 1)).toBe(36);
     expect(levelCoins("f", 0, true, 30)).toBeLessThan(levelCoins("f", 0, true, 1));
     expect(levelDecay(100)).toBe(0.1);
     expect(firstClearChest("d", 0)).toBe(2500);

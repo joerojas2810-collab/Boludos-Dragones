@@ -7,7 +7,7 @@ export const SKILL_LEVEL = 5;
 
 // ---- tuning (scripts/run-sim.ts) ----
 export const SWEEP_POWER = 1; // Barrido: damage vs EACH enemy
-export const STORM_POWER = 1; // Tormenta: damage vs EACH enemy
+export const STORM_POWER = 1.3; // Tormenta: damage vs EACH enemy
 export const COUNTER_ROUNDS = 2; // Contraataque lasts this many round ends
 export const COUNTER_TAKEN = 0.5; // damage taken by the hero while it is up
 export const COUNTER_REFLECT = 1.2; // x the unreduced hit, sent back
@@ -17,7 +17,7 @@ export const DOUBLE_STRIKE_POWER = 0.95; // per hit (two hits)
 export const EXECUTE_POWER = 1.6;
 export const EXECUTE_BELOW = 0.4; // target hp fraction
 export const EXECUTE_MULT = 2;
-export const SANCTUARY_HEAL = 0.14; // fraction of max hp
+export const SANCTUARY_HEAL = 0.10; // fraction of max hp
 export const SMITE_POWER = 1.55;
 export const SMITE_LIFESTEAL = 0.5; // fraction of damage dealt
 
