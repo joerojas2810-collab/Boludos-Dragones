@@ -7,9 +7,7 @@ import { Vfx, VfxNumber } from "./Vfx";
 import { reducedMotion } from "./motion";
 import "./fx.css";
 
-// Impact timing matches BattleArena's STAGGER_S (0.3 s per event).
-const STAGGER_S = 0.3;
-const IMPACT_S = 0.2;
+import { IMPACT_S, STAGGER_S } from "./timing";
 const HITSTOP_MS = 80;
 const MAX_PARTICLE_EVENTS = 3;
 // false = the old CSS particle bursts instead of the painted slash sprites.

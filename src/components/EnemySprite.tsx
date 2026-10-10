@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { AnimSheet } from "@/components/AnimSheet";
 import { isPixel } from "@/lib/art/pixel";
+import { preloadImages } from "@/lib/preload";
 import { enemyAnim, PX_ASPECT, PX_FRAME_HEIGHT, type EnemyAction } from "@/lib/art/enemies";
 import type { Element } from "@/lib/game/elements";
 import type { EnemyFamily } from "@/lib/game/worlds";
@@ -50,8 +51,11 @@ export function EnemySprite({
   const shown = done && cur !== "defeat" ? "idle" : cur;
   const anim = enemyAnim(family, tier, element, shown, finalRank);
   useEffect(() => {
-    for (const a of ["idle", "attack", "hit", "defeat", "entrance"] as const)
-      new Image().src = enemyAnim(family, tier, element, a, finalRank).src;
+    preloadImages(
+      (["idle", "attack", "hit", "defeat", "entrance"] as const).map(
+        (a) => enemyAnim(family, tier, element, a, finalRank).src,
+      ),
+    );
   }, [family, tier, element, finalRank]);
   return (
     <div

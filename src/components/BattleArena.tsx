@@ -14,11 +14,13 @@ import { CLASS_ART, ELEMENT_ART, HERO_ART_V } from "@/lib/art";
 import paintedHeroes from "@/lib/art/hero-integration.generated.json";
 import type { HeroAction } from "@/lib/art/heroes";
 import { Vfx } from "@/components/fx/Vfx";
+import { STAGGER_S } from "@/components/fx/timing";
+import { effectSrc } from "@/lib/art/effects";
+import { preloadImages } from "@/lib/preload";
 import { attackOf, enemyIntents, type Battle, type Combatant } from "@/lib/game/combat";
 import { intentTip, type Tip } from "@/lib/game/explain";
 
 // Animation for who attacked / who got hit in the last step, staggered like the sfx.
-const STAGGER_S = 0.3;
 
 // One inline animation per event, in order: lunge for the actor's own hits,
 // hurt when the other side connects. Each event starts STAGGER_S after the last.
@@ -115,15 +117,21 @@ function bigMomentFx(b: Battle) {
   };
 }
 
-// Warm the browser cache with every sheet of this fight so an action never
+// Effects every fight can show (hits per element, damage numbers, guard, status marks): without a
+// warm cache they download when first needed and arrive after the blow they belong to.
+const FIGHT_EFFECTS = [
+  "hit_fire", "hit_water", "hit_wind", "hit_earth", "hit_lightning",
+  "critical_label", "damage_normal", "damage_critical", "heal_number", "dodge",
+  "element_advantage", "element_disadvantage", "perfect_guard", "regeneration", "shield",
+  "defeat", "victory",
+];
+
+// Warm the browser cache (and decode) every sheet of this fight so an action never
 // stalls on a first-time download (the hitch before attacks).
 function usePreload(urls: string[]) {
   const key = urls.join("|");
   useEffect(() => {
-    for (const u of key.split("|")) {
-      const im = new Image();
-      im.src = u;
-    }
+    preloadImages([...key.split("|"), ...FIGHT_EFFECTS.map((id) => effectSrc(id))]);
   }, [key]);
 }
 

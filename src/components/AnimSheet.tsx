@@ -28,54 +28,69 @@ export const AnimSheet = (props: Props) => (
 
 function Sheet({ anim, flip = false, className = "", onDone, last, shift }: Props) {
   const { frames, fps, loop } = anim;
-  const ref = useRef<HTMLDivElement>(null);
-  const pos = (i: number) => `${frames > 1 ? (i / (frames - 1)) * 100 : 0}% 0`;
+  const box = useRef<HTMLDivElement>(null);
+  const strip = useRef<HTMLDivElement>(null);
+  // The strip is `frames` cells wide inside a clipping box; showing frame i is a translateX of the
+  // strip by i cells. Transforms run on the compositor, so frames keep their pace even while React
+  // is busy rendering (background-position animations repaint on the main thread and stutter).
+  const at = (i: number) => `translateX(${(-i / frames) * 100}%)`;
   const move = (i: number) =>
     shift
       ? `translate(${shift[Math.min(i, shift.length - 1)][0]}%, ${shift[Math.min(i, shift.length - 1)][1]}%)`
       : "none";
-  // Frames advance on the compositor via one Web Animation (no React render per frame).
   useEffect(() => {
-    const el = ref.current;
-    if (!el || last) return;
+    const el = strip.current;
+    const outer = box.current;
+    if (!el || !outer || last) return;
     if (frames < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       // Keep a static pose, but complete its visual lifecycle at the normal time.
       if (loop) return;
-      el.style.backgroundPosition = pos(frames - 1);
-      el.style.transform = move(frames - 1);
+      el.style.transform = at(frames - 1);
+      outer.style.transform = move(frames - 1);
       const timer = setTimeout(() => onDone?.(), fps > 0 ? (frames / fps) * 1000 : 0);
       return () => clearTimeout(timer);
     }
-    const keys: Keyframe[] = Array.from({ length: frames }, (_, i) => ({
-      backgroundPosition: pos(i),
-      transform: move(i),
-      offset: i / frames,
-      easing: "step-end",
-    }));
-    keys.push({ backgroundPosition: pos(frames - 1), transform: move(frames - 1), offset: 1 });
-    const run = el.animate(keys, {
-      duration: (frames / fps) * 1000,
-      iterations: loop ? Infinity : 1,
-      fill: "forwards",
-    });
+    const duration = (frames / fps) * 1000;
+    const opts: KeyframeAnimationOptions = { duration, iterations: loop ? Infinity : 1, fill: "forwards" };
+    const frame = (f: (i: number) => string, prop: "transform") =>
+      Array.from({ length: frames + 1 }, (_, i) => ({
+        [prop]: f(Math.min(i, frames - 1)),
+        offset: i / frames,
+        easing: "step-end",
+      })) as Keyframe[];
+    const run = el.animate(frame(at, "transform"), opts);
+    const shifted = shift ? outer.animate(frame(move, "transform"), opts) : null;
     if (!loop) run.onfinish = () => onDone?.();
-    return () => run.cancel();
+    return () => {
+      run.cancel();
+      shifted?.cancel();
+    };
   }, [anim.src, frames, fps, loop, last]); // eslint-disable-line react-hooks/exhaustive-deps
   const f0 = last ? frames - 1 : 0;
   return (
     <div
-      ref={ref}
+      ref={box}
       role="img"
       aria-hidden="true"
       className={`${flip ? "-scale-x-100" : ""} ${className}`}
       style={{
         aspectRatio: anim.aspect ?? 1,
+        overflow: "hidden",
         transform: shift ? move(f0) : undefined,
-        backgroundImage: `url(${anim.src})`,
-        backgroundRepeat: "no-repeat",
-        backgroundSize: `${frames * 100}% 100%`,
-        backgroundPosition: pos(f0),
       }}
-    />
+    >
+      <div
+        ref={strip}
+        style={{
+          width: `${frames * 100}%`,
+          height: "100%",
+          willChange: "transform",
+          transform: at(f0),
+          backgroundImage: `url(${anim.src})`,
+          backgroundRepeat: "no-repeat",
+          backgroundSize: "100% 100%",
+        }}
+      />
+    </div>
   );
 }
