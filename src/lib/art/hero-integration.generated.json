@@ -1,7 +1,13 @@
 {
-  "version": "painted_assassin_20261009",
+  "version": "barbarian_20261009",
   "frame_size": 384,
   "idle_bounds": {
+    "berserker": [
+      95,
+      88,
+      194,
+      272
+    ],
     "knight": [
       92,
       127,

@@ -20,27 +20,27 @@ import { HERO_ART_V } from "@/lib/art";
 import paintedHeroes from "@/lib/art/hero-integration.generated.json";
 import pixelHeroes from "@/lib/art/pixel-heroes.generated.json";
 
-const CLASSES = ["knight", "mage", "rogue", "cleric"] as const;
+const CLASSES = ["knight", "mage", "rogue", "cleric", "berserker"] as const;
 type ArtClass = (typeof CLASSES)[number];
 type Style = "painted" | "pixel";
-const CLASS_LABELS: Record<ArtClass, string> = { knight: "Caballero", mage: "Mago", rogue: "Asesina", cleric: "Clérigo" };
-const GAME_CLASSES = { knight: "caballero", mage: "mago", rogue: "picaro", cleric: "clerigo" } as const;
+const CLASS_LABELS: Record<ArtClass, string> = { knight: "Caballero", mage: "Mago", rogue: "Asesina", cleric: "Clérigo", berserker: "Bárbara" };
+const GAME_CLASSES = { knight: "caballero", mage: "mago", rogue: "picaro", cleric: "clerigo", berserker: "berserker" } as const;
 const ELEMENTS = ["fire", "water", "earth", "lightning", "wind"] as const;
 type ArtElement = (typeof ELEMENTS)[number];
 const ELEMENT_LABELS: Record<ArtElement, string> = { fire: "Fuego", water: "Agua", earth: "Tierra", lightning: "Rayo", wind: "Viento" };
 const GAME_ELEMENTS = { fire: "fuego", water: "agua", earth: "tierra", lightning: "rayo", wind: "viento" } as const;
 const ACTION_LABELS: Record<HeroAction, string> = { idle: "Reposo", attack_1: "Ataque rápido", attack_2: "Ataque fuerte", attack_3: "Habilidad", defend: "Defender", perfect_guard: "Guardia perfecta", hit: "Recibir golpe", dodge: "Esquivar", defeat: "Derrota", victory: "Victoria" };
-const PX_BOUNDS: Record<ArtClass, readonly [number, number, number, number]> = { knight: [10,25,121,155], mage: [13,13,113,167], rogue: [27,56,86,124], cleric: [10,25,107,155] };
+const PX_BOUNDS: Record<ArtClass, readonly [number, number, number, number]> = { knight: [10,25,121,155], mage: [13,13,113,167], rogue: [27,56,86,124], cleric: [10,25,107,155], berserker: [51,42,102,137] };
 const BACKGROUND_LAYERS = ["sky", "far", "mid", "ground", "foreground"];
 
 // Isolated display fixture: no account or storage changes.
-function EquipmentPreview() {
+function EquipmentPreview({ barbarian = false }: { barbarian?: boolean }) {
   const rng = createRng(71);
-  const hero: OwnedCharacter = { ...generateCharacter(rng, "caballero"), id: "preview-knight", element: "rayo", rarity: "s", stars: 1 };
+  const hero: OwnedCharacter = { ...generateCharacter(rng, barbarian ? "berserker" : "caballero"), id: "preview-hero", element: "rayo", rarity: "s", stars: 1 };
   const profile = createProfile();
   profile.characters = [hero];
   (["casco", "peto", "piernas", "arma", "zapatos", "collar"] as Slot[]).forEach((slot, i) => {
-    const type = slot === "arma" ? "espada" as const : slot;
+    const type = slot === "arma" ? (barbarian ? "martillo" as const : "espada" as const) : slot;
     const rarity = RARITY_IDS[i];
     const piece = { id: `preview-${slot}`, name: weaponName(type, "rayo", rarity), type, rarity, element: "rayo" as const, stars: 0, atkBonus: weaponAtk(rarity, 0, type) };
     profile.weapons.push(piece);
@@ -49,9 +49,9 @@ function EquipmentPreview() {
   return <div inert className="mx-auto max-w-md space-y-3 rounded border border-slate-600 bg-slate-800 p-4"><EquipmentEditor c={hero} profile={profile} act={() => {}} /></div>;
 }
 
-function BattlePreview() {
+function BattlePreview({ barbarian = false }: { barbarian?: boolean }) {
   const rng = createRng(72);
-  const hero = { ...generateCharacter(rng, "caballero"), element: "rayo" as const };
+  const hero = { ...generateCharacter(rng, barbarian ? "berserker" : "caballero"), element: "rayo" as const };
   const foe = generateCharacter(rng, "mago");
   const battle = startBattle(hero, [foe], rng);
   return <div className="flex h-[420px] flex-col"><BattleArena b={battle} world={0} playerExtra="Muestra" enemyExtra={() => "Muestra"} enemy={0} enemyArt={(_, c) => <HeroSprite classId={c.char.classId} element={c.char.element} animated flip />} /></div>;
@@ -65,7 +65,7 @@ function source(cls: ArtClass, element: ArtElement, action: HeroAction, style: S
 
 function Portrait({ cls, element, style }: { cls: ArtClass; element: ArtElement; style: Style }) {
   const [x,y,width,height] = style === "painted" ? paintedHeroes.idle_bounds[cls] : PX_BOUNDS[cls];
-  const frameWidth = style === "painted" ? paintedHeroes.frame_size : pixelHeroes.runtime_frame_width;
+  const frameWidth = style === "painted" ? paintedHeroes.frame_size : cls === "berserker" ? 204 : pixelHeroes.runtime_frame_width;
   const frameHeight = style === "painted" ? paintedHeroes.frame_size : pixelHeroes.frame_height;
   const sheetWidth = frameWidth * HERO_ACTIONS.idle.frames;
   return <div className="flex h-40 w-full items-center justify-center overflow-hidden" aria-hidden="true">
@@ -74,7 +74,7 @@ function Portrait({ cls, element, style }: { cls: ArtClass; element: ArtElement;
 }
 
 function AnimatedHero({ cls, element, action, style }: { cls: ArtClass; element: ArtElement; action: HeroAction; style: Style }) {
-  const frameWidth = style === "painted" ? paintedHeroes.frame_size : pixelHeroes.runtime_frame_width;
+  const frameWidth = style === "painted" ? paintedHeroes.frame_size : cls === "berserker" ? 204 : pixelHeroes.runtime_frame_width;
   const frameHeight = style === "painted" ? paintedHeroes.frame_size : pixelHeroes.frame_height;
   return <div style={{ width: `${192 * frameWidth / frameHeight}px`, maxWidth: "100%", imageRendering: style === "pixel" ? "pixelated" : "auto" }}>
     <AnimSheet key={`${style}-${cls}-${element}-${action}`} anim={{ src: source(cls,element,action,style), ...HERO_ACTIONS[action], aspect: frameWidth / frameHeight }} className="w-full" />
@@ -88,13 +88,15 @@ export function Review() {
   const [element,setElement] = useState<ArtElement>("fire");
   const [replay,setReplay] = useState(0);
   const [showPull, setShowPull] = useState(false);
-  const pullSample: ItemView[] = Array.from({ length: 10 }, (_, i) => ({ kind: "character", name: CLASS_LABELS[CLASSES[i % 4]], classId: GAME_CLASSES[CLASSES[i % 4]], element: GAME_ELEMENTS[ELEMENTS[i % 5]], rarity: RARITY_IDS[i % 7], stars: i % 4, badge: i % 3 === 0 ? "+1 COPIA" : "NUEVO" }));
+  const [barbarianPreview, setBarbarianPreview] = useState(true);
+  const pullSample: ItemView[] = Array.from({ length: 10 }, (_, i) => ({ kind: "character", name: CLASS_LABELS[CLASSES[i % CLASSES.length]], classId: GAME_CLASSES[CLASSES[i % CLASSES.length]], element: GAME_ELEMENTS[ELEMENTS[i % 5]], rarity: RARITY_IDS[i % 7], stars: i % 4, badge: i % 3 === 0 ? "+1 COPIA" : "NUEVO" }));
   return <main className="min-h-screen bg-slate-950 p-3 text-slate-100 sm:p-6">
     {showPull && <PullReveal items={pullSample} onDone={() => setShowPull(false)} />}
     <div className="mx-auto max-w-6xl space-y-6">
       <header className="space-y-3">
         <h1 className="text-2xl font-bold text-amber-300">Revisión de héroes</h1>
-        <p className="text-sm text-slate-300">Los cuatro diseños, sus elementos y animaciones. La Asesina también tiene su versión pixel art.</p>
+        <p className="text-sm text-slate-300">Fase 5: Bárbara en pintado y pixel art, con diez acciones y cinco elementos. Producción local para revisión.</p>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={barbarianPreview} onChange={e => setBarbarianPreview(e.target.checked)} />Ver Bárbara en equipo y combate</label>
         <nav className="flex flex-wrap gap-4 text-sm text-cyan-300"><Link href="/coleccion">Colección</Link><Link href="/prueba?n=3">Combate de prueba</Link><Link href="/galeria-px">Galería pixel art</Link></nav>
         <button className="btn" onClick={() => setShowPull(true)}>Ver invocación ×10</button>
         <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-600 bg-slate-900 p-3">
@@ -106,23 +108,23 @@ export function Review() {
       </header>
       <section aria-labelledby="cards-title" className="space-y-3">
         <h2 id="cards-title" className="text-lg font-semibold">Tarjetas del juego</h2>
-        <div className="grid grid-cols-2 justify-items-center gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 justify-items-center gap-3 sm:grid-cols-5">
           {CLASSES.map(cls => <ItemCard key={cls} size={120} item={{ kind: "character", name: CLASS_LABELS[cls], classId: GAME_CLASSES[cls], element: GAME_ELEMENTS[element], rarity: "s", stars: 3 }} />)}
         </div>
       </section>
       <section aria-labelledby="equipment-title" className="space-y-3">
         <h2 id="equipment-title" className="text-lg font-semibold">Proporción y rangos del equipo</h2>
         <p className="text-sm text-slate-300">Muestra visual del panel real con objetos de distintos rangos.</p>
-        <EquipmentPreview />
+        <EquipmentPreview barbarian={barbarianPreview} />
       </section>
       <section aria-labelledby="battle-title" className="space-y-3">
         <h2 id="battle-title" className="text-lg font-semibold">Centrado en combate</h2>
-        <BattlePreview />
+        <BattlePreview barbarian={barbarianPreview} />
       </section>
       <section aria-labelledby="game-title" className="space-y-3">
         <h2 id="game-title" className="text-lg font-semibold">Vista en el juego</h2>
         <p className="text-sm text-slate-300">Esta vista usa el estilo elegido en el juego. El selector de esta página cambia las muestras de abajo.</p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{CLASSES.map(cls=><article key={cls} className="flex min-w-0 flex-col items-center gap-3 rounded-lg border border-slate-600 bg-slate-900 p-2">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">{CLASSES.map(cls=><article key={cls} className="flex min-w-0 flex-col items-center gap-3 rounded-lg border border-slate-600 bg-slate-900 p-2">
           <h3 className="text-sm font-semibold">{CLASS_LABELS[cls]}</h3>
           <div className="h-[140px] w-[108px] overflow-hidden"><HeroSprite classId={GAME_CLASSES[cls]} element={GAME_ELEMENTS[element]} crop fitBox className="h-full w-full" /></div>
           <div className="w-full max-w-[192px] aspect-square"><HeroSprite key={`${replay}-${cls}`} classId={GAME_CLASSES[cls]} element={GAME_ELEMENTS[element]} animated action={action} className="h-full w-full" /></div>
@@ -131,8 +133,8 @@ export function Review() {
       <section aria-labelledby="scene-title" className="space-y-2">
         <h2 id="scene-title" className="text-lg font-semibold">Sobre el escenario</h2>
         <div className="relative isolate overflow-hidden rounded-lg border border-slate-600 bg-slate-900">
-          {BACKGROUND_LAYERS.map(layer=><div key={layer} aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ backgroundImage: `url(/art/backgrounds-px/canyon_normal_desktop_${layer}.png)`, backgroundSize: "cover", backgroundPosition: "center", imageRendering: "pixelated" }} />)}
-          <div className="grid grid-cols-2 items-end gap-2 px-2 pb-6 pt-24 sm:grid-cols-4 sm:gap-4 sm:px-6 sm:pt-40">
+          {BACKGROUND_LAYERS.map(layer=><div key={layer} aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ backgroundImage: `url(/art/${style === "pixel" ? "backgrounds-px" : "backgrounds"}/canyon_normal_desktop_${layer}.${style === "pixel" ? "png" : "webp"})`, backgroundSize: "cover", backgroundPosition: "center", imageRendering: style === "pixel" ? "pixelated" : "auto" }} />)}
+          <div className="grid grid-cols-2 items-end gap-2 px-2 pb-6 pt-24 sm:grid-cols-5 sm:gap-4 sm:px-6 sm:pt-40">
             {CLASSES.map(cls=><div key={cls} className="flex min-w-0 flex-col items-center">
               <div key={`${replay}-${cls}`} className="flex h-48 w-full items-end justify-center"><AnimatedHero cls={cls} element={element} action={action} style={style} /></div>
               <span className="rounded bg-slate-950/85 px-2 py-1 text-sm font-semibold">{CLASS_LABELS[cls]}</span>
@@ -150,7 +152,7 @@ export function Review() {
       </section>
       <section aria-labelledby="actions-title" className="space-y-3">
         <h2 id="actions-title" className="text-lg font-semibold">{ACTION_LABELS[action]} · {ELEMENT_LABELS[element]}</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{CLASSES.map(cls=><article key={`${replay}-${cls}`} className="flex min-w-0 flex-col items-center rounded-lg border border-slate-600 bg-slate-900 p-2"><AnimatedHero cls={cls} element={element} action={action} style={style}/><p className="mt-2 text-sm">{CLASS_LABELS[cls]}</p></article>)}</div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">{CLASSES.map(cls=><article key={`${replay}-${cls}`} className="flex min-w-0 flex-col items-center rounded-lg border border-slate-600 bg-slate-900 p-2"><AnimatedHero cls={cls} element={element} action={action} style={style}/><p className="mt-2 text-sm">{CLASS_LABELS[cls]}</p></article>)}</div>
       </section>
     </div>
   </main>;

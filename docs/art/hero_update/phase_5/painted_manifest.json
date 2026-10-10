@@ -1,0 +1,1941 @@
+{
+  "phase": 5,
+  "status": "local_review_pending",
+  "class_id": "berserker",
+  "display_name": "Bárbara",
+  "style": "painted",
+  "frame_size": [
+    384,
+    384
+  ],
+  "anchor": [
+    192,
+    360
+  ],
+  "runtime_frame_size": [
+    384,
+    384
+  ],
+  "idle_bounds": [
+    95,
+    88,
+    194,
+    272
+  ],
+  "actions": {
+    "idle": {
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "hold": false
+    },
+    "attack_1": {
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "hold": false
+    },
+    "attack_2": {
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false
+    },
+    "attack_3": {
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false
+    },
+    "defend": {
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "hold": true
+    },
+    "perfect_guard": {
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false
+    },
+    "hit": {
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "hold": false
+    },
+    "dodge": {
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false
+    },
+    "defeat": {
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true
+    },
+    "victory": {
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true
+    }
+  },
+  "assets": [
+    {
+      "filename": "heroes/hero_berserker_fire_idle.png",
+      "runtime_filename": "runtime/hero_berserker_fire_idle.webp",
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_idle_element.png",
+      "element": "fire",
+      "action": "idle",
+      "filename_2x": "heroes/hero_berserker_fire_idle_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_fire_idle.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_water_idle.png",
+      "runtime_filename": "runtime/hero_berserker_water_idle.webp",
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_idle_element.png",
+      "element": "water",
+      "action": "idle",
+      "filename_2x": "heroes/hero_berserker_water_idle_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_water_idle.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_earth_idle.png",
+      "runtime_filename": "runtime/hero_berserker_earth_idle.webp",
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_idle_element.png",
+      "element": "earth",
+      "action": "idle",
+      "filename_2x": "heroes/hero_berserker_earth_idle_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_earth_idle.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_lightning_idle.png",
+      "runtime_filename": "runtime/hero_berserker_lightning_idle.webp",
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_idle_element.png",
+      "element": "lightning",
+      "action": "idle",
+      "filename_2x": "heroes/hero_berserker_lightning_idle_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_lightning_idle.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_wind_idle.png",
+      "runtime_filename": "runtime/hero_berserker_wind_idle.webp",
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_idle_element.png",
+      "element": "wind",
+      "action": "idle",
+      "filename_2x": "heroes/hero_berserker_wind_idle_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_wind_idle.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_fire_attack_1.png",
+      "runtime_filename": "runtime/hero_berserker_fire_attack_1.webp",
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_1_element.png",
+      "element": "fire",
+      "action": "attack_1",
+      "filename_2x": "heroes/hero_berserker_fire_attack_1_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_fire_attack_1.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_water_attack_1.png",
+      "runtime_filename": "runtime/hero_berserker_water_attack_1.webp",
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_1_element.png",
+      "element": "water",
+      "action": "attack_1",
+      "filename_2x": "heroes/hero_berserker_water_attack_1_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_water_attack_1.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_earth_attack_1.png",
+      "runtime_filename": "runtime/hero_berserker_earth_attack_1.webp",
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_1_element.png",
+      "element": "earth",
+      "action": "attack_1",
+      "filename_2x": "heroes/hero_berserker_earth_attack_1_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_earth_attack_1.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_lightning_attack_1.png",
+      "runtime_filename": "runtime/hero_berserker_lightning_attack_1.webp",
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_1_element.png",
+      "element": "lightning",
+      "action": "attack_1",
+      "filename_2x": "heroes/hero_berserker_lightning_attack_1_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_lightning_attack_1.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_wind_attack_1.png",
+      "runtime_filename": "runtime/hero_berserker_wind_attack_1.webp",
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_1_element.png",
+      "element": "wind",
+      "action": "attack_1",
+      "filename_2x": "heroes/hero_berserker_wind_attack_1_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_wind_attack_1.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_fire_attack_2.png",
+      "runtime_filename": "runtime/hero_berserker_fire_attack_2.webp",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_2_element.png",
+      "element": "fire",
+      "action": "attack_2",
+      "filename_2x": "heroes/hero_berserker_fire_attack_2_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_fire_attack_2.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_water_attack_2.png",
+      "runtime_filename": "runtime/hero_berserker_water_attack_2.webp",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_2_element.png",
+      "element": "water",
+      "action": "attack_2",
+      "filename_2x": "heroes/hero_berserker_water_attack_2_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_water_attack_2.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_earth_attack_2.png",
+      "runtime_filename": "runtime/hero_berserker_earth_attack_2.webp",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_2_element.png",
+      "element": "earth",
+      "action": "attack_2",
+      "filename_2x": "heroes/hero_berserker_earth_attack_2_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_earth_attack_2.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_lightning_attack_2.png",
+      "runtime_filename": "runtime/hero_berserker_lightning_attack_2.webp",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_2_element.png",
+      "element": "lightning",
+      "action": "attack_2",
+      "filename_2x": "heroes/hero_berserker_lightning_attack_2_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_lightning_attack_2.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_wind_attack_2.png",
+      "runtime_filename": "runtime/hero_berserker_wind_attack_2.webp",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_2_element.png",
+      "element": "wind",
+      "action": "attack_2",
+      "filename_2x": "heroes/hero_berserker_wind_attack_2_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_wind_attack_2.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_fire_attack_3.png",
+      "runtime_filename": "runtime/hero_berserker_fire_attack_3.webp",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_3_element.png",
+      "element": "fire",
+      "action": "attack_3",
+      "filename_2x": "heroes/hero_berserker_fire_attack_3_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_fire_attack_3.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_water_attack_3.png",
+      "runtime_filename": "runtime/hero_berserker_water_attack_3.webp",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_3_element.png",
+      "element": "water",
+      "action": "attack_3",
+      "filename_2x": "heroes/hero_berserker_water_attack_3_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_water_attack_3.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_earth_attack_3.png",
+      "runtime_filename": "runtime/hero_berserker_earth_attack_3.webp",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_3_element.png",
+      "element": "earth",
+      "action": "attack_3",
+      "filename_2x": "heroes/hero_berserker_earth_attack_3_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_earth_attack_3.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_lightning_attack_3.png",
+      "runtime_filename": "runtime/hero_berserker_lightning_attack_3.webp",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_3_element.png",
+      "element": "lightning",
+      "action": "attack_3",
+      "filename_2x": "heroes/hero_berserker_lightning_attack_3_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_lightning_attack_3.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_wind_attack_3.png",
+      "runtime_filename": "runtime/hero_berserker_wind_attack_3.webp",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_attack_3_element.png",
+      "element": "wind",
+      "action": "attack_3",
+      "filename_2x": "heroes/hero_berserker_wind_attack_3_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_wind_attack_3.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_fire_defend.png",
+      "runtime_filename": "runtime/hero_berserker_fire_defend.webp",
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_defend_element.png",
+      "element": "fire",
+      "action": "defend",
+      "filename_2x": "heroes/hero_berserker_fire_defend_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_fire_defend.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_water_defend.png",
+      "runtime_filename": "runtime/hero_berserker_water_defend.webp",
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_defend_element.png",
+      "element": "water",
+      "action": "defend",
+      "filename_2x": "heroes/hero_berserker_water_defend_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_water_defend.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_earth_defend.png",
+      "runtime_filename": "runtime/hero_berserker_earth_defend.webp",
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_defend_element.png",
+      "element": "earth",
+      "action": "defend",
+      "filename_2x": "heroes/hero_berserker_earth_defend_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_earth_defend.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_lightning_defend.png",
+      "runtime_filename": "runtime/hero_berserker_lightning_defend.webp",
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_defend_element.png",
+      "element": "lightning",
+      "action": "defend",
+      "filename_2x": "heroes/hero_berserker_lightning_defend_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_lightning_defend.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_wind_defend.png",
+      "runtime_filename": "runtime/hero_berserker_wind_defend.webp",
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_defend_element.png",
+      "element": "wind",
+      "action": "defend",
+      "filename_2x": "heroes/hero_berserker_wind_defend_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_wind_defend.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_fire_perfect_guard.png",
+      "runtime_filename": "runtime/hero_berserker_fire_perfect_guard.webp",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_perfect_guard_element.png",
+      "element": "fire",
+      "action": "perfect_guard",
+      "filename_2x": "heroes/hero_berserker_fire_perfect_guard_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_fire_perfect_guard.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_water_perfect_guard.png",
+      "runtime_filename": "runtime/hero_berserker_water_perfect_guard.webp",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_perfect_guard_element.png",
+      "element": "water",
+      "action": "perfect_guard",
+      "filename_2x": "heroes/hero_berserker_water_perfect_guard_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_water_perfect_guard.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_earth_perfect_guard.png",
+      "runtime_filename": "runtime/hero_berserker_earth_perfect_guard.webp",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_perfect_guard_element.png",
+      "element": "earth",
+      "action": "perfect_guard",
+      "filename_2x": "heroes/hero_berserker_earth_perfect_guard_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_earth_perfect_guard.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_lightning_perfect_guard.png",
+      "runtime_filename": "runtime/hero_berserker_lightning_perfect_guard.webp",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_perfect_guard_element.png",
+      "element": "lightning",
+      "action": "perfect_guard",
+      "filename_2x": "heroes/hero_berserker_lightning_perfect_guard_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_lightning_perfect_guard.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_wind_perfect_guard.png",
+      "runtime_filename": "runtime/hero_berserker_wind_perfect_guard.webp",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_perfect_guard_element.png",
+      "element": "wind",
+      "action": "perfect_guard",
+      "filename_2x": "heroes/hero_berserker_wind_perfect_guard_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_wind_perfect_guard.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_fire_hit.png",
+      "runtime_filename": "runtime/hero_berserker_fire_hit.webp",
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_hit_element.png",
+      "element": "fire",
+      "action": "hit",
+      "filename_2x": "heroes/hero_berserker_fire_hit_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_fire_hit.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_water_hit.png",
+      "runtime_filename": "runtime/hero_berserker_water_hit.webp",
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_hit_element.png",
+      "element": "water",
+      "action": "hit",
+      "filename_2x": "heroes/hero_berserker_water_hit_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_water_hit.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_earth_hit.png",
+      "runtime_filename": "runtime/hero_berserker_earth_hit.webp",
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_hit_element.png",
+      "element": "earth",
+      "action": "hit",
+      "filename_2x": "heroes/hero_berserker_earth_hit_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_earth_hit.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_lightning_hit.png",
+      "runtime_filename": "runtime/hero_berserker_lightning_hit.webp",
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_hit_element.png",
+      "element": "lightning",
+      "action": "hit",
+      "filename_2x": "heroes/hero_berserker_lightning_hit_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_lightning_hit.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_wind_hit.png",
+      "runtime_filename": "runtime/hero_berserker_wind_hit.webp",
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_hit_element.png",
+      "element": "wind",
+      "action": "hit",
+      "filename_2x": "heroes/hero_berserker_wind_hit_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_wind_hit.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_fire_dodge.png",
+      "runtime_filename": "runtime/hero_berserker_fire_dodge.webp",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_dodge_element.png",
+      "element": "fire",
+      "action": "dodge",
+      "filename_2x": "heroes/hero_berserker_fire_dodge_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_fire_dodge.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_water_dodge.png",
+      "runtime_filename": "runtime/hero_berserker_water_dodge.webp",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_dodge_element.png",
+      "element": "water",
+      "action": "dodge",
+      "filename_2x": "heroes/hero_berserker_water_dodge_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_water_dodge.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_earth_dodge.png",
+      "runtime_filename": "runtime/hero_berserker_earth_dodge.webp",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_dodge_element.png",
+      "element": "earth",
+      "action": "dodge",
+      "filename_2x": "heroes/hero_berserker_earth_dodge_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_earth_dodge.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_lightning_dodge.png",
+      "runtime_filename": "runtime/hero_berserker_lightning_dodge.webp",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_dodge_element.png",
+      "element": "lightning",
+      "action": "dodge",
+      "filename_2x": "heroes/hero_berserker_lightning_dodge_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_lightning_dodge.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_wind_dodge.png",
+      "runtime_filename": "runtime/hero_berserker_wind_dodge.webp",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_dodge_element.png",
+      "element": "wind",
+      "action": "dodge",
+      "filename_2x": "heroes/hero_berserker_wind_dodge_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_wind_dodge.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_fire_defeat.png",
+      "runtime_filename": "runtime/hero_berserker_fire_defeat.webp",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_defeat_element.png",
+      "element": "fire",
+      "action": "defeat",
+      "filename_2x": "heroes/hero_berserker_fire_defeat_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_fire_defeat.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_water_defeat.png",
+      "runtime_filename": "runtime/hero_berserker_water_defeat.webp",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_defeat_element.png",
+      "element": "water",
+      "action": "defeat",
+      "filename_2x": "heroes/hero_berserker_water_defeat_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_water_defeat.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_earth_defeat.png",
+      "runtime_filename": "runtime/hero_berserker_earth_defeat.webp",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_defeat_element.png",
+      "element": "earth",
+      "action": "defeat",
+      "filename_2x": "heroes/hero_berserker_earth_defeat_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_earth_defeat.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_lightning_defeat.png",
+      "runtime_filename": "runtime/hero_berserker_lightning_defeat.webp",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_defeat_element.png",
+      "element": "lightning",
+      "action": "defeat",
+      "filename_2x": "heroes/hero_berserker_lightning_defeat_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_lightning_defeat.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_wind_defeat.png",
+      "runtime_filename": "runtime/hero_berserker_wind_defeat.webp",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_defeat_element.png",
+      "element": "wind",
+      "action": "defeat",
+      "filename_2x": "heroes/hero_berserker_wind_defeat_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_wind_defeat.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_fire_victory.png",
+      "runtime_filename": "runtime/hero_berserker_fire_victory.webp",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_victory_element.png",
+      "element": "fire",
+      "action": "victory",
+      "filename_2x": "heroes/hero_berserker_fire_victory_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_fire_victory.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_water_victory.png",
+      "runtime_filename": "runtime/hero_berserker_water_victory.webp",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_victory_element.png",
+      "element": "water",
+      "action": "victory",
+      "filename_2x": "heroes/hero_berserker_water_victory_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_water_victory.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_earth_victory.png",
+      "runtime_filename": "runtime/hero_berserker_earth_victory.webp",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_victory_element.png",
+      "element": "earth",
+      "action": "victory",
+      "filename_2x": "heroes/hero_berserker_earth_victory_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_earth_victory.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_lightning_victory.png",
+      "runtime_filename": "runtime/hero_berserker_lightning_victory.webp",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_victory_element.png",
+      "element": "lightning",
+      "action": "victory",
+      "filename_2x": "heroes/hero_berserker_lightning_victory_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_lightning_victory.webp"
+    },
+    {
+      "filename": "heroes/hero_berserker_wind_victory.png",
+      "runtime_filename": "runtime/hero_berserker_wind_victory.webp",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_size": [
+        384,
+        384
+      ],
+      "anchor": [
+        192,
+        360
+      ],
+      "runtime_frame_size": [
+        384,
+        384
+      ],
+      "runtime_anchor": [
+        192,
+        360
+      ],
+      "mask": "masks/hero_berserker_victory_element.png",
+      "element": "wind",
+      "action": "victory",
+      "filename_2x": "heroes/hero_berserker_wind_victory_2x.png",
+      "frame_size_2x": [
+        768,
+        768
+      ],
+      "anchor_2x": [
+        384,
+        720
+      ],
+      "game_destination": "public/art/heroes/hero_berserker_wind_victory.webp"
+    }
+  ],
+  "animation_method": "Ten illustrated key poses, anchored breathing and limited integer translation; not skeletal animation",
+  "resolution_note": "@2x is an enlarged export; pixel width accommodates axe swings without shrinking the body"
+}

@@ -18,14 +18,14 @@ import type { TraitId } from "@/lib/game/traits";
 import "./pixel-sprites.css";
 
 // Hero dimensions are imported independently from the unchanged enemy sprites.
-const PX_ASPECT = pixelHeroes.runtime_frame_width / pixelHeroes.frame_height;
+const pixelFrameWidth = (classId: ClassId) => classId === "berserker" ? 204 : pixelHeroes.runtime_frame_width;
 // Opaque bounds of the first HD idle frame; thumbnails exclude transparent margins.
 const PX_IDLE_BOUNDS: Record<ClassId, readonly [number, number, number, number]> = {
   caballero: [10, 25, 121, 155],
   mago: [13, 13, 113, 167],
   picaro: [27, 56, 86, 124],
   clerigo: [10, 25, 107, 155],
-  berserker: [10, 25, 121, 155], // Knight sheets for now
+  berserker: [51, 42, 102, 137],
 };
 
 type Props = {
@@ -108,11 +108,12 @@ function Hero({
   const a: HeroAction = animated && !done ? action : "idle";
   const cls = CLASS_ART[classId];
   if (isPixel()) {
+    const frameWidth = pixelFrameWidth(classId);
     // ponytail: no trait accessories in pixel art yet (needs a phase 1b layer set).
     const src = `/art/heroes-px/hero_${cls}_${ELEMENT_ART[element]}_${a}.png?v=${HERO_ART_V}`;
     if (crop && !animated) {
       const [x, y, width, height] = PX_IDLE_BOUNDS[classId];
-      const sheetWidth = pixelHeroes.runtime_frame_width * HERO_ACTIONS.idle.frames;
+      const sheetWidth = frameWidth * HERO_ACTIONS.idle.frames;
       return <div role="img" aria-hidden="true" className={`pixel-hero-thumbnail ${className}`} style={fitBox ? { containerType: "size" } : undefined}>
         <div style={{
           aspectRatio: `${width} / ${height}`,
@@ -128,7 +129,7 @@ function Hero({
         }} />
       </div>;
     }
-    const anim = { ...sheet(src, a), aspect: PX_ASPECT };
+    const anim = { ...sheet(src, a), aspect: frameWidth / pixelHeroes.frame_height };
     const frame = animated ? (
       <AnimSheet anim={anim} onDone={notHoldOf(action) ? () => setDone(true) : undefined} />
     ) : (
@@ -150,7 +151,7 @@ function Hero({
       >
         <div
           className="pixel-sprite-frame"
-          style={{ aspectRatio: PX_ASPECT }}
+          style={{ aspectRatio: frameWidth / pixelHeroes.frame_height }}
         >
           {frame}
         </div>
