@@ -4,12 +4,13 @@
 // SQL persists, validates and makes it idempotent.
 import type { z } from "zod";
 import {
+  bossUnit,
+  COOP_K,
   coopNode,
   coopPool,
   coopPrizes,
   coopRank,
   coopTally,
-  replayCoop,
 } from "../game/coop";
 import { isRankUnlocked } from "../game/dungeonProgress";
 import type { RarityId } from "../game/rarity";
@@ -17,7 +18,6 @@ import { floorFight, roomDoors, type Climb, type FloorKind } from "../game/floor
 import { ENGINE_VERSION } from "../game/stage";
 import {
   advance as modelAdvance,
-  battleKey,
   can,
   DEFAULT_HERO,
   endNight,
@@ -56,8 +56,8 @@ import { RpcError } from "./rpc";
 import {
   alignRun,
   heroForRound,
+  applyFloor,
   newRoomRun,
-  replayFloor,
   timeoutRun,
 } from "./roomRun";
 import type { FloorRow, RoomDeps } from "./roomsStore";
@@ -359,29 +359,19 @@ export async function coopSubmitService(
   return guarded(async () => {
     await d.store.limit(`roomcoop:${player}`, 90, 60);
     await touch(d, player, room);
-    if (msg.engineVersion !== undefined && msg.engineVersion !== ENGINE_VERSION)
-      return fail("engine_outdated");
     const s = await load(d, room);
     if (s.phase === "closed") return fail("room_closed");
     if (s.phase !== "coop_boss") return fail("wrong_phase");
     if (s.deadline > 0 && d.now() > s.deadline + FIGHT_GRACE_MS)
       return fail("wrong_phase");
-    const { run, node } = await coopRun(d, s, player);
-    if (run.engineVersion !== ENGINE_VERSION) return fail("engine_outdated");
-    const rep = replayCoop(run, node, msg.actions);
-    await d.store.saveCoop(room, player, {
-      damage: rep.damage,
-      finished: rep.finished,
-      actions: msg.actions,
-    });
-    if (rep.rejectedAt !== null) {
-      await d.store.audit(player, "room_coop_rejected", {
-        room,
-        at: rep.rejectedAt,
-        n: msg.actions.length,
-      });
-      return fail("invalid_log");
-    }
+    const { run } = await coopRun(d, s, player);
+    // ponytail: no replay; one hero cannot deal more than its share of the shared bar, never go down.
+    const cap = Math.round(bossUnit(run.seed, coopRank(s.mode, s.rank)) * COOP_K.poolPerPlayer);
+    const prev = (await d.store.loadCoop(room)).find((r) => r.playerId === player);
+    const damage = Math.max(prev?.damage ?? 0, Math.min(Math.round(msg.damage), cap));
+    const finished = msg.finished || !!prev?.finished;
+    await d.store.saveCoop(room, player, { damage, finished, actions: [] });
+    const rep = { damage, finished };
     return {
       ok: true,
       state: phaseViewOf(s, d.now()),
@@ -629,8 +619,6 @@ export async function submitService(
   return guarded(async () => {
     await d.store.limit(`roomsubmit:${player}`, 30, 60);
     await touch(d, player, room);
-    if (msg.engineVersion !== undefined && msg.engineVersion !== ENGINE_VERSION)
-      return fail("engine_outdated");
     const s = await load(d, room);
     if (s.phase === "closed") return fail("room_closed");
     if (msg.floor !== s.floor) return fail("wrong_floor");
@@ -656,20 +644,13 @@ export async function submitService(
       return fail("wrong_phase");
     }
     const start = await runAtFloorStart(d, s, room, player, rows);
-    if (start.engineVersion !== ENGINE_VERSION) return fail("engine_outdated");
     if (start.status !== "active") return fail("not_active");
-    const key = battleKey(s.round, s.floor, player);
-    const boost = fightFloor ? await d.store.interferenceOn(room, key) : null;
-    const rep = replayFloor(start, msg.actions, {
-      kind: row.doorKind,
-      boost,
-    });
+    const rep = applyFloor(start, msg.report, { kind: row.doorKind });
     if (!rep.ok) {
       await d.store.audit(player, "room_floor_rejected", {
         room,
         floor: s.floor,
         reason: rep.reason,
-        n: msg.actions.length,
       });
       if (!fightFloor) return fail("invalid_log");
       const run = timeoutRun(start);
@@ -692,7 +673,7 @@ export async function submitService(
     }
     if (!fightFloor || rep.outcome === null) {
       await d.store.saveFloorRun(room, s.round, s.floor, player, {
-        actions: msg.actions,
+        actions: [],
         runAfter: rep.run,
       });
       return {
@@ -708,7 +689,7 @@ export async function submitService(
       room,
       floor: s.floor,
       outcome: rep.outcome,
-      actions: msg.actions,
+      actions: [],
       runAfter: rep.run,
       eliminated: rep.eliminated,
     });

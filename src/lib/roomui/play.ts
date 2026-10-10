@@ -1,57 +1,53 @@
-// Floor play helpers shared by the room UI (local play) and the fake server
-// (which replays the submitted log like the real server does).
+// Floor report helpers shared by the room UI (local play), the fake server and the real one.
 import {
   advanceClimb,
+  floorFight,
   timeoutClimb,
   type Climb,
   type FloorKind,
 } from "../game/floorFights";
-import { startRoomFloor } from "../game/interference";
 import type { Stage } from "../game/stage";
-import type { FightOutcome, InterfereKind } from "../game/room";
-import {
-  applyStageAction,
-  type StageAction,
-  type StageReplayState,
-} from "../game/stageReplay";
+import type { FightOutcome } from "../game/room";
+import type { StageReplayState } from "../game/stageReplay";
+
+// What the client says about a finished floor (no action log any more): the server derives the
+// climb from it. Pace limits, chip caps and the turn clock keep it honest in a room of friends.
+export interface FloorReport {
+  outcome: "won" | "lost" | "fled";
+  hp: number; // hero hp when the fight ended (before the win heal)
+  turns: number; // battle rounds
+}
 
 export interface FloorReplay {
-  state: StageReplayState;
   outcome: FightOutcome | null; // null: nothing was fought
-  rejectedAt: number | null;
   run: Climb; // the climb after this floor
 }
 
-/** Server-side replay of one floor log from the floor-start climb. */
-export function replayFloor(
-  start: Climb,
-  actions: readonly StageAction[],
-  o: { kind: FloorKind; boost: InterfereKind | null },
-): FloorReplay {
-  let s = startRoomFloor(start, o.kind, o.boost);
-  let end: { stage: Stage; turn: number } | null = null; // the finished fight
-  const done = (rejectedAt: number | null): FloorReplay => {
-    if (!end)
-      return {
-        state: s,
-        outcome: "timeout", // unfinished fight when the log ends: a loss
-        rejectedAt,
-        run: timeoutClimb(start),
-      };
-    return {
-      state: s,
-      outcome: end.stage.status === "cleared" ? "won" : "lost",
-      rejectedAt,
-      run: advanceClimb(start, end.stage, end.stage.fights[0].role, end.turn),
-    };
+/** The report of a floor the player just finished (null while it is still being fought). */
+export function reportOf(s: StageReplayState, fled = false): FloorReport | null {
+  if (fled) return { outcome: "fled", hp: 0, turns: s.battle?.turn ?? 0 };
+  if (!s.settled || !s.battle) return null;
+  return {
+    outcome: s.settled.status === "cleared" ? "won" : "lost",
+    hp: Math.round(s.battle.player.hp),
+    turns: s.battle.turn,
   };
-  for (let i = 0; i < actions.length; i++) {
-    const a = actions[i];
-    if (a.t === "quit") return done(i);
-    const n = applyStageAction(s, a);
-    if (!n) return done(i);
-    if (n.settled && n.battle) end = { stage: n.settled, turn: n.battle.turn };
-    s = n;
-  }
-  return done(null);
+}
+
+/** The climb after a reported floor: a win keeps the (clamped) hp plus the usual heal. */
+export function applyReport(
+  start: Climb,
+  r: FloorReport,
+  o: { kind: FloorKind },
+): FloorReplay {
+  if (r.outcome === "fled") return { outcome: "fled", run: timeoutClimb(start) };
+  const max = start.hero.stats.hp;
+  const role = floorFight(start.seed, start.floor, { rank: start.rank, kind: o.kind }).role;
+  const won = r.outcome === "won";
+  // ponytail: advanceClimb only reads status and hp of the finished stage.
+  const stage = { status: won ? "cleared" : "lost", hp: Math.min(max, Math.max(1, r.hp)) } as Stage;
+  return {
+    outcome: won ? "won" : "lost",
+    run: advanceClimb(start, stage, role, Math.min(r.turns, 500)),
+  };
 }

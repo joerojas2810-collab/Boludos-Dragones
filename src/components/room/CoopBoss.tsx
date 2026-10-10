@@ -11,7 +11,6 @@ import { Panel } from "@/components/Panel";
 import { useTargeting } from "@/components/useTargeting";
 import { step, type Action, type Battle } from "@/lib/game/combat";
 import { damageDealt, startCoop } from "@/lib/game/coop";
-import type { StageAction } from "@/lib/game/stageReplay";
 import type { Rng } from "@/lib/game/rng";
 import type { RoomClient, RoomView } from "@/lib/roomui/types";
 import { errorText } from "@/lib/roomui/viewModels";
@@ -108,8 +107,8 @@ interface Fight {
 export function CoopFight({ client }: { client: RoomClient }) {
   const [fight, setFight] = useState<Fight | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-  const log = useRef<StageAction[]>([]);
-  const sentN = useRef(0);
+  const report = useRef<{ damage: number; finished: boolean }>({ damage: 0, finished: false });
+  const dirty = useRef(false);
   const sending = useRef(false);
   const [heroLevel, setHeroLevel] = useState(1);
   const now = useNow(500);
@@ -133,19 +132,18 @@ export function CoopFight({ client }: { client: RoomClient }) {
     };
   }, [client]);
 
-  // One request at a time; if actions arrived meanwhile, send the longer log.
+  // One request at a time; if the damage grew meanwhile, send the latest total.
   const flush = useCallback(async () => {
     if (sending.current) return;
     sending.current = true;
     try {
-      while (sentN.current < log.current.length) {
-        const n = log.current.length;
-        const r = await client.coopSubmit([...log.current]);
+      while (dirty.current) {
+        dirty.current = false;
+        const r = await client.coopSubmit({ ...report.current });
         if (!r.ok) {
           setMsg(errorText(String(r.error)));
           break;
         }
-        sentN.current = n;
       }
     } finally {
       sending.current = false;
@@ -156,7 +154,8 @@ export function CoopFight({ client }: { client: RoomClient }) {
     if (!fight || fight.battle.status !== "ongoing") return;
     const n = step(fight.battle, a, fight.rng, target > 0 ? target : undefined);
     if (n === fight.battle) return;
-    log.current.push({ t: "act", a, ...(target > 0 ? { target } : {}) });
+    report.current = { damage: damageDealt(n), finished: n.status !== "ongoing" };
+    dirty.current = true;
     playEvents(n.events, n.status, { guard: n.guardEarned, boss: true });
     setFight({ ...fight, battle: n });
     void flush();

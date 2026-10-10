@@ -4,7 +4,6 @@ import { z } from "zod";
 import { CLASS_IDS } from "../game/characters";
 import { ELEMENTS } from "../game/elements";
 import { RARITY_IDS } from "../game/rarity";
-import { runActionSchema } from "../server/validators";
 
 export const MSG_VERSION = 1;
 export const REALTIME_MAX_BYTES = 200;
@@ -85,12 +84,17 @@ export const clientMsg = z.discriminatedUnion("type", [
   z.strictObject({ ...m("start_round") }),
   z.strictObject({ ...m("advance"), phaseSeq: seq }),
   z.strictObject({ ...m("door"), floor, door: doorKindEnum }),
-  // outcome is NOT sent: the server replays `actions` to decide it.
+  // the client reports how the floor ended (null on a floor with no fight); the server derives the climb
   z.strictObject({
     ...m("submit"),
     floor,
-    actions: z.array(runActionSchema).max(6000),
-    engineVersion: z.number().int().min(1).max(1000).optional(),
+    report: z
+      .strictObject({
+        outcome: z.enum(["won", "lost", "fled"]),
+        hp: z.number().min(0).max(1e9),
+        turns: z.number().int().min(0).max(1000),
+      })
+      .nullable(),
   }),
   z.strictObject({
     ...m("bet"),
@@ -112,11 +116,11 @@ export const clientMsg = z.discriminatedUnion("type", [
   z.strictObject({ ...m("close") }),
   z.strictObject({ ...m("end_night") }),
   z.strictObject({ ...m("start_coop") }),
-  // coop boss: the whole fight so far; the server replays it and keeps the damage.
+  // coop boss: damage dealt so far and whether this hero is done; the server caps the damage
   z.strictObject({
     ...m("coop_submit"),
-    actions: z.array(runActionSchema).max(400),
-    engineVersion: z.number().int().min(1).max(1000).optional(),
+    damage: z.number().min(0).max(1e12),
+    finished: z.boolean(),
   }),
   z.strictObject({ ...m("heartbeat"), present: z.boolean() }),
   // ephemeral extras served through the snapshot (no Realtime session needed)

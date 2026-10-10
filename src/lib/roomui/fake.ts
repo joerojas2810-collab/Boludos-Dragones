@@ -5,7 +5,6 @@ import { generateCharacter, type Character } from "../game/characters";
 import { computeAwards } from "../game/awards";
 import { createRng, hashSeed, type Rng } from "../game/rng";
 import { RARITY_IDS } from "../game/rarity";
-import type { StageAction } from "../game/stageReplay";
 import {
   advance,
   chooseDoor,
@@ -46,13 +45,12 @@ import {
   coopPrizes,
   coopRank,
   coopTally,
-  replayCoop,
 } from "../game/coop";
 import { alignClimb, newClimb, roomDoors, type Climb } from "../game/floorFights";
 import type { FightSpec } from "../game/stage";
 import type { RarityId } from "../game/rarity";
 import type { CoopView } from "../rooms/api";
-import { replayFloor } from "./play";
+import { applyReport, type FloorReport } from "./play";
 import type {
   Award,
   BattleView,
@@ -656,18 +654,12 @@ export class FakeRoomClient implements RoomClient {
       node: coopNode(run.seed, coopRank(this.st.mode, this.st.rank)),
     };
   }
-  async coopSubmit(actions: StageAction[]) {
-    const run = this.coopHero();
-    if (!run || this.st.phase !== "coop_boss") return err("wrong_phase");
-    const rep = replayCoop(
-      run,
-      coopNode(run.seed, coopRank(this.st.mode, this.st.rank)),
-      actions,
-    );
-    if (rep.rejectedAt !== null) return err("invalid_log");
-    this.coopDmg.set(ME, { damage: rep.damage, finished: rep.finished });
+  async coopSubmit(report: { damage: number; finished: boolean }) {
+    if (!this.coopHero() || this.st.phase !== "coop_boss") return err("wrong_phase");
+    const damage = Math.max(this.coopDmg.get(ME)?.damage ?? 0, report.damage);
+    this.coopDmg.set(ME, { damage, finished: report.finished });
     this.publish();
-    return { ok: true as const, damage: rep.damage, finished: rep.finished };
+    return { ok: true as const, damage, finished: report.finished };
   }
   async advance(phaseSeq: number) {
     const r = advance(this.st, this.vnow(), phaseSeq, {
@@ -702,7 +694,7 @@ export class FakeRoomClient implements RoomClient {
       },
     };
   }
-  async submit(floor: number, actions: StageAction[]) {
+  async submit(floor: number, report: FloorReport | null) {
     const s = this.st;
     const key = `${s.round}:${floor}`;
     if (floor !== s.floor) return err("wrong_floor");
@@ -712,11 +704,10 @@ export class FakeRoomClient implements RoomClient {
     const got = await this.getRun();
     if (!got.ok) return got;
     this.submitted.add(key);
-    const boost = s.battles[ME]?.interference?.kind ?? null;
     const kind = s.players.find((x) => x.id === ME)?.door ?? "easy";
-    const rep = replayFloor(got.floorRun.run, actions, {
+    if (!report) return err("invalid_log");
+    const rep = applyReport(got.floorRun.run, report, {
       kind: kind === "hard" || kind === "boss" ? kind : "easy",
-      boost,
     });
     this.myRun = rep.run;
     if (rep.outcome && s.battles[ME] && s.phase === "fighting")

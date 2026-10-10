@@ -13,6 +13,7 @@ import { startRoomFloor } from "@/lib/game/interference";
 import type { DoorKind } from "@/lib/game/room";
 import { applyStageAction, type StageAction, type StageReplayState } from "@/lib/game/stageReplay";
 import { FLOORS_PER_WORLD, WORLDS } from "@/lib/game/worlds";
+import { reportOf, type FloorReport } from "@/lib/roomui/play";
 import type { RoomClient } from "@/lib/roomui/types";
 import { errorText } from "@/lib/roomui/viewModels";
 import { useNow } from "@/lib/useRoom";
@@ -37,7 +38,6 @@ export function FloorPlayer({ client, floor, door }: Props) {
   const [loc, setLoc] = useState<Local | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
-  const log = useRef<StageAction[]>([]);
   const sending = useRef(false);
 
   const rs = loc?.rs ?? null;
@@ -66,10 +66,10 @@ export function FloorPlayer({ client, floor, door }: Props) {
     };
   }, [client, door]);
 
-  const submit = useCallback(async () => {
+  const submit = useCallback(async (report: FloorReport | null) => {
     if (sending.current) return;
     sending.current = true;
-    const r = await client.submit(floor, log.current);
+    const r = await client.submit(floor, report);
     if (r.ok) {
       const o = r.outcome;
       setSent(
@@ -92,7 +92,6 @@ export function FloorPlayer({ client, floor, door }: Props) {
     if (!loc) return;
     const n = applyStageAction(loc.rs, a);
     if (!n) return;
-    log.current.push(a);
     if ((a.t === "act" || a.t === "auto") && n.battle) {
       const nb = n.battle;
       playEvents(nb.events, nb.status, {
@@ -109,7 +108,8 @@ export function FloorPlayer({ client, floor, door }: Props) {
         eHp: Math.round(nb.enemies.reduce((t, e) => t + e.hp, 0)),
       });
     }
-    if (a.t === "fin") void submit();
+    if (a.t === "fin") void submit(reportOf(loc.rs));
+    else if (a.t === "quit") void submit(reportOf(loc.rs, true));
     else setLoc({ ...loc, rs: n });
   };
 

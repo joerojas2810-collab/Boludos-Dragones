@@ -7,8 +7,8 @@ import { computeAwards } from "../game/awards";
 import { interfereCostFor } from "../game/room";
 import type { Climb } from "../game/floorFights";
 import type { RarityId } from "../game/rarity";
-import { ENGINE_VERSION, type FightSpec } from "../game/stage";
-import type { StageAction } from "../game/stageReplay";
+import type { FightSpec } from "../game/stage";
+import type { FloorReport } from "./play";
 import type {
   BetPrediction,
   DoorKind,
@@ -362,7 +362,7 @@ export class RemoteRoomClient implements RoomClient {
   }
 
   async coopSubmit(
-    actions: StageAction[],
+    report: { damage: number; finished: boolean },
   ): Promise<Res<{ damage: number; finished: boolean }>> {
     const r = await call<{ damage: number; finished: boolean }>(
       "POST",
@@ -371,8 +371,8 @@ export class RemoteRoomClient implements RoomClient {
         v: MSG_VERSION,
         type: "coop_submit",
         room: this.o.roomId,
-        actions,
-        engineVersion: ENGINE_VERSION,
+        damage: report.damage,
+        finished: report.finished,
       },
     );
     if (!r.ok) return r;
@@ -383,12 +383,12 @@ export class RemoteRoomClient implements RoomClient {
 
   async submit(
     floor: number,
-    actions: StageAction[],
+    report: FloorReport | null,
   ): Promise<Res<{ outcome: FightOutcome | null; eliminated: boolean }>> {
     const r = await call<{ outcome: FightOutcome | null; eliminated: boolean }>(
       "POST",
       `/api/rooms/${this.o.roomId}/submit`,
-      { v: MSG_VERSION, type: "submit", room: this.o.roomId, floor, actions },
+      { v: MSG_VERSION, type: "submit", room: this.o.roomId, floor, report },
     );
     if (!r.ok) return r;
     if (this.timer) clearTimeout(this.timer);

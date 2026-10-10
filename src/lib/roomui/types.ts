@@ -7,7 +7,7 @@ import type { Element } from "../game/elements";
 import type { RarityId } from "../game/rarity";
 import type { Climb } from "../game/floorFights";
 import type { FightSpec } from "../game/stage";
-import type { StageAction } from "../game/stageReplay";
+import type { FloorReport } from "./play";
 import type { CoopView, DuelView } from "../rooms/api";
 import type { DuelMode, DuelPick } from "../game/room";
 import type { Action as DuelAction } from "../game/combat";
@@ -148,10 +148,10 @@ export interface RoomClient {
   advance(phaseSeq: number): Promise<Res>;
   door(floor: number, door: DoorKind): Promise<Res>;
   getRun(): Promise<Res<{ floorRun: FloorRun }>>;
-  // The server replays `actions` from the floor-start Run and decides the outcome.
+  // The client reports how the floor ended (null: no fight); the server derives the climb.
   submit(
     floor: number,
-    actions: StageAction[],
+    report: FloorReport | null,
   ): Promise<Res<{ outcome: FightOutcome | null; eliminated: boolean }>>;
   bet(fighter: string, prediction: BetPrediction, stake: number): Promise<Res>;
   interfere(fighter: string, kind: InterfereKind): Promise<Res>;
@@ -162,9 +162,9 @@ export interface RoomClient {
   startCoop(): Promise<Res>;
   /** Coop boss: your fresh hero Run and the boss fight to play. */
   getCoop(): Promise<Res<{ run: Climb; node: FightSpec }>>;
-  /** The fight so far; the server replays it and keeps the damage. */
+  /** Damage dealt so far; the server caps it and keeps the best. */
   coopSubmit(
-    actions: StageAction[],
+    report: { damage: number; finished: boolean },
   ): Promise<Res<{ damage: number; finished: boolean }>>;
   /** 1v1 duels: host starts (pairs default to the server's suggestion). */
   duelStart(mode: DuelMode, pairs?: [string, string][]): Promise<Res>;

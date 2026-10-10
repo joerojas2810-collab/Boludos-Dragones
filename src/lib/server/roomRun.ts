@@ -1,5 +1,5 @@
 // Pure helpers: a player's climb inside a room (hero snapshot, floor alignment,
-// timeouts) and the authoritative replay of one floor. No I/O.
+// timeouts) and the floor result derived from the client report. No I/O.
 import type { Character } from "../game/characters";
 import { generateCharacter } from "../game/characters";
 import {
@@ -19,11 +19,9 @@ import {
   parsePickKey,
   type DoorKind,
   type FightOutcome,
-  type InterfereKind,
   type RoomMode,
 } from "../game/room";
-import type { StageAction } from "../game/stageReplay";
-import { replayFloor as playFloor } from "../roomui/play";
+import { applyReport, type FloorReport } from "../roomui/play";
 
 const strHash = (s: string) => {
   let h = 0;
@@ -64,7 +62,7 @@ export const alignRun = alignClimb;
 /** Server-applied loss (no submission / illegal log / incomplete fight): same as `lost`. */
 export const timeoutRun = timeoutClimb;
 
-export type FloorReplay =
+export type FloorApplied =
   | { ok: false; reason: string }
   | {
       ok: true;
@@ -73,26 +71,18 @@ export type FloorReplay =
       eliminated: boolean;
     };
 
-const BAD = (reason: string): FloorReplay => ({ ok: false, reason });
-
 /**
- * Repeats the floor's action log from `start` (the aligned run). The result is
- * decided here, never by the client. `kind` = the door the server stored.
+ * The climb after a floor from the client's report (no replay). `kind` = the door the server
+ * stored. A fight floor without a report is rejected.
  */
-export function replayFloor(
+export function applyFloor(
   start: Climb,
-  actions: readonly StageAction[],
-  o: { kind: DoorKind; boost: InterfereKind | null },
-): FloorReplay {
+  report: FloorReport | null,
+  o: { kind: DoorKind },
+): FloorApplied {
   if (!isFightDoor(o.kind))
     return { ok: true, outcome: null, run: start, eliminated: false };
-  if (actions.length === 0) return BAD("no_fight");
-  const r = playFloor(start, actions, { kind: o.kind as "easy" | "hard" | "boss", boost: o.boost });
-  if (r.rejectedAt !== null) return BAD("illegal_action");
-  return {
-    ok: true,
-    outcome: r.outcome,
-    run: r.run,
-    eliminated: r.run.status === "over",
-  };
+  if (!report) return { ok: false, reason: "no_fight" };
+  const r = applyReport(start, report, { kind: o.kind as "easy" | "hard" | "boss" });
+  return { ok: true, outcome: r.outcome, run: r.run, eliminated: r.run.status === "over" };
 }
