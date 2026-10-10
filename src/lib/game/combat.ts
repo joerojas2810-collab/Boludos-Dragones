@@ -761,6 +761,13 @@ export interface Strike {
   dmg: number; // damage dealt after crit (0 on a miss)
 }
 
+// Contraataque returns damage without a hit roll: it still carries the hero's element status.
+export function counterStatuses(hero: Combatant, foe: Combatant): Combatant["statuses"] {
+  const sid = STATUS_OF_ELEMENT[hero.char.weapon?.element ?? hero.char.element];
+  if (!sid || sid === "impulso") return foe.statuses;
+  return addStatus(foe.statuses, sid, CLASS_STACKS, undefined, foe.char.stats.resist);
+}
+
 export function strike(
   att: Combatant,
   def: Combatant,
@@ -901,6 +908,7 @@ export function strike(
     // Contraataque: the hit was already reduced; the attacker eats it in full.
     back = Math.round((dmg / COUNTER_TAKEN) * COUNTER_REFLECT);
     defender = { ...defender, reflect: 0 };
+    ownStatuses = counterStatuses(def, { ...attacker, statuses: ownStatuses });
     log.push(`${def.char.name} contraataca y devuelve ${back} a ${who}.`);
   }
   if (def.guard && def.defending && isStrongIntent(key) && def.char.classId === "caballero") {
@@ -1043,7 +1051,11 @@ export function step(
         if (taken > 0 && foe && foe.hp > 0) {
           // The rival already hit this round: the hit is returned right now.
           const back = Math.round((taken / COUNTER_TAKEN) * COUNTER_REFLECT);
-          enemies[player.takenFrom ?? tIdx] = { ...foe, hp: Math.max(0, foe.hp - back) };
+          enemies[player.takenFrom ?? tIdx] = {
+            ...foe,
+            hp: Math.max(0, foe.hp - back),
+            statuses: counterStatuses(player, foe),
+          };
           bits.push(`devuelve ${back} a ${foe.char.name}`);
           player.taken = 0;
         } else bits.push("se prepara para devolver el próximo golpe");
@@ -1075,7 +1087,15 @@ export function step(
 
   while (queue.length && !end) {
     const slot = queue[0];
-    if (slot === "player" && playerActed) break;
+    // Contraataque waits for the first hit that lands: the hero's extra actions
+    // this round are spent so it resolves without another command.
+    if (slot === "player" && playerActed) {
+      if ((player.reflect ?? 0) > 0 && action === "attack3" && skill?.counter) {
+        queue.shift();
+        continue;
+      }
+      break;
+    }
     queue.shift();
     if (slot === "player") {
       playerActed = true;

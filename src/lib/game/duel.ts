@@ -18,6 +18,7 @@ import {
   type Action,
   type BattleEvent,
   type Combatant,
+  counterStatuses,
 } from "./combat";
 import { CLASSES, type Character, type ClassId } from "./characters";
 import type { Element } from "./elements";
@@ -183,7 +184,7 @@ export function duelRound(
         if (taken > 0 && s[y].hp > 0) {
           // The rival already hit this round: the hit is returned right now.
           const back = Math.round((taken / COUNTER_TAKEN) * COUNTER_REFLECT);
-          s[y] = { ...s[y], hp: Math.max(0, s[y].hp - back) };
+          s[y] = { ...s[y], hp: Math.max(0, s[y].hp - back), statuses: counterStatuses(att, s[y]) };
           att = { ...att, taken: 0 };
           bits.push(`devuelve ${back} a ${s[y].char.name}`);
         } else bits.push("se prepara para devolver el próximo golpe");

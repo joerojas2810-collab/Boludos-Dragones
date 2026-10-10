@@ -268,6 +268,7 @@ describe("class skills (Ataque 3)", () => {
     ).toBeLessThanOrEqual(2);
     expect(s.player.reflect).toBeLessThanOrEqual(1); // spent hit, ticking down
     expect(s.log.some((l) => l.includes("contraataca"))).toBe(true);
+    expect(s.enemies[0].statuses?.length).toBeGreaterThan(0); // the counter carries the element status
     // it only works once
     const s2 = step(withRound(s, 1, [["attack1"]], 1), "defend", always);
     expect(s2.log.filter((l) => l.includes("contraataca"))).toHaveLength(1);
