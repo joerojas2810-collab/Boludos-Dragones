@@ -2,12 +2,96 @@ import type { BattleEvent, Status } from "@/lib/game/combat";
 import { isTopRank, type RarityId } from "@/lib/game/rarity";
 
 let ctx: AudioContext | null = null;
-let muted = false;
+const SETTINGS_KEY = "bd-audio-settings-v1";
+export interface AudioSettings {
+  muted: boolean;
+  music: number;
+  effects: number;
+}
+const DEFAULT_SETTINGS: AudioSettings = { muted: false, music: 0.2, effects: 0.7 };
+let settings = { ...DEFAULT_SETTINGS };
+let effectsBus: GainNode | null = null;
+let musicBus: GainNode | null = null;
+let ambienceScene: "menu" | "dungeon" = "menu";
+let ambienceTimer: ReturnType<typeof setTimeout> | null = null;
+let ambienceStarted = false;
+const settingsListeners = new Set<() => void>();
 
-export const isMuted = () => muted;
-export const setMuted = (m: boolean) => {
-  muted = m;
-};
+export function getAudioSettings(): AudioSettings {
+  return settings;
+}
+
+export function subscribeAudioSettings(listener: () => void) {
+  settingsListeners.add(listener);
+  return () => settingsListeners.delete(listener);
+}
+
+function notifySettings() {
+  settingsListeners.forEach((listener) => listener());
+}
+
+function applySettings() {
+  if (!ctx) return;
+  const enabled = settings.muted ? 0 : 1;
+  if (effectsBus) effectsBus.gain.setTargetAtTime(settings.effects * enabled, ctx.currentTime, 0.04);
+  if (musicBus) musicBus.gain.setTargetAtTime(settings.music * enabled, ctx.currentTime, 0.15);
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch {
+    // Settings still apply for this session when storage is unavailable.
+  }
+}
+
+export function loadAudioSettings() {
+  try {
+    const saved = localStorage.getItem(SETTINGS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved) as Partial<AudioSettings>;
+      settings = {
+        muted: parsed.muted === true,
+        music: typeof parsed.music === "number" ? Math.max(0, Math.min(1, parsed.music)) : DEFAULT_SETTINGS.music,
+        effects: typeof parsed.effects === "number" ? Math.max(0, Math.min(1, parsed.effects)) : DEFAULT_SETTINGS.effects,
+      };
+    }
+  } catch {
+    settings = { ...DEFAULT_SETTINGS };
+  }
+  applySettings();
+  notifySettings();
+  return getAudioSettings();
+}
+
+export const isMuted = () => settings.muted;
+export function setMuted(muted: boolean) {
+  settings = { ...settings, muted };
+  applySettings();
+  saveSettings();
+  notifySettings();
+}
+export function setAudioVolume(channel: "music" | "effects", value: number) {
+  settings = { ...settings, [channel]: Math.max(0, Math.min(1, value)) };
+  applySettings();
+  saveSettings();
+  notifySettings();
+}
+
+function ensureContext() {
+  ctx ??= new AudioContext();
+  if (!effectsBus) {
+    effectsBus = ctx.createGain();
+    effectsBus.connect(ctx.destination);
+  }
+  if (!musicBus) {
+    musicBus = ctx.createGain();
+    musicBus.connect(ctx.destination);
+  }
+  applySettings();
+  if (ctx.state === "suspended") void ctx.resume();
+  return ctx;
+}
 let noise: AudioBuffer | null = null;
 
 function noiseBurst(
@@ -35,7 +119,7 @@ function noiseBurst(
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  src.connect(f).connect(g).connect(c.destination);
+  src.connect(f).connect(g).connect(effectsBus ?? c.destination);
   src.start(t);
   src.stop(t + dur);
 }
@@ -53,19 +137,19 @@ function ring(
   o.frequency.value = freq;
   g.gain.setValueAtTime(vol, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(g).connect(c.destination);
+  o.connect(g).connect(effectsBus ?? c.destination);
   o.start(t);
   o.stop(t + dur);
 }
 
 // Spells: soft shimmering sine sweep (mage) or bell chime (cleric prayer).
 function magic(c: AudioContext, t: number, k: number, e: BattleEvent) {
-  if (e.classId === "clerigo") {
-    [660, 880, 1320].forEach((f, i) => ring(c, t + i * 0.08, f * k, 0.5, 0.06));
-    return;
-  }
   if (e.kind === "miss") {
     noiseBurst(c, t, 1500 * k, 600 * k, 3, 0.2, 0.04);
+    return;
+  }
+  if (e.classId === "clerigo") {
+    [660, 880, 1320].forEach((f, i) => ring(c, t + i * 0.08, f * k, 0.5, 0.06));
     return;
   }
   const o = c.createOscillator();
@@ -75,7 +159,7 @@ function magic(c: AudioContext, t: number, k: number, e: BattleEvent) {
   o.frequency.exponentialRampToValueAtTime(1400 * k, t + 0.18);
   g.gain.setValueAtTime(0.1, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
-  o.connect(g).connect(c.destination);
+  o.connect(g).connect(effectsBus ?? c.destination);
   o.start(t);
   o.stop(t + 0.3);
   noiseBurst(c, t + 0.1, 3000 * k, 800 * k, 1.5, 0.15, 0.08);
@@ -95,9 +179,33 @@ function boom(c: AudioContext, t: number, vol: number) {
   o.frequency.exponentialRampToValueAtTime(40, t + 0.25);
   g.gain.setValueAtTime(vol, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
-  o.connect(g).connect(c.destination);
+  o.connect(g).connect(effectsBus ?? c.destination);
   o.start(t);
   o.stop(t + 0.3);
+}
+
+function elementAccent(c: AudioContext, t: number, k: number, e: BattleEvent) {
+  const force = e.overload ? 1.8 : 1;
+  switch (e.element) {
+    case "agua":
+      noiseBurst(c, t + 0.06, 2200 * k, 650 * k, 4, 0.2, 0.045 * force);
+      ring(c, t + 0.1, 1500 * k, 0.24, 0.025 * force);
+      break;
+    case "fuego":
+      noiseBurst(c, t + 0.04, 4200 * k, 900 * k, 1.2, 0.22, 0.055 * force);
+      break;
+    case "viento":
+      noiseBurst(c, t - 0.04, 800 * k, 3600 * k, 0.8, 0.22, 0.055 * force);
+      break;
+    case "tierra":
+      ring(c, t + 0.04, 68 * k, 0.2, 0.12 * force);
+      noiseBurst(c, t + 0.02, 700 * k, 180 * k, 1.8, 0.16, 0.06 * force);
+      break;
+    case "rayo":
+      ring(c, t + 0.03, (e.overload ? 1900 : 1300) * k, 0.18, 0.05 * force);
+      noiseBurst(c, t, 5000 * k, 1400 * k, 2.2, 0.11, 0.045 * force);
+      break;
+  }
 }
 
 // Rival sounds are pitched lower than the player's.
@@ -110,21 +218,24 @@ function play(e: BattleEvent, delay: number) {
     (e.classId === "clerigo" && e.move === "attack2" && e.weapon === "libro")
   ) {
     magic(ctx, t, k, e);
+    if (e.kind !== "miss") elementAccent(ctx, t + (e.kind === "crit" ? 0.08 : 0), k, e);
     return;
   }
   if (e.kind === "miss") {
-    // sword whoosh
-    noiseBurst(ctx, t, 500 * k, 2200 * k, 1.2, 0.22, 0.08);
+    const start = e.weapon === "arco" ? 900 : e.weapon === "daga" ? 1100 : 500;
+    noiseBurst(ctx, t, start * k, 2200 * k, 1.2, 0.22, 0.08);
     return;
   }
-  // blade strike: whoosh into a metallic scrape plus a low thud
-  noiseBurst(ctx, t, 3500 * k, 1200 * k, 2, 0.12, 0.14);
-  ring(ctx, t, 90 * k, 0.12, 0.18);
+  const heavy = ["hacha", "maza", "mandoble", "martillo"].includes(e.weapon ?? "") || e.classId === "berserker";
+  const start = e.weapon === "arco" ? 4400 : e.weapon === "daga" ? 4200 : 3500;
+  noiseBurst(ctx, t, start * k, heavy ? 700 * k : 1200 * k, 2, heavy ? 0.17 : 0.12, heavy ? 0.18 : 0.14);
+  ring(ctx, t, heavy ? 64 * k : 90 * k, 0.12, heavy ? 0.22 : 0.18);
   if (e.kind === "crit") {
     ring(ctx, t, 2300 * k, 0.45, 0.05);
     ring(ctx, t, 3400 * k, 0.35, 0.03);
     boom(ctx, t, 0.3);
   }
+  elementAccent(ctx, t + (e.kind === "crit" ? 0.08 : 0), k, e);
 }
 
 function note(
@@ -141,9 +252,77 @@ function note(
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(g).connect(c.destination);
+  o.connect(g).connect(effectsBus ?? c.destination);
   o.start(t);
   o.stop(t + dur);
+}
+
+function musicNote(c: AudioContext, t: number, freq: number, dur: number, volume: number) {
+  const o = c.createOscillator();
+  const g = c.createGain();
+  const filter = c.createBiquadFilter();
+  o.type = "sine";
+  o.frequency.value = freq;
+  filter.type = "lowpass";
+  filter.frequency.value = 1500;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(volume, t + 0.3);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(filter).connect(g).connect(musicBus ?? c.destination);
+  o.start(t);
+  o.stop(t + dur);
+}
+
+// A quiet, procedural arpeggio gives the hub and dungeons distinct ambience without asset files.
+function startAmbienceLoop() {
+  if (!ctx || ambienceStarted) return;
+  ambienceStarted = true;
+  let phrase = 0;
+  const tick = () => {
+    if (!ctx) return;
+    const c = ctx;
+    const t = c.currentTime + 0.04;
+    const menuPhrases = [
+      [261.63, 329.63, 392, 493.88],
+      [220, 261.63, 329.63, 392],
+      [174.61, 220, 261.63, 329.63],
+      [196, 246.94, 293.66, 392],
+    ];
+    const dungeonPhrases = [
+      [130.81, 155.56, 196, 233.08],
+      [116.54, 138.59, 174.61, 207.65],
+      [98, 116.54, 146.83, 196],
+      [110, 130.81, 164.81, 220],
+    ];
+    const chord = (ambienceScene === "menu" ? menuPhrases : dungeonPhrases)[phrase % 4];
+    musicNote(c, t, chord[0] / 2, 2.7, 0.035);
+    musicNote(c, t + 0.02, chord[2] / 2, 2.4, 0.022);
+    const order = ambienceScene === "menu" ? [0, 2, 1, 3] : [0, 1, 3, 2];
+    order.forEach((n, i) => musicNote(c, t + 0.28 + i * 0.42, chord[n], 0.9, 0.018));
+    phrase++;
+    ambienceTimer = setTimeout(tick, 3600);
+  };
+  tick();
+}
+
+export function startAmbience(scene: "menu" | "dungeon") {
+  try {
+    const c = ensureContext();
+    if (ambienceScene !== scene && ambienceTimer) {
+      clearTimeout(ambienceTimer);
+      ambienceTimer = null;
+      ambienceStarted = false;
+    }
+    ambienceScene = scene;
+    if (c.state === "running") startAmbienceLoop();
+    else void c.resume().then(startAmbienceLoop).catch(() => undefined);
+  } catch {
+    // Audio may be unavailable or blocked by the browser.
+  }
+}
+
+export function unlockAudio(scene: "menu" | "dungeon") {
+  startAmbience(scene);
 }
 
 // short jingles: rising major arpeggio / falling minor line
@@ -190,15 +369,14 @@ export function playEvents(
   status: Status = "ongoing",
   moments: BattleMoments = {},
 ) {
-  if (muted) return;
+  if (settings.muted) return;
   try {
-    ctx ??= new AudioContext();
-    if (ctx.state === "suspended") void ctx.resume();
-    if (moments.guard) playGuard(ctx.currentTime);
+    const c = ensureContext();
+    if (moments.guard) playGuard(c.currentTime);
     events.forEach((e, i) => play(e, i * 0.3));
     playJingle(status, events.length * 0.3 + 0.1);
     if (moments.boss && status === "won")
-      playBossDown(ctx.currentTime + events.length * 0.5 + 0.6);
+      playBossDown(c.currentTime + events.length * 0.5 + 0.6);
   } catch {
     // audio unavailable: ignore
   }
@@ -216,16 +394,15 @@ const PULL_NOTES: Record<RarityId, number[]> = {
 };
 
 export function playPullSound(rarity: RarityId) {
-  if (muted) return;
+  if (settings.muted) return;
   try {
-    ctx ??= new AudioContext();
-    if (ctx.state === "suspended") void ctx.resume();
-    const t = ctx.currentTime;
+    const c = ensureContext();
+    const t = c.currentTime;
     const legend = isTopRank(rarity);
     PULL_NOTES[rarity].forEach((f, i) =>
-      note(ctx!, t + i * (legend ? 0.08 : 0.1), f, legend ? 0.6 : 0.3, 0.12),
+      note(c, t + i * (legend ? 0.08 : 0.1), f, legend ? 0.6 : 0.3, 0.12),
     );
-    if (legend) noiseBurst(ctx, t, 800, 5000, 1, 0.5, 0.06);
+    if (legend) noiseBurst(c, t, 800, 5000, 1, 0.5, 0.06);
   } catch {
     // audio unavailable: ignore
   }
@@ -233,18 +410,17 @@ export function playPullSound(rarity: RarityId) {
 
 // Forge result: anvil clinks + rising chime on success, low thud on failure.
 export function playForgeSound(ok: boolean) {
-  if (muted) return;
+  if (settings.muted) return;
   try {
-    ctx ??= new AudioContext();
-    if (ctx.state === "suspended") void ctx.resume();
-    const t = ctx.currentTime;
+    const c = ensureContext();
+    const t = c.currentTime;
     if (ok) {
-      noiseBurst(ctx, t, 2500, 6000, 4, 0.08, 0.12);
-      noiseBurst(ctx, t + 0.22, 2500, 6000, 4, 0.08, 0.12);
-      [659, 988, 1319].forEach((f, i) => note(ctx!, t + 0.45 + i * 0.1, f, 0.4, 0.12));
+      noiseBurst(c, t, 2500, 6000, 4, 0.08, 0.12);
+      noiseBurst(c, t + 0.22, 2500, 6000, 4, 0.08, 0.12);
+      [659, 988, 1319].forEach((f, i) => note(c, t + 0.45 + i * 0.1, f, 0.4, 0.12));
     } else {
-      note(ctx, t, 196, 0.4, 0.15);
-      note(ctx, t + 0.18, 147, 0.5, 0.15);
+      note(c, t, 196, 0.4, 0.15);
+      note(c, t + 0.18, 147, 0.5, 0.15);
     }
   } catch {
     // audio unavailable: ignore

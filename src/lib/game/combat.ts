@@ -16,6 +16,7 @@ import {
   elementMultiplier,
   ELEMENT_LABEL,
 } from "./elements";
+import type { Element } from "./elements";
 import type { Rng } from "./rng";
 import {
   COUNTER_REFLECT,
@@ -142,6 +143,8 @@ export interface BattleEvent {
   classId: ClassId;
   move: MoveKey;
   weapon?: string; // attacker's weapon type (sfx)
+  element?: Element;
+  overload?: boolean;
   enemy: number; // index in Battle.enemies of the enemy involved
 }
 
@@ -807,6 +810,7 @@ export function strike(
     ...(key === "attack2" && { cooldown: a.cooldown + 1 - (free ? 1 : 0) }),
     ...(key === "attack3" && { cooldown3: a.cooldown + 1 - (free ? 1 : 0) }),
   };
+  const element = att.char.weapon?.element ?? att.char.element;
   const ev = (kind: BattleEvent["kind"]) =>
     events.push({
       actor,
@@ -814,6 +818,7 @@ export function strike(
       classId: att.char.classId,
       move: key,
       weapon: att.char.weapon?.type,
+      element,
       enemy,
     });
   if (def.freeHits) {
@@ -839,7 +844,6 @@ export function strike(
   const gamble = spread > 0 ? 1 + spread * (2 * rng.next() - 1) : 1;
   // Elemental effects: the player always applies them, enemies only on strong
   // hits when flagged (elites, bosses). Mago's perfect guard doubles the stacks.
-  const element = att.char.weapon?.element ?? att.char.element;
   // The class special applies statuses, except Detonar, which only consumes them.
   // Every hero hit applies its element's status (1 stack; the class special 2), except Detonar,
   // which only consumes them. Enemies apply theirs only when flagged (elites, bosses) on strong hits.
@@ -864,7 +868,16 @@ export function strike(
       gamble *
       (overload ? 1 + OVERLOAD_BONUS : 1),
   );
-  ev(crit ? "crit" : "hit");
+  events.push({
+    actor,
+    kind: crit ? "crit" : "hit",
+    classId: att.char.classId,
+    move: key,
+    weapon: att.char.weapon?.type,
+    element,
+    overload,
+    enemy,
+  });
   log.push(
     `${who} usa ${a.name}${on}: ${dmg} de daño${crit ? " (¡crítico!)" : ""}${overload ? " ¡Sobrecarga!" : ""}.`,
   );

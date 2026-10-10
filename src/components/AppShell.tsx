@@ -5,10 +5,11 @@ import { Icon } from "@/components/Icon";
 import { useArt } from "@/components/ArtScope";
 import { uiAsset } from "@/lib/art";
 import { ScreenBg } from "@/components/ScreenBg";
+import { SoundControls } from "@/components/SoundControls";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { isMuted, setMuted } from "@/lib/sfx";
+import { loadAudioSettings, startAmbience, unlockAudio } from "@/lib/sfx";
 import { claimedToday, dayKey } from "@/lib/game/streak";
 import { logout, repo, useProfile } from "@/lib/useProfile";
 import "./shell.css";
@@ -90,23 +91,6 @@ function ArtToggle() {
 }
 
 // 16x16 pixel-style glyphs, drawn with the current text colour.
-function SoundToggle() {
-  const [muted, setMutedState] = useState(false);
-  return (
-    <button
-      className="shell-icon"
-      aria-label={muted ? "Activar sonido" : "Silenciar"}
-      title={muted ? "Sonido apagado" : "Sonido encendido"}
-      onClick={() => {
-        setMuted(!isMuted());
-        setMutedState(isMuted());
-      }}
-    >
-      {muted ? "🔇" : "🔊"}
-    </button>
-  );
-}
-
 // True when some mission scope has reached tiers that are not claimed yet.
 function useMissionsPending(on: boolean, path: string) {
   const [pending, setPending] = useState(false);
@@ -152,6 +136,24 @@ const SCREEN_SCENE: Record<string, string> = {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
+  useEffect(() => {
+    loadAudioSettings();
+  }, []);
+  useEffect(() => {
+    const scene =
+      path.startsWith("/run") || path.startsWith("/torre") ||
+      path.startsWith("/sala") || path.startsWith("/prueba")
+        ? "dungeon"
+        : "menu";
+    const unlock = () => unlockAudio(scene);
+    startAmbience(scene);
+    document.addEventListener("pointerdown", unlock);
+    document.addEventListener("keydown", unlock);
+    return () => {
+      document.removeEventListener("pointerdown", unlock);
+      document.removeEventListener("keydown", unlock);
+    };
+  }, [path]);
   const { profile, session } = useProfile();
   const visible = SHELL_ROUTES.some((r) =>
     r === "/" ? path === "/" : path === r || path === `${r}/`,
@@ -184,7 +186,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           )}
           <ArtToggle />
-          <SoundToggle />
+          <SoundControls />
           {remote && (
             <button className="shell-icon" onClick={() => void logout()}>
               Salir
