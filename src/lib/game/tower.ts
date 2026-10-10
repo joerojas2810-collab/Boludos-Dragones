@@ -4,6 +4,7 @@
 import { generateCharacter, type Character, type ClassId } from "./characters";
 import {
   advanceClimb,
+  floorFight,
   climbScore,
   floorStage,
   newClimb,
@@ -142,7 +143,7 @@ export interface TowerState {
 }
 
 function beginFloor(climb: Climb): StageReplayState {
-  const stage = floorStage(climb);
+  const stage = floorStage(climb, floorFight(climb.seed, climb.floor, { rank: climb.rank, tower: true }));
   const f = startFight(stage);
   return { stage, battle: f.battle, rng: f.rng, settled: null };
 }

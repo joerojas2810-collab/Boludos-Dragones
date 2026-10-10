@@ -56,6 +56,9 @@ export const MODIFIER_FLOORS: Readonly<Record<EnemyMod, number>> = {
 // The hero no longer grows inside a climb, so the curve is gentler than the old 1.21.
 export const CLIMB_SCALE = 1.12;
 const floorPow = makePow(CLIMB_SCALE);
+// Only the weekly tower (opts.tower) climbs gentler than rooms: the bot median is floor ~13 (nivelado), 16 (F colección).
+export const TOWER_SCALE = 1.065;
+const towerPow = makePow(TOWER_SCALE);
 const stepPow = makePow(1 + STEP_BONUS);
 
 const FAMILY_LABEL: Record<EnemyFamily, string> = {
@@ -149,6 +152,7 @@ export function groupSize(
 export interface FloorOpts {
   rank?: DungeonId | null; // room difficulty: shifts depth, picks the boss room's boss
   kind?: FloorKind; // default: kindOfFloor(floor)
+  tower?: boolean; // weekly tower: gentler depth curve (TOWER_SCALE)
   power?: number; // overall multiplier; default ROOM_POWER in rooms (rank set), 1 otherwise
 }
 
@@ -183,7 +187,7 @@ export function floorFight(
   const theme = room ? bossTheme(floor, opts.rank) : null;
   const ease = earlyEase(depth);
   const step = stepPow(Math.floor(depth / STEP_EVERY));
-  const scale = floorPow(depth) * ease * step * (opts.power ?? (opts.rank ? ROOM_POWER : 1));
+  const scale = (opts.tower ? towerPow : floorPow)(depth) * ease * step * (opts.power ?? (opts.rank ? ROOM_POWER : 1));
   const made: Character[] = [];
   const seen = new Map<string, number>();
   for (let i = 0; i < size; i++) {
@@ -293,7 +297,7 @@ export function advanceClimb(
   rounds = 0,
 ): Climb {
   if (stage.status === "lost")
-    return { ...c, status: "over", hp: 0, rounds: c.rounds + rounds };
+    return { ...c, status: "over", hp: 0 }; // the lost floor does not count, nor its rounds
   if (stage.status !== "cleared") return c;
   const max = c.hero.stats.hp;
   return {
