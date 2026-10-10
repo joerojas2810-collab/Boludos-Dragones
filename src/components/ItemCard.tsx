@@ -83,9 +83,9 @@ export function ItemCard({
                 traits={item.traits}
                 className={isPixel()
                   ? "pixel-card-portrait absolute inset-x-2.5 bottom-[24%] top-[2%]"
-                  : "absolute bottom-0 left-1/2 aspect-square h-full -translate-x-1/2"}
+                  : "absolute inset-x-0 bottom-[18px] top-[16px]"}
                 crop
-                fitBox={isPixel()}
+                fitBox
               />
             ) : (
               // Pieces: keep the icon above the info strip so the text never covers it.
@@ -110,7 +110,7 @@ export function ItemCard({
           <span className="absolute right-0.5 top-0.5 z-10 drop-shadow-[0_1px_0_#000]">
             <ElementIcon
               element={item.element}
-              className={isPixel() ? "h-4 w-4 [image-rendering:pixelated]" : big ? "h-6" : "h-4"}
+              className={isPixel() ? "h-4 w-4 [image-rendering:pixelated]" : item.kind === "character" ? "h-4 w-4" : big ? "h-6" : "h-4"}
               bare
             />
           </span>

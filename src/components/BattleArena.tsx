@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { ArenaBackground } from "@/components/ArenaBackground";
 import { Chip } from "@/components/Chip";
 import { BossIntro, FxLayer, useBattleFx } from "@/components/fx/BattleFx";
@@ -11,6 +11,7 @@ import { HeroSprite } from "@/components/HeroSprite";
 import { HERO_ACTIONS } from "@/lib/art/heroes";
 import { isPixel } from "@/lib/art/pixel";
 import { CLASS_ART, ELEMENT_ART, HERO_ART_V } from "@/lib/art";
+import paintedHeroes from "@/lib/art/hero-integration.generated.json";
 import type { HeroAction } from "@/lib/art/heroes";
 import { Vfx } from "@/components/fx/Vfx";
 import { attackOf, enemyIntents, type Battle, type Combatant } from "@/lib/game/combat";
@@ -168,6 +169,14 @@ export function BattleArena({
   const { fx, paused } = useBattleFx(b, boss);
   const hc = b.player.char;
   const cls = CLASS_ART[hc.classId];
+  const [heroX, heroY, heroWidth, heroHeight] = paintedHeroes.idle_bounds[cls as keyof typeof paintedHeroes.idle_bounds];
+  // Use one fixed visible envelope for every action, retaining the shared foot anchor.
+  const heroEnvelope = {
+    "--painted-x": heroX / paintedHeroes.frame_size,
+    "--painted-y": heroY / paintedHeroes.frame_size,
+    "--painted-width": heroWidth / paintedHeroes.frame_size,
+    "--painted-height": heroHeight / paintedHeroes.frame_size,
+  } as CSSProperties;
   usePreload(
     Object.keys(HERO_ACTIONS).flatMap((a) =>
       isPixel()
@@ -206,15 +215,17 @@ export function BattleArena({
       ) : bleed ? null : (
         <ArenaBackground world={world} boss={boss} rank={rank} />
       )}
-      <div className="stage-hero absolute left-[2%]">
+      <div className="stage-hero absolute left-[2%]" style={isPixel() ? undefined : heroEnvelope}>
         <FxLayer t={fx?.player} k={fx?.key ?? 0} />
         <div
           key={`p${b.log.length}`}
           className="h-full w-full"
           style={fxStyle(b, "player")}
         >
-          <div className={`fx-breathe h-full w-full origin-bottom ${isPixel() ? "" : "scale-[1.15]"}`}>
-            <CuedHero b={b} />
+          <div className="fx-breathe relative h-full w-full origin-bottom">
+            <div className={isPixel() ? "h-full w-full" : "stage-model-frame"}>
+              <CuedHero b={b} />
+            </div>
           </div>
         </div>
         <StatusIcons c={b.player} />

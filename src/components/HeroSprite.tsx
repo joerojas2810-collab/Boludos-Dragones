@@ -163,7 +163,7 @@ function Hero({
   if (crop && !animated) {
     const [x, y, width, height] = paintedHeroes.idle_bounds[cls as keyof typeof paintedHeroes.idle_bounds];
     const sheetWidth = paintedHeroes.frame_size * HERO_ACTIONS.idle.frames;
-    return <div role="img" aria-hidden="true" className={`pixel-hero-thumbnail relative ${className}`} style={fitBox ? { containerType: "size" } : undefined}>
+    return <div role="img" aria-hidden="true" className={`pixel-hero-thumbnail ${className}`} style={{ containerType: fitBox ? "size" : undefined, position: className.includes("absolute") ? undefined : "relative" }}>
       <div style={{
         aspectRatio: `${width} / ${height}`,
         height: fitBox ? `min(100cqh, calc(100cqw * ${height / width}))` : "100%",

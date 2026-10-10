@@ -10,6 +10,7 @@ import { ItemCard, type ItemView } from "./ItemCard";
 import { ELEMENT_LABEL } from "@/lib/game/elements";
 import { WEAPON_TYPE_DATA } from "@/lib/game/weapons";
 import "./fx.css";
+import "./pull-reveal.css";
 
 // Light rays behind a Legendario reveal (CSS-rotated SVG, no image files).
 function Rays({ color }: { color: string }) {
@@ -63,6 +64,21 @@ type Props = { items: ItemView[]; onDone: () => void; legacy?: boolean }; // leg
 const SUMMON_MS = 1100;
 const STEP_MS = 450;
 
+function FittedCard({ item }: { item: ItemView }) {
+  const host = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(96);
+  useEffect(() => {
+    const element = host.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setWidth(Math.max(24, Math.floor(Math.min(entry.contentRect.width, entry.contentRect.height * 0.75, 240))));
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  return <div ref={host} className="pull-card-fit"><ItemCard item={{ ...item, badge: undefined, lines: undefined }} size={width - 24} className="pull-result-card" /></div>;
+}
+
 const best = (items: ItemView[]) =>
   items.reduce((a, b) =>
     RARITY_IDS.indexOf(b.rarity) > RARITY_IDS.indexOf(a.rarity) ? b : a,
@@ -103,7 +119,7 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
   const legendNow = shown >= 0 && isTopRank(items[shown].rarity);
   // Portal: an ancestor stacking context would leave the overlay under the top bar.
   const ui = (
-    <div className="fixed inset-0 z-50 flex overflow-y-auto bg-[#050b16]/90 p-2 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="pull-results-title"
+    <div className="pull-overlay fixed inset-0 z-50 flex bg-[#050b16]/90" role="dialog" aria-modal="true" aria-labelledby="pull-results-title"
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.preventDefault();
@@ -121,14 +137,14 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
           className="fx-flash pointer-events-none fixed inset-0 bg-yellow-300/50"
         />
       )}
-      <section className="relative m-auto flex w-full max-w-[1040px] flex-col gap-5 border-2 border-[#637f9b] bg-[#101c2e] p-3 text-white shadow-[0_0_0_3px_#050b16,0_24px_80px_#000] sm:p-6">
-      <header className="border-b border-[#40546c] pb-4 text-center">
+      <section className="pull-panel relative m-auto flex w-full max-w-[1040px] flex-col border-2 border-[#637f9b] bg-[#101c2e] text-white shadow-[0_0_0_3px_#050b16,0_24px_80px_#000]">
+      <header className="pull-header shrink-0 border-b border-[#40546c] text-center">
         <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-[#c2a66c]">Boludos & Dragones</p>
-        <h2 id="pull-results-title" className="text-2xl font-bold text-[#ffe0a3] sm:text-3xl">{shown < 0 ? "Abriendo la invocación" : "Tu botín de invocación"}</h2>
-        <p className="mt-2 text-sm text-[#bdcce0]">{shown < 0 ? "La próxima aventura empieza acá." : finished ? `${items.length} ${single ? "resultado" : "resultados"} · Mejor rango: ${RARITIES[bestId].label}` : `Revelando ${shown + 1} de ${items.length}...`}</p>
+        <h2 id="pull-results-title" className="text-xl font-bold text-[#ffe0a3] sm:text-2xl">{shown < 0 ? "Abriendo la invocación" : "Tu botín de invocación"}</h2>
+        <p className="mt-1 text-xs text-[#bdcce0]">{shown < 0 ? "La próxima aventura empieza acá." : finished ? `${items.length} ${single ? "resultado" : "resultados"} · Mejor rango: ${RARITIES[bestId].label}` : `Revelando ${shown + 1} de ${items.length}...`}</p>
       </header>
       {shown < 0 ? (
-        <div className="relative mx-auto mb-8 flex h-40 w-40 items-center justify-center">
+        <div className="relative m-auto flex h-40 w-40 items-center justify-center">
           {isTopRank(bestId) && <Rays color={color} />}
           {legacy ? (
             <Chest color={color} />
@@ -139,11 +155,11 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
         </div>
       ) : (
         <div
-          className={`grid justify-items-center gap-x-3 gap-y-5 ${single ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"}`}
+          className={`pull-grid ${single ? "pull-grid-single" : ""}`}
         >
           {items.slice(0, shown + 1).map((it, i) => (
-            <article key={i} className="pull-result fx-flip relative flex min-w-0 flex-col items-center gap-2 text-center">
-              <div className="relative isolate overflow-hidden">
+            <article key={i} className="pull-result fx-flip relative flex min-h-0 min-w-0 flex-col items-center gap-1 text-center">
+              <div className="pull-card-space relative isolate overflow-hidden">
               {isTopRank(it.rarity) && i === shown && <Rays color={color} />}
               {isTopRank(it.rarity) && (
                 <div
@@ -163,21 +179,20 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
                   className="pointer-events-none absolute inset-0 -z-10 w-full max-w-none opacity-40"
                 />
               )}
-              <div className="relative">
-                <ItemCard item={{ ...it, badge: undefined, lines: undefined }} size={144} className="pull-result-card" />
+                <FittedCard item={it} />
               </div>
-              </div>
-              <h3 className="w-full break-words text-sm font-bold leading-tight text-white">{it.name}</h3>
-              <p className="text-xs text-[#bdcce0]">{it.kind === "character" ? CLASSES[it.classId].name : WEAPON_TYPE_DATA[it.type ?? "espada"].label} · {ELEMENT_LABEL[it.element]}</p>
-              <p className="text-xs font-bold" style={{ color: RARITIES[it.rarity].color }}>Rango {RARITIES[it.rarity].label}{it.pity ? " · Garantizado" : ""}</p>
-              <span className={`w-full border px-2 py-1.5 text-xs font-bold ${it.badge?.startsWith("REEMBOLSO") ? "border-[#aa8747] bg-[#382c16] text-[#ffe0a3]" : it.badge?.startsWith("+1") ? "border-[#567faa] bg-[#1c3454] text-[#d3e8ff]" : "border-[#43846b] bg-[#15362d] text-[#baf3d9]"}`}>
+              <h3 className="sr-only">{it.name}</h3>
+              <p className="pull-detail w-full truncate text-[#bdcce0]">{it.kind === "character" ? CLASSES[it.classId].name : WEAPON_TYPE_DATA[it.type ?? "espada"].label} · {ELEMENT_LABEL[it.element]}</p>
+              <p className="pull-detail font-bold" style={{ color: RARITIES[it.rarity].color }}>Rango {RARITIES[it.rarity].label}{it.pity ? " · Garantizado" : ""}</p>
+              <span className={`pull-outcome w-full border font-bold ${it.badge?.startsWith("REEMBOLSO") ? "border-[#aa8747] bg-[#382c16] text-[#ffe0a3]" : it.badge?.startsWith("+1") ? "border-[#567faa] bg-[#1c3454] text-[#d3e8ff]" : "border-[#43846b] bg-[#15362d] text-[#baf3d9]"}`}>
+                <span className="pull-outcome-rank" style={{ color: RARITIES[it.rarity].color }}>{RARITIES[it.rarity].label} · </span>
                 {it.badge?.startsWith("REEMBOLSO") ? it.badge.replace("REEMBOLSO", "Reembolso") + " monedas" : it.badge === "+1 COPIA" ? "Duplicado · copia guardada" : it.badge?.startsWith("+1") ? "Duplicado · +1 estrella" : it.badge === "NUEVO" ? "Nuevo" : it.badge ?? "Obtenido"}
               </span>
             </article>
           ))}
         </div>
       )}
-      <footer className="sticky -bottom-3 flex justify-center border-t border-[#40546c] bg-[#101c2e] pt-4 pb-1 sm:-bottom-6">
+      <footer className="pull-footer flex shrink-0 justify-center border-t border-[#40546c] bg-[#101c2e]">
       <button ref={continueButton}
         className="btn min-w-40 text-center"
         onClick={() => (finished ? onDone() : setShown(items.length - 1))}

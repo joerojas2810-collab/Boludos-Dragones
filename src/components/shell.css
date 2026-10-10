@@ -325,7 +325,7 @@
 /* Hero equipment "paper doll" (collection detail) */
 .doll {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
@@ -344,9 +344,19 @@
   justify-self: center;
   width: min(100%, 9rem);
 }
+body:not([data-art="pixel"]) .doll {
+  gap: 1.5rem;
+}
+body:not([data-art="pixel"]) .doll-hero {
+  width: 100%;
+  max-width: 224px;
+  height: 224px;
+  aspect-ratio: auto;
+}
 body[data-art="pixel"] .doll {
   container-type: inline-size;
   min-height: 208px;
+  gap: 1.5rem;
 }
 body[data-art="pixel"] .doll-hero {
   width: 140px;
@@ -354,7 +364,7 @@ body[data-art="pixel"] .doll-hero {
   aspect-ratio: 140 / 192;
   --pixel-min-height: 192px;
 }
-@container (max-width: 280px) {
+@container (max-width: 320px) {
   body[data-art="pixel"] .doll-hero {
     width: 105px;
     height: 144px;
@@ -371,6 +381,7 @@ body[data-art="pixel"] .doll-hero {
   gap: 0.4rem;
 }
 .doll-slot {
+  position: relative;
   display: grid;
   place-items: center;
   width: 3.4rem;
@@ -381,6 +392,38 @@ body[data-art="pixel"] .doll-hero {
   background: none;
   color: var(--muted);
   font-size: 0.65rem;
+}
+.doll-rank {
+  position: absolute;
+  right: -22px;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 24px;
+  transform: translateY(-50%);
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: #101b29;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+.doll-col:nth-child(2) .doll-rank {
+  right: auto;
+  left: -22px;
+}
+body[data-art="pixel"] .doll-rank {
+  border-radius: 0;
+}
+@container (max-width: 260px) {
+  body[data-art="pixel"] .doll-hero {
+    width: 84px;
+    height: 115px;
+    --pixel-min-height: 115px;
+  }
 }
 .doll-slot[aria-pressed="true"] {
   border-image-source: url("/art/ui/slot_selected.webp");

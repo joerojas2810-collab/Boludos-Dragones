@@ -23,7 +23,7 @@ export const GEAR_ART: Record<GearType, string> = {
 // ?v= busts the 7-day static cache when art files are replaced under the same name.
 export const ART_V = 2;
 // Updated hero assets retain their filenames; version their URLs independently.
-export const HERO_ART_V = "painted_assassin_20261009";
+export const HERO_ART_V = "painted_assassin_20261009_portrait_fix";
 const PIXEL_ICON_V = 3;
 export const uiAsset = (name: string) =>
   `/art/${isPixel() ? "ui-px" : "ui"}/${name}.${isPixel() ? "png" : "webp"}?v=${ART_V}`;

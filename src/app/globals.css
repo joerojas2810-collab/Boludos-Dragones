@@ -244,15 +244,6 @@ body[data-art="pixel"] .rarity-frame::after {
 }
 
 /* gacha reveal */
-.pull-result {
-  --pull-card-width: clamp(112px, calc((100vw - 80px) / 2), 168px);
-  width: var(--pull-card-width);
-}
-.pull-result-card,
-.pull-result-card > .rarity-frame {
-  width: var(--pull-card-width) !important;
-  height: calc(var(--pull-card-width) * 4 / 3) !important;
-}
 @keyframes pull-shake {
   0%,
   100% {

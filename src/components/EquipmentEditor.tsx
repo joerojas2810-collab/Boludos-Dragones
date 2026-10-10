@@ -296,7 +296,7 @@ export function EquipmentEditor({
                   key={sl}
                   className="doll-slot"
                   aria-pressed={sel === sl}
-                  title={w ? `${w.name}: ${pieceLine(w)}` : "Vacío"}
+                  title={w ? `${w.name} · Rango ${RARITIES[w.rarity].label}: ${pieceLine(w)}` : "Vacío"}
                   data-rank={w && !isPixel() ? w.rarity : undefined}
                   onClick={() => setSel(sl)}
                 >
@@ -308,6 +308,9 @@ export function EquipmentEditor({
                         rarity={w.rarity}
                         className="w-9"
                       />
+                      <span className="doll-rank" style={{ color: RARITIES[w.rarity].color }} aria-label={`Rango ${RARITIES[w.rarity].label}`}>
+                        {RARITIES[w.rarity].label}
+                      </span>
                       {!isPixel() && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -333,7 +336,9 @@ export function EquipmentEditor({
           element={c.element}
           traits={c.traits}
           className="doll-hero"
-          animated
+          animated={isPixel()}
+          crop={!isPixel()}
+          fitBox={!isPixel()}
         />
       </div>
 
