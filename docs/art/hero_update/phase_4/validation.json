@@ -1,0 +1,23 @@
+{
+  "phase": 4,
+  "status": "approved_for_publication",
+  "http_assets_verified": 270,
+  "source_typecheck": "passed_excluding_old_generated_caches",
+  "standard_typecheck": "four pre-existing missing-route references in generated .next/.next-pixel validators",
+  "vitest": {
+    "files": 52,
+    "tests": 526,
+    "status": "passed"
+  },
+  "eslint": "no new findings; full project retains 11 existing errors and 5 warnings in unrelated files",
+  "responsive_review": {
+    "1920x1080": "no_horizontal_overflow",
+    "2560x1440": "no_horizontal_overflow",
+    "390x844": "no_horizontal_overflow"
+  },
+  "pixel_original_assets_preserved": 150,
+  "commit": false,
+  "push": false,
+  "review_url": "http://127.0.0.1:3112/galeria-px/actualizacion-heroes",
+  "approved_on": "2026-10-09"
+}

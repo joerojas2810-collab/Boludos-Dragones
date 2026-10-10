@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AnimSheet } from "@/components/AnimSheet";
+import { HERO_ART_V } from "@/lib/art";
 import { HERO_ACTIONS } from "@/lib/art/heroes";
 import { PX_ACTIONS } from "@/lib/art/enemies";
 import pixelHeroes from "@/lib/art/pixel-heroes.generated.json";
@@ -81,7 +82,7 @@ function Row({ row, action, meta, w, aspect, bg }: { row: Row; action: string; m
       <div className="self-center text-xs text-neutral-300">{row.label}</div>
       {ELEMENTS.map((e) => (
         <div key={e} style={{ width: w, background: bg, imageRendering: "pixelated" }}>
-          <AnimSheet anim={{ src: `/art/${row.file(e, shown)}.png`, frames: animation.frames, fps: animation.fps, loop: true, aspect }} className="w-full" />
+          <AnimSheet anim={{ src: `/art/${row.file(e, shown)}.png?v=${HERO_ART_V}`, frames: animation.frames, fps: animation.fps, loop: true, aspect }} className="w-full" />
         </div>
       ))}
     </>

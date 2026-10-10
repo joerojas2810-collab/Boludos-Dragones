@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { AnimSheet, type SheetAnim } from "@/components/AnimSheet";
-import { CLASS_ART, ELEMENT_ART } from "@/lib/art";
+import { CLASS_ART, ELEMENT_ART, HERO_ART_V } from "@/lib/art";
 import { ACC_BOXES, ACC_SIZE } from "@/lib/art/accBoxes";
 import { isPixel } from "@/lib/art/pixel";
 import pixelHeroes from "@/lib/art/pixel-heroes.generated.json";
+import paintedHeroes from "@/lib/art/hero-integration.generated.json";
 import {
   HERO_ACTIONS,
   TRAIT_ASSET,
@@ -22,7 +23,7 @@ const PX_ASPECT = pixelHeroes.runtime_frame_width / pixelHeroes.frame_height;
 const PX_IDLE_BOUNDS: Record<ClassId, readonly [number, number, number, number]> = {
   caballero: [10, 25, 121, 155],
   mago: [13, 13, 113, 167],
-  picaro: [16, 33, 112, 147],
+  picaro: [27, 56, 86, 124],
   clerigo: [10, 25, 107, 155],
   berserker: [10, 25, 121, 155], // Knight sheets for now
 };
@@ -108,7 +109,7 @@ function Hero({
   const cls = CLASS_ART[classId];
   if (isPixel()) {
     // ponytail: no trait accessories in pixel art yet (needs a phase 1b layer set).
-    const src = `/art/heroes-px/hero_${cls}_${ELEMENT_ART[element]}_${a}.png`;
+    const src = `/art/heroes-px/hero_${cls}_${ELEMENT_ART[element]}_${a}.png?v=${HERO_ART_V}`;
     if (crop && !animated) {
       const [x, y, width, height] = PX_IDLE_BOUNDS[classId];
       const sheetWidth = pixelHeroes.runtime_frame_width * HERO_ACTIONS.idle.frames;
@@ -158,7 +159,23 @@ function Hero({
   }
   const assets = traits.map((t) => TRAIT_ASSET[t]).filter((t) => `${cls}_${t}` in ACC_BOXES);
   const badges = <Badges cls={cls} assets={assets} flip={flip} />;
-  const layers = [`/art/heroes/hero_${cls}_${ELEMENT_ART[element]}_${a}.webp`];
+  const layers = [`/art/heroes/hero_${cls}_${ELEMENT_ART[element]}_${a}.webp?v=${HERO_ART_V}`];
+  if (crop && !animated) {
+    const [x, y, width, height] = paintedHeroes.idle_bounds[cls as keyof typeof paintedHeroes.idle_bounds];
+    const sheetWidth = paintedHeroes.frame_size * HERO_ACTIONS.idle.frames;
+    return <div role="img" aria-hidden="true" className={`pixel-hero-thumbnail relative ${className}`} style={fitBox ? { containerType: "size" } : undefined}>
+      <div style={{
+        aspectRatio: `${width} / ${height}`,
+        height: fitBox ? `min(100cqh, calc(100cqw * ${height / width}))` : "100%",
+        maxWidth: "100%", maxHeight: "100%",
+        backgroundImage: `url(${layers[0]})`, backgroundRepeat: "no-repeat",
+        backgroundSize: `${sheetWidth / width * 100}% ${paintedHeroes.frame_size / height * 100}%`,
+        backgroundPosition: `${x / (sheetWidth - width) * 100}% ${y / (paintedHeroes.frame_size - height) * 100}%`,
+        transform: flip ? "scaleX(-1)" : undefined,
+      }} />
+      {badges}
+    </div>;
+  }
   if (big) {
     return (
       <div
@@ -168,7 +185,7 @@ function Hero({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`/art/heroes/big/${cls}_${ELEMENT_ART[element]}.webp`}
+          src={`/art/heroes/big/${cls}_${ELEMENT_ART[element]}.webp?v=${HERO_ART_V}`}
           alt=""
           draggable={false}
           className="h-full w-full"

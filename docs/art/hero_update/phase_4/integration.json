@@ -1,0 +1,1094 @@
+{
+  "phase": 4,
+  "status": "approved_for_publication",
+  "runtime_assets": 270,
+  "painted_animations": 200,
+  "painted_portraits": 20,
+  "pixel_assassin_animations": 50,
+  "other_pixel_heroes_unchanged": 150,
+  "gameplay_changed": false,
+  "commit_or_push": false,
+  "files": [
+    {
+      "file": "public/art/heroes/hero_knight_fire_idle.webp",
+      "sha256": "69e28010d2ca413d2227a7b63ec505224678f70a61daeb253bcf1070e8162bc1"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_fire_attack_1.webp",
+      "sha256": "7ac750a33ea555a5c0bd3ebc7a515e134487e19da46daa2c3b450e1c7ff6e8e6"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_fire_attack_2.webp",
+      "sha256": "a146c594d1b86183ae6e0f632b45061757ca6e20ec63693a9ba148b6396e9ab1"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_fire_attack_3.webp",
+      "sha256": "04946e550ce9034f6cb9a7f0aa68c8a5cd1574cb7d18bf08677c5ad98f144a35"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_fire_defend.webp",
+      "sha256": "ec7876fa41aca9508e104bc52f076cc5d86a10436d3b1e9c0724c4fb1e3bf847"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_fire_perfect_guard.webp",
+      "sha256": "83610cc0a07f4b058ca1dd17133301d34e91de4787d26d040b29cf539eebe7cf"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_fire_hit.webp",
+      "sha256": "831cd21ce287b01d7326dc035c005f3f3cabc919fe9b778fb106a2a384a610e0"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_fire_dodge.webp",
+      "sha256": "cf930741b34edd2bfd48a96d7344a5d66244330382860200b1834b7a48604fb6"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_fire_defeat.webp",
+      "sha256": "4adab5ded3bd62ca80c79b3bd6b8be5c399b62d90517a33897a1ec527702f57d"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_fire_victory.webp",
+      "sha256": "f4dba4f84b81c60190f3913783f769c22c53910e9b570975f213950d69d5f508"
+    },
+    {
+      "file": "public/art/heroes/big/knight_fire.webp",
+      "sha256": "3a4507c5016ba173d3bfd0ab2f1a27ce851cf3f99e4ecefe4d411012e35222a0"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_water_idle.webp",
+      "sha256": "787b303ceb79318b435506199b0f8ab2fb84321c3edf2264f64d85c5ff5a7572"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_water_attack_1.webp",
+      "sha256": "43c093522f5a55f5b67edc8b1f02f64f637809dd7316b7a20dbe6a09496070c3"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_water_attack_2.webp",
+      "sha256": "aafaddb725d0016a03e5b224ae7b8d94d558de4034bd4382c1b3fcc4b626152c"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_water_attack_3.webp",
+      "sha256": "69afeae8ad26b4b2d71d819ca49324a03f751fd678879d13b9a3a80c50cac008"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_water_defend.webp",
+      "sha256": "858f1261991a1fdd740f24c3770c2300e623da3767ddb70f785345ff74ce72d2"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_water_perfect_guard.webp",
+      "sha256": "a1ce76d5b9a59337fc260cf846b22d8e8a1c10cb3890c2fee6ef34102685fbfe"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_water_hit.webp",
+      "sha256": "78399311040f4cd5cf99cfe11770f1857b444d7d295635ded03a5385f2e2d6e4"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_water_dodge.webp",
+      "sha256": "3dc5dddac886aa4f3fa562828d4314e266633bce221b5338116e833f612dd9f2"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_water_defeat.webp",
+      "sha256": "d0aa2e312e3d6fea0873266f1e7593f85a45f3b8e9bdc175e6b0c126e6c0b53e"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_water_victory.webp",
+      "sha256": "819b72ee2ba48a91f81e7abd5586ac7c01502a28fa5a9d2f5aa36e68dc2ae534"
+    },
+    {
+      "file": "public/art/heroes/big/knight_water.webp",
+      "sha256": "413d2c9b2038b0eb3af48c2983c751f48aa15518a7c0589f30f36d15b586303b"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_earth_idle.webp",
+      "sha256": "33f4f072f564f14a7b810037d8c88b2f5925103c22901887d582d77a96ca1267"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_earth_attack_1.webp",
+      "sha256": "2a091c0aa84542761f9f54f714e4851ee905b0578b2829b223e676c348a8d238"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_earth_attack_2.webp",
+      "sha256": "e6636316523b70011bb3a33672b4083cecf5ea604c5c0b7d96f55cee663a52ef"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_earth_attack_3.webp",
+      "sha256": "1c0ad2a9a61e82ef4224527c7acd856911a27c7e306ff53b709b931462287482"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_earth_defend.webp",
+      "sha256": "0889ce0d0d77cc5b55325351d2865460b2d6a50f7bf3ba9a3c0148e69d21b055"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_earth_perfect_guard.webp",
+      "sha256": "6e221d0cde985c652b1ffdb995eddf134cdc3ef2b266f64d0ff73917287b39dd"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_earth_hit.webp",
+      "sha256": "3756fb77a6764fe656eeab61ef73f5aa7070100a3408c4de8c1031a0708c300b"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_earth_dodge.webp",
+      "sha256": "57778f74d55fc32eb6abffa040a4e7784fcc1eb9269e29ee18800b3b75b1a236"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_earth_defeat.webp",
+      "sha256": "2dfb5be7e817af7fc95dae0ab3d347d645fb7ea157cd399b5524a7295d3602cb"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_earth_victory.webp",
+      "sha256": "9de7e6215045cbf3da4d6cb4c6689232f7a946572d5fc372771e900ded2ea880"
+    },
+    {
+      "file": "public/art/heroes/big/knight_earth.webp",
+      "sha256": "747aaf3ba468e37f8fddf3e8148c0d5edd6b180801fbb58c0ed24a90aa3f487e"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_lightning_idle.webp",
+      "sha256": "a8f137019d6c84d35f39185451e165589242be2415d5b4bf2b79f24e9399b0c6"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_lightning_attack_1.webp",
+      "sha256": "1269744aed8b756d82ad1e95b28b1ab1b92fcc4a1b477089d172b4e0c080bf2e"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_lightning_attack_2.webp",
+      "sha256": "a4d64e462ce62a690b7f06c5f1e422e6e65bce1032df760f3e3ad59dff3fce6c"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_lightning_attack_3.webp",
+      "sha256": "310e729b6e397c5a086d980f722d0110525468089379d0830e8506d3a4ed9349"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_lightning_defend.webp",
+      "sha256": "2281a5612abd3ca02a843cc08579852689df1caa19339d4414871aafd86e81fb"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_lightning_perfect_guard.webp",
+      "sha256": "1d8b6bad3e0e16d40266709d79be9f65bac12beff34d956b8286b6582154c8c2"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_lightning_hit.webp",
+      "sha256": "dee59ca9b29ce1a446b4bf22dd48c062f8623f94ae968fe6326e2a32c286c539"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_lightning_dodge.webp",
+      "sha256": "0cf222b8e7956beed019626e4f25612dfc966e5dd7932fa1e906c67126e1277e"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_lightning_defeat.webp",
+      "sha256": "2c7579a5de1a32696bcd48374ed102447a559178ad8ba625a5040b97e8a39fb0"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_lightning_victory.webp",
+      "sha256": "94f1537a0ab80d76ef6f3820f1047193265decfeeed5e07ef35eceb553b47237"
+    },
+    {
+      "file": "public/art/heroes/big/knight_lightning.webp",
+      "sha256": "14810fcbc23e4cfa4ddd344d6418f8cf3bbea95c968be0086a9eb798c4b557ba"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_wind_idle.webp",
+      "sha256": "735423273bcc2b88bc9c1b1ced3b18655899b7d9566544b8659a988e91941332"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_wind_attack_1.webp",
+      "sha256": "55a170d232253234e7721beaf10e60112cae4d7c0d2a8e6d47fa271ef5b4f762"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_wind_attack_2.webp",
+      "sha256": "d28a03dc720b3316da64bd75eca95ab04c0a0335972a36dcecb50331c190ef0e"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_wind_attack_3.webp",
+      "sha256": "2b0c8a55462e258522f48975234821b0fbcb18d88de23ff70c3cf1087b86ea4b"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_wind_defend.webp",
+      "sha256": "d71ea028f0ebb039fce525c58aa6fab3df4224f2ac2e4d65ac47e788adffb9a2"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_wind_perfect_guard.webp",
+      "sha256": "d33fa61239e3830cd44f00cdbf1fec8305e060d8461cfd946a8bf32234767a8e"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_wind_hit.webp",
+      "sha256": "cc6c4518d426d5fff5fb8543d5a8f867fdd1394a185fe52f1ec45a12cddf0986"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_wind_dodge.webp",
+      "sha256": "1cb80a6a298d09c9c949d1842330f1ad32d06d733409ca4bd61a8ee1894f0bce"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_wind_defeat.webp",
+      "sha256": "d042170b40d8ecceba91f394856445ee24c322cadc3a570b18a51de827f1b15b"
+    },
+    {
+      "file": "public/art/heroes/hero_knight_wind_victory.webp",
+      "sha256": "c21bf5b0985556ca407c776888b81751103695f0e6dfee115ecb2447e754d6d2"
+    },
+    {
+      "file": "public/art/heroes/big/knight_wind.webp",
+      "sha256": "0e21962400e15c2a58b112f5d1925ebbf2ddaf4c2a8c4f38731ded26240b7101"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_fire_idle.webp",
+      "sha256": "411b3884d9fec504ca356260903458f8c4cbb7357384cdddb7dc4edde3c8d857"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_fire_attack_1.webp",
+      "sha256": "c78a1f006a46f57dcfed8d16ac9c3cfd75bb96ec8c2ffc63aeff85c64d1037c9"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_fire_attack_2.webp",
+      "sha256": "fc71486f7268e469e9a624a4378340c2993bdc5b321e0e2621412b8531c16c49"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_fire_attack_3.webp",
+      "sha256": "d6c2fbf975023dd0e46627a56981a00c0f8a559b0b357b1737f053d75f859dd5"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_fire_defend.webp",
+      "sha256": "0bf4b0ca9ac6ff5248ce85a5b50d22124e983be5e5d3ccf46f0a9a85eacf2a6d"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_fire_perfect_guard.webp",
+      "sha256": "08d7d824eb7d1c6128258b9f85a325a378ded7651e62298783034e190b13862a"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_fire_hit.webp",
+      "sha256": "278448239063583d6fff74157e7d9840f9b779a7e4a48860e715cbfd3c03335a"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_fire_dodge.webp",
+      "sha256": "838b3c4bedb6fce8dc4dfc05c15c4d953906590061fbf91c06b5e7db438c13a5"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_fire_defeat.webp",
+      "sha256": "fd91389b406a565f1b2d11347ebc30a2d29f6592164976465c86e20feb8e2647"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_fire_victory.webp",
+      "sha256": "ce215054a375f31cce2e34a3c0138034ba52d86f49330c22d737c7c09f37e073"
+    },
+    {
+      "file": "public/art/heroes/big/mage_fire.webp",
+      "sha256": "ce9f68b3068d83ae5efefec0d2f18ae84f4b3ae6174cdc949a4afabc27804f5c"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_water_idle.webp",
+      "sha256": "a8d03250953880ce5455fb9a3cefa7a10696bb0adf6f84f2bc33585b2cee6011"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_water_attack_1.webp",
+      "sha256": "73529854e25949d27ab673f83a6cf62d081230ec761c4bb3ab1a0a41db63219d"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_water_attack_2.webp",
+      "sha256": "d00ec5216d4df1ef03342137438a58156b884692fda5994f1789b2c1ec9cc209"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_water_attack_3.webp",
+      "sha256": "437691cd42c3a13cdf14d330f0f4839d054d560737d85884b09fa47ad85a0b37"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_water_defend.webp",
+      "sha256": "db1faf4447cc5862ed42beb2c3928fce11950dddd7f0877937db977ba63a7eeb"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_water_perfect_guard.webp",
+      "sha256": "62fd1cfeffbb56967bc2543cf6f8701b0da968039ae0643b6b588b3063d867a4"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_water_hit.webp",
+      "sha256": "372ad1651c37c047219a3a3f8da8347010f413a02c2d24e5ffb4f16307435e23"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_water_dodge.webp",
+      "sha256": "7cd40f5fda005ed8995d6ee8e52efb5cf936aeeacd8ab320507207c60603905c"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_water_defeat.webp",
+      "sha256": "03a501e5e9b23890242c92ce2b981e097769514d0e2b70099bb114aaa478ef16"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_water_victory.webp",
+      "sha256": "15df464b69a5fa68f685115396e7e9429aa12b3a424de52048777c94455be262"
+    },
+    {
+      "file": "public/art/heroes/big/mage_water.webp",
+      "sha256": "ac9ce5c46589db4607671b4215a267993ef7f1339772d979265f08e30de76ef7"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_earth_idle.webp",
+      "sha256": "1417805d5afdd7ce4c2beb6b078d5ec4a33c816fa715ae80cacd2faaa679e81a"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_earth_attack_1.webp",
+      "sha256": "a72cb25e19b8a6c0de39515a3e7e93fa67ba047bde619abd6997c5a10ef42e71"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_earth_attack_2.webp",
+      "sha256": "2f9ae9c4eb748c5aae58d50fe09db6c4b9b7adbedc0cb3ee9164b43705af034c"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_earth_attack_3.webp",
+      "sha256": "516a86f57f1b57fa58a2ad292789fcf36c048322a2fd73dc04b3dcd9d59eae02"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_earth_defend.webp",
+      "sha256": "6528865f335d619e79109cc6c70b3dccbb729d2ec7a5a21202153d1a0f8cb04f"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_earth_perfect_guard.webp",
+      "sha256": "2269b909d75d68b13d718a64588fa3c910c9e99c8493558c9920d8772d7b98cc"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_earth_hit.webp",
+      "sha256": "8bb00c7a41ed36b4e49201d7a8bb2c162e8589a536072bbe1cd660117c182b28"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_earth_dodge.webp",
+      "sha256": "73509d467c2b6b820c51fa9b4ffa3ef97accfdc69599266b43ebcf574ee3de95"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_earth_defeat.webp",
+      "sha256": "6b2ce8160cf0eafbb456d1bc9f354cc55bd946f9bdaa5e98bae826baf507519e"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_earth_victory.webp",
+      "sha256": "0187a00a9ab91f0e201b01ca6f273d3d4ef6b4568f065920e7cf53008ede88ee"
+    },
+    {
+      "file": "public/art/heroes/big/mage_earth.webp",
+      "sha256": "8a52bef0cfc213d030f717be6fac6a10cba99389c31fe52e52af3daeca9216ba"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_lightning_idle.webp",
+      "sha256": "1864d5b9cfa3d4e789063f8da2671eff1d9409321022a3209ec14ca57d33a5d0"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_lightning_attack_1.webp",
+      "sha256": "1123132ba5b8a6a555151753aac1e1c1b6572171768e832988d51868906ef38e"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_lightning_attack_2.webp",
+      "sha256": "d7f12f497a884eabfe2cf935480fc33a9ca5c728d883388bd4c43b839f61813d"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_lightning_attack_3.webp",
+      "sha256": "1f2bcbc14f45cc280d0d125ab80fac7d59aa5c0e6b13e011c8df0d702234196c"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_lightning_defend.webp",
+      "sha256": "ae3193ba357a0204db82d1ebc9dfb9a734a10b2a2f532ded045979947f5f1c12"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_lightning_perfect_guard.webp",
+      "sha256": "aa590bf1d56e441af80659911a9fd0ee91e73f875c3cf496e93736326aaa5669"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_lightning_hit.webp",
+      "sha256": "31423b9b9c5e14cc0881aad78f4aadf5d3880a9cd09cc748af83fbe39a62be1f"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_lightning_dodge.webp",
+      "sha256": "a8a85d5969927c0f8489e28310dbb93ce19c3ec6a3a0b904da491c6c20519de1"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_lightning_defeat.webp",
+      "sha256": "759f4db056af09ddbba8fb9d01b1d19af99d502c762e28e4cb2761913446c057"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_lightning_victory.webp",
+      "sha256": "d85a50d99336e0455a1675a55fc346df0e8a659bddd7c3684dcd7ea484964f21"
+    },
+    {
+      "file": "public/art/heroes/big/mage_lightning.webp",
+      "sha256": "3db01624a1753b56edc993cc5c044c1108812564fdf58b4d71b507b57b476301"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_wind_idle.webp",
+      "sha256": "111d0f6493bb212481131e83b5a070934ee77896a8698a4866d365acc328b636"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_wind_attack_1.webp",
+      "sha256": "05fb5e1e1159de3cb638524e79fca535f24b64052fbd879b6f8efe6e8bbbd6e0"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_wind_attack_2.webp",
+      "sha256": "72996f5be01bee09d49b85fc95151bef5c6098cc19b51871adc2244a3f8084f6"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_wind_attack_3.webp",
+      "sha256": "4c21307c556892b06413bec96ceea53728fd923c3ec4079fa27fa00f703cdef5"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_wind_defend.webp",
+      "sha256": "f4e401a84b37f6021cd928c5b9c302776785f4d4c6396531a553fb8b1d55d3a9"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_wind_perfect_guard.webp",
+      "sha256": "0a9627b4930a1d4c4051e1dfb09565e22fcee5e4cd238a8dc166c7b3253d665d"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_wind_hit.webp",
+      "sha256": "29bdb5def161e737e326d0a028fdbfe306f5e73c3298a05e13af98c303c465e5"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_wind_dodge.webp",
+      "sha256": "fa369e0a410ab67b36b7b1ad452755e2e5c5b1c71ba6aa73e322829313cc3f67"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_wind_defeat.webp",
+      "sha256": "107a82eff08d77e1e13fbcc99cd32eb7d5c26cc77b063ac81aea788d29742a01"
+    },
+    {
+      "file": "public/art/heroes/hero_mage_wind_victory.webp",
+      "sha256": "6e0062fca9c68dac618ea65b011e112f63dbd8f3d0952c99742ecd3ac64c3c3c"
+    },
+    {
+      "file": "public/art/heroes/big/mage_wind.webp",
+      "sha256": "41df9ebfb85c38a6621a7b516282f5866d88080df18222c2a6bfffe0b58aefcd"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_fire_idle.webp",
+      "sha256": "0a084d4218f83c2c7df3f978b8bc12920363bf89b177878358484a6ec13da406"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_fire_attack_1.webp",
+      "sha256": "9c59d3faa1a2652fb37bba38b2dbde369e2fb4925d50b80c45f4f6b4f667ec3d"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_fire_attack_2.webp",
+      "sha256": "12c8392327eea80d2f7553fc117c334a1a4f1d7b3c720ae8a4fc239e356a7da8"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_fire_attack_3.webp",
+      "sha256": "591cec56c93aaff1f9ffe48c28eadcab930a4594b5a56ebb8568bbcae00d8468"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_fire_defend.webp",
+      "sha256": "05cd86a530016fda015741093f4c9e6f0e4a44318834a6eb3767199347325fe8"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_fire_perfect_guard.webp",
+      "sha256": "666e131373a24f5b1877a4d64c6aea40fb8d59cce5496efaaf31d4b5b8132568"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_fire_hit.webp",
+      "sha256": "2093957a16fb8c8287e14133f59ce7850b08b462a3df00cfbae66a447adb5ab8"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_fire_dodge.webp",
+      "sha256": "4bdefac267569fbe8ba1208aeab31084cd554ed2e70143f86ecf9f5c63164f40"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_fire_defeat.webp",
+      "sha256": "9879deb38e2d0f70908093954c4204e0263b468593b87e3fa6f7e97a7bdf3694"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_fire_victory.webp",
+      "sha256": "e7518139c619720be41b478a75a74e6d7da24a88ac9713689449d99373e5a70f"
+    },
+    {
+      "file": "public/art/heroes/big/rogue_fire.webp",
+      "sha256": "f43eeb58fa6d89c808e7e5ec8b39bbae07cf12e9a0f6f17f628e47b6f7eb860c"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_water_idle.webp",
+      "sha256": "96bf78b31cf944605ce6d506efe5986ae71ce5193d702969be43550e180f14ae"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_water_attack_1.webp",
+      "sha256": "b91411d91c625658c8d29ba7bd01185b8a125aab0e056e7d048b9c286650b009"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_water_attack_2.webp",
+      "sha256": "ef1364d9d1008b7aadef5b4c3d86151ec7bca4d9c8f68a881a051acb3d477a59"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_water_attack_3.webp",
+      "sha256": "474a9ed7e651998b2adcfba130dfade09fa1c05b57812846aa9a71eb5ac7e2ce"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_water_defend.webp",
+      "sha256": "0dce430b3bf5dded3aed401a8528c0e9bf433acf9ef2b2b3c8dec72c03beebff"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_water_perfect_guard.webp",
+      "sha256": "3548006088eef6e18374265b56c5eb4256cdd1bac70244165032793b8f3a8355"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_water_hit.webp",
+      "sha256": "d58f88fffc3e00a5609c0625340ae88f0ee4887334d218b1de9ee78ac174ab07"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_water_dodge.webp",
+      "sha256": "0b3a18ad3b0934e66379cc21d671a37ebc98c2444581baffe272672a6aa31ea0"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_water_defeat.webp",
+      "sha256": "8627141a55935acce5c4844ad0b4baa49ec065b0dfd215e050cfe53c8c12ecd3"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_water_victory.webp",
+      "sha256": "79c1556bbd09a3012b3166cd02c4fbe75fcbeb923046cedaeb4fd352cb5b2784"
+    },
+    {
+      "file": "public/art/heroes/big/rogue_water.webp",
+      "sha256": "5d10de43734406f8a8a590a6cc741b222b69b9daa6ef6428b667c0aff0e5a347"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_earth_idle.webp",
+      "sha256": "f72729f7db7c703c89399d1280d2f2a57d03933e1cc763d8d113e3f8372a3a2c"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_earth_attack_1.webp",
+      "sha256": "d5729cdf7ae226139996a1aa914ece1ac54dc687cec7115fe94d439befdbf08e"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_earth_attack_2.webp",
+      "sha256": "6be5bda35efc19a0045fb9ee453febac76ac2bd1305aed363ce549c345943b33"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_earth_attack_3.webp",
+      "sha256": "82806a5ac9bcef33cd276f6e4f417fd98101928edb50f0e70263cfce4ecae47f"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_earth_defend.webp",
+      "sha256": "eac274b789a726aa7e96d10c5f51f49fe828c8e0fa96366d4ddef3e596dede3a"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_earth_perfect_guard.webp",
+      "sha256": "96e20ec25f278a07a5c419aeb96e7bb4b4cc771f8e332c972ac8e84ee961fc5f"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_earth_hit.webp",
+      "sha256": "1ef1e4d5c8bb09a7efa76a73bd90614d457b55c8a2e5c64d7f340c71e6be4c47"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_earth_dodge.webp",
+      "sha256": "25054ada346fd8bc6dd494c90e3c5d15e97b6ac315c396efda2e3162efbbdf88"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_earth_defeat.webp",
+      "sha256": "345f684fc4281d165437ac5ae21df4cccf4ae55906c9056cc9974e8427d55168"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_earth_victory.webp",
+      "sha256": "7a7d4a326ae52b2526ec00e79030ca04c29549c2dd7d678bfc08e4128676448a"
+    },
+    {
+      "file": "public/art/heroes/big/rogue_earth.webp",
+      "sha256": "e852cac054d06b55ceb9568a06f16c130a0e7dce18ee3521dab1ab071ccc8cb6"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_lightning_idle.webp",
+      "sha256": "5288a602354a0e75da417b604e266135c7739d9b24e16ad718fcb6a607a7a8f4"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_lightning_attack_1.webp",
+      "sha256": "14fe198b103bd47d0bea8d77a2249d50f91dccc7d2d201be09176635877c23e1"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_lightning_attack_2.webp",
+      "sha256": "8946d7d0816429440e364a0182633910308736262be6981ade04329a8fbf0075"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_lightning_attack_3.webp",
+      "sha256": "00c3f5980e844790dd0d359ced0539f1e4a908a19f2d57470cc1029d999f7153"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_lightning_defend.webp",
+      "sha256": "94882c40fcbb3d34e6495905abfee0e609392e0f8f3f468004ca6d648bad324e"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_lightning_perfect_guard.webp",
+      "sha256": "da3d0bea0719a7378c00c610da73fd097057898ea9825500e4bee69e1a906299"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_lightning_hit.webp",
+      "sha256": "284db08462d96a8e0483cae0a378bbb25258a609c1c97be13aabb97945e74e83"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_lightning_dodge.webp",
+      "sha256": "b0e18dd3769a8689240f950649ae371b0245d031c6855045adef5478f26fc7eb"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_lightning_defeat.webp",
+      "sha256": "f2074a64462226bcc691f138e67b3013e919f6bf98bcf96b801dc17f06904a6b"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_lightning_victory.webp",
+      "sha256": "8e4a6699d9945cfd559e7e66ba1023f7d8567659349a95f269da09b49c5b4517"
+    },
+    {
+      "file": "public/art/heroes/big/rogue_lightning.webp",
+      "sha256": "12cf6ca1d66f8cf1e6eadf0d5bf571d305a55781423668ce097c7312f007b541"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_wind_idle.webp",
+      "sha256": "bcd717316bce2f67cb27dec72dba23afe6a61f82ecd5d4336d94194f1845a87f"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_wind_attack_1.webp",
+      "sha256": "8f174b7e6202e39f38cf52c7e49618fd3affd9561e42c702e003963ba4c40c6f"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_wind_attack_2.webp",
+      "sha256": "84cba66860a8e16ff393787c7351b0ca8863c832e5e2c97355d5016b01633d98"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_wind_attack_3.webp",
+      "sha256": "8e92ea7ee42a7e84d2a5d08193c13ed69c251fc8d32de7d40f46618641c4e2cb"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_wind_defend.webp",
+      "sha256": "49a491fd60b05d09c0e2e366947e36d68275a07191739ad0c5dbdc897ea5eff3"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_wind_perfect_guard.webp",
+      "sha256": "13c666cf12fd01ae6127245d81ee682ef11a440dd064a3740bfaebce426a779d"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_wind_hit.webp",
+      "sha256": "37fb359c02019f7e4d0f90356b89fe4db08ead7e64e1eb583f68d5969bc88717"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_wind_dodge.webp",
+      "sha256": "a4e4cc0eac7e17f9d09979b2571819afaf8dc0bccbf4bf54f67142fca981dd08"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_wind_defeat.webp",
+      "sha256": "fbb084ef74651aea3b0f0a091332c4826fde4e063ce061fcf9b96cde912ffd66"
+    },
+    {
+      "file": "public/art/heroes/hero_rogue_wind_victory.webp",
+      "sha256": "030aeedfbd2e0c512618c8982877d50f59c18765917a6e5178c445cadb362496"
+    },
+    {
+      "file": "public/art/heroes/big/rogue_wind.webp",
+      "sha256": "92db96c32ec8ed436d2f86b34ba467e1e2e2aba92ed5a9bfabd71aab95ccc675"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_fire_idle.webp",
+      "sha256": "d99c383bbd3fd42839546c9ab46ae736b4f11381dcaeab035f636fe33bda19c1"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_fire_attack_1.webp",
+      "sha256": "013b8f2b061a3d699e47cc3e1cf8ecfd2425e29c5d74bd87e78e9fb7cee7af5c"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_fire_attack_2.webp",
+      "sha256": "1126062a8b25a273ec5da2298bdc8364b04ed17b0d8fda12a22cd65afd09bd4b"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_fire_attack_3.webp",
+      "sha256": "eb7ee3a95a7ab7c770b3a62ff9837e8ed2b7b7b26c9913515125a5564ba4ab67"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_fire_defend.webp",
+      "sha256": "5c4e7a82dc03595fede10e9d9d610a1336813900f9c530fd96136c9e44640287"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_fire_perfect_guard.webp",
+      "sha256": "51b9c64774e126c47d888a1159b0bc66ac7982a7d8e35e7f0fbfc758a90fc15d"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_fire_hit.webp",
+      "sha256": "abf0f195d2f598b493c27443f824def1b61c7bbdb16f620b309a66d29775ebe7"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_fire_dodge.webp",
+      "sha256": "f8e1f2960efc2414a2f3a9cd13a6169ff6c83aa4cdf9dca084a9ce16439e1b16"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_fire_defeat.webp",
+      "sha256": "61abb0e42405bdcce8964af6acd6a35427495407bdf5fb237e9c7b4be790fcb5"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_fire_victory.webp",
+      "sha256": "531ce6818d7660f436d00813e1b05b8943a41338bf76c21751642cc6ace03239"
+    },
+    {
+      "file": "public/art/heroes/big/cleric_fire.webp",
+      "sha256": "a0140d5d13080b6dd63848a7382fffc90327c05fe806bce1b939e811de6196b7"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_water_idle.webp",
+      "sha256": "656f5b148748da2e2d8e145c2c876c9dedc4c80301c5e03d2f58d02c5c4511e9"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_water_attack_1.webp",
+      "sha256": "77b5c20313bbb081e23ec5d78aafe054a8a1f3d96f34849e7027c59cf157d6cc"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_water_attack_2.webp",
+      "sha256": "00675bd4b7e4ff241ed1c0e284d1ca7a6cc1895f2932acbfec47fbedfcb45770"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_water_attack_3.webp",
+      "sha256": "3930327b84626eecc852665c97e345fe7d010962caae75d33dbbd1ea84aca851"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_water_defend.webp",
+      "sha256": "73291609d199aede672a89e7e253f7118b8cc21f8f699a58ae91744c3d547b55"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_water_perfect_guard.webp",
+      "sha256": "b6cf15647ff57ed816b4b9da1ea1ace3f8a7e7d685e97c83873b4545fe6a5ec7"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_water_hit.webp",
+      "sha256": "9418fc6e7bcf975af03304b9897d4de503c3524033dda7d42578b8613e0f3092"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_water_dodge.webp",
+      "sha256": "ddf0e392f9c877fd7df13b65af311bc42f590f3e554b28499f40aec332bba280"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_water_defeat.webp",
+      "sha256": "10ed53a8985914c9560bd65630f990e0eff6377e8a2edd60a8d1f5d5893434b7"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_water_victory.webp",
+      "sha256": "3a517e143313cadfa06a7ceb8946973d93ba9045cc3a24cdc52aaa041228533f"
+    },
+    {
+      "file": "public/art/heroes/big/cleric_water.webp",
+      "sha256": "fe8db9b5bf35441b7c34d94576161b09a71421f3bfa0cf1101a0a333cb237bc0"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_earth_idle.webp",
+      "sha256": "190c716cc8316ea74bc3f8f17a0c9d4d193395cde078dc25c0a478e277402fcb"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_earth_attack_1.webp",
+      "sha256": "b7fdd42e6119ef000ac5bda2c76d2ca532dcc776c5b5316eeb76e6479f45cf04"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_earth_attack_2.webp",
+      "sha256": "60b5a8225799ce5aa288b3f62f7f97ab467cb01c146669ae67e5abfd24e5c7e2"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_earth_attack_3.webp",
+      "sha256": "9d4b6b1c825eaea52a358d1024baf6df6d0953b4ef70e0d88be3ad0b38886995"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_earth_defend.webp",
+      "sha256": "0001200aeaa59ae1511b7ec26d0a1bcf3606103016f51e50e6bf4dcec3d98951"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_earth_perfect_guard.webp",
+      "sha256": "84469b21a0bc19b84cf3326bdc480107a4cf07020df5b191958614c613e771d9"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_earth_hit.webp",
+      "sha256": "6adfced98caf7d28b77c74ddf02a5a7aedaed204c0d12fd84d9d47c955ab1e70"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_earth_dodge.webp",
+      "sha256": "7319628da1269c75b7d0d09d8417fb67665000e22bdd59cf09b869156883b415"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_earth_defeat.webp",
+      "sha256": "bc69e033fc9181228f5adeeeb96fae49c7e0a2b33d6daf54e567c2d2490b3a96"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_earth_victory.webp",
+      "sha256": "0a5abe0e2ff826899567b1bf1b3c1224c936a91b0c2337af71273f21b068df22"
+    },
+    {
+      "file": "public/art/heroes/big/cleric_earth.webp",
+      "sha256": "6b5b12074ddf5062cc4e6c820ff555c558a35aae0116ebe8b136eb5ef1f373f0"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_lightning_idle.webp",
+      "sha256": "84f5fb37736e9f747c1812a5b66689f0a08f0de7cb53dc1b09f53617093361a5"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_lightning_attack_1.webp",
+      "sha256": "00880e6e3d430de10d1e083eeeb2737f2dbbaead242f8b755acfd75111e90b79"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_lightning_attack_2.webp",
+      "sha256": "b400b5f06f1f4b62bb62fb938e3332c13c4ecf5ff8b5f4ee732960370ca502e7"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_lightning_attack_3.webp",
+      "sha256": "b2f38d8168d96d5fafca888e8480a2f148c91587d4aef85280809a4748b54e16"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_lightning_defend.webp",
+      "sha256": "66e690486d9f93309bfe655de1ea8427aea1d6cbee77603b1a710890e503514d"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_lightning_perfect_guard.webp",
+      "sha256": "c8bf8b12bce46f629033976af6d9959bd9f9d6a91b9eb00df8a142c7f093bcb0"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_lightning_hit.webp",
+      "sha256": "c88c273dbec6d3fa37f23af6ca9814c9dbd2261deb4d88d14518cb226aa7d5e8"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_lightning_dodge.webp",
+      "sha256": "80f77a38b12c420f540ad5be9d5ac1f5b17a6d7edfbc2edf7f29270e657d4df5"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_lightning_defeat.webp",
+      "sha256": "fd2c69c2ece3cf26d8060eb44284c22c8d8237e479621555be8fea06140bb60b"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_lightning_victory.webp",
+      "sha256": "50633e2dde86ad712620b93bd781fb14b53443e4bfad31877a3488e2c8a5e4bb"
+    },
+    {
+      "file": "public/art/heroes/big/cleric_lightning.webp",
+      "sha256": "c1bb379e7e3af008e40ea19c115e99f33f491a574adafe566173c49aefd7a127"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_wind_idle.webp",
+      "sha256": "b9543a8b4864fbf4349f715d5205488e6606b6f310c22c89c6b2ee50d156c06e"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_wind_attack_1.webp",
+      "sha256": "a8e59353a225f2291f95bdad237f3e38452dcada3d5ac5498afe886049e92158"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_wind_attack_2.webp",
+      "sha256": "bce3312db5645f179455f31b07c1812afe5bb967d5347fd812fafb177466cbd7"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_wind_attack_3.webp",
+      "sha256": "0e79e03426341ca1f51be6fe2ff496e679709779b6d0ca96c82d2d4d0779fe8f"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_wind_defend.webp",
+      "sha256": "bde09a5988721f8ffff63d1dc0d2ffd39562230c4b563e55194b8750e17d5751"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_wind_perfect_guard.webp",
+      "sha256": "1fc2cdbea162a1a6c390d027c5a2cb9cd7885c30b459dcad1e246e25f7426461"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_wind_hit.webp",
+      "sha256": "bac40d978109a56d0e03331c6c9fc8b18785f219ee37cf835782b6a4ed22de71"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_wind_dodge.webp",
+      "sha256": "5a41297a29fb555056b0a4335e8aebaf511671bca1420054f5f2240333ec1d1c"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_wind_defeat.webp",
+      "sha256": "15ffac5aa2239f20635cc427dd41f48a46db02ea57b4e3e0b91df2d18e0c3ecd"
+    },
+    {
+      "file": "public/art/heroes/hero_cleric_wind_victory.webp",
+      "sha256": "b300d4e9d8ee28d7defe0a6843ba188463eac70b10abc97b8698fe509596dd8c"
+    },
+    {
+      "file": "public/art/heroes/big/cleric_wind.webp",
+      "sha256": "c109cc3959bbffd0765fd17e9982d00272fa3c011142b2b1580e158328836bff"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_fire_idle.png",
+      "sha256": "5954d8f5c463feed50f1cc41b130052e080a7ff3d17d99ff63fd71137b3b074c"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_fire_attack_1.png",
+      "sha256": "1c87860c843ae12a4b9333c31639416ccd24cb66f795ec55092a3f0fc1b3fc8c"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_fire_attack_2.png",
+      "sha256": "18ab6dcd276f2dbe1b298bb596762f10315111e74634235850444ab4da388450"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_fire_attack_3.png",
+      "sha256": "ed58ab14564732f264ad2e9e11f1e4522ee8cf8cc5cd4c2deb20839433c83b54"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_fire_defend.png",
+      "sha256": "3b1a20e0cdcca180a8f5930daa8fe8609e4c02dcfce4a568e45ede872ef19f13"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_fire_perfect_guard.png",
+      "sha256": "98ae2fa2a2d74b7480bf116248ae503415fce122f70e71a101f77457a8f341c7"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_fire_hit.png",
+      "sha256": "5d59ad9dd939e07254fbc17f565da868887de4d61413f0ebc3de2fcaee834ebc"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_fire_dodge.png",
+      "sha256": "2e0081bf32578c175557be4be2e12be28c4fa08f550ec44e91458a3caa539800"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_fire_defeat.png",
+      "sha256": "22532733980408cc0bba5e41294d42a3ee235a300dc458d8b510927dd5f1a2f1"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_fire_victory.png",
+      "sha256": "b521fa5e826840ab86c91aa24c720399e30405a8808100198b34fa1dc8342da5"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_water_idle.png",
+      "sha256": "f132fc33aa4697bf6c7be99c904cee80f91a9f4d287f51ebfe3a609524f61420"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_water_attack_1.png",
+      "sha256": "b0302eb29e0d53182c563287f1cce5cb0f402efb93da8b439d240c76f72aa81f"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_water_attack_2.png",
+      "sha256": "41817706ca656373aee1e97cb07d6df487dfa335ebc89919f6b56a37bbafa76a"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_water_attack_3.png",
+      "sha256": "da465d9699f681426c57d917e3f41160c647e9f6cbb8080df44557597b8a139d"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_water_defend.png",
+      "sha256": "391fd8ef1f6335c35473b681054529200b550fcf04fa5b43cf39eea2a057d492"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_water_perfect_guard.png",
+      "sha256": "2e750c5761c13135f837ddc2aaa310c9b3dd138174be8eaf748ddd0783eac282"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_water_hit.png",
+      "sha256": "7f3c8c173669f9f8d35568d609564fee6e5aaf0aa8ae24a133607e3559a9f5d0"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_water_dodge.png",
+      "sha256": "dda1ab3752886d29ac8746afae69a34a3d78392e1253773f73e5596d50f78a66"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_water_defeat.png",
+      "sha256": "0ba3edf8ca9a3835d32f6e61126fd2634e76c9cfce361e27ad4815063c9cfb59"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_water_victory.png",
+      "sha256": "3d3c8b5e0ce686d568ffa0ecedd044332446f6fae580e10c51b9176fd02035f5"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_earth_idle.png",
+      "sha256": "ec63739c6f897a56dc52d8e1ef1aebf5a6e2be7c39b0c415025ead427e44ae68"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_earth_attack_1.png",
+      "sha256": "db6a52f45c2cc2857c46cc74d7e3682b7cb0811f233d1bb7af5ae562b98e14ff"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_earth_attack_2.png",
+      "sha256": "6a9bad8cbce93620ea89c094736c141c1e83d5d10698a0b8b2a99513b0216ba9"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_earth_attack_3.png",
+      "sha256": "cbf181f62d59295a8f19283b1c0559755888ebba409ee1e00bf6cc0d3ab10fdb"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_earth_defend.png",
+      "sha256": "14f4b6e539701c36d6b7e657f3fa9cb86a06aa6fa6cc10e45f0e5e28d952b434"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_earth_perfect_guard.png",
+      "sha256": "b7f8bea9e3b23e9c3e3165a0542cc0c6dcd860d06494540fb63da301004fdfa7"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_earth_hit.png",
+      "sha256": "080daf9883a1bbacce3099e2be79035fedc6b4e80cdfade6eecf8ac62b0a07a7"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_earth_dodge.png",
+      "sha256": "b7b9c91849dbafebba7f1bc6bcbcf6e2e9a0bc46ae07c732fdd377b412fb2f14"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_earth_defeat.png",
+      "sha256": "ba04add967ef26b5293d7cf923b4edf7f18496c74a9e446758ec08ca396cf4ed"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_earth_victory.png",
+      "sha256": "125a7f93e8e252d34161e0a11149039e21f683a1f158d8aed80761d32ba91c73"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_lightning_idle.png",
+      "sha256": "dd53e144057f8afefde06dc7b84f07125cffc5e2b35355cd950c4030e6ecf290"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_lightning_attack_1.png",
+      "sha256": "986d276ddf4ca5979f86738fda6400e2b2ae458e1ca7d8231a5041c86f62fb56"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_lightning_attack_2.png",
+      "sha256": "297ba29a8c3c9b7fa3d3015abf2c6464d0eb8936d5c92f7ad8745bef4bfe5eaa"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_lightning_attack_3.png",
+      "sha256": "752bf0a444f7f0cb8348f0cd1d19d0495fc4b62d656c34aca34e74779adbb94e"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_lightning_defend.png",
+      "sha256": "7fcf2ee67458ceb6a74af1edac383cd080ed4125bc1cfa90b82a36ee851b8f4e"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_lightning_perfect_guard.png",
+      "sha256": "b2ada4a9b0fed05e3d8fee5c6621550d1d43201ea0d25dd94c2367bebf1f0959"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_lightning_hit.png",
+      "sha256": "fd8cef7a2f2e8d9ef0c171b25e252e624f3875bc7fa85ae2534ff70737690f1c"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_lightning_dodge.png",
+      "sha256": "ff5d5251cf32dd77b6b7f916016cc7f3b6c30e7e37ba7e770a565bf84c7c507e"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_lightning_defeat.png",
+      "sha256": "0ff2313c371d82e241cb395ac37a420fb24c3629e5ca73001ed9b302a8aecb17"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_lightning_victory.png",
+      "sha256": "710e960a70089dae3af15240113cbe9c82e74fd10e283d150b8590633d0aae47"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_wind_idle.png",
+      "sha256": "0ac9253f138417c64a987a60fd9f6fca767dc215c94b49dc33ff937e13a03889"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_wind_attack_1.png",
+      "sha256": "d1bd913af00ad73eda159e37dc51566973624e143381abf578ffc263498b82b9"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_wind_attack_2.png",
+      "sha256": "ff14a623b6ef12343dcba27923ef2c15833ff670701dd814ea253868f7d26121"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_wind_attack_3.png",
+      "sha256": "a7fdb9321130918ce923d8206b6536ac07148a91714ffaac572660f3893d3337"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_wind_defend.png",
+      "sha256": "385f94db106de5ee2a4a063ad9b7b5d0cbc59ed778160ad78d797af390a412ca"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_wind_perfect_guard.png",
+      "sha256": "1e95c1781fc994310920eb4ca05be0ce51bfeaf948e5701d9af3edf348e73888"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_wind_hit.png",
+      "sha256": "2a8f15e2e99f17a09122f2632c2e360aa9bb629531f7886e1843646f7f4bb32b"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_wind_dodge.png",
+      "sha256": "70a25182e40124abb6907653912eb8fdaf278173feced02ec2d0bb1c4ce8e33c"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_wind_defeat.png",
+      "sha256": "bb35ef44bf988eea437ed4a3d92938c3e6a9b6a2dea493fbbe7941aaeaf5680e"
+    },
+    {
+      "file": "public/art/heroes-px/hero_rogue_wind_victory.png",
+      "sha256": "b1e847aa5a103a04317d40eaead702ced0d03f9e799f8ad25336675ba08398e2"
+    }
+  ],
+  "approved_on": "2026-10-09"
+}

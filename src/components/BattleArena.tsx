@@ -8,9 +8,9 @@ import { EnemyCueContext, type EnemyCue } from "@/components/EnemySprite";
 import { StatusIcons } from "@/components/StatusIcons";
 import { HudCard } from "@/components/HudCard";
 import { HeroSprite } from "@/components/HeroSprite";
-import { ACCESSORY_SHEETS, HERO_ACTIONS, TRAIT_ASSET } from "@/lib/art/heroes";
+import { HERO_ACTIONS } from "@/lib/art/heroes";
 import { isPixel } from "@/lib/art/pixel";
-import { CLASS_ART, ELEMENT_ART } from "@/lib/art";
+import { CLASS_ART, ELEMENT_ART, HERO_ART_V } from "@/lib/art";
 import type { HeroAction } from "@/lib/art/heroes";
 import { Vfx } from "@/components/fx/Vfx";
 import { attackOf, enemyIntents, type Battle, type Combatant } from "@/lib/game/combat";
@@ -168,16 +168,12 @@ export function BattleArena({
   const { fx, paused } = useBattleFx(b, boss);
   const hc = b.player.char;
   const cls = CLASS_ART[hc.classId];
-  const accs = hc.traits.map((t) => TRAIT_ASSET[t]);
   usePreload(
     Object.keys(HERO_ACTIONS).flatMap((a) =>
       isPixel()
-        ? [`/art/heroes-px/hero_${cls}_${ELEMENT_ART[hc.element]}_${a}.png`]
+        ? [`/art/heroes-px/hero_${cls}_${ELEMENT_ART[hc.element]}_${a}.png?v=${HERO_ART_V}`]
         : [
-            `/art/heroes/hero_${cls}_${ELEMENT_ART[hc.element]}_${a}.webp`,
-            ...accs
-              .filter((t) => ACCESSORY_SHEETS.has(`${cls}_${t}_${a}`))
-              .map((t) => `/art/heroes/acc/${cls}_${t}_${a}.webp`),
+            `/art/heroes/hero_${cls}_${ELEMENT_ART[hc.element]}_${a}.webp?v=${HERO_ART_V}`,
           ],
     ),
   );
