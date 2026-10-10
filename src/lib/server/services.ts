@@ -397,11 +397,13 @@ export async function startRunService(
 export const MIN_ACTION_MS = 400; // fastest believable pace per logged action
 export const MIN_ACTION_GRACE_MS = 3_000; // clock skew between app and database
 
-// A won fight takes a person at least a few seconds, even in quick mode.
-export const MIN_FIGHT_MS = 2_500;
+// Even quick resolve takes a person about a second per fight (click + "Continuar"). This only
+// stops scripts finishing a level instantly; the real brake is the hourly cap and the daily pay decay.
+export const MIN_FIGHT_MS = 1_000;
+const FIGHT_GRACE_MS = 1_000; // clock skew between app and database
 const tooFastFights = (startedAt: number | undefined, wins: number) => {
   const elapsed = startedAt ? Date.now() - startedAt : null;
-  return elapsed !== null && elapsed + MIN_ACTION_GRACE_MS < wins * MIN_FIGHT_MS
+  return elapsed !== null && elapsed + FIGHT_GRACE_MS < wins * MIN_FIGHT_MS
     ? elapsed
     : null;
 };
