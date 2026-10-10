@@ -9,7 +9,7 @@ import { SoundControls } from "@/components/SoundControls";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { loadAudioSettings, startAmbience, unlockAudio } from "@/lib/sfx";
+import { loadAudioSettings, playUiClickSound, startAmbience, unlockAudio } from "@/lib/sfx";
 import { claimedToday, dayKey } from "@/lib/game/streak";
 import { logout, repo, useProfile } from "@/lib/useProfile";
 import "./shell.css";
@@ -146,12 +146,22 @@ export function AppShell({ children }: { children: ReactNode }) {
         ? "dungeon"
         : "menu";
     const unlock = () => unlockAudio(scene);
+    const click = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      const target = event.target;
+      if (target.closest("input, textarea, select, [contenteditable='true'], [data-sfx='off']")) return;
+      const control = target.closest("button, a, [role='button']");
+      if (!control || control.hasAttribute("disabled") || control.getAttribute("aria-disabled") === "true") return;
+      playUiClickSound();
+    };
     startAmbience(scene);
     document.addEventListener("pointerdown", unlock);
     document.addEventListener("keydown", unlock);
+    document.addEventListener("click", click, true);
     return () => {
       document.removeEventListener("pointerdown", unlock);
       document.removeEventListener("keydown", unlock);
+      document.removeEventListener("click", click, true);
     };
   }, [path]);
   const { profile, session } = useProfile();

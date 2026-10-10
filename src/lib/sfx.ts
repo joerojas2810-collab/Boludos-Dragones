@@ -15,6 +15,7 @@ let musicBus: GainNode | null = null;
 let ambienceScene: "menu" | "dungeon" = "menu";
 let ambienceTimer: ReturnType<typeof setTimeout> | null = null;
 let ambienceStarted = false;
+const ambienceVoices = new Set<{ oscillator: OscillatorNode; gain: GainNode }>();
 const settingsListeners = new Set<() => void>();
 
 export function getAudioSettings(): AudioSettings {
@@ -28,6 +29,37 @@ export function subscribeAudioSettings(listener: () => void) {
 
 function notifySettings() {
   settingsListeners.forEach((listener) => listener());
+}
+
+function fadeAmbience() {
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  ambienceVoices.forEach(({ oscillator, gain }) => {
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setTargetAtTime(0.0001, now, 0.08);
+    try {
+      oscillator.stop(now + 0.45);
+    } catch {
+      // The voice may already have ended.
+    }
+  });
+  ambienceVoices.clear();
+}
+
+function stopAmbience() {
+  if (ambienceTimer) clearTimeout(ambienceTimer);
+  ambienceTimer = null;
+  ambienceStarted = false;
+  fadeAmbience();
+}
+
+function syncAmbience() {
+  if (settings.muted || settings.music === 0) {
+    stopAmbience();
+  } else if (ctx) {
+    if (ctx.state === "running") startAmbienceLoop();
+    else void ctx.resume().then(startAmbienceLoop).catch(() => undefined);
+  }
 }
 
 function applySettings() {
@@ -60,6 +92,7 @@ export function loadAudioSettings() {
     settings = { ...DEFAULT_SETTINGS };
   }
   applySettings();
+  syncAmbience();
   notifySettings();
   return getAudioSettings();
 }
@@ -69,12 +102,14 @@ export function setMuted(muted: boolean) {
   settings = { ...settings, muted };
   applySettings();
   saveSettings();
+  syncAmbience();
   notifySettings();
 }
 export function setAudioVolume(channel: "music" | "effects", value: number) {
   settings = { ...settings, [channel]: Math.max(0, Math.min(1, value)) };
   applySettings();
   saveSettings();
+  syncAmbience();
   notifySettings();
 }
 
@@ -261,46 +296,55 @@ function musicNote(c: AudioContext, t: number, freq: number, dur: number, volume
   const o = c.createOscillator();
   const g = c.createGain();
   const filter = c.createBiquadFilter();
-  o.type = "sine";
+  o.type = "triangle";
   o.frequency.value = freq;
   filter.type = "lowpass";
-  filter.frequency.value = 1500;
+  filter.frequency.value = 950;
   g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(volume, t + 0.3);
+  g.gain.exponentialRampToValueAtTime(volume, t + 1.2);
+  g.gain.setValueAtTime(volume, t + dur - 1.3);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.connect(filter).connect(g).connect(musicBus ?? c.destination);
+  ambienceVoices.add({ oscillator: o, gain: g });
+  o.onended = () => {
+    for (const voice of ambienceVoices) {
+      if (voice.oscillator === o) ambienceVoices.delete(voice);
+    }
+  };
   o.start(t);
   o.stop(t + dur);
 }
 
-// A quiet, procedural arpeggio gives the hub and dungeons distinct ambience without asset files.
+// Quiet sustained chords keep the ambience continuous and change slowly to avoid a nagging loop.
 function startAmbienceLoop() {
-  if (!ctx || ambienceStarted) return;
+  if (!ctx || ambienceStarted || settings.muted || settings.music === 0) return;
   ambienceStarted = true;
   let phrase = 0;
   const tick = () => {
-    if (!ctx) return;
+    if (!ctx || settings.muted || settings.music === 0) {
+      stopAmbience();
+      return;
+    }
     const c = ctx;
     const t = c.currentTime + 0.04;
     const menuPhrases = [
-      [261.63, 329.63, 392, 493.88],
-      [220, 261.63, 329.63, 392],
-      [174.61, 220, 261.63, 329.63],
-      [196, 246.94, 293.66, 392],
+      [261.63, 329.63, 392],
+      [220, 261.63, 329.63],
+      [174.61, 220, 261.63],
+      [196, 246.94, 293.66],
     ];
     const dungeonPhrases = [
-      [130.81, 155.56, 196, 233.08],
-      [116.54, 138.59, 174.61, 207.65],
-      [98, 116.54, 146.83, 196],
-      [110, 130.81, 164.81, 220],
+      [146.83, 174.61, 220],
+      [130.81, 155.56, 196],
+      [110, 130.81, 164.81],
+      [123.47, 146.83, 185],
     ];
     const chord = (ambienceScene === "menu" ? menuPhrases : dungeonPhrases)[phrase % 4];
-    musicNote(c, t, chord[0] / 2, 2.7, 0.035);
-    musicNote(c, t + 0.02, chord[2] / 2, 2.4, 0.022);
-    const order = ambienceScene === "menu" ? [0, 2, 1, 3] : [0, 1, 3, 2];
-    order.forEach((n, i) => musicNote(c, t + 0.28 + i * 0.42, chord[n], 0.9, 0.018));
+    musicNote(c, t, chord[0] / 2, 9.6, 0.07);
+    chord.forEach((frequency, i) => musicNote(c, t + i * 0.015, frequency, 9.6, i === 0 ? 0.045 : 0.03));
+    if (phrase % 3 === 2) musicNote(c, t + 2.6, chord[2] * 2, 1.8, 0.009);
     phrase++;
-    ambienceTimer = setTimeout(tick, 3600);
+    ambienceTimer = setTimeout(tick, 8500);
   };
   tick();
 }
@@ -308,12 +352,11 @@ function startAmbienceLoop() {
 export function startAmbience(scene: "menu" | "dungeon") {
   try {
     const c = ensureContext();
-    if (ambienceScene !== scene && ambienceTimer) {
-      clearTimeout(ambienceTimer);
-      ambienceTimer = null;
-      ambienceStarted = false;
+    if (ambienceScene !== scene) {
+      stopAmbience();
     }
     ambienceScene = scene;
+    if (settings.muted || settings.music === 0) return;
     if (c.state === "running") startAmbienceLoop();
     else void c.resume().then(startAmbienceLoop).catch(() => undefined);
   } catch {
@@ -323,6 +366,27 @@ export function startAmbience(scene: "menu" | "dungeon") {
 
 export function unlockAudio(scene: "menu" | "dungeon") {
   startAmbience(scene);
+}
+
+export function playUiClickSound() {
+  if (settings.muted || settings.effects === 0) return;
+  try {
+    const c = ensureContext();
+    const t = c.currentTime;
+    const oscillator = c.createOscillator();
+    const gain = c.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(1380, t);
+    oscillator.frequency.exponentialRampToValueAtTime(820, t + 0.035);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.018, t + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
+    oscillator.connect(gain).connect(effectsBus ?? c.destination);
+    oscillator.start(t);
+    oscillator.stop(t + 0.05);
+  } catch {
+    // Audio may be unavailable or blocked by the browser.
+  }
 }
 
 // short jingles: rising major arpeggio / falling minor line
