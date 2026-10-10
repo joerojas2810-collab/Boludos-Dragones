@@ -11,13 +11,13 @@ Juego web RPG por turnos con gacha para jugar con amigos (reemplazo de LoL). 7 a
 - Antes de construir o ejecutar algo grande, preguntar y guiar paso a paso. Trabajar por etapas, sin adelantar sin confirmación.
 - Respuestas concisas: sin saludos ni disculpas; al modificar código mostrar solo el fragmento cambiado.
 - Confirmar antes de acciones irreversibles (reset de la base, push, migraciones).
-- Ahorro de tokens: verificar siempre con `tsc`, `eslint` y `vitest`; simulaciones pesadas solo si cambió el balance y con pocas iteraciones. Revisión visual con `read_page`/`get_page_text`; capturas a escala 0.5 y pocas. Máximo 2 agentes en paralelo.
+- Ahorro de tokens: verificar siempre con `tsc`, `eslint` y `vitest`; simulaciones pesadas solo si cambió el balance y con pocas iteraciones. Revisión visual con `read_page`/`get_page_text`; capturas a escala 0.5 y pocas. Máximo 2 agentes en paralelo. **Regla para todo Claude (agentes incluidos):** usar siempre el modelo más barato que alcance para la tarea (haiku/sonnet salvo que haga falta más), priorizando rapidez, pocos tokens y efectividad; informes de agentes breves.
 - Idioma: textos del juego y UI en **español**; código, comentarios y commits en **inglés**. Commits pequeños, uno por cambio lógico.
 
 ## Stack y estructura
 Next.js (App Router) + TypeScript estricto (sin `any`) + Tailwind · Supabase (Postgres, RLS, polling para salas) · Vercel · Vitest. Secretos solo en `.env.local`.
 - `src/lib/game/`: toda la lógica de juego, funciones puras y testeables (sin React ni Supabase). La UI solo la consume.
-- `src/lib/game/server/`, `src/app/api/`: servicios y rutas que repiten las acciones con el motor determinista antes de pagar.
+- `src/lib/server/`, `src/app/api/`: servicios y rutas del servidor (dungeons y salas ya NO repiten la pelea: el cliente informa el resultado y el servidor lo acota; solo la torre y los duelos usan el motor en el servidor).
 - `supabase/migrations/*.sql` (ordenadas; `0018_lockdown_functions.sql` siempre se ejecuta última), `supabase/setup.sql` (todo junto), `supabase/upgrade_from_NNNN.sql` (generados con `npx tsx scripts/build-setup-sql.ts [--from=NNNN]`), `supabase/reset_progress.sql` (manual y destructivo), `supabase/tests/pglite/`.
 - Todo azar pasa por `rng.ts` con semilla (nunca `Math.random()` en la lógica). El motor usa tablas precalculadas en vez de `**`/`Math.pow` para dar lo mismo en Chrome, Safari y Node.
 - Modo local: sin variables de Supabase el juego usa `localStorage`.
@@ -54,7 +54,7 @@ Next.js (App Router) + TypeScript estricto (sin `any`) + Tailwind · Supabase (P
 **Torre semanal (`/torre`):** run sin fin con la semilla de la semana, modos nivelado y colección, ranking por mejor piso, premios top 3. **Semilla de la semana** y tutorial del día 1 (`tutorial.ts`).
 
 ## Seguridad (`docs/SEGURIDAD.md`)
-Login con Supabase Auth con email sintético y contraseña `HMAC(PEPPER, nombre:pin)` derivada en el servidor; 5 fallos = espera creciente, 20 = bloqueo, límite por IP; reinicio de PIN solo por el admin; registro con "código de la casa"; RLS en todas las tablas; funciones SQL cerradas a anon/authenticated (`0018`) y solo `service_role`; el servidor repite la run con el motor antes de pagar. La clave secreta nunca se pega en el chat ni se sube al repo. Zona horaria fija America/Argentina/Buenos_Aires.
+Login con Supabase Auth con email sintético y contraseña `HMAC(PEPPER, nombre:pin)` derivada en el servidor; 5 fallos = espera creciente, 20 = bloqueo, límite por IP; reinicio de PIN solo por el admin; registro con "código de la casa"; RLS en todas las tablas; funciones SQL cerradas a anon/authenticated (`0018`) y solo `service_role`; dungeons y salas: el servidor deriva EXP y botín de los combates ganados que informa el cliente y limita con ritmo mínimo (`MIN_FIGHT_MS`), un token de run, topes y límites por hora (sin repetición); torre y duelos aún se verifican con el motor. La clave secreta nunca se pega en el chat ni se sube al repo. Zona horaria fija America/Argentina/Buenos_Aires.
 
 ## Arte (`public/art/<lote>/`, WebP/PNG finales)
 Fantasía pintada. Manifiestos mandan tamaños y cuadros; UI en 9-slice. Fuentes locales Nunito (texto) y Alegreya (títulos). Componentes: `AnimSheet`, `HeroSprite`, `EnemySprite`, `ArenaBackground`, `Icon`, `RankIcon`, `ItemCard`, `Vfx`/`BattleFx`, `Panel`. Mapas de ids en `src/lib/art.ts` y `artIds.json`. **El arte manda** (grande, dentro del marco, poco texto); respetar `prefers-reduced-motion`. Nunca originales `.ora`, prompts ni la carpeta completa al repo. Pendiente de arte: legendarios de los amigos, retratos, sonido. Los sprites SVG de `src/sprites/` son respaldo.
