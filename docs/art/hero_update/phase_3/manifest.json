@@ -1,0 +1,1196 @@
+{
+  "schema_version": 1,
+  "phase": 3,
+  "status": "approved",
+  "scope": "rogue pixel art only; no game integration",
+  "frame_size": [
+    128,
+    192
+  ],
+  "anchor": [
+    64,
+    180
+  ],
+  "runtime_frame_size": [
+    140,
+    192
+  ],
+  "runtime_anchor": [
+    70,
+    180
+  ],
+  "frames_per_element": 36,
+  "actions": {
+    "idle": {
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "hold": false
+    },
+    "attack_1": {
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "hold": false
+    },
+    "attack_2": {
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false
+    },
+    "attack_3": {
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false
+    },
+    "defend": {
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "hold": true
+    },
+    "perfect_guard": {
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false
+    },
+    "hit": {
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "hold": false
+    },
+    "dodge": {
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false
+    },
+    "defeat": {
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true
+    },
+    "victory": {
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true
+    }
+  },
+  "assets": [
+    {
+      "filename": "heroes/hero_rogue_fire_idle.png",
+      "runtime_filename": "runtime/hero_rogue_fire_idle.png",
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_idle_element.png",
+      "element": "fire",
+      "action": "idle"
+    },
+    {
+      "filename": "heroes/hero_rogue_water_idle.png",
+      "runtime_filename": "runtime/hero_rogue_water_idle.png",
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_idle_element.png",
+      "element": "water",
+      "action": "idle"
+    },
+    {
+      "filename": "heroes/hero_rogue_earth_idle.png",
+      "runtime_filename": "runtime/hero_rogue_earth_idle.png",
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_idle_element.png",
+      "element": "earth",
+      "action": "idle"
+    },
+    {
+      "filename": "heroes/hero_rogue_lightning_idle.png",
+      "runtime_filename": "runtime/hero_rogue_lightning_idle.png",
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_idle_element.png",
+      "element": "lightning",
+      "action": "idle"
+    },
+    {
+      "filename": "heroes/hero_rogue_wind_idle.png",
+      "runtime_filename": "runtime/hero_rogue_wind_idle.png",
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_idle_element.png",
+      "element": "wind",
+      "action": "idle"
+    },
+    {
+      "filename": "heroes/hero_rogue_fire_attack_1.png",
+      "runtime_filename": "runtime/hero_rogue_fire_attack_1.png",
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_1_element.png",
+      "element": "fire",
+      "action": "attack_1"
+    },
+    {
+      "filename": "heroes/hero_rogue_water_attack_1.png",
+      "runtime_filename": "runtime/hero_rogue_water_attack_1.png",
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_1_element.png",
+      "element": "water",
+      "action": "attack_1"
+    },
+    {
+      "filename": "heroes/hero_rogue_earth_attack_1.png",
+      "runtime_filename": "runtime/hero_rogue_earth_attack_1.png",
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_1_element.png",
+      "element": "earth",
+      "action": "attack_1"
+    },
+    {
+      "filename": "heroes/hero_rogue_lightning_attack_1.png",
+      "runtime_filename": "runtime/hero_rogue_lightning_attack_1.png",
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_1_element.png",
+      "element": "lightning",
+      "action": "attack_1"
+    },
+    {
+      "filename": "heroes/hero_rogue_wind_attack_1.png",
+      "runtime_filename": "runtime/hero_rogue_wind_attack_1.png",
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_1_element.png",
+      "element": "wind",
+      "action": "attack_1"
+    },
+    {
+      "filename": "heroes/hero_rogue_fire_attack_2.png",
+      "runtime_filename": "runtime/hero_rogue_fire_attack_2.png",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_2_element.png",
+      "element": "fire",
+      "action": "attack_2"
+    },
+    {
+      "filename": "heroes/hero_rogue_water_attack_2.png",
+      "runtime_filename": "runtime/hero_rogue_water_attack_2.png",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_2_element.png",
+      "element": "water",
+      "action": "attack_2"
+    },
+    {
+      "filename": "heroes/hero_rogue_earth_attack_2.png",
+      "runtime_filename": "runtime/hero_rogue_earth_attack_2.png",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_2_element.png",
+      "element": "earth",
+      "action": "attack_2"
+    },
+    {
+      "filename": "heroes/hero_rogue_lightning_attack_2.png",
+      "runtime_filename": "runtime/hero_rogue_lightning_attack_2.png",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_2_element.png",
+      "element": "lightning",
+      "action": "attack_2"
+    },
+    {
+      "filename": "heroes/hero_rogue_wind_attack_2.png",
+      "runtime_filename": "runtime/hero_rogue_wind_attack_2.png",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_2_element.png",
+      "element": "wind",
+      "action": "attack_2"
+    },
+    {
+      "filename": "heroes/hero_rogue_fire_attack_3.png",
+      "runtime_filename": "runtime/hero_rogue_fire_attack_3.png",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_3_element.png",
+      "element": "fire",
+      "action": "attack_3"
+    },
+    {
+      "filename": "heroes/hero_rogue_water_attack_3.png",
+      "runtime_filename": "runtime/hero_rogue_water_attack_3.png",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_3_element.png",
+      "element": "water",
+      "action": "attack_3"
+    },
+    {
+      "filename": "heroes/hero_rogue_earth_attack_3.png",
+      "runtime_filename": "runtime/hero_rogue_earth_attack_3.png",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_3_element.png",
+      "element": "earth",
+      "action": "attack_3"
+    },
+    {
+      "filename": "heroes/hero_rogue_lightning_attack_3.png",
+      "runtime_filename": "runtime/hero_rogue_lightning_attack_3.png",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_3_element.png",
+      "element": "lightning",
+      "action": "attack_3"
+    },
+    {
+      "filename": "heroes/hero_rogue_wind_attack_3.png",
+      "runtime_filename": "runtime/hero_rogue_wind_attack_3.png",
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_attack_3_element.png",
+      "element": "wind",
+      "action": "attack_3"
+    },
+    {
+      "filename": "heroes/hero_rogue_fire_defend.png",
+      "runtime_filename": "runtime/hero_rogue_fire_defend.png",
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_defend_element.png",
+      "element": "fire",
+      "action": "defend"
+    },
+    {
+      "filename": "heroes/hero_rogue_water_defend.png",
+      "runtime_filename": "runtime/hero_rogue_water_defend.png",
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_defend_element.png",
+      "element": "water",
+      "action": "defend"
+    },
+    {
+      "filename": "heroes/hero_rogue_earth_defend.png",
+      "runtime_filename": "runtime/hero_rogue_earth_defend.png",
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_defend_element.png",
+      "element": "earth",
+      "action": "defend"
+    },
+    {
+      "filename": "heroes/hero_rogue_lightning_defend.png",
+      "runtime_filename": "runtime/hero_rogue_lightning_defend.png",
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_defend_element.png",
+      "element": "lightning",
+      "action": "defend"
+    },
+    {
+      "filename": "heroes/hero_rogue_wind_defend.png",
+      "runtime_filename": "runtime/hero_rogue_wind_defend.png",
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_defend_element.png",
+      "element": "wind",
+      "action": "defend"
+    },
+    {
+      "filename": "heroes/hero_rogue_fire_perfect_guard.png",
+      "runtime_filename": "runtime/hero_rogue_fire_perfect_guard.png",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_perfect_guard_element.png",
+      "element": "fire",
+      "action": "perfect_guard"
+    },
+    {
+      "filename": "heroes/hero_rogue_water_perfect_guard.png",
+      "runtime_filename": "runtime/hero_rogue_water_perfect_guard.png",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_perfect_guard_element.png",
+      "element": "water",
+      "action": "perfect_guard"
+    },
+    {
+      "filename": "heroes/hero_rogue_earth_perfect_guard.png",
+      "runtime_filename": "runtime/hero_rogue_earth_perfect_guard.png",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_perfect_guard_element.png",
+      "element": "earth",
+      "action": "perfect_guard"
+    },
+    {
+      "filename": "heroes/hero_rogue_lightning_perfect_guard.png",
+      "runtime_filename": "runtime/hero_rogue_lightning_perfect_guard.png",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_perfect_guard_element.png",
+      "element": "lightning",
+      "action": "perfect_guard"
+    },
+    {
+      "filename": "heroes/hero_rogue_wind_perfect_guard.png",
+      "runtime_filename": "runtime/hero_rogue_wind_perfect_guard.png",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_perfect_guard_element.png",
+      "element": "wind",
+      "action": "perfect_guard"
+    },
+    {
+      "filename": "heroes/hero_rogue_fire_hit.png",
+      "runtime_filename": "runtime/hero_rogue_fire_hit.png",
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_hit_element.png",
+      "element": "fire",
+      "action": "hit"
+    },
+    {
+      "filename": "heroes/hero_rogue_water_hit.png",
+      "runtime_filename": "runtime/hero_rogue_water_hit.png",
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_hit_element.png",
+      "element": "water",
+      "action": "hit"
+    },
+    {
+      "filename": "heroes/hero_rogue_earth_hit.png",
+      "runtime_filename": "runtime/hero_rogue_earth_hit.png",
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_hit_element.png",
+      "element": "earth",
+      "action": "hit"
+    },
+    {
+      "filename": "heroes/hero_rogue_lightning_hit.png",
+      "runtime_filename": "runtime/hero_rogue_lightning_hit.png",
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_hit_element.png",
+      "element": "lightning",
+      "action": "hit"
+    },
+    {
+      "filename": "heroes/hero_rogue_wind_hit.png",
+      "runtime_filename": "runtime/hero_rogue_wind_hit.png",
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_hit_element.png",
+      "element": "wind",
+      "action": "hit"
+    },
+    {
+      "filename": "heroes/hero_rogue_fire_dodge.png",
+      "runtime_filename": "runtime/hero_rogue_fire_dodge.png",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_dodge_element.png",
+      "element": "fire",
+      "action": "dodge"
+    },
+    {
+      "filename": "heroes/hero_rogue_water_dodge.png",
+      "runtime_filename": "runtime/hero_rogue_water_dodge.png",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_dodge_element.png",
+      "element": "water",
+      "action": "dodge"
+    },
+    {
+      "filename": "heroes/hero_rogue_earth_dodge.png",
+      "runtime_filename": "runtime/hero_rogue_earth_dodge.png",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_dodge_element.png",
+      "element": "earth",
+      "action": "dodge"
+    },
+    {
+      "filename": "heroes/hero_rogue_lightning_dodge.png",
+      "runtime_filename": "runtime/hero_rogue_lightning_dodge.png",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_dodge_element.png",
+      "element": "lightning",
+      "action": "dodge"
+    },
+    {
+      "filename": "heroes/hero_rogue_wind_dodge.png",
+      "runtime_filename": "runtime/hero_rogue_wind_dodge.png",
+      "frames": 3,
+      "fps": 12,
+      "loop": false,
+      "hold": false,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_dodge_element.png",
+      "element": "wind",
+      "action": "dodge"
+    },
+    {
+      "filename": "heroes/hero_rogue_fire_defeat.png",
+      "runtime_filename": "runtime/hero_rogue_fire_defeat.png",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_defeat_element.png",
+      "element": "fire",
+      "action": "defeat"
+    },
+    {
+      "filename": "heroes/hero_rogue_water_defeat.png",
+      "runtime_filename": "runtime/hero_rogue_water_defeat.png",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_defeat_element.png",
+      "element": "water",
+      "action": "defeat"
+    },
+    {
+      "filename": "heroes/hero_rogue_earth_defeat.png",
+      "runtime_filename": "runtime/hero_rogue_earth_defeat.png",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_defeat_element.png",
+      "element": "earth",
+      "action": "defeat"
+    },
+    {
+      "filename": "heroes/hero_rogue_lightning_defeat.png",
+      "runtime_filename": "runtime/hero_rogue_lightning_defeat.png",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_defeat_element.png",
+      "element": "lightning",
+      "action": "defeat"
+    },
+    {
+      "filename": "heroes/hero_rogue_wind_defeat.png",
+      "runtime_filename": "runtime/hero_rogue_wind_defeat.png",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_defeat_element.png",
+      "element": "wind",
+      "action": "defeat"
+    },
+    {
+      "filename": "heroes/hero_rogue_fire_victory.png",
+      "runtime_filename": "runtime/hero_rogue_fire_victory.png",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_victory_element.png",
+      "element": "fire",
+      "action": "victory"
+    },
+    {
+      "filename": "heroes/hero_rogue_water_victory.png",
+      "runtime_filename": "runtime/hero_rogue_water_victory.png",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_victory_element.png",
+      "element": "water",
+      "action": "victory"
+    },
+    {
+      "filename": "heroes/hero_rogue_earth_victory.png",
+      "runtime_filename": "runtime/hero_rogue_earth_victory.png",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_victory_element.png",
+      "element": "earth",
+      "action": "victory"
+    },
+    {
+      "filename": "heroes/hero_rogue_lightning_victory.png",
+      "runtime_filename": "runtime/hero_rogue_lightning_victory.png",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_victory_element.png",
+      "element": "lightning",
+      "action": "victory"
+    },
+    {
+      "filename": "heroes/hero_rogue_wind_victory.png",
+      "runtime_filename": "runtime/hero_rogue_wind_victory.png",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "hold": true,
+      "frame_width": 128,
+      "frame_height": 192,
+      "anchor": [
+        64,
+        180
+      ],
+      "runtime_frame_width": 140,
+      "runtime_anchor": [
+        70,
+        180
+      ],
+      "mask": "masks/hero_rogue_victory_element.png",
+      "element": "wind",
+      "action": "victory"
+    }
+  ],
+  "animation_method": "ten illustrated poses with pixel-aligned limited motion",
+  "limitations": [
+    "Not skeletal animation",
+    "@2x is nearest-neighbor enlargement",
+    "Technical checks do not replace visual approval"
+  ],
+  "approved_on": "2026-10-09",
+  "runtime_directory": "public/art/heroes-px",
+  "integration_phase": 4
+}

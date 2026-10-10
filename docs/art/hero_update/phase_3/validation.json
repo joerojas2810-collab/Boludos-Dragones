@@ -1,0 +1,23 @@
+{
+  "status": "technical_checks_passed_visual_approval_pending",
+  "base_strips": 10,
+  "variants": 50,
+  "variants_2x": 50,
+  "runtime_strips": 50,
+  "poses": 10,
+  "recolor_checks": 50,
+  "frame_clipping": "none",
+  "alpha": "binary",
+  "uniform_scale": 0.6217616580310881,
+  "files_written_only_under": "C:\\Users\\Felipe\\.codex\\visualizations\\2026\\10\\06\\01a1121c-060e-7500-8147-c7e30d8bcd4f\\phase_3_assassin_pixel",
+  "runtime_padding_match": "50 passed",
+  "nearest_2x_match": "50 passed",
+  "visual_skin_hair": "water and wind preserve skin and brown hair",
+  "neutral_metal": "reserved blue-gray ramp protects dagger blades; gold excluded",
+  "idle_bounds": [
+    21,
+    56,
+    107,
+    180
+  ]
+}
