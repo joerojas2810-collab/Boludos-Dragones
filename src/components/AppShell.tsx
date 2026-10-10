@@ -9,7 +9,7 @@ import { SoundControls } from "@/components/SoundControls";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { loadAudioSettings, playUiClickSound, startAmbience, unlockAudio } from "@/lib/sfx";
+import { loadAudioSettings, playUiClickSound } from "@/lib/sfx";
 import { claimedToday, dayKey } from "@/lib/game/streak";
 import { logout, repo, useProfile } from "@/lib/useProfile";
 import "./shell.css";
@@ -140,12 +140,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     loadAudioSettings();
   }, []);
   useEffect(() => {
-    const scene =
-      path.startsWith("/run") || path.startsWith("/torre") ||
-      path.startsWith("/sala") || path.startsWith("/prueba")
-        ? "dungeon"
-        : "menu";
-    const unlock = () => unlockAudio(scene);
     const click = (event: MouseEvent) => {
       if (!(event.target instanceof Element)) return;
       const target = event.target;
@@ -154,16 +148,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (!control || control.hasAttribute("disabled") || control.getAttribute("aria-disabled") === "true") return;
       playUiClickSound();
     };
-    startAmbience(scene);
-    document.addEventListener("pointerdown", unlock);
-    document.addEventListener("keydown", unlock);
     document.addEventListener("click", click, true);
     return () => {
-      document.removeEventListener("pointerdown", unlock);
-      document.removeEventListener("keydown", unlock);
       document.removeEventListener("click", click, true);
     };
-  }, [path]);
+  }, []);
   const { profile, session } = useProfile();
   const visible = SHELL_ROUTES.some((r) =>
     r === "/" ? path === "/" : path === r || path === `${r}/`,

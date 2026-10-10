@@ -5,20 +5,13 @@ let ctx: AudioContext | null = null;
 const SETTINGS_KEY = "bd-audio-settings-v1";
 export interface AudioSettings {
   muted: boolean;
-  music: number;
   effects: number;
 }
-const DEFAULT_SETTINGS: AudioSettings = { muted: false, music: 0.2, effects: 0.7 };
+const DEFAULT_SETTINGS: AudioSettings = { muted: false, effects: 0.7 };
 let settings = { ...DEFAULT_SETTINGS };
 let effectsBus: GainNode | null = null;
-let musicBus: GainNode | null = null;
-let musicDuckTimer: ReturnType<typeof setTimeout> | null = null;
-let musicDuck = 1;
-type MusicScene = "menu" | "dungeon" | "boss";
-let ambienceScene: MusicScene = "menu";
-let ambienceTimer: ReturnType<typeof setTimeout> | null = null;
-let ambienceStarted = false;
-const ambienceVoices = new Set<{ oscillator: OscillatorNode; gain: GainNode }>();
+let clickBuffer: AudioBuffer | null = null;
+let clickBufferLoad: Promise<void> | null = null;
 const settingsListeners = new Set<() => void>();
 
 export function getAudioSettings(): AudioSettings {
@@ -34,53 +27,23 @@ function notifySettings() {
   settingsListeners.forEach((listener) => listener());
 }
 
-function fadeAmbience() {
-  if (!ctx) return;
-  const now = ctx.currentTime;
-  ambienceVoices.forEach(({ oscillator, gain }) => {
-    gain.gain.cancelScheduledValues(now);
-    gain.gain.setTargetAtTime(0.0001, now, 0.08);
-    try {
-      oscillator.stop(now + 0.45);
-    } catch {
-      // The voice may already have ended.
-    }
-  });
-  ambienceVoices.clear();
-}
-
-function stopAmbience() {
-  if (ambienceTimer) clearTimeout(ambienceTimer);
-  ambienceTimer = null;
-  ambienceStarted = false;
-  fadeAmbience();
-}
-
-function syncAmbience() {
-  if (settings.muted || settings.music === 0) {
-    stopAmbience();
-  } else if (ctx) {
-    if (ctx.state === "running") startAmbienceLoop();
-    else void ctx.resume().then(startAmbienceLoop).catch(() => undefined);
-  }
-}
-
 function applySettings() {
   if (!ctx) return;
   const enabled = settings.muted ? 0 : 1;
   if (effectsBus) effectsBus.gain.setTargetAtTime(settings.effects * enabled, ctx.currentTime, 0.04);
-  if (musicBus) musicBus.gain.setTargetAtTime(settings.music * enabled * musicDuck, ctx.currentTime, 0.15);
 }
 
-function duckMusic() {
-  if (!ctx || !musicBus || settings.muted || settings.music === 0) return;
-  musicDuck = 0.62;
-  musicBus.gain.setTargetAtTime(settings.music * musicDuck, ctx.currentTime, 0.025);
-  if (musicDuckTimer) clearTimeout(musicDuckTimer);
-  musicDuckTimer = setTimeout(() => {
-    musicDuck = 1;
-    if (ctx && musicBus) musicBus.gain.setTargetAtTime(settings.music * (settings.muted ? 0 : 1), ctx.currentTime, 0.22);
-  }, 1250);
+function preloadUiClickSound() {
+  if (clickBuffer || clickBufferLoad || typeof window === "undefined") return;
+  clickBufferLoad = fetch("/audio/ui-click-wood-token.wav")
+    .then((response) => {
+      if (!response.ok) throw new Error("UI click audio unavailable");
+      return response.arrayBuffer();
+    })
+    .then((data) => ensureContext().decodeAudioData(data))
+    .then((buffer) => { clickBuffer = buffer; })
+    .catch(() => undefined)
+    .finally(() => { clickBufferLoad = null; });
 }
 
 function saveSettings() {
@@ -98,7 +61,6 @@ export function loadAudioSettings() {
       const parsed = JSON.parse(saved) as Partial<AudioSettings>;
       settings = {
         muted: parsed.muted === true,
-        music: typeof parsed.music === "number" ? Math.max(0, Math.min(1, parsed.music)) : DEFAULT_SETTINGS.music,
         effects: typeof parsed.effects === "number" ? Math.max(0, Math.min(1, parsed.effects)) : DEFAULT_SETTINGS.effects,
       };
     }
@@ -106,7 +68,7 @@ export function loadAudioSettings() {
     settings = { ...DEFAULT_SETTINGS };
   }
   applySettings();
-  syncAmbience();
+  preloadUiClickSound();
   notifySettings();
   return getAudioSettings();
 }
@@ -116,14 +78,12 @@ export function setMuted(muted: boolean) {
   settings = { ...settings, muted };
   applySettings();
   saveSettings();
-  syncAmbience();
   notifySettings();
 }
-export function setAudioVolume(channel: "music" | "effects", value: number) {
+export function setAudioVolume(channel: "effects", value: number) {
   settings = { ...settings, [channel]: Math.max(0, Math.min(1, value)) };
   applySettings();
   saveSettings();
-  syncAmbience();
   notifySettings();
 }
 
@@ -132,10 +92,6 @@ function ensureContext() {
   if (!effectsBus) {
     effectsBus = ctx.createGain();
     effectsBus.connect(ctx.destination);
-  }
-  if (!musicBus) {
-    musicBus = ctx.createGain();
-    musicBus.connect(ctx.destination);
   }
   applySettings();
   if (ctx.state === "suspended") void ctx.resume();
@@ -306,100 +262,18 @@ function note(
   o.stop(t + dur);
 }
 
-function musicNote(c: AudioContext, t: number, freq: number, dur: number, volume: number) {
-  const o = c.createOscillator();
-  const g = c.createGain();
-  const filter = c.createBiquadFilter();
-  o.type = "triangle";
-  o.frequency.value = freq;
-  filter.type = "lowpass";
-  filter.frequency.value = 950;
-  const attack = Math.min(1.2, dur * 0.2);
-  const release = Math.min(1.3, dur * 0.25);
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(volume, t + attack);
-  g.gain.setValueAtTime(volume, t + dur - release);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(filter).connect(g).connect(musicBus ?? c.destination);
-  ambienceVoices.add({ oscillator: o, gain: g });
-  o.onended = () => {
-    for (const voice of ambienceVoices) {
-      if (voice.oscillator === o) ambienceVoices.delete(voice);
-    }
-  };
-  o.start(t);
-  o.stop(t + dur);
-}
-
-// Quiet sustained chords keep the ambience continuous and change slowly to avoid a nagging loop.
-function startAmbienceLoop() {
-  if (!ctx || ambienceStarted || settings.muted || settings.music === 0) return;
-  ambienceStarted = true;
-  let phrase = 0;
-  const tick = () => {
-    if (!ctx || settings.muted || settings.music === 0) {
-      stopAmbience();
-      return;
-    }
-    const c = ctx;
-    const t = c.currentTime + 0.04;
-    const progressions: Record<MusicScene, number[][]> = {
-      menu: [[261.63, 329.63, 392], [196, 261.63, 329.63], [220, 293.66, 349.23], [174.61, 261.63, 349.23]],
-      dungeon: [[146.83, 174.61, 220], [130.81, 155.56, 196], [110, 146.83, 185], [123.47, 155.56, 196]],
-      boss: [[110, 130.81, 164.81], [98, 123.47, 146.83], [103.83, 130.81, 155.56], [92.5, 116.54, 138.59]],
-    };
-    const chord = progressions[ambienceScene][phrase % 4];
-    const measure = ambienceScene === "menu" ? 8.5 : 6.5;
-    const padVolume = ambienceScene === "boss" ? 0.022 : 0.032;
-    // A warm low pulse and a sparse, repeating four-note motif make the loop feel composed.
-    musicNote(c, t, chord[0] / 2, measure, padVolume * 1.35);
-    chord.forEach((frequency, i) => musicNote(c, t + i * 0.012, frequency, measure, padVolume * (i === 0 ? 0.8 : 0.55)));
-    const motif = [chord[2] * 2, chord[1] * 2, chord[0] * 2, chord[1] * 2];
-    motif.forEach((frequency, i) => musicNote(c, t + 0.6 + i * 0.72, frequency, 0.75, ambienceScene === "menu" ? 0.012 : 0.007));
-    if (ambienceScene !== "menu") {
-      [0, 2, 4].forEach((beat) => musicNote(c, t + beat * 0.75, chord[0] / 2, 0.16, ambienceScene === "boss" ? 0.025 : 0.012));
-    }
-    phrase++;
-    ambienceTimer = setTimeout(tick, measure * 1000);
-  };
-  tick();
-}
-
-export function startAmbience(scene: MusicScene) {
-  try {
-    const c = ensureContext();
-    if (ambienceScene !== scene) {
-      stopAmbience();
-    }
-    ambienceScene = scene;
-    if (settings.muted || settings.music === 0) return;
-    if (c.state === "running") startAmbienceLoop();
-    else void c.resume().then(startAmbienceLoop).catch(() => undefined);
-  } catch {
-    // Audio may be unavailable or blocked by the browser.
-  }
-}
-
-export function unlockAudio(scene: MusicScene) {
-  startAmbience(scene);
-}
-
 export function playUiClickSound() {
   if (settings.muted || settings.effects === 0) return;
   try {
     const c = ensureContext();
-    const t = c.currentTime;
-    const oscillator = c.createOscillator();
-    const gain = c.createGain();
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(1380, t);
-    oscillator.frequency.exponentialRampToValueAtTime(820, t + 0.035);
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(0.018, t + 0.004);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
-    oscillator.connect(gain).connect(effectsBus ?? c.destination);
-    oscillator.start(t);
-    oscillator.stop(t + 0.05);
+    if (!clickBuffer) {
+      preloadUiClickSound();
+      return;
+    }
+    const source = c.createBufferSource();
+    source.buffer = clickBuffer;
+    source.connect(effectsBus ?? c.destination);
+    source.start(c.currentTime);
   } catch {
     // Audio may be unavailable or blocked by the browser.
   }
@@ -452,9 +326,6 @@ export function playEvents(
   if (settings.muted) return;
   try {
     const c = ensureContext();
-    if (events.length) duckMusic();
-    if (moments.boss && status === "ongoing") startAmbience("boss");
-    else if (moments.boss && status !== "ongoing") startAmbience("dungeon");
     if (moments.guard) playGuard(c.currentTime);
     events.forEach((e, i) => play(e, i * 0.3));
     playJingle(status, events.length * 0.3 + 0.1);
