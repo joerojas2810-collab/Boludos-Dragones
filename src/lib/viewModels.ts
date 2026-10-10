@@ -40,9 +40,14 @@ export const rollPct = (w: OwnedWeapon): number | null =>
           100,
       );
 
+// "Factor +3%" / "Factor -1%": how far the piece's roll is from neutral.
+export const factorText = (w: OwnedWeapon): string => {
+  const p = rollPct(w);
+  return p === null ? "" : ` · Factor ${p > 100 ? "+" : ""}${p - 100}%`;
+};
+
 export const pieceLine = (w: OwnedWeapon) =>
-  (isGearType(w.type) ? gearLine(w) : `ATQ +${w.atkBonus}`) +
-  (rollPct(w) === null ? "" : ` · tirada ${rollPct(w)}%`);
+  (isGearType(w.type) ? gearLine(w) : `ATQ +${w.atkBonus}`) + factorText(w);
 
 // Extra lines of a piece with their value, e.g. "+1.9% crítico".
 export function extraLinesText(w: OwnedWeapon): string[] {
@@ -191,7 +196,7 @@ export function pieceTip(w: OwnedWeapon): Tip {
     for (const l of extraLinesText(w)) lines.push(`Línea extra: ${l}`);
     lines.push(info.description);
   } else {
-    lines.push(`Ataque +${w.atkBonus}${rollPct(w) === null ? "" : ` · tirada ${rollPct(w)}%`}`);
+    lines.push(`Ataque +${w.atkBonus}${factorText(w)}`);
     lines.push(`${info.label}: ${info.description}`);
     const sp = specialLine(w.type);
     if (sp) lines.push(sp);
