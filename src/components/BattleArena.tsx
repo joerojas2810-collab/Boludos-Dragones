@@ -230,7 +230,7 @@ export function BattleArena({
         </div>
         <StatusIcons c={b.player} />
       </div>
-      <div className="absolute left-2 top-2 z-10 w-[min(12.5rem,44%)]">
+      <div className="stage-player-hud absolute left-2 top-2 z-10 w-[min(12.5rem,44%)]">
         <HudCard
           c={b.player}
           foe={first}
@@ -291,7 +291,7 @@ export function BattleArena({
                   ▼
                 </span>
               )}
-              <div className="relative z-30 w-full md:absolute md:inset-x-0 md:top-0">
+              <div className="stage-enemy-hud absolute inset-x-0 top-2 z-30 w-full">
                 <HudCard
                   c={c}
                   foe={b.player}

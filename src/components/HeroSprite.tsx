@@ -147,7 +147,7 @@ function Hero({
         role="img"
         aria-hidden="true"
         className={`pixel-sprite-box relative aspect-square ${flip ? "-scale-x-100" : ""} ${className}`}
-        style={{ imageRendering: "pixelated", "--pixel-frame-height": `${pixelHeroes.frame_height}px` } as React.CSSProperties}
+        style={{ imageRendering: "pixelated", "--pixel-frame-height": `${pixelHeroes.frame_height}px`, "--pixel-body-offset": (frameWidth / 2 - PX_IDLE_BOUNDS[classId][0] - PX_IDLE_BOUNDS[classId][2] / 2) / pixelHeroes.frame_height } as React.CSSProperties}
       >
         <div
           className="pixel-sprite-frame"

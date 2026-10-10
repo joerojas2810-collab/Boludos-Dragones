@@ -141,6 +141,11 @@
 }
 
 /* Combat stage: sizes follow the arena's own height/width (container units). */
+@property --combat-frame-height {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 192px;
+}
 .stage {
   container-type: size;
   --hs: min(68cqh, 40cqw);
@@ -170,7 +175,43 @@ body:not([data-art="pixel"]) .stage-hero {
 .stage-foes[data-n="3"] { --es: 1.15; --s: min(56cqh, 22cqw, 100cqh - 8rem); }
 /* 3 foes: shrink the hero a bit so the bigger foes do not overlap it (md+). */
 @media (min-width: 768px) {
-  .stage:has(.stage-foes[data-n="3"]) { --hs: min(60cqh, 30cqw); }
+  .stage { --hs: min(58cqh, 28cqw); }
+  .stage-player-hud { width: min(16rem, 26cqw); }
+  .stage-hero,
+  body:not([data-art="pixel"]) .stage-hero {
+    left: calc(0.5rem + min(8rem, 13cqw));
+    transform: translateX(-50%);
+  }
+  body:not([data-art="pixel"]) .stage-hero {
+    --painted-frame: min(calc(var(--hs) * 1.15), calc(min(16rem, 26cqw) / var(--painted-width)));
+  }
+  .stage-foes[data-n="2"],
+  .stage-foes[data-n="3"] {
+    width: 66%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: stretch;
+  }
+  .stage-foes[data-n="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .stage-foes[data-n="2"] .stage-foe,
+  .stage-foes[data-n="3"] .stage-foe { width: 100%; }
+  /* Use the hero's actual render step, rather than independently rounding rivals. */
+  .stage-hero, .stage-foes {
+    /* Resolve against the arena before entering a sprite's nested container. */
+    --combat-frame-height: max(192px, round(down, var(--hs), 192px));
+  }
+  body[data-art="pixel"] .stage-hero .pixel-sprite-frame {
+    height: var(--combat-frame-height);
+  }
+  body[data-art="pixel"] .stage-hero .pixel-sprite-frame {
+    left: calc(50cqw + var(--combat-frame-height) * var(--pixel-body-offset, 0));
+  }
+  body[data-art="pixel"] .stage-foes[data-n="2"] .pixel-sprite-box:not([role]) > .pixel-sprite-frame,
+  body[data-art="pixel"] .stage-foes[data-n="3"] .pixel-sprite-box:not([role]) > .pixel-sprite-frame {
+    /* Monster sheets have more transparent space; 3:2 balances visible bodies. */
+    height: calc(var(--combat-frame-height) * 1.5);
+  }
 }
 
 /* Boss (x1.26 scale + taller card): smaller box so the crown stays under the card. */
@@ -186,22 +227,32 @@ body:not([data-art="pixel"]) .stage-hero {
 }
 @media (max-width: 767px) {
   .stage { --hs: min(46cqh, 44cqw); }
+  .stage-player-hud { width: 30cqw; }
+  .stage-foes {
+    width: 64%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+    align-items: stretch;
+  }
+  .stage-foes[data-n="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stage-foes[data-n="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .stage-foes .stage-foe { width: 100%; }
+  .stage-hero,
+  body:not([data-art="pixel"]) .stage-hero {
+    left: calc(0.5rem + 15cqw);
+    transform: translateX(-50%);
+  }
   .stage-foes[data-n="1"] { --s: min(50cqh, 54cqw); }
   .stage-foes[data-boss][data-n="1"] { --es: 1.15; --s: min(44cqh, 50cqw); }
   .stage-foes[data-n="2"] { --s: min(44cqh, 38cqw); }
   .stage-foes[data-n="3"] { --es: 1.1; --s: min(36cqh, 31cqw); }
-  .stage-foe { width: max(var(--s), 7.5rem); }
-  .stage-foes[data-n="3"] .stage-foe { width: max(var(--s), 6.6rem); }
   .stage:has(.stage-foes[data-n="3"]) { height: 31rem; }
   .stage:has(.stage-foes[data-n="3"]) .stage-hero {
     --hs: 30cqh;
-    bottom: auto;
-    top: 5cqh;
-    left: 40%;
-  }
-  body:not([data-art="pixel"]) .stage:has(.stage-foes[data-n="3"]) .stage-hero {
-    left: calc(0.5rem + min(6.25rem, 22cqw));
-    top: calc(8rem + 5cqh);
+    bottom: 4cqh;
+    top: auto;
+    left: calc(0.5rem + 15cqw);
   }
 }
 /* HP text must stay on one line inside the narrow floating cards. */
@@ -218,8 +269,9 @@ body[data-art="pixel"] .combat-hud {
 @media (max-width: 767px) {
   body[data-art="pixel"] .stage:has(.stage-foes[data-n="3"]) .stage-hero {
     --hs: 192px;
-    left: calc(100% - 192px);
-    top: 4cqh;
+    left: calc(0.5rem + 15cqw);
+    top: auto;
+    bottom: 4cqh;
   }
   body[data-art="pixel"] .stage-foes[data-n="3"] .combat-hud {
     padding: 4px;
