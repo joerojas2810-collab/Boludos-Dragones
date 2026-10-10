@@ -698,13 +698,11 @@ describe("dungeon level services (fake DB)", () => {
     const db = new FakeDb();
     const info = await started(db);
     expect(info).toMatchObject({ rank: "f", level: 0, ascension: 0, seed: 12345 });
-    expect(info.engineVersion).toBe(ENGINE_VERSION);
     expect(db.levelStarts[0]).toMatchObject({
       p_character_id: ID,
       p_rank: "f",
       p_level: 0,
       p_asc: 0,
-      p_hero: { engineVersion: ENGINE_VERSION },
     });
   });
 

@@ -236,7 +236,6 @@ export interface RunView {
   doors: { kind: z.infer<typeof doorKindEnum> }[];
   door: z.infer<typeof doorKindEnum> | null; // door you picked
   enemyBoost: z.infer<typeof interfereKindEnum> | null;
-  engineVersion: number;
   /** Only during coop_boss: your fresh hero Run and the boss fight to play. */
   coop?: { node: FightSpec };
 }

@@ -1,16 +1,15 @@
-// Coop final boss of a room (pure, shared by client play and server replay).
+// Coop final boss of a room (pure, shared by client play and the server).
 // Everybody fights the SAME boss on their own screen, one life, with the normal
 // battle engine. The boss each player faces has a huge hp pool (nobody kills it
-// alone); the damage each player deals is replayed by the server and summed into
+// alone); the damage each player reports is capped by the server and summed into
 // one shared bar. The party wins when the sum reaches the pool, which scales with
 // the number of players (2 to 7).
-import { step, type Battle } from "./combat";
+import type { Battle } from "./combat";
 import { floorFight, type Climb } from "./floorFights";
 import type { RarityId } from "./rarity";
 import type { RoomMode } from "./room";
 import { hashSeed, type Rng } from "./rng";
 import { createStage, startFight, type FightSpec } from "./stage";
-import type { StageAction } from "./stageReplay";
 
 export const COOP_K = {
   bossFloor: 11, // [K] strength of a floor-10 boss at the room's rank
@@ -82,55 +81,6 @@ export function startCoop(
 /** Hp the boss has lost in this battle. */
 export const damageDealt = (b: Battle): number =>
   Math.max(0, b.enemies[0].char.stats.hp - Math.max(0, b.enemies[0].hp));
-
-export interface CoopReplay {
-  damage: number;
-  finished: boolean; // hero dead (or fled): this player is done
-  actions: number; // how many actions were applied
-  rejectedAt: number | null; // first illegal action
-}
-
-/** Server replay: only plain `act` actions are legal (no quick resolve). */
-export function replayCoop(
-  start: Climb,
-  node: FightSpec,
-  actions: readonly StageAction[],
-): CoopReplay {
-  const f = startCoop(start, node);
-  let b = f.battle;
-  for (let i = 0; i < actions.length; i++) {
-    const a = actions[i];
-    if (a.t !== "act" || i >= COOP_K.maxActions)
-      return {
-        damage: damageDealt(b),
-        finished: b.status !== "ongoing",
-        actions: i,
-        rejectedAt: i,
-      };
-    if (b.status !== "ongoing")
-      return {
-        damage: damageDealt(b),
-        finished: true,
-        actions: i,
-        rejectedAt: i,
-      };
-    const n = step(b, a.a, f.rng, a.target);
-    if (n === b)
-      return {
-        damage: damageDealt(b),
-        finished: false,
-        actions: i,
-        rejectedAt: i,
-      };
-    b = n;
-  }
-  return {
-    damage: damageDealt(b),
-    finished: b.status !== "ongoing",
-    actions: actions.length,
-    rejectedAt: null,
-  };
-}
 
 export interface CoopTally {
   pool: number;

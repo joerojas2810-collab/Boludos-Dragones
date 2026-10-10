@@ -610,7 +610,7 @@ export async function startLevelService(
         p_player: playerId,
         p_character_id: body.characterId,
         p_seed: seed,
-        p_hero: { ...hero, engineVersion: ENGINE_VERSION },
+        p_hero: hero,
         p_rank: rank,
         p_level: level,
         p_asc: asc,
@@ -624,7 +624,6 @@ export async function startLevelService(
       rank,
       level,
       ascension: asc,
-      engineVersion: ENGINE_VERSION,
     };
   } catch (e) {
     return mapRpcError(e);
@@ -865,7 +864,7 @@ export async function sweepLevelService(
         p_player: playerId,
         p_character_id: characterId,
         p_seed: seed,
-        p_hero: { ...hero, engineVersion: ENGINE_VERSION, sweep: true },
+        p_hero: { ...hero, sweep: true },
         p_rank: rank,
         p_level: level,
         p_asc: asc,

@@ -11,7 +11,7 @@ Juego web RPG por turnos con gacha para jugar con amigos (reemplazo de LoL). 7 a
 - Antes de construir o ejecutar algo grande, preguntar y guiar paso a paso. Trabajar por etapas, sin adelantar sin confirmación.
 - Respuestas concisas: sin saludos ni disculpas; al modificar código mostrar solo el fragmento cambiado.
 - Confirmar antes de acciones irreversibles (reset de la base, push, migraciones).
-- Ahorro de tokens: verificar siempre con `tsc`, `eslint` y `vitest`; simulaciones pesadas solo si cambió el balance y con pocas iteraciones. Revisión visual con `read_page`/`get_page_text`; capturas a escala 0.5 y pocas. Máximo 2 agentes en paralelo. **Regla para todo Claude (agentes incluidos):** usar siempre el modelo más barato que alcance para la tarea (haiku/sonnet salvo que haga falta más), priorizando rapidez, pocos tokens y efectividad; informes de agentes breves.
+- Ahorro de tokens: verificar siempre con `tsc`, `eslint` y `vitest`; durante el trabajo correr solo los tests del área tocada y la suite completa una sola vez antes de cada commit; simulaciones pesadas solo si cambió el balance y con pocas iteraciones. Revisión visual con `read_page`/`get_page_text`; capturas a escala 0.5 y pocas. Máximo 2 agentes en paralelo. **Regla para todo Claude (agentes incluidos):** usar siempre el modelo más barato que alcance para la tarea (haiku/sonnet salvo que haga falta más), priorizando rapidez, pocos tokens y efectividad; informes de agentes breves.
 - Idioma: textos del juego y UI en **español**; código, comentarios y commits en **inglés**. Commits pequeños, uno por cambio lógico.
 
 ## Stack y estructura

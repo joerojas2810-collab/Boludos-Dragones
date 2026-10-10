@@ -61,7 +61,6 @@ import {
 import { sweepBlock } from "@/lib/game/sweep";
 import {
   applyStageAction,
-  ENGINE_VERSION,
   initialStageReplay,
   type StageAction,
   type StageReplayState,
@@ -199,7 +198,6 @@ export function ProgressMode() {
       attemptId: "sweep",
       seed: out.stage.seed,
       hero: out.stage.hero,
-      engineVersion: ENGINE_VERSION,
     };
     setView({
       t: "result",

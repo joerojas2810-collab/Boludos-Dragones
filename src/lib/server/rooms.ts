@@ -15,7 +15,6 @@ import {
 import { isRankUnlocked } from "../game/dungeonProgress";
 import type { RarityId } from "../game/rarity";
 import { floorFight, roomDoors, type Climb, type FloorKind } from "../game/floorFights";
-import { ENGINE_VERSION } from "../game/stage";
 import {
   advance as modelAdvance,
   can,
@@ -584,7 +583,6 @@ export async function runViewService(
         doors: [],
         door: null,
         enemyBoost: null,
-        engineVersion: ENGINE_VERSION,
         coop: { node },
       };
     }
@@ -602,7 +600,6 @@ export async function runViewService(
       doors: roomDoors(s.floor),
       door: thisFloorRow(rows, s.floor)?.doorKind ?? null,
       enemyBoost: boost,
-      engineVersion: ENGINE_VERSION,
     };
   });
 }

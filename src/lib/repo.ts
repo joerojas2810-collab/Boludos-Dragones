@@ -72,7 +72,6 @@ export interface LevelStartInfo {
   attemptId: string;
   seed: number;
   hero: Character;
-  engineVersion: number;
 }
 export interface LevelFinish {
   info: LevelStartInfo;
@@ -258,7 +257,7 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       if (!hero)
         throw new RepoError("character_not_found", "Personaje no encontrado.");
       const seed = Date.now();
-      return { attemptId: `lv-${seed}`, seed, hero, engineVersion: ENGINE_VERSION };
+      return { attemptId: `lv-${seed}`, seed, hero };
     },
     finishLevel: async (a) => {
       const p = store.get();
@@ -483,7 +482,6 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         runId: string;
         seed: number;
         hero: Character;
-        engineVersion: number;
       }>("/api/level/start", {
         characterId: heroId,
         rank,
@@ -494,7 +492,6 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         attemptId: r.runId,
         seed: r.seed,
         hero: r.hero,
-        engineVersion: r.engineVersion,
       };
     },
     finishLevel: async (a) => {
