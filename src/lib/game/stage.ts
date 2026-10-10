@@ -257,6 +257,27 @@ export function startFight(st: Stage): { battle: Battle; rng: Rng } {
   return { battle, rng };
 }
 
+/**
+ * Outcome of a stage from the number of fights the player won (the client no longer sends an
+ * action log): all won = cleared, otherwise lost. Same EXP rules as finishFight, so the server
+ * and the local game agree.
+ */
+export function resultFromWins(
+  hero: Character,
+  fights: readonly FightSpec[],
+  wins: number,
+): { status: "cleared" | "lost"; xp: number; won: Record<FightRole, number> } {
+  const n = Math.max(0, Math.min(wins, fights.length));
+  const won = { normal: 0, elite: 0, final: 0 };
+  let xp = 0;
+  for (const f of fights.slice(0, n)) {
+    won[f.role]++;
+    xp += FIGHT_XP[f.role];
+  }
+  if (n >= fights.length) return { status: "cleared", xp: Math.round(xp * (1 + CLEAR_XP_BONUS)), won };
+  return { status: "lost", xp: xp + (hasTag(hero, "xpOnLoss") ? GAFE_LOSS_XP : 0), won };
+}
+
 // Abandoning counts as losing (EXP earned so far is kept).
 export const abandonStage = (st: Stage): Stage =>
   st.status === "playing" ? { ...st, status: "lost", hp: 0 } : st;

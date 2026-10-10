@@ -103,11 +103,11 @@ export const runSubmitBody = z.strictObject({
     .optional(),
   engineVersion: z.number().int().min(1).max(1000).optional(),
 });
-// Dungeon level: only the action log. Status, EXP and loot are decided by the replay.
+// Dungeon level: fights won. Status, EXP and loot are derived on the server (no replay);
+// pace and caps keep scripts honest.
 export const levelFinishBody = z.strictObject({
   runId: uuidSchema,
-  actions: z.array(runActionSchema).max(3000),
-  engineVersion: z.number().int().min(1).max(1000).optional(),
+  wins: z.number().int().min(0).max(20),
 });
 export const dailyBody = z.strictObject({
   banner: z.enum(["character", "weapon"]),

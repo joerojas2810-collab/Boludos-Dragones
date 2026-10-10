@@ -32,11 +32,10 @@ import { upgradePiece } from "../game/upgrade";
 import { DUNGEON_IDS, type DungeonId } from "../game/rarity";
 import { createRng } from "../game/rng";
 import { isSkillId } from "../game/skills";
-import { levelFights } from "../game/stage";
+import { levelFights, resultFromWins } from "../game/stage";
 import { sweepBlock, sweepStage } from "../game/sweep";
 import {
   ENGINE_VERSION,
-  replayStage,
   type StageAction,
 } from "../game/stageReplay";
 import { isDayKey, type DailyState } from "../game/streak";
@@ -398,6 +397,15 @@ export async function startRunService(
 export const MIN_ACTION_MS = 400; // fastest believable pace per logged action
 export const MIN_ACTION_GRACE_MS = 3_000; // clock skew between app and database
 
+// A won fight takes a person at least a few seconds, even in quick mode.
+export const MIN_FIGHT_MS = 2_500;
+const tooFastFights = (startedAt: number | undefined, wins: number) => {
+  const elapsed = startedAt ? Date.now() - startedAt : null;
+  return elapsed !== null && elapsed + MIN_ACTION_GRACE_MS < wins * MIN_FIGHT_MS
+    ? elapsed
+    : null;
+};
+
 const tooFast = (startedAt: number | undefined, actions: number) => {
   const elapsed = startedAt ? Date.now() - startedAt : null;
   return elapsed !== null && elapsed + MIN_ACTION_GRACE_MS < actions * MIN_ACTION_MS
@@ -623,8 +631,7 @@ export async function startLevelService(
 
 export interface LevelFinishBody {
   runId: string;
-  actions: StageAction[];
-  engineVersion?: number;
+  wins: number; // fights won; the server derives status, EXP and loot
 }
 
 interface LevelBankRaw {
@@ -646,9 +653,9 @@ interface LevelBankRaw {
 const EMPTY_LOOT: LevelLoot = { escamas: 0, dados: 0, pieces: [] };
 
 /**
- * Replays the whole level from the persisted hero snapshot, rolls the loot with the
- * server seed and pays through bank_level. The client never sends status, EXP or loot:
- * only the action log. An illegal or unfinished log pays what the replay reached.
+ * Pays a level from the persisted hero snapshot: the client only says how many fights it won;
+ * status, EXP and loot are derived here (loot rolled with the server seed) and paid through
+ * bank_level. Pace (MIN_FIGHT_MS), run tokens and rate limits replace the old replay.
  */
 export async function finishLevelService(
   d: Deps,
@@ -666,7 +673,6 @@ export async function finishLevelService(
   if (row.status !== "open")
     throw new ApiError(409, "duplicate_run", "Este nivel ya fue entregado.");
   const {
-    engineVersion: stored = 1,
     kind,
     rank,
     level,
@@ -674,7 +680,6 @@ export async function finishLevelService(
     heroId,
     ...hero
   } = row.hero as Character & {
-    engineVersion?: number;
     kind?: string;
     rank?: string;
     level?: number;
@@ -716,8 +721,10 @@ export async function finishLevelService(
     }
   };
 
-  // Impossibly fast log: close the attempt unpaid and say why.
-  const elapsed = tooFast(row.startedAt, body.actions.length);
+  // Too fast to be a person (a script claiming fights at CPU speed): close it unpaid.
+  const fights = levelFights(spec, ascension);
+  const wins = Math.min(body.wins, fights.length);
+  const elapsed = tooFastFights(row.startedAt, wins);
   if (elapsed !== null) {
     await bank({
       p_status: "lost",
@@ -725,9 +732,9 @@ export async function finishLevelService(
       p_dados: 0,
       p_pieces: [],
       p_repeat: false,
-      p_log: body.actions.length <= 2000 ? body.actions : null,
+      p_log: null,
       p_verdict: "rejected",
-      p_reason: `too_fast ${elapsed}ms for ${body.actions.length} actions`,
+      p_reason: `too_fast ${elapsed}ms for ${wins} fights`,
     });
     throw new ApiError(
       429,
@@ -735,35 +742,8 @@ export async function finishLevelService(
       "Ese intento se jugó demasiado rápido para ser real y no se registró.",
     );
   }
-  if (body.engineVersion !== undefined && body.engineVersion !== stored)
-    throw new ApiError(
-      409,
-      "engine_outdated",
-      "El nivel se jugó con otra versión del juego. Recarga la página y empieza de nuevo.",
-    );
-  const rep = replayStage(
-    row.seed,
-    hero as Character,
-    levelFights(spec, ascension),
-    body.actions,
-    ascension,
-    stored,
-  );
-  if (rep.error)
-    throw new ApiError(
-      409,
-      "engine_outdated",
-      "Este nivel es de una versión anterior del juego y ya no se puede verificar.",
-    );
-  const stage = rep.stage;
+  const stage = resultFromWins(hero as Character, fights, wins);
   const cleared = stage.status === "cleared";
-  // Illegal action, or a log that stops before the end: pay what the replay reached.
-  const cut = rep.rejectedAt !== null || stage.status === "playing";
-  const reason = cut
-    ? rep.rejectedAt !== null
-      ? `illegal action at ${rep.rejectedAt}`
-      : "unfinished log"
-    : null;
 
   let out: { raw: LevelBankRaw; loot: LevelLoot } | null = null;
   // The Dado is rolled HERE with a server-only rng, never from row.seed (the client knows that one).
@@ -790,9 +770,9 @@ export async function finishLevelService(
         p_dados: loot.dados,
         p_pieces: loot.pieces,
         p_repeat: opts.repeat,
-        p_log: cut ? body.actions : null,
-        p_verdict: cut ? "cut" : "accepted",
-        p_reason: reason,
+        p_log: null,
+        p_verdict: "accepted",
+        p_reason: null,
       });
       out = { raw, loot };
     } catch (e) {

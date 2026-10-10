@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ASCEND } from "../game/pieceGrowth";
 import { generateCharacter } from "../game/characters";
-import { ENGINE_VERSION } from "../game/stage";
+import { ENGINE_VERSION, levelFights, resultFromWins } from "../game/stage";
 import { replayTower } from "../game/tower";
 import { createRng } from "../game/rng";
 import { derivePassword, safeEqual, syntheticEmail } from "./credentials";
@@ -29,7 +29,7 @@ import {
   startRunService,
   submitRunService,
 } from "./services";
-import { FakeDb, heroRow, playBot, playLevelBot } from "./testkit";
+import { FakeDb, heroRow, playBot } from "./testkit";
 import {
   credsBody,
   ascendBody,
@@ -671,12 +671,11 @@ describe("dungeon level services (fake DB)", () => {
     ascension: 0,
     ...over,
   });
-  const fin = (db: FakeDb, actions: unknown[], extra = {}) =>
-    finishLevelService(db.deps, "u1", {
-      runId: UUID,
-      actions: actions as never,
-      ...extra,
-    });
+  const N = levelFights(levelsOf("f")[0], 0).length; // fights of F level 1
+  const fin = (db: FakeDb, wins: number, extra = {}) => {
+    if (db.run) db.run.startedAt = Date.now() - 600_000; // a believable pace unless a test says otherwise
+    return finishLevelService(db.deps, "u1", { runId: UUID, wins, ...extra });
+  };
   const started = async (db: FakeDb) => {
     db.rows.push(row());
     const info = await startLevelService(db.deps, "u1", body());
@@ -688,14 +687,11 @@ describe("dungeon level services (fake DB)", () => {
     expect(levelStartBody.safeParse(body({ level: 12 })).success).toBe(false);
     expect(levelStartBody.safeParse(body({ rank: "zz" })).success).toBe(false);
     expect(levelStartBody.safeParse(body({ ascension: 6 })).success).toBe(false);
-    const ok = { runId: UUID, actions: [{ t: "fin" }] };
+    const ok = { runId: UUID, wins: 2 };
     expect(levelFinishBody.safeParse(ok).success).toBe(true);
     for (const extra of [{ xp: 99999 }, { status: "cleared" }, { loot: {} }, { coins: 5 }])
       expect(levelFinishBody.safeParse({ ...ok, ...extra }).success).toBe(false);
-    expect(
-      levelFinishBody.safeParse({ ...ok, actions: Array(3001).fill({ t: "fin" }) })
-        .success,
-    ).toBe(false);
+    expect(levelFinishBody.safeParse({ ...ok, wins: 21 }).success).toBe(false);
   });
 
   it("starts from the persisted hero (server snapshot, seed from the server) and opens the attempt", async () => {
@@ -733,11 +729,10 @@ describe("dungeon level services (fake DB)", () => {
     expect(db.levelStarts).toHaveLength(2);
   });
 
-  it("pays from the REPLAY: status, EXP and loot are derived, the log is all the client sends", async () => {
+  it("pays from the claimed wins: status, EXP and loot are derived on the server", async () => {
     const db = new FakeDb();
     const info = await started(db);
-    const log = playLevelBot(info.seed, info.hero, "f", 0);
-    const r = await fin(db, log, { engineVersion: info.engineVersion });
+    const r = await fin(db, N);
     expect(r.status).toBe("cleared");
     const b = db.levelBanks[0];
     expect(b).toMatchObject({
@@ -750,7 +745,7 @@ describe("dungeon level services (fake DB)", () => {
       p_verdict: "accepted",
       p_log: null,
     });
-    expect(Number(b.p_xp)).toBeGreaterThan(0);
+    expect(Number(b.p_xp)).toBe(resultFromWins(info.hero, levelFights(levelsOf("f")[0], 0), N).xp);
     // the loot is the one the engine rolls from the SERVER seed
     const expected = levelLoot(levelsOf("f")[0], 0, "caballero", info.seed, {
       repeat: false,
@@ -762,68 +757,40 @@ describe("dungeon level services (fake DB)", () => {
     for (const piece of expected.pieces) expect(piece.roll).toBeGreaterThan(0.84);
   });
 
-  it("a lost or abandoned level keeps the EXP of the replay and pays no loot", async () => {
-    const db = new FakeDb();
-    const info = await started(db);
-    // fight one round, then quit
-    const r = await fin(db, [{ t: "act", a: "attack1" }, { t: "quit" }]);
-    expect(r.status).toBe("lost");
-    expect(db.levelBanks[0]).toMatchObject({
-      p_status: "lost",
-      p_dados: 0,
-      p_pieces: [],
-      p_verdict: "accepted",
-    });
-    expect(info.seed).toBe(12345);
-  });
-
-  it("a log that stops early or has an illegal action pays only what the replay reached ('cut')", async () => {
+  it("fewer wins than fights is a loss: partial EXP, no loot; wins above the level are clamped", async () => {
     const db = new FakeDb();
     await started(db);
-    const r = await fin(db, [{ t: "fin" }]); // nothing to continue
+    const r = await fin(db, 1);
     expect(r.status).toBe("lost");
-    expect(db.levelBanks[0]).toMatchObject({ p_verdict: "cut", p_status: "lost", p_xp: 0 });
+    expect(db.levelBanks[0]).toMatchObject({ p_status: "lost", p_dados: 0, p_pieces: [], p_verdict: "accepted" });
+    expect(Number(db.levelBanks[0].p_xp)).toBeGreaterThan(0);
     const db2 = new FakeDb();
     await started(db2);
-    const info = db2.run!;
-    const full = playLevelBot(info.seed, info.hero as never, "f", 0);
-    await fin(db2, full.slice(0, 1)); // stops after one blow
-    expect(db2.levelBanks[0]).toMatchObject({ p_status: "lost", p_verdict: "cut" });
+    expect((await fin(db2, 20)).status).toBe("cleared"); // 20 > N: still just a clear
   });
 
-  it("a forged log (replayed on a different attempt) cannot win: the replay decides", async () => {
+  it("closed attempt, wrong kind and impossibly fast claims", async () => {
     const db = new FakeDb();
-    const info = await started(db);
-    const real = playLevelBot(info.seed + 1, info.hero, "f", 0); // recorded for another seed
-    const r = await fin(db, real);
-    expect(["cleared", "lost"]).toContain(r.status);
-    // whatever it is, the paid status equals the server replay, never a client claim
-    expect(db.levelBanks[0].p_status).toBe(r.status);
-  });
-
-  it("closed attempt, other engine, wrong kind and impossibly fast logs", async () => {
-    const db = new FakeDb();
-    const info = await started(db);
-    const log = playLevelBot(info.seed, info.hero, "f", 0);
+    await started(db);
+    // all the fights in half a second: closed unpaid
+    await fin(db, 0); // sets the clock back; then override it
+    const db2 = new FakeDb();
+    await started(db2);
+    db2.run!.startedAt = Date.now() - 500;
     expect(
-      await catchErr(fin(db, log, { engineVersion: ENGINE_VERSION + 1 })),
-    ).toMatchObject({ code: "engine_outdated" });
-    // fast: 60 actions in half a second
-    db.run!.startedAt = Date.now() - 500;
-    const spam = Array(60).fill({ t: "act", a: "attack1" });
-    expect(await catchErr(fin(db, spam))).toMatchObject({ status: 429, code: "too_fast" });
-    expect(db.levelBanks[0]).toMatchObject({ p_verdict: "rejected", p_xp: 0 });
+      await catchErr(finishLevelService(db2.deps, "u1", { runId: UUID, wins: N })),
+    ).toMatchObject({ status: 429, code: "too_fast" });
+    expect(db2.levelBanks[0]).toMatchObject({ p_verdict: "rejected", p_xp: 0 });
     db.run!.status = "closed";
-    expect(await catchErr(fin(db, log))).toMatchObject({ code: "duplicate_run" });
+    expect(await catchErr(fin(db, N))).toMatchObject({ code: "duplicate_run" });
     // a tower run is not a level
     db.run = { seed: 1, hero: { ...h0, engineVersion: ENGINE_VERSION, tower: "coleccion" }, status: "open" };
-    expect(await catchErr(fin(db, []))).toMatchObject({ code: "wrong_run_kind" });
+    expect(await catchErr(fin(db, 0))).toMatchObject({ code: "wrong_run_kind" });
   });
 
   it("a conflict from bank_level (repeat flag changed) is retried with fresh state", async () => {
     const db = new FakeDb();
-    const info = await started(db);
-    const log = playLevelBot(info.seed, info.hero, "f", 0);
+    await started(db);
     const inner = db.deps.rpc;
     let n = 0;
     db.deps.rpc = async (name, args) => {
@@ -831,7 +798,7 @@ describe("dungeon level services (fake DB)", () => {
         return { data: null, error: { message: "conflict" } };
       return inner(name, args);
     };
-    await fin(db, log);
+    await fin(db, N);
     expect(db.audits).toContain("level_conflict");
     expect(db.levelBanks).toHaveLength(1);
   });

@@ -498,15 +498,14 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       };
     },
     finishLevel: async (a) => {
-      // Only the action log travels: status, EXP and loot come from the server's replay.
+      // Only the fights won travel: status, EXP and loot are derived on the server.
       const r = await api<{
         bank: Omit<LevelBank, "profile">;
         loot: LevelLoot;
         profile: Profile;
       }>("/api/level/finish", {
         runId: a.info.attemptId,
-        actions: a.actions,
-        engineVersion: a.info.engineVersion,
+        wins: a.stage.won.normal + a.stage.won.elite + a.stage.won.final,
       });
       store.replace(r.profile);
       return { bank: { ...r.bank, profile: r.profile }, loot: r.loot };
