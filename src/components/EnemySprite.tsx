@@ -32,7 +32,7 @@ export function EnemySprite({
   elite = false,
   finalRank,
   action,
-  flip = false,
+  flip,
   className = "",
 }: Props) {
   const cue = useContext(EnemyCueContext);
@@ -50,6 +50,8 @@ export function EnemySprite({
   // One-shot actions fall back to idle; defeat holds its last frame.
   const shown = done && cur !== "defeat" ? "idle" : cur;
   const anim = enemyAnim(family, tier, element, shown, finalRank);
+  // Pixel golems face right in their sheets; opponents face the hero on the left.
+  const facingFlip = flip ?? anim.src.startsWith("/art/enemies-px/enemy_golem_");
   useEffect(() => {
     preloadImages(
       (["idle", "attack", "hit", "defeat", "entrance"] as const).map(
@@ -72,7 +74,7 @@ export function EnemySprite({
         <AnimSheet
           key={shown}
           anim={anim}
-          flip={flip}
+          flip={facingFlip}
           last={cue?.held && !action && shown === "defeat"}
           className="h-full w-full"
           onDone={() => setDone(true)}
