@@ -7,3 +7,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Trabajo eficiente y pruebas
+
+- Prioriza rapidez, efectividad y economía de tokens; usa el modelo menos costoso que alcance para la tarea.
+- Durante el trabajo, ejecuta solo las pruebas del área modificada. Antes de cada commit, ejecuta la suite completa una sola vez.

@@ -12,7 +12,10 @@ const DEFAULT_SETTINGS: AudioSettings = { muted: false, music: 0.2, effects: 0.7
 let settings = { ...DEFAULT_SETTINGS };
 let effectsBus: GainNode | null = null;
 let musicBus: GainNode | null = null;
-let ambienceScene: "menu" | "dungeon" = "menu";
+let musicDuckTimer: ReturnType<typeof setTimeout> | null = null;
+let musicDuck = 1;
+type MusicScene = "menu" | "dungeon" | "boss";
+let ambienceScene: MusicScene = "menu";
 let ambienceTimer: ReturnType<typeof setTimeout> | null = null;
 let ambienceStarted = false;
 const ambienceVoices = new Set<{ oscillator: OscillatorNode; gain: GainNode }>();
@@ -66,7 +69,18 @@ function applySettings() {
   if (!ctx) return;
   const enabled = settings.muted ? 0 : 1;
   if (effectsBus) effectsBus.gain.setTargetAtTime(settings.effects * enabled, ctx.currentTime, 0.04);
-  if (musicBus) musicBus.gain.setTargetAtTime(settings.music * enabled, ctx.currentTime, 0.15);
+  if (musicBus) musicBus.gain.setTargetAtTime(settings.music * enabled * musicDuck, ctx.currentTime, 0.15);
+}
+
+function duckMusic() {
+  if (!ctx || !musicBus || settings.muted || settings.music === 0) return;
+  musicDuck = 0.62;
+  musicBus.gain.setTargetAtTime(settings.music * musicDuck, ctx.currentTime, 0.025);
+  if (musicDuckTimer) clearTimeout(musicDuckTimer);
+  musicDuckTimer = setTimeout(() => {
+    musicDuck = 1;
+    if (ctx && musicBus) musicBus.gain.setTargetAtTime(settings.music * (settings.muted ? 0 : 1), ctx.currentTime, 0.22);
+  }, 1250);
 }
 
 function saveSettings() {
@@ -300,9 +314,11 @@ function musicNote(c: AudioContext, t: number, freq: number, dur: number, volume
   o.frequency.value = freq;
   filter.type = "lowpass";
   filter.frequency.value = 950;
+  const attack = Math.min(1.2, dur * 0.2);
+  const release = Math.min(1.3, dur * 0.25);
   g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(volume, t + 1.2);
-  g.gain.setValueAtTime(volume, t + dur - 1.3);
+  g.gain.exponentialRampToValueAtTime(volume, t + attack);
+  g.gain.setValueAtTime(volume, t + dur - release);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.connect(filter).connect(g).connect(musicBus ?? c.destination);
   ambienceVoices.add({ oscillator: o, gain: g });
@@ -327,29 +343,29 @@ function startAmbienceLoop() {
     }
     const c = ctx;
     const t = c.currentTime + 0.04;
-    const menuPhrases = [
-      [261.63, 329.63, 392],
-      [220, 261.63, 329.63],
-      [174.61, 220, 261.63],
-      [196, 246.94, 293.66],
-    ];
-    const dungeonPhrases = [
-      [146.83, 174.61, 220],
-      [130.81, 155.56, 196],
-      [110, 130.81, 164.81],
-      [123.47, 146.83, 185],
-    ];
-    const chord = (ambienceScene === "menu" ? menuPhrases : dungeonPhrases)[phrase % 4];
-    musicNote(c, t, chord[0] / 2, 9.6, 0.07);
-    chord.forEach((frequency, i) => musicNote(c, t + i * 0.015, frequency, 9.6, i === 0 ? 0.045 : 0.03));
-    if (phrase % 3 === 2) musicNote(c, t + 2.6, chord[2] * 2, 1.8, 0.009);
+    const progressions: Record<MusicScene, number[][]> = {
+      menu: [[261.63, 329.63, 392], [196, 261.63, 329.63], [220, 293.66, 349.23], [174.61, 261.63, 349.23]],
+      dungeon: [[146.83, 174.61, 220], [130.81, 155.56, 196], [110, 146.83, 185], [123.47, 155.56, 196]],
+      boss: [[110, 130.81, 164.81], [98, 123.47, 146.83], [103.83, 130.81, 155.56], [92.5, 116.54, 138.59]],
+    };
+    const chord = progressions[ambienceScene][phrase % 4];
+    const measure = ambienceScene === "menu" ? 8.5 : 6.5;
+    const padVolume = ambienceScene === "boss" ? 0.022 : 0.032;
+    // A warm low pulse and a sparse, repeating four-note motif make the loop feel composed.
+    musicNote(c, t, chord[0] / 2, measure, padVolume * 1.35);
+    chord.forEach((frequency, i) => musicNote(c, t + i * 0.012, frequency, measure, padVolume * (i === 0 ? 0.8 : 0.55)));
+    const motif = [chord[2] * 2, chord[1] * 2, chord[0] * 2, chord[1] * 2];
+    motif.forEach((frequency, i) => musicNote(c, t + 0.6 + i * 0.72, frequency, 0.75, ambienceScene === "menu" ? 0.012 : 0.007));
+    if (ambienceScene !== "menu") {
+      [0, 2, 4].forEach((beat) => musicNote(c, t + beat * 0.75, chord[0] / 2, 0.16, ambienceScene === "boss" ? 0.025 : 0.012));
+    }
     phrase++;
-    ambienceTimer = setTimeout(tick, 8500);
+    ambienceTimer = setTimeout(tick, measure * 1000);
   };
   tick();
 }
 
-export function startAmbience(scene: "menu" | "dungeon") {
+export function startAmbience(scene: MusicScene) {
   try {
     const c = ensureContext();
     if (ambienceScene !== scene) {
@@ -364,7 +380,7 @@ export function startAmbience(scene: "menu" | "dungeon") {
   }
 }
 
-export function unlockAudio(scene: "menu" | "dungeon") {
+export function unlockAudio(scene: MusicScene) {
   startAmbience(scene);
 }
 
@@ -436,6 +452,9 @@ export function playEvents(
   if (settings.muted) return;
   try {
     const c = ensureContext();
+    if (events.length) duckMusic();
+    if (moments.boss && status === "ongoing") startAmbience("boss");
+    else if (moments.boss && status !== "ongoing") startAmbience("dungeon");
     if (moments.guard) playGuard(c.currentTime);
     events.forEach((e, i) => play(e, i * 0.3));
     playJingle(status, events.length * 0.3 + 0.1);
