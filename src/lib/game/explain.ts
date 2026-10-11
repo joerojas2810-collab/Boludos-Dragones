@@ -161,7 +161,7 @@ export function previewCombatant(classId: ClassId): Combatant {
 }
 
 const attackEl = (c: Combatant): Element =>
-  c.char.weapon?.element ?? c.char.element;
+  c.char.element;
 
 // ---------- elements ----------
 
@@ -193,11 +193,7 @@ export function elementTip(
     );
   }
   if (c?.char.weapon)
-    lines.push(
-      c.char.weapon.element === c.char.element
-        ? "Tu arma comparte este elemento."
-        : `Tu arma es de ${ELEMENT_LABEL[c.char.weapon.element]}: tus ataques usan el elemento del arma, no este.`,
-    );
+    lines.push("El elemento del arma cuenta para los sets; tus ataques usan tu elemento.");
   return {
     title: `Elemento ${ELEMENT_LABEL[element]}`,
     kind: "info",
@@ -214,7 +210,7 @@ export function weaponTip(c: Combatant): Tip | null {
     kind: "damage",
     lines: [
       `Suma +${n1(w.atkBonus)} de ATQ (ya incluido en tu ATQ ${n1(c.char.stats.atk)}).`,
-      `Tus ataques usan el elemento del arma (${ELEMENT_LABEL[w.element]}) en lugar del tuyo (${ELEMENT_LABEL[c.char.element]}).`,
+      `Para los sets cuenta como ${ELEMENT_LABEL[w.element]}; tus ataques usan tu elemento (${ELEMENT_LABEL[c.char.element]}).`,
     ],
     source: "Arma equipada",
   };
@@ -242,7 +238,7 @@ export function passiveTip(c: Combatant, foe?: Combatant, you = true): Tip {
         `${s("Tu", "Su")} ventaja elemental pega +${pct(CLASS_PASSIVE_ADVANTAGE_BONUS)} en vez de +${pct(ADVANTAGE_BONUS)} (x${(1 + CLASS_PASSIVE_ADVANTAGE_BONUS).toFixed(2)} en vez de x${(1 + ADVANTAGE_BONUS).toFixed(2)}).`,
         `Además ${s("tienes", "tiene")} +${pct(CLASS_PASSIVE_MAGE_CRIT)} de probabilidad de crítico y ${s("recibes", "recibe")} ${pct(CLASS_PASSIVE_MAGE_REDUCTION)} menos daño.`,
         "La ventaja no cambia con desventaja o elemento neutral.",
-        "Cuenta el elemento del arma si hay una equipada.",
+        "La ventaja elemental usa tu elemento, no el del arma.",
       );
       if (foe) {
         const m = attackElementMultiplier(c, foe);

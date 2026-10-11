@@ -484,7 +484,7 @@ describe("weapons", () => {
     expect(equipWeapon(p, "nope", w)).toBe(p);
     expect(unequipWeapon(p, b.id).equipped).toEqual({});
   });
-  it("hero gets scaled stats + weapon atk + weapon element in combat", () => {
+  it("hero gets scaled stats + weapon atk while attacks retain the hero element", () => {
     let p = rich();
     const rng = createRng(8);
     p = pullCharacter(p, rng, 10)!.profile;
@@ -498,12 +498,13 @@ describe("weapons", () => {
     const armed = heroFromOwned(p, c.id)!;
     expect(armed.stats.atk).toBeCloseTo(plain.stats.atk + w.atkBonus, 1);
     expect(armed.weapon).toEqual({ element: w.element, atkBonus: w.atkBonus, type: w.type });
-    // attacker element = weapon element
+    // Engine v14: weapon element is for sets; attacks use the hero element.
     const foe = generateCharacter(createRng(2), "caballero");
     const b = startBattle(armed, foe, createRng(1));
+    const equalPowerNoWeapon = startBattle({ ...armed, weapon: undefined }, foe, createRng(1));
     const b2 = startBattle({ ...armed, weapon: undefined }, foe, createRng(1));
-    expect(estimateDamage(b.player, b.enemies[0], "attack1")).toBeGreaterThan(
-      0,
+    expect(estimateDamage(b.player, b.enemies[0], "attack1")).toBe(
+      estimateDamage(equalPowerNoWeapon.player, equalPowerNoWeapon.enemies[0], "attack1"),
     );
     expect(b2.player.char.weapon).toBeUndefined();
   });

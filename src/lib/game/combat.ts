@@ -68,7 +68,7 @@ import {
   type BossState,
 } from "./bossRules";
 import { EXECUTE_HP, HIGH_HP, RAGE_MAX, traitTotals } from "./traits";
-import { weaponSpecial } from "./weapons";
+import { isWeaponType, WEAPON_TYPE_DATA, weaponSpecial } from "./weapons";
 
 export type AttackKey = "attack1" | "attack2";
 export type MoveKey = AttackKey | "attack3"; // attack3 = class skill (skills.ts)
@@ -288,6 +288,17 @@ export function attackOf(c: Combatant, key: MoveKey): Attack {
   if (key === "attack2") {
     const sp = weaponSpecial(c.char.weapon?.type);
     if (sp) return sp;
+  }
+  if (key === "attack1" && isWeaponType(c.char.weapon?.type)) {
+    const basic = WEAPON_TYPE_DATA[c.char.weapon.type].basic;
+    if (basic)
+      return {
+        ...CLASSES[c.char.classId].attack1,
+        name: basic.name,
+        power: basic.power,
+        ...(basic.crit !== undefined && { crit: basic.crit }),
+        ...(basic.heal !== undefined && { heal: basic.heal }),
+      };
   }
   return CLASSES[c.char.classId][key];
 }
@@ -656,7 +667,7 @@ export function attackElementMultiplier(
   def: Combatant,
 ): number {
   const m = elementMultiplier(
-    att.char.weapon?.element ?? att.char.element,
+    att.char.element,
     def.char.element,
   );
   return att.char.classId === "mago" && m > 1
@@ -766,7 +777,7 @@ export interface Strike {
 
 // Contraataque returns damage without a hit roll: it still carries the hero's element status.
 export function counterStatuses(hero: Combatant, foe: Combatant): Combatant["statuses"] {
-  const sid = STATUS_OF_ELEMENT[hero.char.weapon?.element ?? hero.char.element];
+  const sid = STATUS_OF_ELEMENT[hero.char.element];
   if (!sid || sid === "impulso") return foe.statuses;
   return addStatus(foe.statuses, sid, CLASS_STACKS, undefined, foe.char.stats.resist);
 }
@@ -810,7 +821,7 @@ export function strike(
     ...(key === "attack2" && { cooldown: a.cooldown + 1 - (free ? 1 : 0) }),
     ...(key === "attack3" && { cooldown3: a.cooldown + 1 - (free ? 1 : 0) }),
   };
-  const element = att.char.weapon?.element ?? att.char.element;
+  const element = att.char.element;
   const ev = (kind: BattleEvent["kind"]) =>
     events.push({
       actor,
@@ -836,6 +847,7 @@ export function strike(
   }
   const crit = rng.chance(
     att.char.stats.crit +
+      (a.crit ?? 0) +
       (att.char.classId === "mago" ? CLASS_PASSIVE_MAGE_CRIT : 0) +
       (att.riposte && att.char.classId === "picaro" ? GUARD_CRIT_BONUS : 0),
   );

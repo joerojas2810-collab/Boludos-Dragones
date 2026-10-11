@@ -12,6 +12,7 @@ import { RARITY_IDS } from "./rarity";
 import { createRng } from "./rng";
 import {
   createStage,
+  ENGINE_VERSION,
   finishFight,
   healBetween,
   levelFights,
@@ -106,6 +107,8 @@ describe("stage replay", () => {
     expect(r.stage.status).toBe("cleared");
     expect(replayStage(5, strong, fights, [{ t: "fin" }]).rejectedAt).toBe(0);
     expect(replayStage(5, strong, fights, [{ t: "quit" }]).stage.status).toBe("lost");
-    expect(replayStage(5, strong, fights, log, 0, 1).error).toBe("engine_version");
+    // v14 changes attack/status element ownership and weapon basic profiles;
+    // motor 13 replays must be rejected because their outcomes can differ.
+    expect(replayStage(5, strong, fights, log, 0, ENGINE_VERSION - 1).error).toBe("engine_version");
   });
 });

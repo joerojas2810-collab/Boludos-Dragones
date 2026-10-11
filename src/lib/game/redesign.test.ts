@@ -57,14 +57,16 @@ const withWeapon = (c: Character, element: Character["element"]): Character => (
 
 describe("elemental statuses", () => {
   const mage = (element: Character["element"]) =>
-    withWeapon({ ...unit("mago"), skill: "tormenta" }, element);
+    withWeapon({ ...unit("mago"), element, skill: "tormenta" }, "agua");
 
-  it("every hit applies the status of the weapon element: 1 stack, the class special 2", () => {
+  it("every hit applies the status of the hero element: 1 stack, the class special 2", () => {
     const b = fight(mage("agua"), [unit("picaro")], [[]]);
     expect(stacksOf(step(b, "attack1", always).enemies[0].statuses, "escarcha")).toBe(1);
     expect(stacksOf(step(b, "attack2", always).enemies[0].statuses, "escarcha")).toBe(1);
     const s = step(b, "attack3", always);
     expect(stacksOf(s.enemies[0].statuses, "escarcha")).toBe(2);
+    const mismatch = fight(mage("fuego"), [unit("picaro")], [[]]);
+    expect(stacksOf(step(mismatch, "attack1", always).enemies[0].statuses, "quemadura")).toBe(1);
   });
 
   it("each element maps to its own status; Rayo has none", () => {

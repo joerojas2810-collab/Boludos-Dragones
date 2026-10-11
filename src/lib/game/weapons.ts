@@ -57,6 +57,7 @@ export interface WeaponTypeInfo {
   crit: number; // additive to Stats.crit
   speedMult: number; // multiplies Stats.speed
   noun: string; // used in generated names (with article: "Hacha de ...")
+  basic?: { name: string; power: number; crit?: number; heal?: number };
   // Replaces the class's Ataque 2 while this weapon is equipped (combat.attackOf).
   special?: WeaponSpecial;
 }
@@ -80,6 +81,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0,
     speedMult: 1,
     noun: "Espada",
+    basic: { name: "Tajo", power: 1 },
     special: { name: "Golpe de escudo", power: 1.8, accuracy: 0.9, cooldown: 1, heal: 0 },
   },
   hacha: {
@@ -90,6 +92,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0,
     speedMult: 1,
     noun: "Hacha",
+    basic: { name: "Hachazo", power: 1 },
     special: { name: "Hachazo", power: 3.2, accuracy: 0.65, cooldown: 3, heal: 0 },
   },
   arco: {
@@ -100,6 +103,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0.05,
     speedMult: 1,
     noun: "Arco",
+    basic: { name: "Disparo", power: 1 },
     special: { name: "Disparo certero", power: 2.6, accuracy: 0.9, cooldown: 3, heal: 0 },
   },
   baston: {
@@ -110,6 +114,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0,
     speedMult: 1.1,
     noun: "Bastón",
+    basic: { name: "Golpe de bastón", power: 1 },
     special: { name: "Cataclismo", power: 2.8, accuracy: 0.7, cooldown: 3, heal: 0 },
   },
   daga: {
@@ -120,6 +125,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0.05,
     speedMult: 1.05,
     noun: "Daga",
+    basic: { name: "Corte rápido", power: 1 },
     special: { name: "Puñalada rápida", power: 1.7, accuracy: 0.95, cooldown: 1, heal: 0 },
   },
   maza: {
@@ -130,6 +136,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0,
     speedMult: 0.95,
     noun: "Maza",
+    basic: { name: "Golpe de maza", power: 1 },
     special: { name: "Golpe sagrado", power: 2.2, accuracy: 0.85, cooldown: 2, heal: 0.04 },
   },
   varita: {
@@ -140,6 +147,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0,
     speedMult: 1.05,
     noun: "Varita",
+    basic: { name: "Chispa", power: 1 },
     special: { name: "Descarga arcana", power: 1.8, accuracy: 0.95, cooldown: 1, heal: 0 },
   },
   libro: {
@@ -150,6 +158,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0.04,
     speedMult: 1,
     noun: "Libro",
+    basic: { name: "Sello arcano", power: 1 },
     special: { name: "Plegaria", power: 0.3, accuracy: 1, cooldown: 2, heal: 0.09 },
   },
   mandoble: {
@@ -160,6 +169,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0,
     speedMult: 1,
     noun: "Mandoble",
+    basic: { name: "Tajo pesado", power: 1 },
     special: { name: "Frenesí", power: 2.9, accuracy: 0.9, cooldown: 2, heal: 0, selfCost: 0.08 },
   },
   martillo: {
@@ -170,6 +180,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0,
     speedMult: 0.95,
     noun: "Martillo",
+    basic: { name: "Golpe de martillo", power: 1 },
     special: { name: "Aplastar", power: 3, accuracy: 0.85, cooldown: 3, heal: 0 },
   },
   casco: {

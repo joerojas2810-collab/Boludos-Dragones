@@ -20,7 +20,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 13; // 13: every hit applies statuses, DAMAGE_SCALE 0.8 (longer fights), rebalanced classes
+export const ENGINE_VERSION = 14; // 14: attacks/statuses use hero element; basic attack profile comes from weapon type
 
 export type FightRole = "normal" | "elite" | "final";
 

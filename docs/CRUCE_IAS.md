@@ -269,8 +269,28 @@ Tu respuesta a Q2 ("pasa a los héroes como la propuesta") admite dos lecturas, 
 | Q10 | `CONTRATOS_H1.md` declara reset/sin compatibilidad; `HEROES_V2.md` y la adenda anterior decían que las copias existentes recibían factores neutrales de 100 %. H1a no hace migraciones ni ejecuta resets. Esa contradicción quedó resuelta: la adenda vigente y H1b aplican el reset aprobado. | A: contrato vigente es reset, sin preservar ni reasignar perfiles antiguos (recomendado para H1a; confirmar política de datos en H1b). B: preservar copias antiguas con factores neutrales al migrar. | A | Codex | Dueño | Dueño: **A** (reset, sin preservar ni reasignar perfiles antiguos). |
 | Q11 | El cambio H1a de `copies: TraitId[]` a `copies: HeroProfile[]` deja dos referencias de presentación con errores de tipos (`coleccion/page.tsx`, `forja/HeroFusion.tsx`). El handoff limita H1a a lógica pura y pruebas, sin interfaz; por eso `tsc` completo no puede quedar verde sin ajustar esas lecturas. | A: respetar el límite; integrar el pequeño ajuste visual/de datos como H1c y aceptar que H1a no pase `tsc` global por esas referencias (recomendado por alcance). B: autorizar ahora únicamente adaptar esas dos lecturas a `copy.trait`, sin rediseño visual, para mantener `tsc` verde en H1a. | A | Codex | Dueño | Dueño: **B ampliada** — en H1a se autorizan solo (a) adaptar las dos lecturas de UI a `copy.trait` y (b) añadir `factors` a los héroes de testkit/fixtures; tsc y suite completa en verde; sin rediseño visual ni SQL. |
 | Q12 | Tras añadir factores válidos a `testkit.ts` y los fixtures, quedan fallos de `server.test.ts`: `itemOf` y `heroChange` en `server/services.ts` omiten los factores al serializar héroes. La persistencia actual además tiene `characters.copies text[]`, que no representa `HeroProfile[]` como objetos; esto corresponde a H1b/0054. | A: ampliar H1a con un puente temporal y sin persistencia. B: cerrar H1a y H1b juntos en un commit, con serialización y migración definitivas. | B | Codex | Dueño | Dueño: **B**, un commit conjunto de H1a+H1b en la rama `v2` (confirmado en esta conversación). |
+| Q13 | En 3a, el motor deja neutrales los perfiles básicos por arma hasta aprobación; esta propuesta da identidad al Ataque 1 sin hacer que un tipo sea estrictamente mejor. El elemento del PJ determina daño elemental y estado; el arma conserva su elemento para sets. | A: aprobar nombres/identidad como dirección y calibrar efectos luego. B: mantener básicos solo como nombres hasta revisar el balance. C: proponer cambios. | A (presupuesto comparable; cambios pequeños de cadencia/efecto en vez de subir daño bruto) | Codex | Dueño | **Pendiente.** |
 
 *(El dueño escribe en "Decide / con quién" quién lo ve y en "Respuesta" lo que resuelve. Punto bloqueado hasta entonces.)*
+
+### Q13 — propuesta creativa inicial (no implementada)
+
+La propuesta conserva daño esperado comparable y diferencia el ritmo/gesto del básico, sin añadir efectos al perfil neutro de 3a. Los nombres son borradores; las ventajas sugeridas requieren presupuesto de balance antes de programarlas.
+
+| Arma | Nombre propuesto | Identidad a explorar después |
+|---|---|---|
+| Espada | Tajo | Perfil versátil, sin modificador marcado. |
+| Hacha | Hachazo | Impacto pesado; podría intercambiar una fracción de daño por más presión a Postura. |
+| Bastón | Golpe rúnico | Básico arcano estable, sin consumir recurso. |
+| Varita | Chispa | Perfil ágil; explorar una pequeña ventaja al renovar estados. |
+| Daga | Corte rápido | Perfil veloz; explorar crítico moderado en vez de daño base. |
+| Arco | Disparo | Perfil preciso a un objetivo; sin daño en área para respetar el presupuesto. |
+| Maza | Golpe de maza | Perfil contundente; explorar utilidad contra Postura, compensada con menor daño. |
+| Libro | Sello arcano | Perfil táctico; explorar una mejora defensiva breve, compensada con menor daño. |
+| Mandoble | Tajo pesado | Alto impacto; sin extra mientras el motor no tenga una compensación definida. |
+| Martillo | Impacto de martillo | Perfil de ruptura; explorar Postura a cambio de menor daño directo. |
+
+La base implementada en 3a solo cambia el nombre por tipo: `power: 1`, sin crítico ni curación. No se activan aún las ideas de la última columna.
 
 ## Q5 desarrollada (salas)
 

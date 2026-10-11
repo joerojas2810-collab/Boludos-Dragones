@@ -54,6 +54,7 @@ export interface Attack {
   accuracy: number;
   cooldown: number;
   heal: number; // fraction of max hp restored on use
+  crit?: number; // additive critical chance for weapon-defined basics
   selfCost?: number; // fraction of CURRENT hp the user pays (never kills)
 }
 

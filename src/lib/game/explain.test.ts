@@ -17,6 +17,7 @@ import {
   passiveTip,
   statTip,
   traitTip,
+  weaponTip,
   type Tip,
 } from "./explain";
 import { createRng } from "./rng";
@@ -148,6 +149,13 @@ describe("explain: elements, traits, actions", () => {
     const t = text(attackTip(armed, "attack2"));
     expect(t).toContain("Ataque especial de Varita");
     expect(t).toContain("tu arma");
+  });
+
+  it("explains weapon element as set affinity while attacks use the hero element", () => {
+    const h = hero("caballero", "agua");
+    const armed = comb({ ...h, weapon: { element: "fuego", atkBonus: 5, type: "espada" } });
+    expect(text(weaponTip(armed)!)).toContain("Para los sets cuenta como Fuego");
+    expect(text(weaponTip(armed)!)).toContain("tus ataques usan tu elemento (Agua)");
   });
 
   it("intents use real numbers", () => {
