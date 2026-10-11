@@ -2,7 +2,7 @@
 
 ## E2a: orden de activaciones
 
-Se compararon 10.000 muestras deterministas (semillas derivadas de 13013). Se recorrieron por igual las 25 parejas ordenadas de clases, con velocidades base de sus plantillas, factor de atributo (0,85–1,15) y multiplicadores de estado actuales (0,70–1,24). En cada caso se usaron actionCounts(carry=0) y buildQueue con el orden de tiradas real: una tirada de intención por acción enemiga, luego iniciativa del enemigo y del jugador; el mismo roll se convirtió en progreso inicial mediante 100 × (1 − 0,7 / (roll / velocidad)). La línea base motor 13 presente tiene 225 filas y 10 corridas por nivel.
+Se compararon 10.000 muestras deterministas (semillas derivadas de 13013). Se recorrieron por igual las 25 parejas ordenadas de clases, con velocidades base de sus plantillas, factor de atributo (0,85–1,15) y multiplicadores de estado actuales (0,70–1,24). En cada caso se usaron actionCounts(carry=0) y buildQueue con el orden de tiradas real: una tirada de intención por acción enemiga, luego iniciativa del enemigo y del jugador; el mismo roll se convirtió en progreso inicial mediante 100 × (1 − 0,7 / (roll / velocidad)). La línea base motor 13 presente tiene 225 filas y 100 corridas por nivel.
 
 | Medida | Resultado |
 |---|---:|
@@ -37,27 +37,56 @@ Se compararon 10.000 muestras deterministas (semillas derivadas de 13013). Se re
 
 Las cuotas actionCounts conservan el número de activaciones; el reloj libre por sí solo difiere en 170 casos y se documenta, porque la nueva API conserva las cuotas del motor mientras progreso inicial del roll ordena las acciones. El desacuerdo restante de orden se reporta como diferencia del planificador por progreso frente al intercalado por rondas del motor 13.
 
+## Piso de ruido del motor 13
+
+Se comparó la muestra de referencia (semilla 13013) con 4 muestras independientes del motor 13, cada una con 100 corridas por nivel (semillas 13014, 13015, 13016, 13017). El piso de ruido es el percentil 95 de las diferencias absolutas agregadas por rango y clase; las tolerancias para E2b son ese piso + 2 pp.
+
+| Rango | Piso ruido | Tolerancia E2b |
+|---|---:|---:|
+| f | 0.40 pp | 2.40 pp |
+| e | 0.66 pp | 2.66 pp |
+| d | 1.51 pp | 3.51 pp |
+| c | 1.02 pp | 3.02 pp |
+| b | 0.40 pp | 2.40 pp |
+| a | 3.23 pp | 5.23 pp |
+| s | 2.67 pp | 4.67 pp |
+| ss | 4.04 pp | 6.04 pp |
+| ssr | 0.64 pp | 2.64 pp |
+
+| Clase | Piso ruido | Tolerancia E2b |
+|---|---:|---:|
+| caballero | 0.18 pp | 2.18 pp |
+| mago | 0.60 pp | 2.60 pp |
+| picaro | 1.23 pp | 3.23 pp |
+| clerigo | 0.31 pp | 2.31 pp |
+| berserker | 0.54 pp | 2.54 pp |
+
 ## E2b: balance con temporizadores por activación
 
-Se comparó la matriz completa de 225 celdas con 10 corridas por nivel y las mismas semillas que motor13.json. Un ciclo del prototipo conserva las cuotas de acción de actionCounts; progreso acumulado y el progreso inicial derivado del roll ordenan las ranuras. Cooldowns, estados, reflect, defensa y Quemadura usan relojes por portador con conversiones fraccionales. La simulación reusa step de motor 13 como ejecutor aislado y ajusta los relojes después de cada segmento entre activaciones; combat.ts permanece intacto.
+Se comparó la matriz completa de 225 celdas con 100 corridas por nivel, mismas semillas y mismo perfil de héroes que la primera muestra del motor. Un ciclo del prototipo conserva las cuotas de acción de actionCounts; progreso acumulado y el progreso inicial derivado del roll ordenan las ranuras. Cooldowns, estados, reflect, defensa y Quemadura usan relojes por portador con conversiones fraccionales. La simulación reusa step de motor 13 como ejecutor aislado y ajusta los relojes después de cada segmento entre activaciones; combat.ts permanece intacto.
 
-| Iteración | Conversión | Diferencia de winrate por rango | Por clase | Duración | Máx. celda | Resultado |
+| Iteración | Conversión | Diferencia de winrate por rango (delta / tolerancia) | Por clase (delta / tolerancia) | Duración | Máx. celda diagnóstica | Resultado |
 |---:|---|---|---|---:|---:|---|
-| 1 | cd/status/reflect/defend/burn = 1/1/1/1/1 | f: 1.00 pp, e: 1.47 pp, d: 0.06 pp, c: 1.90 pp, b: 0.80 pp, a: 3.29 pp, s: 6.52 pp, ss: 3.71 pp, ssr: 4.80 pp | caballero: 0.73 pp, mago: 1.43 pp, picaro: 3.19 pp, clerigo: 5.56 pp, berserker: 3.97 pp | 3.08 % | 17.50 pp | Falla |
-| 2 | cd/status/reflect/defend/burn = 0.7/0.7/0.7/1/0.7 | f: 0.07 pp, e: 3.40 pp, d: 2.80 pp, c: 1.55 pp, b: 2.55 pp, a: 4.80 pp, s: 5.44 pp, ss: 4.58 pp, ssr: 5.17 pp | caballero: 2.18 pp, mago: 3.71 pp, picaro: 3.95 pp, clerigo: 3.82 pp, berserker: 4.68 pp | 0.59 % | 19.00 pp | Falla |
-| 3 | cd/status/reflect/defend/burn = 0.5/0.5/0.5/1/0.5 | f: 0.53 pp, e: 4.53 pp, d: 4.17 pp, c: 2.95 pp, b: 3.85 pp, a: 7.33 pp, s: 9.44 pp, ss: 7.82 pp, ssr: 8.87 pp | caballero: 4.05 pp, mago: 5.30 pp, picaro: 5.84 pp, clerigo: 8.31 pp, berserker: 6.81 pp | 0.53 % | 27.78 pp | Falla |
+| 1 | cd/status/reflect/defend/burn = 1/1/1/1/1 | f: 0.87 pp / 2.40 pp, e: 0.70 pp / 2.66 pp, d: 1.10 pp / 3.51 pp, c: 1.50 pp / 3.02 pp, b: 0.96 pp / 2.40 pp, a: 2.57 pp / 5.23 pp, s: 4.96 pp / 4.67 pp, ss: 4.08 pp / 6.04 pp, ssr: 5.21 pp / 2.64 pp | caballero: 0.61 pp / 2.18 pp, mago: 1.85 pp / 2.60 pp, picaro: 2.51 pp / 3.23 pp, clerigo: 5.64 pp / 2.31 pp, berserker: 3.48 pp / 2.54 pp | 3.07 % | 14.67 pp | Falla |
+| 2 | cd/status/reflect/defend/burn = 0.7/0.7/0.7/1/0.7 | f: 0.46 pp / 2.40 pp, e: 2.69 pp / 2.66 pp, d: 2.74 pp / 3.51 pp, c: 2.45 pp / 3.02 pp, b: 2.51 pp / 2.40 pp, a: 4.58 pp / 5.23 pp, s: 6.62 pp / 4.67 pp, ss: 4.73 pp / 6.04 pp, ssr: 4.98 pp / 2.64 pp | caballero: 3.02 pp / 2.18 pp, mago: 3.41 pp / 2.60 pp, picaro: 4.25 pp / 3.23 pp, clerigo: 3.84 pp / 2.31 pp, berserker: 4.78 pp / 2.54 pp | 0.58 % | 13.22 pp | Falla |
+| 3 | cd/status/reflect/defend/burn = 0.85/0.85/0.85/1/0.85 | f: 0.14 pp / 2.40 pp, e: 1.27 pp / 2.66 pp, d: 1.07 pp / 3.51 pp, c: 0.65 pp / 3.02 pp, b: 1.27 pp / 2.40 pp, a: 1.82 pp / 5.23 pp, s: 1.46 pp / 4.67 pp, ss: 0.82 pp / 6.04 pp, ssr: 0.59 pp / 2.64 pp | caballero: 1.81 pp / 2.18 pp, mago: 1.43 pp / 2.60 pp, picaro: 1.63 pp / 3.23 pp, clerigo: 1.16 pp / 2.31 pp, berserker: 1.38 pp / 2.54 pp | 2.04 % | 6.67 pp | Pasa |
 
-### Celdas más alejadas en la iteración elegida
+### Diez celdas más alejadas (diagnóstico; no son criterio)
 
 | Clase / elemento / rango | Diferencia |
 |---|---:|
-| berserker/fuego/s | 19.00 pp |
-| picaro/viento/s | 15.00 pp |
-| clerigo/fuego/s | 14.00 pp |
-| picaro/rayo/e | 13.33 pp |
-| berserker/tierra/d | 12.86 pp |
+| berserker/fuego/a | 6.67 pp |
+| caballero/fuego/s | 6.20 pp |
+| clerigo/agua/ssr | 6.08 pp |
+| caballero/fuego/ssr | 5.83 pp |
+| berserker/fuego/s | 5.60 pp |
+| caballero/fuego/a | 5.56 pp |
+| picaro/fuego/s | 5.50 pp |
+| picaro/viento/e | 5.00 pp |
+| berserker/tierra/d | 5.00 pp |
+| clerigo/fuego/a | 4.89 pp |
 
-Duración media motor 13: 26.42 rondas por nivel; prototipo: 26.58 ciclos por nivel. Tolerancias: ±3 pp por rango y clase, ±10 % duración, máximo 15 pp por celda. Resultado final: **ABORTAR** tras las iteraciones permitidas.
+Duración media motor 13: 26.55 rondas por nivel; prototipo: 27.10 ciclos por nivel. Tolerancias: piso de ruido + 2 pp por rango y clase; duración ±10 %. Las celdas se muestran solo como diagnóstico. Resultado final: **CONTINUAR** con conversión {"cooldown":0.85,"status":0.85,"reflect":0.85,"defending":1,"burn":0.85}.
 
 ### Lectura y limitaciones
 

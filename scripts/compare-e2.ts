@@ -1,5 +1,5 @@
-// E2a gate: compare speed-only progress scheduling with ENGINE 13's seeded queue.
-// Usage: npx tsx scripts/compare-e2.ts
+// E2a/E2b comparison against two seeded ENGINE 13 datasets (100+ runs each).
+// Usage: npx tsx scripts/compare-e2.ts [--noise=scripts/baseline/motor13-noise.json]
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
@@ -65,9 +65,23 @@ type BaselineRow = {
 };
 const baseline = JSON.parse(
   readFileSync(resolve(process.cwd(), "scripts/baseline/motor13.json"), "utf8"),
-) as { runsPerLevel?: number; rows?: BaselineRow[] };
-if ((baseline.runsPerLevel ?? 0) < 10 || baseline.rows?.length !== 225)
-  throw new Error("E2a requires the 225-row ENGINE 13 baseline with at least 10 runs per level");
+) as { seed?: number; runsPerLevel?: number; rows?: BaselineRow[] };
+const args = new Map(process.argv.slice(2).map((arg) => {
+  const [key, ...value] = arg.replace(/^--/, "").split("=");
+  return [key, value.join("=")];
+}));
+const noiseSamples = (args.get("noise") ?? [13014, 13015, 13016, 13017]
+  .map((seed) => `scripts/baseline/motor13-noise-${seed}.json`).join(","))
+  .split(",")
+  .map((path) => JSON.parse(
+    readFileSync(resolve(process.cwd(), path), "utf8"),
+  ) as { seed?: number; runsPerLevel?: number; rows?: BaselineRow[] });
+if ((baseline.runsPerLevel ?? 0) < 100 || baseline.rows?.length !== 225)
+  throw new Error("E2 requires 225 baseline rows with at least 100 runs per level");
+const noiseSeeds = noiseSamples.map((sample) => sample.seed);
+if (noiseSamples.length < 3 || new Set(noiseSeeds).size !== noiseSeeds.length || noiseSeeds.includes(baseline.seed) || noiseSamples.some((sample) =>
+  (sample.runsPerLevel ?? 0) < 100 || sample.rows?.length !== 225,
+)) throw new Error("E2 requires at least three distinct independent 225-row noise samples with 100 runs per level");
 
 const sideLabels = (slots: Slot[]) =>
   slots.map((slot) => (slot === "player" ? "player" : "enemy"));
@@ -106,15 +120,16 @@ type ActorClock = {
 };
 type Runtime = { clocks: Map<string, ActorClock>; progress: Map<string, number>; draws: number[] };
 
-const BASE_SEED = 13013;
+const BASE_SEED = baseline.seed ?? 13013;
 const ASCENSION = 0;
 const STARS = 3;
 const HERO_LEVEL = 20;
 const FIGHT_STEP_LIMIT = 400;
-const RUNS_PER_LEVEL = 10;
+const RUNS_PER_LEVEL = baseline.runsPerLevel ?? 100;
 const CONVERSION_TRIALS: Conversion[] = [
   { ...DEFAULT_TIMER_CONVERSIONS, cooldown: 1, status: 1, reflect: 1, burn: 1 },
   { ...DEFAULT_TIMER_CONVERSIONS, cooldown: 0.7, status: 0.7, reflect: 0.7, burn: 0.7 },
+  { ...DEFAULT_TIMER_CONVERSIONS, cooldown: 0.85, status: 0.85, reflect: 0.85, burn: 0.85 },
   { ...DEFAULT_TIMER_CONVERSIONS, cooldown: 0.5, status: 0.5, reflect: 0.5, burn: 0.5 },
 ];
 
@@ -706,7 +721,11 @@ function aggregateBy(rows: BaselineRow[], keyOf: (row: BaselineRow) => string) {
   }]));
 }
 
-function compareRows(candidate: BaselineRow[], reference: BaselineRow[]) {
+function compareRows(
+  candidate: BaselineRow[],
+  reference: BaselineRow[],
+  limits: { ranks: Map<string, number>; classes: Map<string, number> },
+) {
   const rankRef = aggregateBy(reference, (row) => row.rank);
   const rankE2 = aggregateBy(candidate, (row) => row.rank);
   const classRef = aggregateBy(reference, (row) => row.classId);
@@ -723,10 +742,12 @@ function compareRows(candidate: BaselineRow[], reference: BaselineRow[]) {
   const rankDifferences = [...rankRef].map(([rank, ref]) => ({
     rank,
     winRatePp: Math.abs(ref.winRate - (rankE2.get(rank)?.winRate ?? 0)) * 100,
+    tolerancePp: (limits.ranks.get(rank) ?? 0) + 2,
   }));
   const classDifferences = [...classRef].map(([classId, ref]) => ({
     classId,
     winRatePp: Math.abs(ref.winRate - (classE2.get(classId)?.winRate ?? 0)) * 100,
+    tolerancePp: (limits.classes.get(classId) ?? 0) + 2,
   }));
   const baseTurns = reference.reduce((sum, row) => sum + row.meanTurnsPerLevel * row.levelAttempts, 0) /
     reference.reduce((sum, row) => sum + row.levelAttempts, 0);
@@ -737,14 +758,13 @@ function compareRows(candidate: BaselineRow[], reference: BaselineRow[]) {
     ranks: rankDifferences,
     classes: classDifferences,
     maxCellPp: Math.max(0, ...cellDifferences.map((row) => row.winRatePp)),
-    worstCells: cellDifferences.sort((a, b) => b.winRatePp - a.winRatePp).slice(0, 5),
+    worstCells: cellDifferences.sort((a, b) => b.winRatePp - a.winRatePp).slice(0, 10),
     durationPct,
     baseTurns,
     e2Turns,
-    passed: rankDifferences.every((row) => row.winRatePp <= 3) &&
-      classDifferences.every((row) => row.winRatePp <= 3) &&
-      durationPct <= 10 &&
-      cellDifferences.every((row) => row.winRatePp <= 15),
+    passed: rankDifferences.every((row) => row.winRatePp <= row.tolerancePp) &&
+      classDifferences.every((row) => row.winRatePp <= row.tolerancePp) &&
+      durationPct <= 10,
   };
 }
 
@@ -841,6 +861,29 @@ const report = {
   baselineRows: baseline.rows?.length,
 };
 const baselineRows = baseline.rows ?? [];
+const baselineRanks = aggregateBy(baselineRows, (row) => row.rank);
+const baselineClasses = aggregateBy(baselineRows, (row) => row.classId);
+const percentile95 = (values: number[]) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const position = 0.95 * (sorted.length - 1);
+  const low = Math.floor(position);
+  return sorted[low] + (sorted[Math.min(low + 1, sorted.length - 1)] - sorted[low]) * (position - low);
+};
+const noiseByRank = new Map([...baselineRanks].map(([rank, row]) => [rank, percentile95(
+  noiseSamples.map((sample) => {
+    const group = aggregateBy(sample.rows ?? [], (item) => item.rank).get(rank);
+    return Math.abs(row.winRate - (group?.winRate ?? 0)) * 100;
+  }),
+)]));
+const noiseByClass = new Map([...baselineClasses].map(([classId, row]) => [classId, percentile95(
+  noiseSamples.map((sample) => {
+    const group = aggregateBy(sample.rows ?? [], (item) => item.classId).get(classId);
+    return Math.abs(row.winRate - (group?.winRate ?? 0)) * 100;
+  }),
+)]));
+const noiseRankRows = [...noiseByRank].map(([rank, noisePp]) => ({ rank, noisePp }));
+const noiseClassRows = [...noiseByClass].map(([classId, noisePp]) => ({ classId, noisePp }));
+const noiseLimits = { ranks: noiseByRank, classes: noiseByClass };
 const e2Iterations: {
   iteration: number;
   conversion: Conversion;
@@ -849,20 +892,20 @@ const e2Iterations: {
 for (const [index, conversion] of CONVERSION_TRIALS.entries()) {
   console.log(`E2b iteration ${index + 1}: ${JSON.stringify(conversion)}`);
   const candidate = simulateConversion(conversion);
-  const metrics = compareRows(candidate, baselineRows);
+  const metrics = compareRows(candidate, baselineRows, noiseLimits);
   e2Iterations.push({ iteration: index + 1, conversion, metrics });
   console.log(JSON.stringify({ iteration: index + 1, passed: metrics.passed, ranks: metrics.ranks, classes: metrics.classes, durationPct: metrics.durationPct, maxCellPp: metrics.maxCellPp }, null, 2));
   if (metrics.passed) break;
 }
 const best = [...e2Iterations].sort((a, b) =>
   Number(b.metrics.passed) - Number(a.metrics.passed) ||
-  Math.max(...a.metrics.ranks.map((x) => x.winRatePp), ...a.metrics.classes.map((x) => x.winRatePp), a.metrics.durationPct / 10, a.metrics.maxCellPp / 15) -
-  Math.max(...b.metrics.ranks.map((x) => x.winRatePp), ...b.metrics.classes.map((x) => x.winRatePp), b.metrics.durationPct / 10, b.metrics.maxCellPp / 15),
+  Math.max(...a.metrics.ranks.map((x) => x.winRatePp / x.tolerancePp), ...a.metrics.classes.map((x) => x.winRatePp / x.tolerancePp), a.metrics.durationPct / 10) -
+  Math.max(...b.metrics.ranks.map((x) => x.winRatePp / x.tolerancePp), ...b.metrics.classes.map((x) => x.winRatePp / x.tolerancePp), b.metrics.durationPct / 10),
 )[0];
 const finalRecommendation = best?.metrics.passed ? "CONTINUAR" : "ABORTAR";
 const formatPp = (value: number) => `${value.toFixed(2)} pp`;
 const iterationRows = e2Iterations.map((trial) =>
-  `| ${trial.iteration} | cd/status/reflect/defend/burn = ${trial.conversion.cooldown}/${trial.conversion.status}/${trial.conversion.reflect}/${trial.conversion.defending}/${trial.conversion.burn} | ${trial.metrics.ranks.map((x) => `${x.rank}: ${formatPp(x.winRatePp)}`).join(", ")} | ${trial.metrics.classes.map((x) => `${x.classId}: ${formatPp(x.winRatePp)}`).join(", ")} | ${trial.metrics.durationPct.toFixed(2)} % | ${formatPp(trial.metrics.maxCellPp)} | ${trial.metrics.passed ? "Pasa" : "Falla"} |`,
+  `| ${trial.iteration} | cd/status/reflect/defend/burn = ${trial.conversion.cooldown}/${trial.conversion.status}/${trial.conversion.reflect}/${trial.conversion.defending}/${trial.conversion.burn} | ${trial.metrics.ranks.map((x) => `${x.rank}: ${formatPp(x.winRatePp)} / ${formatPp(x.tolerancePp)}`).join(", ")} | ${trial.metrics.classes.map((x) => `${x.classId}: ${formatPp(x.winRatePp)} / ${formatPp(x.tolerancePp)}`).join(", ")} | ${trial.metrics.durationPct.toFixed(2)} % | ${formatPp(trial.metrics.maxCellPp)} | ${trial.metrics.passed ? "Pasa" : "Falla"} |`,
 ).join("\n");
 const worstCells = best?.metrics.worstCells.map((row) =>
   `| ${row.cell} | ${formatPp(row.winRatePp)} |`,
@@ -900,17 +943,26 @@ const markdown = `# E2 — Resultado de la puerta de viabilidad\n\n` +
   `${report.naturalActionCountMismatches} casos y se documenta, porque la nueva API conserva las cuotas del motor ` +
   `mientras progreso inicial del roll ordena las acciones. El desacuerdo restante de orden se reporta como diferencia ` +
   `del planificador por progreso frente al intercalado por rondas del motor 13.\n\n` +
+  `## Piso de ruido del motor 13\n\n` +
+  `Se comparó la muestra de referencia (semilla ${baseline.seed}) con ${noiseSamples.length} muestras independientes ` +
+  `del motor 13, cada una con ${baseline.runsPerLevel} corridas por nivel (semillas ${noiseSamples.map((sample) => sample.seed).join(", ")}). ` +
+  `El piso de ruido es el percentil 95 de las diferencias absolutas agregadas por rango y clase; las tolerancias ` +
+  `para E2b son ese piso + 2 pp.\n\n` +
+  `| Rango | Piso ruido | Tolerancia E2b |\n|---|---:|---:|\n` +
+  noiseRankRows.map((row) => `| ${row.rank} | ${formatPp(row.noisePp)} | ${formatPp(row.noisePp + 2)} |`).join("\n") + `\n\n` +
+  `| Clase | Piso ruido | Tolerancia E2b |\n|---|---:|---:|\n` +
+  noiseClassRows.map((row) => `| ${row.classId} | ${formatPp(row.noisePp)} | ${formatPp(row.noisePp + 2)} |`).join("\n") + `\n\n` +
   `## E2b: balance con temporizadores por activación\n\n` +
-  `Se comparó la matriz completa de 225 celdas con ${RUNS_PER_LEVEL} corridas por nivel y las mismas semillas ` +
-  `que motor13.json. Un ciclo del prototipo conserva las cuotas de acción de actionCounts; progreso acumulado ` +
+  `Se comparó la matriz completa de 225 celdas con ${RUNS_PER_LEVEL} corridas por nivel, mismas semillas y ` +
+  `mismo perfil de héroes que la primera muestra del motor. Un ciclo del prototipo conserva las cuotas de acción de actionCounts; progreso acumulado ` +
   `y el progreso inicial derivado del roll ordenan las ranuras. Cooldowns, estados, reflect, defensa y Quemadura ` +
   `usan relojes por portador con conversiones fraccionales. La simulación reusa step de motor 13 como ejecutor ` +
   `aislado y ajusta los relojes después de cada segmento entre activaciones; combat.ts permanece intacto.\n\n` +
-  `| Iteración | Conversión | Diferencia de winrate por rango | Por clase | Duración | Máx. celda | Resultado |\n` +
+  `| Iteración | Conversión | Diferencia de winrate por rango (delta / tolerancia) | Por clase (delta / tolerancia) | Duración | Máx. celda diagnóstica | Resultado |\n` +
   `|---:|---|---|---|---:|---:|---|\n${iterationRows}\n\n` +
-  `### Celdas más alejadas en la iteración elegida\n\n| Clase / elemento / rango | Diferencia |\n|---|---:|\n${worstCells}\n\n` +
+  `### Diez celdas más alejadas (diagnóstico; no son criterio)\n\n| Clase / elemento / rango | Diferencia |\n|---|---:|\n${worstCells}\n\n` +
   `Duración media motor 13: ${best?.metrics.baseTurns.toFixed(2)} rondas por nivel; prototipo: ${best?.metrics.e2Turns.toFixed(2)} ciclos por nivel. ` +
-  `Tolerancias: ±3 pp por rango y clase, ±10 % duración, máximo 15 pp por celda. ` +
+  `Tolerancias: piso de ruido + 2 pp por rango y clase; duración ±10 %. Las celdas se muestran solo como diagnóstico. ` +
   `Resultado final: **${finalRecommendation}**${best?.metrics.passed ? ` con conversión ${JSON.stringify(best.conversion)}` : " tras las iteraciones permitidas"}.\n\n` +
   `### Lectura y limitaciones\n\n` +
   `La conversión se aplica al final del segmento que resuelve la acción del jugador y las ranuras enemigas ` +

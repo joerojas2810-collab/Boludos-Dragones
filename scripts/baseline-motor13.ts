@@ -1,9 +1,9 @@
 // Reproducible ENGINE_VERSION 13 baseline for every class, element, and dungeon rank.
-// Usage: npx tsx scripts/baseline-motor13.ts
+// Usage: npx tsx scripts/baseline-motor13.ts [--runs=100] [--seed=13013] [--output=path]
 // PvE uses stage-sim's pure autoPolicy/createStage/step/finishFight path; balance.ts is PvP,
 // while class-balance.ts reads real accounts through Supabase, so neither fits this matrix.
 import { mkdirSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { autoPolicy } from "../src/lib/game/auto";
 import { CLASS_IDS, generateCharacter, type ClassId } from "../src/lib/game/characters";
 import { step } from "../src/lib/game/combat";
@@ -17,8 +17,17 @@ import { heroSkill } from "../src/lib/game/skills";
 import { ENGINE_VERSION, createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
 import { CLASS_WEAPONS, GEAR_TYPES, weaponAtk } from "../src/lib/game/weapons";
 
-const BASE_SEED = 13013;
-const RUNS_PER_LEVEL = 10;
+const args = new Map(process.argv.slice(2).map((arg) => {
+  const [key, ...value] = arg.replace(/^--/, "").split("=");
+  return [key, value.join("=")];
+}));
+const BASE_SEED = Number(args.get("seed") ?? 13013);
+const RUNS_PER_LEVEL = Number(args.get("runs") ?? 10);
+const OUTPUT = args.get("output") ?? "scripts/baseline/motor13.json";
+if (!Number.isInteger(BASE_SEED) || BASE_SEED < 0)
+  throw new Error("--seed must be a nonnegative integer");
+if (!Number.isInteger(RUNS_PER_LEVEL) || RUNS_PER_LEVEL < 1)
+  throw new Error("--runs must be a positive integer");
 const ASCENSION = 0;
 const STARS = 3;
 const LEVEL = 20;
@@ -150,7 +159,7 @@ const document = {
   },
   rows,
 };
-const outputPath = resolve(process.cwd(), "scripts/baseline/motor13.json");
-mkdirSync(resolve(process.cwd(), "scripts/baseline"), { recursive: true });
+const outputPath = resolve(process.cwd(), OUTPUT);
+mkdirSync(dirname(outputPath), { recursive: true });
 writeFileSync(outputPath, `${JSON.stringify(document, null, 2)}\n`, "utf8");
 console.log(`Wrote ${rows.length} rows to ${outputPath}`);
