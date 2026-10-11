@@ -44,7 +44,7 @@ interface DungeonProgress {
 
 ## 6a-2 — Escalera de dificultad
 - Dificultad = `DIFFICULTY_MULT[difficulty] × RANK_TUNE[difficulty] × ASC_TUNE[asc] × (1 + 0,05 × índice de nivel)` con un pequeño desvío `ROUTE_TUNE` (±) por ruta si las mecánicas de jefe lo exigen. La escalera debe ser **monótona**: R+5 no más difícil que (R+1)+0 para un héroe del rango correspondiente.
-- **Héroe de referencia por escalón R+n (propuesta, pendiente de aprobación del dueño):** rango de ítem R, **n★**, nivel tope de ese ★ (`levelCap`), equipo completo del rango R sin mejoras. **Metas de victorias** de ese héroe: R+n con n★ ≈ **60 %**; con 2★ más ≈ **85 %**; con 2★ menos ≈ **25 %**; R+0 con 0★ ≈ **70 %**; S+5 con 5★ al máximo ≈ **45 %**. Los valores se ajustan al simular.
+- **Héroe de referencia por escalón R+n (APROBADO por el dueño el 2026-10-11):** rango de ítem R, **n★**, nivel tope de ese ★ (`levelCap`), equipo completo del rango R sin mejoras. **Metas de victorias** de ese héroe: R+n con n★ ≈ **60 %**; con 2★ más ≈ **85 %**; con 2★ menos ≈ **25 %**; R+0 con 0★ ≈ **70 %**; S+5 con 5★ al máximo ≈ **45 %**. Los valores se ajustan al simular.
 - Reescribir `scripts/stage-tune.ts` (o equivalente) para calibrar la escalera con `--quick` y confirmar con la corrida completa; documentar tabla y desviaciones en `docs/E6A_2_RESULTADO.md`. Criterio: por escalón dentro de ±5 pp de la meta; por clase y elemento sin desviaciones mayores que el piso de ruido + 2 pp del agregado.
 
 ## 6a-3 — Economía
@@ -80,5 +80,5 @@ Valores por escalón salen de simulación (vigilar duración y daño acumulado c
 `tsc`, `eslint src scripts`, `vitest`, `pglite` (`npx tsx supabase/tests/pglite/*`) en verde; cada informe en `docs/`. Auditoría de Claude entre sub-pasos. Nada de SQL contra Supabase sin OK del dueño.
 
 ## Pendientes de decisión del dueño (no bloquean 6a-1)
-1. Aprobar la tabla de héroe de referencia y las metas de victoria de 6a-2.
+1. (Resuelto: tabla y metas de 6a-2 aprobadas el 2026-10-11.)
 2. Valores finales de cofres y del tope de Escamas tras `economy-sim`.
