@@ -138,6 +138,10 @@ function runLevel(classId: ClassId, element: Element, rank: DungeonId, weaponTyp
 const byClass = new Map(CLASSES.map((id) => [id, aggregate()]));
 const byWeapon = new Map(WEAPONS.map((id) => [id, aggregate()]));
 const byClassRank = new Map<string, Aggregate>();
+const byElement = new Map(ELEMENT_SET.map((id) => [id, aggregate()]));
+const byClassElement = new Map<string, Aggregate>();
+const canonicalByElement = new Map(ELEMENT_SET.map((id) => [id, aggregate()]));
+const canonicalByClassElement = new Map<string, Aggregate>();
 const rows: Array<Record<string, unknown>> = [];
 for (const classId of CLASSES) {
   for (const element of ELEMENT_SET) {
@@ -151,6 +155,15 @@ for (const classId of CLASSES) {
             add(cell, result);
             add(byClass.get(classId)!, result);
             add(byWeapon.get(weaponType)!, result);
+            add(byElement.get(element)!, result);
+            const classElement = `${classId}:${element}`;
+            if (!byClassElement.has(classElement)) byClassElement.set(classElement, aggregate());
+            add(byClassElement.get(classElement)!, result);
+            if (weaponType === CLASS_WEAPONS[classId][0]) {
+              add(canonicalByElement.get(element)!, result);
+              if (!canonicalByClassElement.has(classElement)) canonicalByClassElement.set(classElement, aggregate());
+              add(canonicalByClassElement.get(classElement)!, result);
+            }
             const classRank = `${classId}:${rank}`;
             if (!byClassRank.has(classRank)) byClassRank.set(classRank, aggregate());
             if (weaponType === CLASS_WEAPONS[classId][0])
@@ -204,6 +217,57 @@ const comparison = CLASSES.flatMap((classId) => RANKS.map((rank) => {
   };
 }));
 const weaponSummary = WEAPONS.map((weaponType) => ({ weaponType, ...summarize(byWeapon.get(weaponType)!) }));
+const baselineByElement = new Map<string, { n: number; wins: number; turns: number }>();
+const baselineByClassElement = new Map<string, { n: number; wins: number; turns: number }>();
+for (const row of baseline.rows) {
+  const element = baselineByElement.get(row.element) ?? { n: 0, wins: 0, turns: 0 };
+  element.n += row.levelAttempts;
+  element.wins += row.clearedLevels;
+  element.turns += row.meanTurnsPerLevel * row.levelAttempts;
+  baselineByElement.set(row.element, element);
+  const key = `${row.classId}:${row.element}`;
+  const cell = baselineByClassElement.get(key) ?? { n: 0, wins: 0, turns: 0 };
+  cell.n += row.levelAttempts;
+  cell.wins += row.clearedLevels;
+  cell.turns += row.meanTurnsPerLevel * row.levelAttempts;
+  baselineByClassElement.set(key, cell);
+}
+const compareAggregate = (current: Aggregate, old: { n: number; wins: number; turns: number }) => {
+  const currentSummary = summarize(current);
+  const baselineWinRate = old.wins / old.n;
+  const baselineMeanTurns = old.turns / old.n;
+  return {
+    attempts: currentSummary.attempts,
+    winRate: currentSummary.winRate,
+    meanTurnsPerLevel: currentSummary.meanTurnsPerLevel,
+    baselineWinRate,
+    deltaWinRatePp: (currentSummary.winRate - baselineWinRate) * 100,
+    baselineMeanTurns,
+    deltaDurationPercent: baselineMeanTurns ? (currentSummary.meanTurnsPerLevel / baselineMeanTurns - 1) * 100 : 0,
+  };
+};
+const elementComparison = ELEMENT_SET.map((element) => {
+  const old = baselineByElement.get(element);
+  if (!old) throw new Error(`Missing baseline element ${element}`);
+  return { element, ...compareAggregate(canonicalByElement.get(element)!, old) };
+});
+const classElementComparison = CLASSES.flatMap((classId) => ELEMENT_SET.map((element) => {
+  const old = baselineByClassElement.get(`${classId}:${element}`);
+  if (!old) throw new Error(`Missing baseline cell ${classId}:${element}`);
+  return { classId, element, ...compareAggregate(canonicalByClassElement.get(`${classId}:${element}`)!, old) };
+}));
+const allLegalElementSummary = ELEMENT_SET.map((element) => ({ element, ...summarize(byElement.get(element)!) }));
+const allLegalElementComparison = ELEMENT_SET.map((element) => {
+  const old = baselineByElement.get(element)!;
+  return { element, ...compareAggregate(byElement.get(element)!, old) };
+});
+const allLegalClassElementComparison = CLASSES.flatMap((classId) => ELEMENT_SET.map((element) => ({
+  classId, element,
+  ...compareAggregate(byClassElement.get(`${classId}:${element}`)!, baselineByClassElement.get(`${classId}:${element}`)!),
+})));
+const allLegalClassElementSummary = CLASSES.flatMap((classId) => ELEMENT_SET.map((element) => ({
+  classId, element, ...summarize(byClassElement.get(`${classId}:${element}`) ?? aggregate()),
+})));
 const durationMs = Date.now() - RUN_STARTED;
 const result = {
   schemaVersion: 1,
@@ -227,6 +291,12 @@ const result = {
   runtimeSeconds: durationMs / 1000,
   classSummary,
   weaponSummary,
+  elementComparison,
+  classElementComparison,
+  allLegalElementSummary,
+  allLegalClassElementSummary,
+  allLegalElementComparison,
+  allLegalClassElementComparison,
   comparison,
   matrix: rows,
 };
@@ -241,4 +311,6 @@ for (const row of weaponSummary) console.log(`${row.weaponType}: ${(row.winRate 
 const worstWin = Math.max(...comparison.map((row) => Math.abs(row.deltaWinRatePp)));
 const worstDuration = Math.max(...comparison.map((row) => Math.abs(row.deltaDurationPercent)));
 console.log(`Baseline comparison: largest class×rank win-rate delta ${worstWin.toFixed(2)} pp; largest duration delta ${worstDuration.toFixed(2)}%.`);
+console.log("Element comparison (canonical legal weapon vs motor13):");
+for (const row of elementComparison) console.log(`${row.element}: ${(row.winRate * 100).toFixed(2)}% / ${row.deltaWinRatePp >= 0 ? "+" : ""}${row.deltaWinRatePp.toFixed(2)} pp / ${row.deltaDurationPercent.toFixed(2)}%`);
 console.log(`Runtime ${(durationMs / 1000).toFixed(2)}s; wrote ${outputPath}`);
