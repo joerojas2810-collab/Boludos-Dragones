@@ -725,7 +725,7 @@ export function ProgressMode() {
       rememberRouteStep(route, step.difficulty, step.asc);
       setView({ t: "levels", route, difficulty: step.difficulty });
     };
-    const families: Record<string, string> = { limo: "Limos", diablillo: "Diablillos", arpia: "Arpías", golem: "Gólems", espectro: "Espectros" };
+    const families: Record<string, string> = { limo: "Slimes", diablillo: "Diablillos", arpia: "Arpías", golem: "Gólems", espectro: "Espectros" };
     const routeFamilies = [...theme.families, ...(theme.guest ? [theme.guest] : [])].map((family) => families[family]).join(" · ");
     const routeCopy = ROUTE_COPY[theme.bossId];
     const currentStep = { difficulty, asc: a as SavedRouteStep["asc"] };
@@ -838,7 +838,7 @@ export function ProgressMode() {
   }
 
   // ---------------- route selector ----------------
-  const familyNames: Record<string, string> = { limo: "Limos", diablillo: "Diablillos", arpia: "Arpías", golem: "Gólems", espectro: "Espectros" };
+  const familyNames: Record<string, string> = { limo: "Slimes", diablillo: "Diablillos", arpia: "Arpías", golem: "Gólems", espectro: "Espectros" };
   return (
     <Shell>
       <Notice />
