@@ -270,8 +270,17 @@ describe("universal skills and class hooks (3c)", () => {
     const ready = { ...b, player: { ...b.player, hp: 500 }, enemies: [{ ...b.enemies[0], shield: 2000 }] };
     const result = step(ready, "golpe", always);
     expect(result.events.some((event) => event.actor === "player" && event.kind === "hit")).toBe(true);
-    expect(result.log.some((line) => line.includes("recupera 10 de vida"))).toBe(true);
-    expect(result.player.hp).toBe(515); // +1% for the skill hook and +0.5% passive regen at round end.
+    expect(result.log.some((line) => line.includes("recupera 30 de vida"))).toBe(true);
+    expect(result.player.hp).toBe(535); // +3% for the skill hook and +0.5% passive regen at round end.
+  });
+
+  it("Cleric's Barrido heals up to 3% per use, including shield-absorbed hits", () => {
+    const b = fight(unit("clerigo"), [
+      unit("mago", { hp: 2000, atk: 1 }), unit("picaro", { hp: 2000, atk: 1 }), unit("caballero", { hp: 2000, atk: 1 }),
+    ], [[], [], []]);
+    const ready = { ...b, player: { ...b.player, hp: 500 }, enemies: b.enemies.map((enemy) => ({ ...enemy, shield: 2000 })) };
+    const result = step(ready, "barrido", always);
+    expect(result.player.hp).toBe(535); // 3% class heal + 0.5% passive regen.
   });
 
   it("Resolution replaces the Knight's perfect-guard reflection and boosts the next Golpe", () => {

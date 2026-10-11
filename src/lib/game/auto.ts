@@ -4,6 +4,9 @@
 // only RNG is the one `step` already consumes.
 import {
   classHeal,
+  BERSERKER_SKILL_FURY_THRESHOLD,
+  BERSERKER_GOLPE_BONUS,
+  BERSERKER_BARRIDO_BONUS,
   enemyIntents,
   estimateDamage,
   hitChance,
@@ -91,14 +94,14 @@ export function autoPolicy(b: Battle, opts: AutoOptions = {}): AutoPick {
     const golpeFoe = b.enemies[alive[golpeTarget]];
     const clericHealUtility = (fraction: number) =>
       p.char.classId === "clerigo"
-        ? Math.max(0, classHeal(p, fraction).hp - p.hp) * 0.7
+        ? Math.max(0, classHeal(p, fraction).hp - p.hp)
         : 0;
     let golpeFactor = 1;
     if (p.char.classId === "caballero" && p.resolution) golpeFactor *= 1.15;
     if (p.char.classId === "mago" && golpeFoe.statuses?.length) golpeFactor *= 1.15;
     if (p.char.classId === "picaro" && golpeFoe.exposed) golpeFactor *= 1.2;
-    if (p.char.classId === "berserker" && p.hp < maxHp * 0.5) golpeFactor *= 1.2;
-    const golpeValue = ev(p, golpeFoe, "golpe") * golpeFactor + clericHealUtility(0.01);
+    if (p.char.classId === "berserker" && p.hp < maxHp * BERSERKER_SKILL_FURY_THRESHOLD) golpeFactor *= 1 + BERSERKER_GOLPE_BONUS;
+    const golpeValue = ev(p, golpeFoe, "golpe") * golpeFactor + clericHealUtility(0.03);
     if ((p.universalCooldowns?.golpe ?? 0) <= 1e-9) {
       bestSkill = { action: "golpe", target: golpeTarget };
       bestSkillValue = golpeValue;
@@ -109,10 +112,10 @@ export function autoPolicy(b: Battle, opts: AutoOptions = {}): AutoPick {
       let factor = 1;
       if (p.char.classId === "mago" && foe.statuses?.length) factor *= 1.1;
       if (p.char.classId === "picaro" && alive.length === 1) factor *= 1.1;
-      if (p.char.classId === "berserker" && p.hp < maxHp * 0.5) factor *= 1.1;
+      if (p.char.classId === "berserker" && p.hp < maxHp * BERSERKER_SKILL_FURY_THRESHOLD) factor *= 1 + BERSERKER_BARRIDO_BONUS;
       return sum + ev(p, foe, "barrido") * factor;
     }, 0);
-    const clericHealValue = clericHealUtility(Math.min(0.03, alive.length * 0.01));
+    const clericHealValue = clericHealUtility(0.03);
     const knightGuardValue = p.char.classId === "caballero" && alive.length >= 2
       ? incoming(b) * 0.1
       : 0;

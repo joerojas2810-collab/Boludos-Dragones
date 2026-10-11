@@ -267,6 +267,9 @@ export const CLASS_HEAL_PER_ACTIVATION_CAP = 0.03;
 export const CLASS_HEAL_PER_ROUND_CAP = 0.06;
 export const CLASS_SHIELD_PER_ACTIVATION_CAP = 0.03;
 export const CLASS_SHIELD_PER_ROUND_CAP = 0.06;
+export const BERSERKER_SKILL_FURY_THRESHOLD = 0.6;
+export const BERSERKER_GOLPE_BONUS = 0.5;
+export const BERSERKER_BARRIDO_BONUS = 0.3;
 
 export function classHeal(c: Combatant, requested: number): Combatant {
   const maxHp = c.char.stats.hp;
@@ -1029,15 +1032,15 @@ export function step(
             if (player.char.classId === "caballero" && resolutionReady) hook *= 1.15;
             if (player.char.classId === "mago" && foe.statuses?.length) hook *= 1.15;
             if (player.char.classId === "picaro" && foe.exposed) hook *= 1.2;
-            if (player.char.classId === "berserker" && player.hp < player.char.stats.hp * 0.5) hook *= 1.2;
+            if (player.char.classId === "berserker" && player.hp < player.char.stats.hp * BERSERKER_SKILL_FURY_THRESHOLD) hook *= 1 + BERSERKER_GOLPE_BONUS;
           } else if (universal.id === "barrido") {
             if (player.char.classId === "mago" && foe.statuses?.length) hook *= 1.1;
             if (player.char.classId === "picaro" && alive.length === 1) hook *= 1.1;
-            if (player.char.classId === "berserker" && player.hp < player.char.stats.hp * 0.5) hook *= 1.1;
+            if (player.char.classId === "berserker" && player.hp < player.char.stats.hp * BERSERKER_SKILL_FURY_THRESHOLD) hook *= 1 + BERSERKER_BARRIDO_BONUS;
           }
           const damage = hit(i, universal.id, hook, !ownerElementApplied);
           dealt += damage;
-          if (lastHitLanded && player.char.classId === "clerigo") healClass(0.01);
+          if (lastHitLanded && player.char.classId === "clerigo") healClass(0.03);
           if (
             damage > 0 &&
             (player.char.element === "viento" || player.char.element === "rayo")

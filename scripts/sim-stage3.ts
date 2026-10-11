@@ -175,6 +175,7 @@ const baseline = JSON.parse(readFileSync(resolve(process.cwd(), "scripts/baselin
 if (baseline.engineVersion !== 13) throw new Error("scripts/baseline/motor13.json is not an ENGINE_VERSION 13 baseline");
 const baselineClassRank = new Map<string, { n: number; wins: number; turns: number }>();
 for (const row of baseline.rows) {
+  if (!ELEMENT_SET.includes(row.element)) continue;
   const key = `${row.classId}:${row.rank}`;
   const value = baselineClassRank.get(key) ?? { n: 0, wins: 0, turns: 0 };
   value.n += row.levelAttempts;
