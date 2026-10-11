@@ -12,8 +12,9 @@ const U = "00000000-0000-0000-0000-000000000001";
 await db.exec(`insert into auth.users(id,email) values ('${U}','ana@players.invalid')`);
 await rpc("create_player", { p_user: U, p_name: "ana", p_name_key: "ana", p_is_admin: false });
 const st = { hp: 100, atk: 20, def: 10, crit: 0.05, critDmg: 1.5, speed: 10, accuracy: 0, dodge: 0.05 };
+const factors = { hp: 1, atk: 1, def: 1, crit: 1, speed: 1 };
 const h = (cls: string, el: string, rar: string, stars: number, traits: string[], extra = "") =>
-  db.exec(`insert into public.characters(player_id,class,element,rarity,stars,data${extra ? ",level,xp,skill" : ""}) values ('${U}','${cls}','${el}','${rar}',${stars},'${JSON.stringify({ name: cls + el, stats: st, traits, catchphrase: "hi" })}'${extra})`);
+  db.exec(`insert into public.characters(player_id,class,element,rarity,stars,data${extra ? ",level,xp,skill" : ""}) values ('${U}','${cls}','${el}','${rar}',${stars},'${JSON.stringify({ name: cls + el, stats: st, traits, factors, catchphrase: "hi" })}'${extra})`);
 await h("mago", "fuego", "ss", 2, ["terco", "viejo"]);
 await h("picaro", "agua", "ssr", 0, ["temerario"]);
 await h("caballero", "tierra", "c", 3, ["viejo", "terco", "apostador"], ",30,10,'drenarMana'");
@@ -36,21 +37,21 @@ const after = await rpc("get_profile", { p_player: U });
 console.log("raw rows after:", after.characters.map((c: any) => `${c.id}(${c.stars}★)`).join(", "));
 console.log("post-upgrade heroes:", after.characters.map((c: any) => c.id));
 console.log("post-upgrade pieces:", after.weapons.map((w: any) => w.id));
-// H1b resets old heroes; a new pull has the required factor profile.
+// Legacy upgrade preserves existing heroes; fixture heroes include valid H1 factors. A new pull can add a copy.
 const v = (await db.query(`select version from public.player_state where player_id='${U}'`)).rows[0] as { version: number };
 const pr = await rpc("apply_pull", { p_player: U, p_version: v.version, p_idem: "probe-0001", p_banner: "character", p_cost: 250, p_pity: 0, p_pity_ssr: 0, p_seed: 1, p_daily: false, p_items: [{ class: "clerigo", element: "rayo", rarity: "f", data: { name: "x", traits: ["terco"], factors: { hp: 1, atk: 1, def: 1, crit: 1, speed: 1 } } }] });
-console.log("new pull after reset:", JSON.stringify(pr).slice(0, 200));
+console.log("new pull after migration:", JSON.stringify(pr).slice(0, 200));
 
 const ids = after.characters.map((c: any) => c.id).sort().join();
-ok(ids === "", "H1b discards old heroes as approved: " + ids);
+ok(ids === "c-caballero-tierra-c,c-clerigo-rayo-f,c-clerigo-viento-s,c-mago-fuego-s,c-picaro-agua-s", "upgrade preserves and normalizes heroes: " + ids);
 const weapon = (id: string) => after.weapons.find((w: any) => w.id === id);
 ok(weapon("w-espada-fuego-s")?.stars === 2, "piece twin got +1 star");
-ok(Object.keys(after.equipped).length === 0, "hero reset clears old equipment links");
+ok(Object.keys(after.equipped).length === 3, "equipment remains linked to migrated heroes");
 ok(weapon("w-casco-agua-s")?.data.lines?.[0]?.stat === "resist", "dodge line became resist");
 ok(weapon("w-baston-agua-c")?.stars === 1 && !after.weapons.some((w: any) => w.data.copies?.length), "old stars on pieces stay, no copies appear");
 ok(after.coins === 12345, "coins untouched");
 ok(((await db.query(`select count(*)::int n from public.market_offers where status='open'`)).rows[0] as { n: number }).n === 0, "stale hero offers cancelled");
-ok(JSON.stringify(pr).includes('"status":"new"'), "a pull after the reset creates a new hero");
+ok(JSON.stringify(pr).includes('"status":"copy"'), "a pull after migration creates a factor-bearing copy");
 await db.exec(fs.readFileSync(root + "upgrade_from_0044.sql", "utf8")).then(() => ok(true, ""), (e: Error) => ok(false, "second run of the upgrade file failed: " + e.message));
 console.log(fail ? `upgrade_0044: ${fail} FAILED` : "upgrade_0044: all ok");
 process.exit(fail ? 1 : 0);

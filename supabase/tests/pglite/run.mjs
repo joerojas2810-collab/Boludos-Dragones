@@ -60,7 +60,8 @@ await err(db.exec(`insert into public.room_players(room_id,player_id,chips) valu
 
 // --- gacha
 await db.exec(`update public.player_state set coins=5000 where player_id='${U(2)}'`);
-const ch=(cls,el,rar)=>({class:cls,element:el,rarity:rar,data:{name:"X",traits:["terco"]}});
+const factors={hp:1,atk:1,def:1,crit:1,speed:1};
+const ch=(cls,el,rar)=>({class:cls,element:el,rarity:rar,data:{name:"X",traits:["terco"],factors}});
 let st=0;
 const pull=async(items,over={})=>{ const banner=over.banner??"character"; return rpc("apply_pull",{p_player:U(2),p_version:over.v??st,p_idem:over.idem??("idem-"+Math.random().toString(36).slice(2,12)),p_banner:banner,p_cost:over.cost??250*items.length,p_pity:0,p_pity_ssr:over.pitySsr??0,p_seed:123,p_daily:over.daily??false,p_items:items});}; // the pity counters are inert since 0049: always 0
 let r=await pull([ch("mago","fuego","f")]); st=r.version;
