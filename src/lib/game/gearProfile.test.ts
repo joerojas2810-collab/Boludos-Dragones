@@ -59,14 +59,14 @@ describe("piece rolls", () => {
   });
 });
 
-describe("resonance in heroFromOwned", () => {
-  it("adds resonance bonus on top of the gear lines", () => {
+describe("hero gear bonuses", () => {
+  it("does not add resonance damage bonuses", () => {
     let p = pullCharacter(rich(), createRng(3))!.profile;
     const c = p.characters[0];
     p = grantPiece(p, mk("casco", "s", "agua", { roll: 1, lines: [{ stat: "def", roll: 1 }] }));
     p = grantPiece(p, mk("peto", "s", "fuego", { roll: 1, lines: [{ stat: "hp", roll: 1 }] }));
     for (const w of p.weapons) p = equipWeapon(p, c.id, w.id);
-    expect(heroFromOwned(p, c.id)!.gear!.dmgTaken).toBeGreaterThan(0);
+    expect(heroFromOwned(p, c.id)!.gear!.dmgTaken).toBe(0);
   });
 });
 
@@ -79,9 +79,9 @@ describe("autoEquipPlan modes", () => {
     p = grantPiece(grantPiece(p, own), other);
     return { p, a, b, own: weaponKey("casco", a.element, "c"), other: weaponKey("casco", other.element, "s") };
   };
-  it("set prefers the hero's element even if weaker; poder takes the strongest", () => {
+  it("element modes prefer that element; poder takes the strongest", () => {
     const { p, a, own, other } = setup();
-    expect(autoEquipPlan(p, a.id, "set")).toContainEqual({ slot: "casco", weaponId: own });
+    expect(autoEquipPlan(p, a.id, a.element)).toContainEqual({ slot: "casco", weaponId: own });
     expect(autoEquipPlan(p, a.id, "poder")).toContainEqual({ slot: "casco", weaponId: other });
   });
   it("takeFromOthers lists the holder; default never takes", () => {
@@ -90,15 +90,6 @@ describe("autoEquipPlan modes", () => {
     expect(autoEquipPlan(q, a.id, "poder").some((x) => x.weaponId === other)).toBe(false);
     const plan = autoEquipPlan(q, a.id, "poder", { takeFromOthers: true });
     expect(plan).toContainEqual({ slot: "casco", weaponId: other, fromHeroId: b.id });
-  });
-  it("estilo picks the piece richest in the style group", () => {
-    let p = pullCharacter(rich(), createRng(3))!.profile;
-    const c = { ...p.characters[0], rarity: "c" as const, stars: 0, skill: "contraataque" as const, classId: "caballero" as const };
-    p = { ...p, characters: [c] };
-    const tank = mk("casco", "c", "agua", { roll: 1, lines: [{ stat: "def", roll: 1.15 }] });
-    const crit = mk("casco", "c", "fuego", { roll: 1, lines: [{ stat: "crit", roll: 1.15 }] });
-    p = grantPiece(grantPiece(p, crit), tank);
-    expect(autoEquipPlan(p, c.id, "estilo")).toContainEqual({ slot: "casco", weaponId: weaponKey("casco", "agua", "c") });
   });
 });
 

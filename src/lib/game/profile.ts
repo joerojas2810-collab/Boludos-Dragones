@@ -25,20 +25,12 @@ import {
   activeSets,
   applyGear,
   combineGear,
-  GEAR_CAP,
   plusFactor,
   gearBonus,
-  LINE_BASE,
-  LINE_GROUP,
   NO_GEAR,
   parseRoll,
-  resonanceBonus,
-  resonances,
   rollPiece,
   setBonus,
-  SKILL_STYLE_GROUP,
-  type BuildGroup,
-  type WornPiece,
 } from "./gear";
 import {
   MAX_STARS,
@@ -302,29 +294,18 @@ export function equipWeapon(
   };
 }
 
-export type AutoMode = "poder" | "set" | "estilo";
+export type AutoMode = "poder" | Element;
 export interface AutoPlanItem {
   slot: Slot;
   weaponId: string;
   fromHeroId?: string; // piece currently worn by another hero (takeFromOthers)
 }
 
-// How much of the hero's style group (LINE_GROUP) a piece carries: its stats as a share
-// of the gear caps, so different stats are comparable. 0 for any piece without that stat.
-function styleScore(w: WornPiece, group: BuildGroup): number {
-  const b = gearBonus([w]);
-  let sum = 0;
-  for (const k of Object.keys(LINE_BASE) as (keyof typeof LINE_BASE)[])
-    if (LINE_GROUP[k] === group) sum += b[k] / GEAR_CAP[k];
-  return sum;
-}
-
 // Best piece for each slot of a hero. Modes: "poder" = greedy by the hero's resulting
-// power (element sets count; two passes so a later piece can complete a set); "set" = per
-// slot the piece of the hero's element, else the strongest; "estilo" = per slot the piece
-// richest in the hero's style group (its third skill), ties by power. Pieces worn by OTHER
-// heroes are only taken with takeFromOthers. Returns only the changes, in apply order.
-// ponytail: greedy per slot, not an exhaustive search of combinations.
+// power (element sets count; two passes so a later piece can complete a set). An element
+// mode prefers pieces of that element, then picks the strongest piece within that choice.
+// Pieces worn by OTHER heroes are only taken with takeFromOthers. Returns only changes.
+// This is greedy per slot, not an exhaustive search of combinations.
 export function autoEquipPlan(
   p: Profile,
   heroId: string,
@@ -333,8 +314,7 @@ export function autoEquipPlan(
 ): AutoPlanItem[] {
   const hero = p.characters.find((c) => c.id === heroId);
   if (!hero) return [];
-  const group = SKILL_STYLE_GROUP[heroFromOwned(p, heroId)?.skill ?? ""];
-  const eff: AutoMode = mode === "estilo" && !group ? "poder" : mode;
+  const eff = mode;
   const wornBy = (id: string) =>
     Object.entries(p.equipped).find(([, w]) => w === id)?.[0];
   const otherHolder = (id: string) => {
@@ -346,8 +326,7 @@ export function autoEquipPlan(
     for (const slot of SLOTS) {
       const score = (w: OwnedWeapon) => {
         const power = heroPower(equipWeapon(cur, heroId, w.id), heroId);
-        if (eff === "set") return (w.element === hero.element ? 1e9 : 0) + power;
-        if (eff === "estilo" && group) return styleScore(w, group) * 1e9 + power;
+        if (eff !== "poder") return (w.element === eff ? 1e9 : 0) + power;
         return power;
       };
       const curW = p.weapons.find(
@@ -389,7 +368,7 @@ export function bestAutoMode(
 ): { mode: AutoMode; plan: AutoPlanItem[] } {
   let best = { mode: "poder" as AutoMode, plan: autoEquipPlan(p, heroId, "poder"), power: -1 };
   best.power = heroPower(applyAutoPlan(p, heroId, best.plan), heroId);
-  for (const mode of ["set", "estilo"] as const) {
+  for (const mode of ELEMENTS) {
     const plan = autoEquipPlan(p, heroId, mode);
     const power = heroPower(applyAutoPlan(p, heroId, plan), heroId);
     if (power > best.power) best = { mode, plan, power };
@@ -601,16 +580,12 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
   const usableWeapon =
     w && !isGearType(w.type) && canUseWeapon(c.classId, w.type) ? w : null;
   const gear = combineGear(
-    combineGear(
-      gearBonus(worn),
-      resonanceBonus(resonances(worn, skill ? SKILL_STYLE_GROUP[skill] : undefined)),
-    ),
+    gearBonus(worn),
     setBonus(
       activeSets(
         [...worn, ...(usableWeapon ? [usableWeapon] : [])].map(
           (x) => x.element,
         ),
-        c.element,
       ),
     ),
   );
