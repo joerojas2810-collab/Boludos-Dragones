@@ -7,7 +7,14 @@ import {
   type Slot,
 } from "./combat";
 import { createRng, hashSeed } from "./rng";
-import { nextActivations, THRESHOLD, type Runner } from "./progressEngine";
+import {
+  activationTicks,
+  advanceActivationTimer,
+  initialProgressFromRoll,
+  nextActivations,
+  THRESHOLD,
+  type Runner,
+} from "./progressEngine";
 
 const labels = (slots: Slot[]) =>
   slots.map((slot) => (slot === "player" ? "player" : "enemy"));
@@ -38,16 +45,31 @@ function gateSample(index: number) {
   const reference = labels(
     buildQueue(Math.max(1, counts.player), enemySlots, enemyFirst),
   );
-  const candidate = nextActivations([
-    { id: "player", speed: playerSpeed, progress: 0 },
-    { id: "enemy", speed: enemySpeed, progress: 0 },
-  ]).order;
+  const runners = [
+    {
+      id: "player",
+      speed: playerSpeed,
+      progress: initialProgressFromRoll(playerSpeed, playerRoll),
+    },
+    {
+      id: "enemy",
+      speed: enemySpeed,
+      progress: initialProgressFromRoll(enemySpeed, enemyRoll),
+    },
+  ];
+  const natural = nextActivations(runners).order;
+  const candidate = nextActivations(runners, {
+    activations: { player: Math.max(1, counts.player), enemy: counts.enemy },
+  }).order;
   return {
     playerSpeed,
     enemySpeed,
     countMatch:
       candidate.filter((id) => id === "player").length === Math.max(1, counts.player) &&
       candidate.filter((id) => id === "enemy").length === counts.enemy,
+    naturalCountMatch:
+      natural.filter((id) => id === "player").length === Math.max(1, counts.player) &&
+      natural.filter((id) => id === "enemy").length === counts.enemy,
     orderMatch: candidate.join(",") === reference.join(","),
   };
 }
@@ -65,6 +87,21 @@ describe("progressEngine feasibility prototype", () => {
       { id: "enemy", speed: 8, progress: 40 },
     ]);
     expect(first.runners.every((runner) => runner.progress >= 0 && runner.progress < THRESHOLD)).toBe(true);
+  });
+
+  it("maps the ENGINE 13 roll into a bounded initial progress lead", () => {
+    expect(initialProgressFromRoll(10, 7)).toBeCloseTo(0, 8);
+    expect(initialProgressFromRoll(10, 13)).toBeGreaterThan(0);
+    expect(initialProgressFromRoll(10, 13)).toBeLessThan(THRESHOLD);
+    expect(initialProgressFromRoll(10, 13)).toBeCloseTo(
+      initialProgressFromRoll(20, 26),
+      8,
+    );
+  });
+
+  it("converts actor activations into fractional timer decay and burn ticks", () => {
+    expect(advanceActivationTimer(2, 3, 0.5)).toBe(0.5);
+    expect(activationTicks(0.25, 2, 0.5)).toEqual({ ticks: 1, remainder: 0.25 });
   });
 
   it("uses input order for equal-speed ties and caps a 10x runner at 3", () => {
@@ -108,21 +145,23 @@ describe("progressEngine feasibility prototype", () => {
 
   it("runs the required 10,000-pair E2a gate and records exact-order failures", () => {
     let countMismatches = 0;
+    let naturalCountMismatches = 0;
     let orderMismatches = 0;
     let minSpeed = Number.POSITIVE_INFINITY;
     let maxSpeed = 0;
     for (let i = 0; i < 10_000; i++) {
       const sample = gateSample(i);
       if (!sample.countMatch) countMismatches++;
+      if (!sample.naturalCountMatch) naturalCountMismatches++;
       if (!sample.orderMatch) orderMismatches++;
       minSpeed = Math.min(minSpeed, sample.playerSpeed, sample.enemySpeed);
       maxSpeed = Math.max(maxSpeed, sample.playerSpeed, sample.enemySpeed);
     }
     expect(minSpeed).toBeGreaterThan(0);
     expect(maxSpeed).toBeGreaterThan(minSpeed);
-    // The motor randomizes initiative; the speed-only API has no initiative RNG.
-    // This documents the gate failure so follow-on tuning cannot hide it.
+    // Motor actionCounts provide cycle quotas; progress/roll only order them.
     expect(countMismatches).toBe(0);
-    expect(orderMismatches).toBe(2_358);
+    expect(naturalCountMismatches).toBe(170);
+    expect(orderMismatches).toBe(45);
   });
 });
