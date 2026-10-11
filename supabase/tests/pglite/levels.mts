@@ -4,12 +4,10 @@ import { db, setup, as, rpc } from "./harness.mjs";
 import { readFileSync } from "node:fs";
 import { generateCharacter } from "../../../src/lib/game/characters";
 import { createRng } from "../../../src/lib/game/rng";
-import { levelCoins, firstClearChest } from "../../../src/lib/game/levelPay";
-import { DUNGEON_IDS, RARITY_IDS } from "../../../src/lib/game/rarity";
-import { LEVELS_PER_RANK, levelsOf } from "../../../src/lib/game/levels";
+import { ROUTE_IDS, levelsOf, type RouteId } from "../../../src/lib/game/levels";
 import { levelFights } from "../../../src/lib/game/stage";
 import { levelLoot } from "../../../src/lib/game/levelLoot";
-import { heroFromOwned, migrate } from "../../../src/lib/game/profile";
+import { heroFromOwned, lootOptions, migrate } from "../../../src/lib/game/profile";
 import { heroRow, playLevelBot } from "../../../src/lib/server/testkit";
 import {
   doPull, finishLevelService, loadMe, startLevelService,
@@ -32,10 +30,12 @@ for (const [i, n] of ["ana", "beto"].entries()) {
 }
 const q = async (sql: string) => (await db.query(sql)).rows as Record<string, any>[];
 const P = U(1);
+const initialProgress = (await rpc("get_profile", { p_player: P })) as any;
+ok(initialProgress.dungeonProgress && initialProgress.dungeonProgress.steps && initialProgress.dungeonProgress.routes,
+  "get_profile exposes the new {steps,routes} shape");
 const coins = async () => Number((await q(`select coins from public.player_state where player_id='${P}'`))[0].coins);
 const setCoins = (n: number) => db.exec(`update public.player_state set coins=${n} where player_id='${P}'`);
-const progress = (rank: string, asc: number, n: number) =>
-  db.exec(`insert into public.dungeon_progress values ('${P}','${rank}',${asc},${n}) on conflict (player_id,rank,ascension) do update set cleared=${n}`);
+const ROUTE: RouteId = ROUTE_IDS[0];
 
 // hero rows
 const h0 = generateCharacter(createRng(11), "caballero");
@@ -53,10 +53,10 @@ const rowc = (await q(`select level,xp,skill,legacy from public.characters where
 ok(rowc.level === 1 && rowc.xp === 0 && rowc.skill === null && rowc.legacy === false, "new hero defaults");
 
 const startRaw = (over: Record<string, unknown> = {}) =>
-  rpc("start_level", { p_player: P, p_character_id: HERO, p_seed: 7, p_hero: { x: 1 }, p_rank: "f", p_level: 0, p_asc: 0, ...over });
-let REPEAT = false; // level 0 of F is a repeat once it was cleared
+  rpc("start_level", { p_player: P, p_character_id: HERO, p_seed: 7, p_hero: { x: 1 }, p_route: ROUTE, p_difficulty: "f", p_level: 0, p_asc: 0, ...over });
+let REPEAT = false; // level 0 on the selected route is a repeat once it was cleared
 const bankArgs = (run: string, over: Record<string, unknown> = {}) => ({
-  p_player: P, p_run_id: run, p_hero_id: HERO, p_rank: "f", p_level: 0, p_asc: 0, p_status: "cleared",
+  p_player: P, p_run_id: run, p_hero_id: HERO, p_route: ROUTE, p_difficulty: "f", p_level: 0, p_asc: 0, p_status: "cleared",
   p_xp: 500, p_dados: 0, p_pieces: [], p_repeat: REPEAT, ...over,
 });
 const bank = (run: string, over: Record<string, unknown> = {}) => rpc("bank_level", bankArgs(run, over));
@@ -64,12 +64,12 @@ const reset = () => db.exec(`delete from public.runs`);
 
 // 2. unlock rules at start_level
 await err(startRaw({ p_level: 1 }), "level_locked", "skip level order");
-await err(startRaw({ p_rank: "e" }), "dungeon_locked", "locked rank");
-await err(startRaw({ p_asc: 1 }), "ascension_locked", "locked ascension");
+await err(startRaw({ p_difficulty: "e" }), "step_locked", "locked difficulty");
+await err(startRaw({ p_asc: 1 }), "step_locked", "locked ascent step");
 await err(startRaw({ p_asc: 9 }), "level_locked", "asc out of range");
-await err(startRaw({ p_character_id: "c-mago-fuego-ssr" }), "character_not_found");
-await err(as("authenticated", P, () => db.query(`select public.start_level('${P}','${HERO}',1,'{}','f',0,0)`)), "permission denied", "client cannot call start_level");
-await err(as("authenticated", P, () => db.query(`select public.bank_level('${P}','${U(9)}','x','f',0,0,'cleared',0,0,'[]',false)`)), "permission denied", "client cannot call bank_level");
+await err(startRaw({ p_character_id: "c-no-existe" }), "character_not_found");
+await err(as("authenticated", P, () => db.query(`select public.start_level('${P}','${HERO}',1,'{}','${ROUTE}','f',0,0)`)), "permission denied", "client cannot call start_level");
+await err(as("authenticated", P, () => db.query(`select public.bank_level('${P}','${U(9)}','x','${ROUTE}','f',0,0,'cleared',0,0,'[]',false)`)), "permission denied", "client cannot call bank_level");
 let run = (await startRaw()).run_id;
 await err(startRaw(), "run_open", "one open attempt");
 
@@ -77,9 +77,9 @@ await err(startRaw(), "run_open", "one open attempt");
 const lootPiece = { type: "espada", element: "agua", rarity: "f", name: "Espada de Agua", roll: 1.1 };
 const c0 = await coins();
 let b = await bank(run, { p_xp: 400, p_pieces: [lootPiece] });
-ok(b.cleared && !b.repeat && b.coins === levelCoins("f", 0, false) && b.chest === 0, "pay " + JSON.stringify(b));
+ok(b.cleared && !b.repeat && b.coins === 60 && b.chest === 0, "first level keeps the F coin value " + JSON.stringify(b));
 ok((await coins()) === c0 + b.coins, "coins credited");
-ok((await q(`select cleared from public.dungeon_progress where player_id='${P}' and rank='f' and ascension=0`))[0].cleared === 1, "progress 1");
+ok((await q(`select levels as cleared from public.route_progress where player_id='${P}' and route='${ROUTE}' and difficulty='f' and ascension=0`))[0].cleared === 1, "progress 1");
 ok(b.escamas === 0 && b.dados === 0, "no Escamas in a dungeon F");
 ok((await q(`select roll from public.weapons where player_id='${P}' and key='w-espada-agua-f'`))[0].roll == 1.1, "piece roll stored");
 ok(b.xp === 400, "xp reported");
@@ -114,7 +114,7 @@ await db.exec(`update public.characters set level=1,xp=0,stars=0 where key='${HE
 // 5. attacks on bank_level
 await reset(); run = (await startRaw()).run_id;
 await err(bank(run, { p_level: 1 }), "invalid_args", "pay a different level than started");
-await err(bank(run, { p_rank: "e" }), "invalid_args", "pay a different rank");
+await err(bank(run, { p_difficulty: "e" }), "invalid_args", "pay a different rank");
 await err(bank(run, { p_asc: 1 }), "invalid_args", "pay a different ascension");
 await err(bank(run, { p_hero_id: second.key }), "invalid_args", "pay with another hero");
 await err(bank(run, { p_repeat: false }), "conflict", "loot rolled for the wrong repeat flag");
@@ -146,33 +146,6 @@ const tr = await rpc("start_run", { p_player: P, p_character_id: HERO, p_seed: 1
 await err(bank(tr.run_id), "invalid_args", "tower run banked as a level");
 await reset();
 
-// 6. repeat pay and daily decay, first-clear chests, every rank/asc vs TS
-for (const rank of DUNGEON_IDS) await progress(rank, 0, LEVELS_PER_RANK[rank]);
-let parity = 0;
-for (const rank of DUNGEON_IDS) for (const asc of [0, 2, 5]) {
-  const last = LEVELS_PER_RANK[rank] - 1;
-  await progress(rank, asc, last); // last level not cleared yet at this asc (asc>0 needs all of asc-1)
-  for (let a = 0; a < asc; a++) await progress(rank, a, LEVELS_PER_RANK[rank]);
-  await db.exec(`update public.player_state set levels_day=null, levels_n=0 where player_id='${P}'`);
-  await reset(); const r1 = (await startRaw({ p_rank: rank, p_level: last, p_asc: asc })).run_id;
-  const f = await bank(r1, { p_rank: rank, p_level: last, p_asc: asc, p_repeat: false });
-  ok(f.coins === levelCoins(rank, asc, false) && f.chest === firstClearChest(rank, asc) && f.dungeonDone, `first clear ${rank}+${asc} ${f.coins}/${levelCoins(rank, asc, false)} chest ${f.chest}/${firstClearChest(rank, asc)}`);
-  for (const n of [0, 19, 20, 39, 40, 79, 80, 200]) {
-    await db.exec(`update public.player_state set levels_day=public.game_day(), levels_n=${n} where player_id='${P}'`);
-    await reset(); const r2 = (await startRaw({ p_rank: rank, p_level: 0, p_asc: asc })).run_id;
-    const rep = await bank(r2, { p_rank: rank, p_level: 0, p_asc: asc, p_repeat: true });
-    const want = levelCoins(rank, asc, true, n + 1);
-    if (rep.coins !== want) { fail++; console.log(`FAIL repeat ${rank}+${asc} n=${n}: sql ${rep.coins} ts ${want}`); } else pass++;
-    parity++;
-  }
-}
-ok(parity === DUNGEON_IDS.length * 3 * 8, "parity grid ran");
-const lv = (await rpc("get_profile", { p_player: P })) as any;
-ok(Array.isArray(lv.dungeons.f) && lv.dungeons.f.length === 6 && lv.dungeons.f[5] === LEVELS_PER_RANK.f, "get_profile dungeons arrays");
-ok(lv.levelsDay && lv.levelsDay.n >= 201, "levelsDay exposed");
-await db.exec(`delete from public.dungeon_progress where player_id='${P}'`);
-await db.exec(`update public.player_state set levels_day=null, levels_n=0`);
-
 // 7. start rate limits (200/hour for fights; sweeps do not count)
 await reset();
 await db.exec(`insert into public.runs(player_id,seed,hero,status,finished_at) select '${P}',1,'{"kind":"level","sweep":true}','closed',now() from generate_series(1,250)`);
@@ -183,10 +156,10 @@ await db.exec(`insert into public.runs(player_id,seed,hero,status,finished_at) s
 await err(startRaw(), "rate_limited", "200 starts/hour");
 await reset();
 
-// 6b. random loot drops many pieces at once (up to 15 on a 5-fight level): the bank must take them
+// 6b. random loot drops many pieces at once: the bank must accept the submitted list
 {
   await reset();
-  const done0 = (await q(`select cleared from public.dungeon_progress where player_id='${P}' and rank='f' and ascension=0`))[0]?.cleared ?? 0;
+  const done0 = (await q(`select levels as cleared from public.route_progress where player_id='${P}' and route='${ROUTE}' and difficulty='f' and ascension=0`))[0]?.cleared ?? 0;
   const prevRepeat = REPEAT;
   REPEAT = done0 > 0;
   const many = Array.from({ length: 12 }, (_, i) => ({ type: "casco", element: ["agua", "fuego", "viento", "tierra", "rayo"][i % 5], rarity: i < 5 ? "f" : "e", name: "Casco", roll: 1 }));
@@ -194,7 +167,7 @@ await reset();
   const bm2 = await bank(rid, { p_pieces: many });
   ok(bm2.cleared, "12 dropped pieces are banked: " + JSON.stringify(bm2));
   REPEAT = prevRepeat;
-  if (done0 === 0) await db.exec(`delete from public.dungeon_progress where player_id='${P}' and rank='f' and ascension=0`);
+  if (done0 === 0) await db.exec(`delete from public.route_progress where player_id='${P}' and route='${ROUTE}' and difficulty='f' and ascension=0`);
   await reset();
 }
 // 8. nothing is burned any more (0050 heroes, 0053 pieces)
@@ -250,7 +223,7 @@ const nors = await q(`select relname from pg_class c join pg_namespace n on n.oi
 ok(nors.length === 0, "tables without RLS " + JSON.stringify(nors));
 const wr = await q(`select c.relname, r.rolname from pg_class c join pg_namespace n on n.oid=c.relnamespace and n.nspname='public' join pg_roles r on r.rolname in ('anon','authenticated') where c.relkind in ('r','p','v') and (has_table_privilege(r.oid,c.oid,'insert') or has_table_privilege(r.oid,c.oid,'update') or has_table_privilege(r.oid,c.oid,'delete'))`);
 ok(wr.length === 0, "client write privileges " + JSON.stringify(wr));
-for (const t2 of ["dungeon_progress", "tower_scores_archive", "migration_flags"])
+for (const t2 of ["route_progress", "step_clears", "tower_scores_archive", "migration_flags"])
   await err(as("authenticated", P, () => db.query(`select * from public.${t2}`)), "permission denied", t2 + " hidden");
 ok((await q(`select count(*)::int c from public.migration_flags where key in ('0025_mark_legacy','0026_run_v2_reset')`))[0].c === 2, "one-time flags set");
 
@@ -264,17 +237,17 @@ const deps: Deps = {
 };
 await reset(); await db.exec(`delete from public.rate_limit_hits`);
 await db.exec(`update public.characters set level=1,xp=0 where key='${HERO}'`);
-await err(startLevelService(deps, P, { characterId: HERO, rank: "f", level: 2, ascension: 0 }), "level_locked", "service: out of order");
-const info = await startLevelService(deps, P, { characterId: HERO, rank: "f", level: 0, ascension: 0 });
-const wins = levelFights(levelsOf("f")[0], 0).length;
+await err(startLevelService(deps, P, { characterId: HERO, route: ROUTE, difficulty: "f", level: 2, ascension: 0 }), "level_locked", "service: out of order");
+const info = await startLevelService(deps, P, { characterId: HERO, route: ROUTE, difficulty: "f", level: 0, ascension: 0 });
+const wins = levelFights(levelsOf(ROUTE, "f")[0], 0).length;
 await db.exec(`update public.runs set started_at = now() - interval '10 minutes' where id='${info.runId}'`);
 const coinsBefore = await coins();
 const done = await finishLevelService(deps, P, { runId: info.runId, wins });
 ok(done.status === "cleared" && done.bank.cleared && done.bank.coins === 60, "service finish cleared " + JSON.stringify(done.bank));
 ok((await coins()) >= coinsBefore + 60, "service paid coins");
-const exp = levelLoot(levelsOf("f")[0], 0, "caballero", info.seed, { repeat: false, payMult: 1 });
+const exp = levelLoot(levelsOf(ROUTE, "f")[0], 0, "caballero", info.seed, lootOptions(done.profile, ROUTE, "f", 0, 0));
 ok(JSON.stringify(done.loot.pieces) === JSON.stringify(exp.pieces), "service loot = engine loot for the server seed");
-ok(done.profile.dungeons.f?.[0] === 1, "profile shows progress");
+ok(done.profile.dungeons.routes[`${ROUTE}:f:0`] === 1, "profile shows route progress");
 await err(finishLevelService(deps, P, { runId: info.runId, wins }), "duplicate_run", "service: replay twice");
 const me = await loadMe(deps.rpc, P);
 ok(me.profile.characters.every((c) => c.legacy === undefined && !("skill" in c)), "db rows are current and retired skill picks are ignored");

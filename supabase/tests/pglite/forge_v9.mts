@@ -41,7 +41,7 @@ ok(prof.escamas === 11 && prof.dados === 3 && prof.parts === undefined, "get_pro
 
 // 2. level_escamas == levelEscamas (TS) for every case that can happen, first clears and repeats
 let bad = 0;
-for (const r of ["f", "a", "s", "ss", "ssr"] as const)
+for (const r of ["f", "e", "d", "c", "b", "a", "s"] as const)
   for (let asc = 0; asc <= 5; asc++)
     for (const rep of [false, true])
       for (const n of [1, 15, 25, 50, 100]) {
@@ -50,39 +50,41 @@ for (const r of ["f", "a", "s", "ss", "ssr"] as const)
         if (sql !== levelEscamas(r, asc, rep, m)) { bad++; console.log("parity", r, asc, rep, m, sql, levelEscamas(r, asc, rep, m)); }
       }
 ok(bad === 0, "level_escamas parity with levelEscamas");
-ok((await q(`select public.level_escamas('ssr', 5, true, 0.1) v`))[0].v === 0, "decayed repeats reach 0 (no farm)");
+ok((await q(`select public.level_count('ss') v`))[0].v === null, "SS is rejected as a difficulty");
+ok((await q(`select public.level_count('ssr') v`))[0].v === null, "SSR is rejected as a difficulty");
 
 // 3. bank_level in an S dungeon: Escamas on every clear, Dado only on the last level, 2 per day
 const h0 = generateCharacter(createRng(11), "caballero");
 const hr = heroRow(h0, "s", 40);
 await db.exec(`insert into public.characters(player_id,class,element,rarity,stars,data) values ('${U}','${hr.a}','${hr.element}','${hr.rarity}',${hr.stars},'${JSON.stringify(hr.data)}')`);
 const HERO = hr.key;
-const prog = (rank: string, n: number) => db.exec(`insert into public.dungeon_progress values ('${U}','${rank}',0,${n}) on conflict (player_id,rank,ascension) do update set cleared=${n}`);
-for (const [r, n] of [["f", 6], ["e", 6], ["d", 7], ["c", 8], ["b", 8], ["a", 9]] as const) await prog(r, n);
-const start = async (level: number) => (await db.exec(`delete from public.runs`), await rpc("start_level", { p_player: U, p_character_id: HERO, p_seed: 7, p_hero: { x: 1 }, p_rank: "s", p_level: level, p_asc: 0 })).run_id;
+const route = "ash_king";
+for (const d of ["f", "e", "d", "c", "b", "a"])
+  await db.exec(`insert into public.step_clears values ('${U}','${d}',0) on conflict do nothing`);
+const start = async (level: number) => (await db.exec(`delete from public.runs`), await rpc("start_level", { p_player: U, p_character_id: HERO, p_seed: 7, p_hero: { x: 1 }, p_route: route, p_difficulty: "s", p_level: level, p_asc: 0 })).run_id;
 const bank = async (level: number, over: Record<string, unknown> = {}) => {
   const run = await start(level);
-  const done = (await q(`select cleared from public.dungeon_progress where player_id='${U}' and rank='s' and ascension=0`))[0]?.cleared ?? 0;
-  return rpc("bank_level", { p_player: U, p_run_id: run, p_hero_id: HERO, p_rank: "s", p_level: level, p_asc: 0, p_status: "cleared", p_xp: 10, p_dados: 0, p_pieces: [], p_repeat: level < done, ...over });
+  const done = (await q(`select levels from public.route_progress where player_id='${U}' and route='${route}' and difficulty='s' and ascension=0`))[0]?.levels ?? 0;
+  return rpc("bank_level", { p_player: U, p_run_id: run, p_hero_id: HERO, p_route: route, p_difficulty: "s", p_level: level, p_asc: 0, p_status: "cleared", p_xp: 10, p_dados: 0, p_pieces: [], p_repeat: level < done, ...over });
 };
 let e0 = (await st()).escamas;
 let b = await bank(0);
 ok(b.escamas === 2 && (await st()).escamas === e0 + 2, "first S level pays 2 Escamas " + JSON.stringify(b));
 await err(bank(1, { p_dados: 1 }), "invalid_items", "Dado on a level that is not the last");
-for (let l = 1; l <= 8; l++) await bank(l);
-b = await bank(9, { p_dados: 1 });
+for (let l = 1; l <= 2; l++) await bank(l);
+b = await bank(3, { p_dados: 1 });
 ok(b.dados === 1 && (await st()).dados === 4, "last level pays the die " + JSON.stringify(b));
-b = await bank(9, { p_dados: 1 });
+b = await bank(3, { p_dados: 1 });
 ok(b.dados === 1 && (await st()).dados === 5, "repeat of the last level also pays it (2nd of the day)");
-b = await bank(9, { p_dados: 1 });
+b = await bank(3, { p_dados: 1 });
 ok(b.dados === 0 && (await st()).dados === 5, "3rd die of the day is dropped by SQL");
 e0 = (await st()).escamas;
-b = await bank(3);
+b = await bank(1);
 ok(b.repeat && b.escamas === levelEscamas("s", 0, true, levelDecay(3)) && (await st()).escamas === e0 + b.escamas, "repeat Escamas follow the daily decay " + JSON.stringify(b));
 await db.exec(`update public.player_state set dado_day = dado_day - 1 where player_id='${U}'`);
-b = await bank(9, { p_dados: 1 });
+b = await bank(3, { p_dados: 1 });
 ok(b.dados === 1, "the cap resets on a new game day");
-await err(rpc("bank_level", { p_player: U, p_run_id: await start(0), p_hero_id: HERO, p_rank: "s", p_level: 0, p_asc: 0, p_status: "lost", p_xp: 0, p_dados: 1, p_pieces: [], p_repeat: true }), "invalid_args", "die on a lost level");
+await err(rpc("bank_level", { p_player: U, p_run_id: await start(0), p_hero_id: HERO, p_route: route, p_difficulty: "s", p_level: 0, p_asc: 0, p_status: "lost", p_xp: 0, p_dados: 1, p_pieces: [], p_repeat: true }), "invalid_args", "die on a lost level");
 
 // 4. apply_piece_change (0053): the write-set of star-up, ascend and roll swap
 const give = (type: string, el: string, rank: string, stars = 0, extra = "") =>

@@ -1,7 +1,7 @@
 -- MANUAL, DESTRUCTIVE, NOT A MIGRATION (not part of setup.sql): wipes every player's progress
 -- so all accounts restart as if freshly created (name + PIN are kept).
 -- Run once in the Supabase SQL editor. Cannot be undone: take a backup first if in doubt.
--- Updated for v9/H2 (levels, Escamas/Dados, missions, hero factor profiles, tower identity).
+-- Updated for v9/H2/6a-1 (route progress, shared dungeon steps, Escamas/Dados, hero profiles, tower identity).
 -- Deleting character rows also removes all hero copies and their {trait, factors} profiles.
 -- Deleting tower score rows clears every mode/selection, including future class/element metadata.
 -- Rooms/chips history is left alone.
@@ -14,8 +14,8 @@ delete from public.weapons;
 delete from public.characters;
 delete from public.fragments;
 delete from public.part_stock;
-delete from public.dungeon_clears;
-delete from public.dungeon_progress;
+delete from public.route_progress;
+delete from public.step_clears;
 delete from public.pulls;
 delete from public.daily_claims;
 delete from public.weekly_scores;
