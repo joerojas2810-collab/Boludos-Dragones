@@ -20,9 +20,14 @@ Cambios:
 Pruebas: el ataque de un PJ con arma de otro elemento usa el elemento del PJ y aplica su estado; el básico cambia de nombre según el arma; sin arma, igual que hoy; simulación de que ninguna clase se desvía más del piso de ruido (ver `CONTRATOS_E2.md` §4) con los valores neutros.
 Puerta: `tsc`, `eslint src scripts`, `vitest` en verde y simulación sin deriva.
 
+## Ajustes previos a 3b (decisión Q13-A, dueño)
+- Renombrar los básicos: Bastón → "Golpe rúnico", Martillo → "Impacto de martillo" (resto según la tabla de Q13). Renombrar el especial actual del Hacha de "Hachazo" a "Hachazo pesado" (solo datos; desaparece en 3c).
+- Los efectos de identidad de Q13 no se programan todavía.
+
 ## 3b — Las cinco habilidades universales (añadidas, sin quitar las viejas)
 - Nuevo módulo de datos `universalSkills.ts` con `golpe | barrido | quebrar | interrumpir | explotar` (id, nombre, enfriamiento inicial: Golpe 2, Barrido 2, Quebrar 1, Interrumpir 1, Explotar 1; función base de `COMBATE_V2.md` §6.1).
 - En esta etapa: **Golpe** y **Barrido** funcionan completos; **Quebrar**, **Interrumpir** y **Explotar** se declaran pero quedan deshabilitados hasta las etapas 4 (Aguante, Canalización) y 5 (estados), con motivo visible en la UI.
+- **Valores de partida** (se ajustan con simulación y se documentan): Golpe `power 1,8`, `accuracy 0,9`, un objetivo; Barrido `power 0,9` por enemigo vivo, `accuracy 0,9`, una aplicación de estado por objetivo y uso. Los nombres visibles son los de `COMBATE_V2.md` §6.1.
 - Enfriamientos en **activaciones propias**, con la conversión fraccional validada en E2 (`cooldown 0,85`) — decidir y documentar el redondeo para mostrar enteros.
 - Las habilidades viejas (Ataque 2 y 3) siguen funcionando hasta 3c.
 
