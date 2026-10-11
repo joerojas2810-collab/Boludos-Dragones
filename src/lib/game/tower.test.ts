@@ -39,8 +39,8 @@ function play(seed: number, maxFloors: number) {
 describe("tower", () => {
   const p = createProfile();
   it("levelled mode uses the same D preset regardless of player, seed, or collection", () => {
-    const a = towerHero(p, "nivelado", "unknown", "mago", "agua", 5, "u1")!;
-    expect(towerHero(p, "nivelado", null, "mago", "agua", 99, "u2")).toEqual(a);
+    const a = towerHero(p, "nivelado", "unknown", "mago", "agua")!;
+    expect(towerHero(p, "nivelado", null, "mago", "agua")).toEqual(a);
     expect(a).toMatchObject({
       classId: "mago",
       element: "agua",
@@ -55,15 +55,15 @@ describe("tower", () => {
   });
   it("an unknown character is refused", () => {
     expect(
-      towerHero(p, "coleccion", "c-mago-fuego-f", "mago", null, 5, "u1"),
+      towerHero(p, "coleccion", "c-mago-fuego-f", "mago", null),
     ).toBeNull();
   });
   it("collection mode requires an owned hero and preserves its power", () => {
     const pulled = pullCharacter({ ...p, coins: 250 }, createRng(3))!.profile;
     const owned = pulled.characters[0];
-    expect(towerHero(pulled, "coleccion", owned.id, owned.classId, null, 5, "u1"))
+    expect(towerHero(pulled, "coleccion", owned.id, owned.classId, null))
       .toEqual(heroFromOwned(pulled, owned.id));
-    expect(towerHero(pulled, "coleccion", null, owned.classId, null, 5, "u1"))
+    expect(towerHero(pulled, "coleccion", null, owned.classId, null))
       .toBeNull();
   });
   it("the local week seed is stable within a week and changes on Monday", () => {

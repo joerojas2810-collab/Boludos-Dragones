@@ -355,8 +355,6 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
           characterId,
           classId,
           element ?? null,
-          seed,
-          "local",
         );
         if (!hero)
           throw new RepoError(

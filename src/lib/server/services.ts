@@ -9,6 +9,7 @@ import { levelLoot, rollDado, type LevelLoot } from "../game/levelLoot";
 import { LEVELS_PER_ROUTE, isRouteId, levelsOf, type RouteId } from "../game/levels";
 import {
   heroFromOwned,
+  heroPower,
   lootOptions,
   migrate,
   PROFILE_VERSION,
@@ -31,6 +32,7 @@ import { ascendPiece, starUpPiece, swapPieceRoll } from "../game/pieceGrowth";
 import { upgradePiece } from "../game/upgrade";
 import { isDifficulty, type Difficulty } from "../game/rarity";
 import { createRng } from "../game/rng";
+import { recommendedPower } from "../game/recommended";
 import { levelFights, resultFromWins } from "../game/stage";
 import { sweepBlock, sweepStage } from "../game/sweep";
 import {
@@ -325,7 +327,7 @@ async function openRunRow(
     return await call(d.rpc, fn, args);
   } catch (e) {
     if (!(e instanceof RpcError && e.message === "run_open")) throw e;
-    const stale = await d.openRunId(playerId);
+    const stale = await d.openRunId(playerId, fn === "start_level");
     if (!stale) throw e;
     await call(d.rpc, "bank_run", {
       p_player: playerId,
@@ -365,8 +367,6 @@ export async function startRunService(
     body.characterId,
     body.classId,
     body.element ?? null,
-    seed,
-    playerId,
   );
   if (!hero)
     throw new ApiError(404, "character_not_found", "Personaje no encontrado.");
@@ -401,12 +401,17 @@ export async function startRunService(
 
 // Anti-farming (a script can replay the deterministic engine at CPU speed):
 // a log cannot be faster than a person clicking.
+const TOWER_SQL_MAX_FLOOR = 500; // tower_record rejects more; keep in sync with 0055
 export const MIN_ACTION_MS = 400; // fastest believable pace per logged action
 export const MIN_ACTION_GRACE_MS = 3_000; // clock skew between app and database
 
 // Even quick resolve takes a person about a second per fight (click + "Continuar"). This only
 // stops scripts finishing a level instantly; the real brake is the hourly cap and the daily pay decay.
 export const MIN_FIGHT_MS = 1_000;
+// A full clear from a hero this far under the recommended power is not believable: the client
+// only reports wins, so this is the one plausibility check. Skill clears at ~25-45 % of the
+// recommended power exist, hence the low bar. ponytail: raise if the sim shows safe headroom.
+export const CLAIM_POWER_FACTOR = 0.2;
 const FIGHT_GRACE_MS = 1_000; // clock skew between app and database
 const tooFastFights = (startedAt: number | undefined, wins: number) => {
   const elapsed = startedAt ? Date.now() - startedAt : null;
@@ -499,13 +504,25 @@ export async function submitRunService(
       "La run se jugó con otra versión del juego. Recarga la página y empieza una nueva.",
     );
   const rep = replayTower(row.seed, hero, body.actions, stored);
+  if (rep.error === "too_many_actions") {
+    await call(d.rpc, "bank_run", {
+      p_player: playerId,
+      p_run_id: body.runId,
+      p_coins: 0,
+      p_max_floor: 0,
+      p_log: null,
+      p_verdict: "rejected",
+      p_reason: "too_many_actions",
+    }).catch(() => undefined);
+    throw new ApiError(400, "too_many_actions", "Ese intento fue demasiado largo para verificarse.");
+  }
   if (rep.error)
     throw new ApiError(
       409,
       "engine_outdated",
       "Esta run es de una versión anterior del juego y ya no se puede verificar.",
     );
-  const floors = rep.floors;
+  const floors = Math.min(rep.floors, TOWER_SQL_MAX_FLOOR);
   let verdict: Verdict = "accepted";
   let reason: string | null = null;
   if (rep.rejectedAt !== null) {
@@ -548,6 +565,14 @@ export async function submitRunService(
         p_rounds: Math.min(rep.rounds, 1_000_000),
         p_class: hero.classId,
         p_element: hero.element,
+      }).catch(async (e) => {
+        // The run is already closed: leave a trail so the score can be restored by hand.
+        await audit(d.rpc, playerId, "tower_record_failed", {
+          runId: body.runId,
+          floors,
+          rounds: rep.rounds,
+        });
+        throw e;
       });
       towerPrize = rec?.prize;
       // A quarter of the dungeon EXP for the hero that climbed (best effort).
@@ -760,6 +785,24 @@ export async function finishLevelService(
       "too_fast",
       "Ese intento se jugó demasiado rápido para ser real y no se registró.",
     );
+  }
+  if (wins >= fights.length) {
+    const me = me0 ?? (await loadMe(d.rpc, playerId));
+    const need = CLAIM_POWER_FACTOR * recommendedPower(diff, lv, ascension);
+    if (heroPower(me.profile, heroId) < need) {
+      await bank({
+        p_status: "lost",
+        p_xp: 0,
+        p_dados: 0,
+        p_pieces: [],
+        p_repeat: false,
+        p_log: null,
+        p_verdict: "rejected",
+        p_reason: `implausible_clear power<${Math.ceil(need)}`,
+      });
+      await audit(d.rpc, playerId, "level_implausible", { runId: body.runId, need });
+      throw new ApiError(409, "implausible_clear", "Ese resultado no es creíble para el poder de tu héroe y no se registró.");
+    }
   }
   const stage = resultFromWins(hero as Character, fights, wins);
   const cleared = stage.status === "cleared";

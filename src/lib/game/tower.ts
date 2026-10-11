@@ -106,11 +106,7 @@ export function towerHero(
   characterId: string | null,
   classId: ClassId,
   element: Element | null,
-  seed: number,
-  playerId: string,
 ): Character | null {
-  void seed;
-  void playerId;
   if (mode === "nivelado") {
     if (
       !(CLASS_IDS as readonly string[]).includes(classId) ||
