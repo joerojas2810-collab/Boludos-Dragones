@@ -229,6 +229,14 @@ body:not([data-art="pixel"]) .stage-hero {
   height: var(--s);
   margin-bottom: 4cqh;
 }
+/* Keep a solo boss's stat/intent card in the open lane between the hero and boss. */
+@media (min-width: 768px) {
+  .stage-foes[data-boss][data-n="1"] .stage-enemy-hud {
+    inset-inline: auto;
+    right: calc(100% + 0.75rem);
+    width: min(22rem, 38cqw);
+  }
+}
 /* Match common painted bodies to the hero's visible height, excluding transparent padding.
    Production upright poses occupy about 72% of their canvas. Bosses retain their larger scale. */
 body:not([data-art="pixel"]) .stage-foes:not([data-boss]) {

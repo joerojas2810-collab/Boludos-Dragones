@@ -175,17 +175,26 @@ function ActionButton({
   meta?: string;
   disabledReason?: string;
 }) {
+  const compactReason = disabledReason?.startsWith("Este enemigo no tiene Aguante")
+    ? "Sin Aguante"
+    : disabledReason?.startsWith("No hay una Canalización")
+      ? "Sin canalización"
+      : disabledReason?.startsWith("Requiere Escarcha")
+        ? "Sin estado"
+        : disabledReason?.startsWith("Recarga:")
+          ? "En recarga"
+          : disabledReason;
   if (chip)
     return (
       <Tooltip tip={tip} className="block min-w-0">
-        <button className="cmd-chip !h-auto min-h-[6rem] w-full flex-col gap-0.5 px-1 py-1 text-center disabled:!opacity-80" data-hot={hot ? "" : undefined} disabled={disabled} onClick={onClick}>
-          {icon && <Icon name={icon} className="h-5 shrink-0" />}
-          <span className="min-w-0 break-words text-center [overflow-wrap:anywhere]">
-            <span className="block whitespace-normal text-xs font-bold leading-tight">{title}</span>
-            <span className={`block whitespace-normal text-[10px] leading-tight ${disabled ? "text-[#fff1d0]" : "text-[#aebccb]"}`}>{sub}</span>
-            {meta && <span className="block whitespace-normal text-[9px] leading-tight text-[#d9d2ca]">{meta}</span>}
-            {disabledReason && <span className="block whitespace-normal text-[9px] leading-tight text-amber-200">{disabledReason}</span>}
+        <button className="cmd-chip !h-auto min-h-[4.25rem] w-full flex-col gap-0.5 px-1 py-1 text-center disabled:!opacity-80" data-hot={hot ? "" : undefined} disabled={disabled} onClick={onClick}>
+          <span className="flex min-w-0 items-center justify-center gap-1">
+            {icon && <Icon name={icon} className="h-4 shrink-0" />}
+            <span className="min-w-0 whitespace-nowrap text-xs font-bold leading-tight">{title}</span>
           </span>
+          <span className={`block max-w-full truncate whitespace-nowrap text-[10px] leading-tight ${disabled ? "text-[#fff1d0]" : "text-[#d9d2ca]"}`} title={sub}>{sub}</span>
+          {meta && <span className="block max-w-full truncate whitespace-nowrap text-[9px] leading-tight text-[#d9d2ca]" title={meta}>{meta}</span>}
+          {compactReason && <span className="block max-w-full truncate whitespace-nowrap text-[9px] leading-tight text-amber-200" title={disabledReason}>{compactReason}</span>}
         </button>
       </Tooltip>
     );
@@ -404,7 +413,7 @@ export function ActionPanel({
                 </div>
               </Tooltip>
               {alive.length > 1 && <div className="text-[11px] text-yellow-300">Objetivo: {foe.char.name}</div>}
-              <div className="mt-1 w-[min(22rem,28vw)]">
+              <div className="mt-1 w-[min(18rem,22vw)]">
                 <RoundQueue b={b} />
               </div>
             </div>

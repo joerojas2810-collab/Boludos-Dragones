@@ -59,13 +59,14 @@ export function SoundControls({ compact = false }: { compact?: boolean }) {
   return (
     <div ref={rootRef} className={`relative inline-flex ${compact ? "w-full" : ""}`}>
       <button
-        className={compact ? "btn btn-gray mt-2 w-full text-center" : "shell-icon"}
+        className={compact ? "btn btn-gray !h-auto !min-h-0 !px-2 !py-0.5 text-center leading-none" : "shell-icon"}
         type="button"
         aria-expanded={open}
         aria-label="Ajustes de sonido"
+        title="Ajustes de sonido"
         onClick={() => setOpen(!open)}
       >
-        {compact ? "Ajustes de sonido" : audio.muted ? "🔇" : "🔊"}
+        {audio.muted ? "🔇" : "🔊"}
       </button>
       {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-56 max-w-[calc(100vw-2rem)] rounded-xl border border-white/15 bg-slate-950/95 p-4 text-left shadow-xl">
