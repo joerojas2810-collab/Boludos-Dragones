@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { AtlasSheet } from "./AtlasSheet";
+import type { SpriteAtlas } from "@/lib/art/atlas-frame";
 
 export type SheetAnim = {
   src: string; // horizontal strip: one row, `frames` equal cells
@@ -8,6 +10,7 @@ export type SheetAnim = {
   fps: number;
   loop: boolean; // false = play once and hold the last frame
   aspect?: number; // cell width / height (default 1)
+  atlas?: SpriteAtlas; // Optional irregular frame rectangles for painted production sheets.
 };
 
 // Plays a one-row sprite sheet. The cell fills the width of the box; `key` the
@@ -22,9 +25,9 @@ type Props = {
 };
 
 // Keyed by src so a new animation always restarts at frame 0.
-export const AnimSheet = (props: Props) => (
-  <Sheet key={props.anim.src} {...props} />
-);
+export const AnimSheet = (props: Props) => props.anim.atlas
+  ? <AtlasSheet key={props.anim.src + JSON.stringify(props.anim.atlas.frameRects)} {...props} anim={{ ...props.anim, atlas: props.anim.atlas }} />
+  : <Sheet key={props.anim.src} {...props} />;
 
 function Sheet({ anim, flip = false, className = "", onDone, last, shift }: Props) {
   const { frames, fps, loop } = anim;

@@ -1,10 +1,12 @@
-import { ELEMENT_ART } from "@/lib/art";
+import { ELEMENT_ART } from "../art";
+import { DUNGEON_THEMES } from "../game/levels";
 import { isPixel } from "./pixel";
 import type { Element } from "@/lib/game/elements";
 import type { EnemyFamily } from "@/lib/game/worlds";
 import type { SheetAnim } from "@/components/AnimSheet";
 import { ENEMY_ANIMS, FINAL_BOSS_BY_RANK } from "./enemies.generated";
 import pixelEnemies from "./pixel-enemies.generated.json";
+import paintedVillains from "./painted-villains.generated.json";
 
 // Native dimensions are imported independently of the heroes. Entrance is boss-only.
 export const PX_FRAME_HEIGHT = pixelEnemies.frame_height;
@@ -19,6 +21,9 @@ export const PX_ACTIONS = {
 
 export type EnemyAction = "idle" | "attack" | "hit" | "defeat" | "entrance";
 export type EnemyTier = "normal" | "elite" | "boss";
+export const PAINTED_FINAL_BOSS_BY_RANK:Record<string,string>=Object.fromEntries(
+  Object.entries(DUNGEON_THEMES).map(([rank,theme])=>[rank,`boss_${theme.bossId}`]),
+);
 
 const FAMILY_ART: Record<EnemyFamily, string> = {
   limo: "slime",
@@ -36,17 +41,21 @@ export function enemyAnim(
   element: Element,
   action: EnemyAction,
   finalRank?: string | null,
+  artStyle?: "painted" | "pixel",
 ): SheetAnim {
   const design =
     (tier === "boss" && finalRank && FINAL_BOSS_BY_RANK[finalRank]) ||
     `enemy_${FAMILY_ART[family]}_${tier}`;
   const e = ELEMENT_ART[element];
-  if (isPixel()) {
+  if (artStyle ? artStyle === "pixel" : isPixel()) {
     const a = action === "entrance" && tier !== "boss" ? "idle" : action;
     return { src: `/art/enemies-px/${design}_${e}_${a}.png`, ...PX_ACTIONS[a], aspect: PX_ASPECT };
   }
-  let name = `${design}_${e}_${action}`;
-  if (!ENEMY_ANIMS[name]) name = `${design}_${e}_idle`; // e.g. entrance on a non-boss
+  const paintedDesign=(tier==="boss"&&finalRank&&PAINTED_FINAL_BOSS_BY_RANK[finalRank])||design;
+  let name = `${paintedDesign}_${e}_${action}`;
+  if (!ENEMY_ANIMS[name]) name = `${paintedDesign}_${e}_idle`; // e.g. entrance on a non-boss
+  const updated=(paintedVillains as Record<string,SheetAnim>)[name];
+  if(updated)return updated;
   const m = ENEMY_ANIMS[name];
   return {
     src: `/art/enemies/${name}.webp`,

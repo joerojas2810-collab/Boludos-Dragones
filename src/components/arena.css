@@ -149,6 +149,7 @@
 .stage {
   container-type: size;
   --hs: min(68cqh, 40cqw);
+  --painted-reference-frame: min(calc(var(--hs) * 1.15), calc(min(12.5rem, 44cqw) / var(--painted-width, 0.52)));
 }
 .stage-hero {
   width: var(--hs);
@@ -175,7 +176,10 @@ body:not([data-art="pixel"]) .stage-hero {
 .stage-foes[data-n="3"] { --es: 1.15; --s: min(56cqh, 22cqw, 100cqh - 8rem); }
 /* 3 foes: shrink the hero a bit so the bigger foes do not overlap it (md+). */
 @media (min-width: 768px) {
-  .stage { --hs: min(58cqh, 28cqw); }
+  .stage {
+    --hs: min(58cqh, 28cqw);
+    --painted-reference-frame: min(calc(var(--hs) * 1.15), calc(min(16rem, 26cqw) / var(--painted-width, 0.52)));
+  }
   .stage-player-hud { width: min(16rem, 26cqw); }
   .stage-hero,
   body:not([data-art="pixel"]) .stage-hero {
@@ -225,6 +229,15 @@ body:not([data-art="pixel"]) .stage-hero {
   height: var(--s);
   margin-bottom: 4cqh;
 }
+/* Match common painted bodies to the hero's visible height, excluding transparent padding.
+   Production upright poses occupy about 72% of their canvas. Bosses retain their larger scale. */
+body:not([data-art="pixel"]) .stage-foes:not([data-boss]) {
+  --es: 1;
+}
+body:not([data-art="pixel"]) .stage-foes:not([data-boss]) .stage-foe-art {
+  width: min(var(--s), calc(var(--painted-reference-frame) * var(--painted-height, 0.607) / 0.72));
+  height: min(var(--s), calc(var(--painted-reference-frame) * var(--painted-height, 0.607) / 0.72));
+}
 @media (max-width: 767px) {
   .stage { --hs: min(46cqh, 44cqw); }
   .stage-player-hud { width: 30cqw; }
@@ -248,6 +261,7 @@ body:not([data-art="pixel"]) .stage-hero {
   .stage-foes[data-n="2"] { --s: min(44cqh, 38cqw); }
   .stage-foes[data-n="3"] { --es: 1.1; --s: min(36cqh, 31cqw); }
   .stage:has(.stage-foes[data-n="3"]) { height: 31rem; }
+  body:not([data-art="pixel"]) .stage:has(.stage-foes[data-n="3"]) { --hs: 30cqh; }
   .stage:has(.stage-foes[data-n="3"]) .stage-hero {
     --hs: 30cqh;
     bottom: 4cqh;
