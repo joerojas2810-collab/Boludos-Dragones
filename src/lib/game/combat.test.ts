@@ -116,20 +116,20 @@ describe("multi-action rounds", () => {
     expect(pendingIntents(slow)).toHaveLength(2);
   });
 
-  it("ticks cooldown and regen once per round, not per action", () => {
+  it("ticks universal cooldowns by own activations and regen at round end", () => {
     let b = withRound(fastClerigo(), false, ["attack1"], 2);
     b = { ...b, player: { ...b.player, hp: 100 } };
-    b = step(b, "attack2", never);
+    b = step(b, "golpe", never);
     expect(b.turn).toBe(1);
     expect(actionsLeft(b)).toBe(1);
-    expect(b.player.cooldown).toBe(3);
+    expect(b.player.universalCooldowns?.golpe).toBeCloseTo(1.7);
     expect(b.log.some((l) => l.includes("se recupera"))).toBe(false);
-    // attack2 is locked for the second action
-    expect(step(b, "attack2", never)).toBe(b);
+    // Golpe is locked until enough later own activations pass.
+    expect(step(b, "golpe", never)).toBe(b);
     const hpBefore = b.player.hp;
     b = step(b, "attack1", never);
     expect(b.turn).toBe(2);
-    expect(b.player.cooldown).toBe(2);
+    expect(b.player.universalCooldowns?.golpe).toBeCloseTo(0.85);
     expect(b.player.hp).toBeGreaterThan(hpBefore);
     expect(b.log.filter((l) => l.includes("se recupera"))).toHaveLength(1);
     expect(b.log.filter((l) => l.includes("— Ronda 2 —"))).toHaveLength(1);
@@ -267,7 +267,7 @@ describe("determinism and serialization", () => {
       rng,
     );
     for (let i = 0; i < 200 && b.status === "ongoing"; i++)
-      b = step(b, i % 3 === 0 ? "attack2" : "attack1", rng);
+      b = step(b, i % 3 === 0 ? "golpe" : "attack1", rng);
     return b;
   };
   it("same seed -> same log", () => {

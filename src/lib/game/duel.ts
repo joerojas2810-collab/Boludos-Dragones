@@ -1,29 +1,25 @@
 // 1v1 duel between two heroes (rooms). Both sides pick an action in secret and
 // the round resolves at once. Reuses the combat primitives (strike, damage,
 // cooldowns); there is no announced intent, so the perfect guard is a guess:
-// Defender while the rival throws Ataque 2. Pure and deterministic.
+// Defender while the rival chooses Golpe. Pure and deterministic.
 import {
   actionCounts,
   ENRAGE_AFTER_TURN,
   ENRAGE_STEP,
-  healMult,
+  classHeal,
   earnGuard,
-  guardFree,
   speedOf,
   statusTick,
-  isStrongIntent,
   passiveHeal,
-  skillOf,
   strike,
   type Action,
   type BattleEvent,
   type Combatant,
-  counterStatuses,
 } from "./combat";
 import { CLASSES, type Character, type ClassId } from "./characters";
 import type { Element } from "./elements";
 import type { Rng } from "./rng";
-import { COUNTER_REFLECT, COUNTER_ROUNDS, COUNTER_TAKEN, SKILLS_BY_CLASS, type SkillId } from "./skills";
+import { UNIVERSAL_COOLDOWN_CONVERSION, UNIVERSAL_SKILLS } from "./universalSkills";
 
 export const DUEL_MAX_TURN = 60; // hard cap; the higher hp fraction wins
 export type DuelStatus = "ongoing" | "a" | "b" | "draw";
@@ -56,7 +52,6 @@ export const DUEL_TUNE: Record<ClassId, { hp: number; atk: number }> = {
 export function balancedHero(
   classId: ClassId,
   element: Element,
-  skill: SkillId = SKILLS_BY_CLASS[classId][0],
 ): Character {
   const t = CLASSES[classId];
   return {
@@ -72,7 +67,6 @@ export function balancedHero(
     catchphrase: "",
     level: 1,
     xp: 0,
-    skill,
   };
 }
 
@@ -80,6 +74,7 @@ const fresh = (char: Character): Combatant => ({
   char,
   hp: char.stats.hp,
   cooldown: 0,
+  universalCooldowns: {},
   defending: false,
 });
 
@@ -96,9 +91,11 @@ export const startDuel = (a: Character, b: Character): Duel => ({
 
 /** Whether `act` can be used now. */
 export function canAct(c: Combatant, act: Action): boolean {
-  if (act === "attack2") return c.cooldown <= 0;
-  if (act === "attack3") return !!skillOf(c) && (c.cooldown3 ?? 0) <= 0;
-  return true;
+  if (act in UNIVERSAL_SKILLS) {
+    const skill = UNIVERSAL_SKILLS[act as keyof typeof UNIVERSAL_SKILLS];
+    return skill.enabled && (c.universalCooldowns?.[skill.id] ?? 0) <= 1e-9;
+  }
+  return act === "attack1" || act === "defend";
 }
 
 /** Missing (timeout) or illegal picks become Defender. */
@@ -118,20 +115,23 @@ export function duelRound(
   if (d.status !== "ongoing") return d;
   const log: string[] = [];
   const events: BattleEvent[] = [];
-  const s: Record<DuelSide, Combatant> = { a: { ...d.a }, b: { ...d.b } };
+  const resolutionReady = { a: !!d.a.resolution, b: !!d.b.resolution };
+  const s: Record<DuelSide, Combatant> = {
+    a: { ...d.a, resolution: undefined },
+    b: { ...d.b, resolution: undefined },
+  };
   const pick: Record<DuelSide, Action> = {
     a: sanitize(d.a, pickA),
     b: sanitize(d.b, pickB),
   };
   const guard = { a: false, b: false };
 
-  // Stances first: a perfect guard needs the rival's Ataque 2 in the same round.
+  // In a duel, Golpe is the announced-strength equivalent for perfect guard.
   for (const x of ["a", "b"] as const) {
-    const sk = pick[x] === "attack3" ? skillOf(s[x]) : undefined;
-    if (pick[x] !== "defend" && !sk?.guard) continue;
+    if (pick[x] !== "defend") continue;
     s[x].defending = true;
     if (pick[x] === "defend") log.push(`${s[x].char.name} se defiende.`);
-    if (isStrongIntent(pick[other(x)])) {
+    if (pick[other(x)] === "golpe") {
       s[x] = earnGuard(s[x], log);
       guard[x] = true;
     }
@@ -160,56 +160,45 @@ export function duelRound(
     if (key === "defend") return;
     const y = other(x);
     const actor = x === "a" ? "player" : "enemy";
-    const sk = key === "attack3" ? skillOf(s[x]) : undefined;
     let att = s[x];
     let def = s[y];
-    const free = guardFree(att) && key !== "attack1"; // Berserker guard bonus
-    const keepGuard = guardFree(att) && key === "attack1";
-    if (sk && sk.power === 0) {
-      const m = att.char.stats.hp;
-      const bits: string[] = [];
-      if (sk.heal) {
-        const hp = Math.min(m, att.hp + Math.round(m * sk.heal * healMult(att)));
-        bits.push(`recupera ${hp - att.hp} de vida`);
-        att = { ...att, hp };
-      }
-      if (sk.shield) {
-        const sh = Math.round(m * sk.shield);
-        att = { ...att, shield: (att.shield ?? 0) + sh };
-        bits.push(`gana un escudo de ${sh}`);
-      }
-      if (sk.counter) {
-        att = { ...att, reflect: COUNTER_ROUNDS };
-        const taken = att.taken ?? 0;
-        if (taken > 0 && s[y].hp > 0) {
-          // The rival already hit this round: the hit is returned right now.
-          const back = Math.round((taken / COUNTER_TAKEN) * COUNTER_REFLECT);
-          s[y] = { ...s[y], hp: Math.max(0, s[y].hp - back), statuses: counterStatuses(att, s[y]) };
-          att = { ...att, taken: 0 };
-          bits.push(`devuelve ${back} a ${s[y].char.name}`);
-        } else bits.push("se prepara para devolver el próximo golpe");
-      }
-      if (sk.guard) bits.push("se protege");
-      log.push(`${att.char.name} usa ${sk.name}: ${bits.join(" y ")}.`);
-      events.push({
-        actor,
-        kind: "buff",
-        classId: att.char.classId,
-        move: "attack3",
-        enemy: 0,
-      });
-      s[x] = { ...att, cooldown3: sk.cooldown + 1 };
-      return;
+    const cooldownDiscount =
+      key !== "attack1" && att.char.classId === "berserker" && att.riposte ? 1 : 0;
+    let factor = 1;
+    if (key === "golpe") {
+      if (att.char.classId === "caballero" && resolutionReady[x]) factor *= 1.15;
+      if (att.char.classId === "mago" && def.statuses?.length) factor *= 1.15;
+      if (att.char.classId === "picaro" && def.exposed) factor *= 1.2;
+      if (att.char.classId === "berserker" && att.hp < att.char.stats.hp * 0.5) factor *= 1.2;
+    } else if (key === "barrido") {
+      if (att.char.classId === "mago" && def.statuses?.length) factor *= 1.1;
+      if (att.char.classId === "picaro") factor *= 1.1;
+      if (att.char.classId === "berserker" && att.hp < att.char.stats.hp * 0.5) factor *= 1.1;
     }
-    let dealt = 0;
-    for (let h = 0; h < (sk?.hits ?? 1) && def.hp > 0 && att.hp > 0; h++) {
-      const r = strike(att, def, key, rng, log, events, actor, 0, 1, true);
-      att = r.attacker;
-      def = r.defender;
-      dealt += r.dmg;
+    const eventCount = events.length;
+    const r = strike(att, def, key, rng, log, events, actor, 0, factor, true);
+    att = r.attacker;
+    def = r.defender;
+    const landed = events.length > eventCount && events.at(-1)?.kind !== "miss";
+    if (landed && att.char.classId === "clerigo") {
+      const before = att.hp;
+      att = classHeal(att, 0.01);
+      const heal = att.hp - before;
+      if (heal) log.push(`${att.char.name} recupera ${heal} de vida.`);
     }
-    if (sk) att = { ...att, cooldown3: sk.cooldown + 1 - (free ? 1 : 0) };
-    if (dealt > 0 && !keepGuard)
+    if (key === "golpe" && att.char.classId === "caballero" && resolutionReady[x])
+      log.push(`${att.char.name} consume Resolución: +15 % de daño.`);
+    if (key === "golpe" || key === "barrido") {
+      att = {
+        ...att,
+        universalCooldowns: {
+          ...att.universalCooldowns,
+          [key]: Math.max(0, UNIVERSAL_SKILLS[key].cooldown - cooldownDiscount) * UNIVERSAL_COOLDOWN_CONVERSION,
+        },
+      };
+      if (cooldownDiscount) att = { ...att, riposte: false };
+    }
+    if (r.dmg > 0 && !(key === "attack1" && att.char.classId === "berserker" && att.riposte))
       att = { ...att, riposte: false };
     s[x] = att;
     s[y] = def;
@@ -217,8 +206,8 @@ export function duelRound(
 
   let status: DuelStatus = "ongoing";
   for (const { x, k } of slots) {
-    // A pure Defender gives up the round; a guard skill still plays its slot 0.
     if (pick[x] === "defend") continue;
+    if (k > 0) s[x] = { ...s[x], resolution: undefined, nextHitReduction: undefined };
     if (k > 0) log.push(`${s[x].char.name} actúa de nuevo.`);
     play(x, k === 0 ? pick[x] : "attack1");
     status = decide(s.a, s.b);
@@ -231,15 +220,21 @@ export function duelRound(
 
   // End of round: stances drop, cooldowns tick, passive heal, enrage, hard cap.
   const turn = d.turn + 1;
-  const end = (c: Combatant): Combatant => {
+  const end = (c: Combatant, side: DuelSide): Combatant => {
     let n: Combatant = {
       ...c,
       defending: false,
       guard: false,
       cooldown: Math.max(0, c.cooldown - 1),
-      cooldown3: Math.max(0, (c.cooldown3 ?? 0) - 1),
-      reflect: Math.max(0, (c.reflect ?? 0) - 1),
-      taken: 0,
+      universalCooldowns: Object.fromEntries(
+        Object.entries(c.universalCooldowns ?? {}).map(([id, value]) => [
+          id,
+          Math.max(0, value - UNIVERSAL_COOLDOWN_CONVERSION * Math.max(0, used[side] - (pick[side] in UNIVERSAL_SKILLS ? 1 : 0))),
+        ]),
+      ),
+      nextHitReduction: undefined,
+      classHealThisRound: 0,
+      classShieldThisRound: 0,
     };
     n = statusTick(passiveHeal(n, log), log);
     if (turn > ENRAGE_AFTER_TURN) {
@@ -254,8 +249,8 @@ export function duelRound(
     }
     return n;
   };
-  const a = end(s.a);
-  const b = end(s.b);
+  const a = end(s.a, "a");
+  const b = end(s.b, "b");
   status = decide(a, b);
   if (turn > DUEL_MAX_TURN) {
     const fa = a.hp / a.char.stats.hp;

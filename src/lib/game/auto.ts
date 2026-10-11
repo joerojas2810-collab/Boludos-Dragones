@@ -3,13 +3,13 @@
 // fight replays to exactly the same result everywhere. No randomness here; the
 // only RNG is the one `step` already consumes.
 import {
+  classHeal,
   enemyIntents,
   estimateDamage,
   hitChance,
   isStrongIntent,
   livingEnemies,
   pendingIntents,
-  skillOf,
   step,
   strongPending,
   type Action,
@@ -33,7 +33,7 @@ export interface AutoPick {
 
 export interface AutoOptions {
   guard?: boolean; // use Defender against announced strong hits (default on)
-  skill?: boolean; // use the class skill (default on)
+  useUniversalSkills?: boolean; // consider Golpe/Barrido (default on)
 }
 
 const ev = (att: Combatant, def: Combatant, key: MoveKey) =>
@@ -75,61 +75,54 @@ export function autoPolicy(b: Battle, opts: AutoOptions = {}): AutoPick {
   const maxHp = p.char.stats.hp;
   const alive = livingEnemies(b);
   const useGuard = opts.guard ?? true;
-  const useSkill = opts.skill ?? true;
+  const useUniversalSkills = opts.useUniversalSkills ?? true;
 
   const strongEv = incoming(b, (k) => isStrongIntent(k as MoveKey));
   if (useGuard && strongPending(b) && strongEv >= p.hp * AUTO_GUARD_FRAC)
     return { action: "defend" };
 
-  // Single-target moves aim at the target chosen for Ataque 1 / Ataque 2.
   const t1 = bestTarget(b, "attack1");
   const e1 = b.enemies[alive[t1]];
   const a1 = ev(p, e1, "attack1");
-  const t2 = bestTarget(b, "attack2");
-  const a2 = ev(p, b.enemies[alive[t2]], "attack2");
-
-  const skill = skillOf(p);
-  if (useSkill && skill && (p.cooldown3 ?? 0) === 0) {
-    const deficit = maxHp - p.hp;
-    const hurt = incoming(b);
-    const top = pendingIntents(b).reduce(
-      (m, s) =>
-        s.intent === "defend"
-          ? m
-          : Math.max(m, ev(b.enemies[s.e], p, s.intent)),
-      0,
-    );
-    const base = Math.max(a1, p.cooldown > 0 ? 0 : a2);
-    let value = 0;
-    let target: number | undefined;
-    if (skill.power === 0) {
-      value =
-        (skill.counter ? top * 1.5 : 0) +
-        (skill.shield ? Math.min(skill.shield * maxHp, hurt) : 0) +
-        (skill.heal ? Math.min(skill.heal * maxHp, deficit) : 0) +
-        (skill.guard ? hurt * 0.4 : 0);
-      // Utility skills trade an attack for safety: only when it is needed.
-      if (hurt < p.hp * 0.15 && deficit < maxHp * 0.3) value = 0;
-    } else if (skill.area) {
-      value = alive.reduce((s, i) => s + ev(p, b.enemies[i], "attack3"), 0);
-    } else {
-      const t3 = bestTarget(b, "attack3");
-      target = t3;
-      value =
-        ev(p, b.enemies[alive[t3]], "attack3") * (skill.hits ?? 1) +
-        (skill.lifesteal
-          ? skill.lifesteal *
-            ev(p, b.enemies[alive[t3]], "attack3") *
-            Math.min(1, deficit / (maxHp * 0.5))
-          : 0);
+  if (useUniversalSkills) {
+    let bestSkill: AutoPick | null = null;
+    let bestSkillValue = -1;
+    const golpeTarget = bestTarget(b, "golpe");
+    const golpeFoe = b.enemies[alive[golpeTarget]];
+    const clericHealUtility = (fraction: number) =>
+      p.char.classId === "clerigo"
+        ? Math.max(0, classHeal(p, fraction).hp - p.hp) * 0.7
+        : 0;
+    let golpeFactor = 1;
+    if (p.char.classId === "caballero" && p.resolution) golpeFactor *= 1.15;
+    if (p.char.classId === "mago" && golpeFoe.statuses?.length) golpeFactor *= 1.15;
+    if (p.char.classId === "picaro" && golpeFoe.exposed) golpeFactor *= 1.2;
+    if (p.char.classId === "berserker" && p.hp < maxHp * 0.5) golpeFactor *= 1.2;
+    const golpeValue = ev(p, golpeFoe, "golpe") * golpeFactor + clericHealUtility(0.01);
+    if ((p.universalCooldowns?.golpe ?? 0) <= 1e-9) {
+      bestSkill = { action: "golpe", target: golpeTarget };
+      bestSkillValue = golpeValue;
     }
-    // Slightly above the plain attack: the skill has a cooldown, use it.
-    if (value > base * 1.05) return { action: "attack3", target };
-  }
 
-  const heals = p.char.classId === "clerigo";
-  if (p.cooldown === 0 && (heals ? p.hp < maxHp * 0.6 : a2 > a1))
-    return { action: "attack2", target: t2 };
+    const barridoValue = alive.reduce((sum, i) => {
+      const foe = b.enemies[i];
+      let factor = 1;
+      if (p.char.classId === "mago" && foe.statuses?.length) factor *= 1.1;
+      if (p.char.classId === "picaro" && alive.length === 1) factor *= 1.1;
+      if (p.char.classId === "berserker" && p.hp < maxHp * 0.5) factor *= 1.1;
+      return sum + ev(p, foe, "barrido") * factor;
+    }, 0);
+    const clericHealValue = clericHealUtility(Math.min(0.03, alive.length * 0.01));
+    const knightGuardValue = p.char.classId === "caballero" && alive.length >= 2
+      ? incoming(b) * 0.1
+      : 0;
+    const barridoUtility = barridoValue + clericHealValue + knightGuardValue;
+    if ((p.universalCooldowns?.barrido ?? 0) <= 1e-9 && barridoUtility > bestSkillValue) {
+      bestSkill = { action: "barrido" };
+      bestSkillValue = barridoUtility;
+    }
+    if (bestSkill && bestSkillValue > a1 * 1.05) return bestSkill;
+  }
   return { action: "attack1", target: t1 };
 }
 

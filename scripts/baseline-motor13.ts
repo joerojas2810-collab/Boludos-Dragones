@@ -13,7 +13,6 @@ import { levelCap } from "../src/lib/game/heroLevel";
 import { LEVELS_PER_RANK, levelsOf } from "../src/lib/game/levels";
 import { itemRankOf, DUNGEON_IDS, scaleStats, type DungeonId, type RarityId } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
-import { heroSkill } from "../src/lib/game/skills";
 import { ENGINE_VERSION, createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
 import { CLASS_WEAPONS, GEAR_TYPES, weaponAtk } from "../src/lib/game/weapons";
 
@@ -66,7 +65,6 @@ function makeHero(classId: ClassId, element: Element, rank: DungeonId, run: numb
     rarity: heroRank,
     stars: STARS,
     level: Math.min(LEVEL, levelCap(STARS)),
-    skill: heroSkill(classId),
     stats: {
       ...geared,
       atk: Math.round((geared.atk + weaponAtk(heroRank, 0, CLASS_WEAPONS[classId][0])) * 10) / 10,

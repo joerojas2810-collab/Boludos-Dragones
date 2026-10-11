@@ -47,12 +47,6 @@ import type { Rng } from "./rng";
 import { dayKey, isDayKey, type DailyState } from "./streak";
 import { dayPayMult } from "./economy";
 import { addHeroXp, gapMult, levelCap } from "./heroLevel";
-import {
-  heroSkill,
-  isSkillId,
-  SKILLS_BY_CLASS,
-  type SkillId,
-} from "./skills";
 import { TRAIT_IDS, type TraitId } from "./traits";
 import {
   generateWeapon,
@@ -576,26 +570,6 @@ export function bankLevel(p: Profile, r: LevelResult): LevelBank {
   return { profile: q, cleared, repeat, coins, chest, xp, levelsGained, newLevel };
 }
 
-// Saves the hero's third-skill pick. null when not allowed.
-export function chooseHeroSkill(
-  p: Profile,
-  ownedId: string,
-  skillId: SkillId,
-): Profile | null {
-  const c = p.characters.find((x) => x.id === ownedId);
-  if (
-    !c ||
-    !SKILLS_BY_CLASS[c.classId].includes(skillId)
-  )
-    return null;
-  return {
-    ...p,
-    characters: p.characters.map((x) =>
-      x.id === ownedId ? { ...x, skill: skillId } : x,
-    ),
-  };
-}
-
 export const charactersOfClass = (p: Profile, classId: ClassId) =>
   p.characters.filter((c) => c.classId === classId);
 
@@ -607,7 +581,6 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
   if (!c) return null;
   const level = Math.min(Math.max(1, c.level), levelCap(c.stars));
   const stats = scaleStats(c.stats, c.rarity, c.stars, level);
-  const skill = heroSkill(c.classId, c.skill);
   const w = p.weapons.find((x) => x.id === p.equipped[c.id]);
   const worn = GEAR_TYPES.flatMap((t) => {
     const g = p.weapons.find((x) => x.id === p.equipped[slotKey(c.id, t)]);
@@ -631,7 +604,6 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
     return {
       ...c,
       level,
-      skill,
       stats: geared,
       ...(hasGear ? { gear } : {}),
     };
@@ -640,7 +612,6 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
   return {
     ...c,
     level,
-    skill,
     ...(hasGear ? { gear } : {}),
     stats: {
       ...geared,
@@ -740,11 +711,6 @@ function parseCharacter(v: unknown, legacyAll: boolean): OwnedCharacter | null {
     stars: nat(v.stars, MAX_STARS),
     ...(copies.length ? { copies } : {}),
     ...(legacyAll || v.legacy === true ? { legacy: true } : {}),
-    ...(typeof v.skill === "string" &&
-    isSkillId(v.skill) &&
-    SKILLS_BY_CLASS[classId].includes(v.skill)
-      ? { skill: v.skill }
-      : {}),
   };
 }
 

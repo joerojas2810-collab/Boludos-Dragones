@@ -7,6 +7,7 @@ Nomenclatura: en pantalla "Ataque 2" = habilidad de clase y "Ataque 3" = especia
 - Todo azar por `rng.ts`; sin `Math.random()`, sin `Math.pow`/`**` en la lógica del motor (tablas precalculadas).
 - `ENGINE_VERSION` sube a **14** en el paso 3a y no vuelve a subir en 3b–3d de esta etapa.
 - Balance: simulaciones con `scripts/baseline-motor13.ts` y `scripts/compare-e2.ts` como referencia. Los números iniciales de `COMBATE_V2.md` son de partida; los ajustes se justifican con simulación y se documentan.
+- Desde 3c, `scripts/compare-e2.ts` es histórico y queda retirado; la comparación vigente es `scripts/sim-stage3.ts` contra `scripts/baseline/motor13.json`.
 - Tests que fijan valores del motor 13 se actualizan **con el motivo explicado** en el commit.
 - Sin SQL, sin push, sin merge a `main`.
 

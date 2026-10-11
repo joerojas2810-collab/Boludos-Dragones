@@ -9,7 +9,6 @@ import { applyGear, gearBonus, rollGear } from "../src/lib/game/gear";
 import { levelsOf } from "../src/lib/game/levels";
 import { itemRankOf, DUNGEON_IDS, scaleStats, type DungeonId } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
-import { heroSkill } from "../src/lib/game/skills";
 import { RANK_TUNE, createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
 import { CLASS_WEAPONS, GEAR_TYPES, weaponAtk } from "../src/lib/game/weapons";
 
@@ -25,7 +24,7 @@ function hero(tier: DungeonId, seed: number) {
   const pieces = GEAR_TYPES.map((type) => ({ type, rarity: rank, stars: 0, element: c.element, ...rollGear(rng, type, rank) }));
   const base = scaleStats(c.stats, rank, STARS, LEVEL);
   const g = applyGear(base, gearBonus(pieces));
-  return { ...c, rarity: rank, stars: STARS, level: LEVEL, skill: heroSkill(c.classId), stats: { ...g, atk: Math.round((g.atk + weaponAtk(rank, 0, CLASS_WEAPONS[c.classId][0])) * 10) / 10 } };
+  return { ...c, rarity: rank, stars: STARS, level: LEVEL, stats: { ...g, atk: Math.round((g.atk + weaponAtk(rank, 0, CLASS_WEAPONS[c.classId][0])) * 10) / 10 } };
 }
 
 function rate(rank: DungeonId): number {

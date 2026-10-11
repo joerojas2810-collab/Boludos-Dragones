@@ -2,6 +2,8 @@
 
 **Estado:** contrato para el programador (ChatGPT/Codex). Rama `v2-e2` (desde `v2`). Diseño: `COMBATE_V2.md` §3 y §4. **Es un prototipo aislado: no se conecta al juego, no cambia `combat.ts` ni `ENGINE_VERSION`.** Objetivo: demostrar (o descartar) que un modelo de progreso por activaciones reproduce el balance del motor 13 antes de construir nada encima. Si no lo logra, se **aborta** y se replantea (decisión del dueño).
 
+**Nota de vigencia:** el prototipo `scripts/compare-e2.ts` se retiró al reemplazar las acciones en E3 3c; `docs/E2_RESULTADO.md` conserva su resultado histórico. Para auditar el motor actual se usa `scripts/sim-stage3.ts`.
+
 ## 0. Cómo funciona hoy (verificado en `combat.ts`)
 - Cada ronda: `planRound` calcula, por enemigo, cuántas acciones tiene cada lado (`actionCounts`: el lado más rápido actúa `floor(carry + vel_rápido/vel_lento)` veces, tope `MAX_ACTIONS_PER_ROUND = 3`, el resto se acumula en `carry`) y ordena con `buildQueue` (iniciativa `roll = vel × (0,7 + 0,6·rng)`; `lead` = enemigos que actúan antes del primer turno del héroe).
 - Las intenciones del enemigo se anuncian al inicio de la ronda (`pickIntents`); una guardia perfecta exige que una intención fuerte siga pendiente (`strongPending`).

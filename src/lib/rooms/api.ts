@@ -124,9 +124,8 @@ const duelHero = z.object({
   name: z.string(),
   classId: z.string(),
   element: z.string(),
-  skill: z.string().optional(),
 });
-const duelAction = z.enum(["attack1", "attack2", "attack3", "defend"]);
+const duelAction = z.enum(["attack1", "golpe", "barrido", "quebrar", "interrumpir", "explotar", "defend"]);
 const ab = <T extends z.ZodType>(t: T) => z.object({ a: t, b: t });
 export const duelView = z.object({
   mode: z.enum(["balanceado", "real"]),
@@ -151,8 +150,7 @@ export const duelView = z.object({
           deadlineMs: int,
           hp: ab(int),
           maxHp: ab(int),
-          cooldown: ab(int),
-          cooldown3: ab(int),
+          universalCooldowns: ab(z.record(z.string(), z.number())),
           picked: ab(z.boolean()),
           heroes: ab(duelHero),
           log: z.array(z.string()),

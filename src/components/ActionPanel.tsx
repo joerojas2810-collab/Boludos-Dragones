@@ -8,12 +8,10 @@ import {
   estimateDamage,
   hitChance,
   livingEnemies,
-  skillOf,
   strongPending,
   type EnemySlot,
   type Action,
   type Battle,
-  type MoveKey,
   attackOf,
 } from "@/lib/game/combat";
 import {
@@ -22,9 +20,9 @@ import {
   attackTip,
   autoTip,
   defendTip,
-  skillTip,
   type Tip,
 } from "@/lib/game/explain";
+import { UNIVERSAL_SKILLS, type UniversalSkillId } from "@/lib/game/universalSkills";
 
 type Props = {
   b: Battle;
@@ -203,36 +201,17 @@ export function ActionPanel({
   const mine = b.playerActions;
   const alive = livingEnemies(b);
   const foe = b.enemies[alive[target] ?? alive[0] ?? 0];
-  const skill = skillOf(b.player);
   const perfect = strongPending(b);
 
-  const attack = (k: MoveKey, chip = false) => {
-    const a = k === "attack3" ? null : attackOf(b.player, k);
+  const attack = (k: "attack1" | UniversalSkillId, chip = false) => {
+    const a = attackOf(b.player, k);
     const reason = attackDisabledReason(b.player, k);
-    if (k === "attack3" && !skill)
-      return (
-        <ActionButton
-          chip={chip}
-          left={float}
-          tip={skillTip(b.player, foe)}
-          disabled
-          onClick={() => undefined}
-          title="Ataque 2"
-          sub="Sin habilidad"
-        />
-      );
-    const name = a?.name ?? skill?.name ?? "Ataque 2";
-    const hits = `~${estimateDamage(b.player, foe, k)} daño · ${k === "attack1" ? "seguro" : `${pct(hitChance(b.player, k))} acierto`}`;
-    const stats =
-      k === "attack3" && skill
-        ? skill.power === 0
-          ? skill.blurb
-          : skill.area
-            ? `A todos · ~${estimateDamage(b.player, foe, k)} c/u`
-            : skill.hits && skill.hits > 1
-              ? `${pct(hitChance(b.player, k))} · ~${estimateDamage(b.player, foe, k)} ×${skill.hits}`
-              : hits
-        : hits;
+    const universal = k === "attack1" ? undefined : UNIVERSAL_SKILLS[k];
+    const name = a.name;
+    const damage = estimateDamage(b.player, foe, k);
+    const stats = universal?.target === "all"
+      ? `A todos · ~${damage} c/u · ${pct(hitChance(b.player, k))}`
+      : `~${damage} daño · ${k === "attack1" ? "seguro" : `${pct(hitChance(b.player, k))} acierto`}`;
     return (
       <ActionButton
         chip={chip}
@@ -240,10 +219,7 @@ export function ActionPanel({
         tip={attackTip(b.player, k, foe)}
         disabled={!!reason}
         onClick={() => onAct(k, target)}
-        icon={iconFor(
-          "skill",
-          k === "attack3" ? (skill?.id ?? "") : `${b.player.char.classId}.${k}`,
-        )}
+        icon={iconFor("skill", k === "attack1" ? `${b.player.char.classId}.${k}` : k)}
         title={name}
         sub={reason ?? (a && a.heal > 0 ? `${stats} · cura` : stats)}
       />
@@ -301,8 +277,11 @@ export function ActionPanel({
           className={`grid grid-cols-2 gap-2 ${side ? (float ? "md:grid-cols-2" : "md:grid-cols-1") : "md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]"}`}
         >
           {attack("attack1")}
-          {attack("attack3")}
-          {attack("attack2")}
+          {attack("golpe")}
+          {attack("barrido")}
+          {attack("quebrar")}
+          {attack("interrumpir")}
+          {attack("explotar")}
           <ActionButton
             left={float}
             tip={defendTip(b)}
@@ -365,8 +344,8 @@ export function ActionPanel({
             </div>
             <div className="grid min-w-0 flex-1 grid-cols-4 gap-2.5">
               {attack("attack1", true)}
-              {attack("attack3", true)}
-              {attack("attack2", true)}
+              {attack("golpe", true)}
+              {attack("barrido", true)}
               <ActionButton
                 chip
                 tip={defendTip(b)}

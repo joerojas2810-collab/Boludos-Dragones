@@ -8,7 +8,6 @@ import { missionDeltas } from "../game/missions";
 import { levelLoot, rollDado, type LevelLoot } from "../game/levelLoot";
 import { LEVELS_PER_RANK, levelsOf } from "../game/levels";
 import {
-  chooseHeroSkill,
   heroFromOwned,
   lootOptions,
   migrate,
@@ -32,7 +31,6 @@ import { ascendPiece, starUpPiece, swapPieceRoll } from "../game/pieceGrowth";
 import { upgradePiece } from "../game/upgrade";
 import { DUNGEON_IDS, type DungeonId } from "../game/rarity";
 import { createRng } from "../game/rng";
-import { isSkillId } from "../game/skills";
 import { levelFights, resultFromWins } from "../game/stage";
 import { sweepBlock, sweepStage } from "../game/sweep";
 import {
@@ -929,37 +927,6 @@ export async function sweepLevelService(
   }
 }
 
-// ---- hero skill ----
-
-export async function doChooseSkill(
-  d: Deps,
-  playerId: string,
-  characterId: string,
-  skill: string,
-) {
-  await limit(d.rpc, `skill:${playerId}`, 30, 60);
-  if (!isSkillId(skill))
-    throw new ApiError(400, "invalid_skill", "Esa habilidad no existe.");
-  const me = await loadMe(d.rpc, playerId);
-  if (!chooseHeroSkill(me.profile, characterId, skill))
-    throw new ApiError(
-      409,
-      "skill_locked",
-      "Esa habilidad no está disponible para este héroe.",
-    );
-  try {
-    await call(d.rpc, "choose_hero_skill", {
-      p_player: playerId,
-      p_character_id: characterId,
-      p_skill: skill,
-    });
-  } catch (e) {
-    return mapRpcError(e);
-  }
-  const fresh = await loadMe(d.rpc, playerId);
-  return { profile: fresh.profile };
-}
-
 // ---- hero fusion ----
 
 // The heroes that differ between two profiles, as the rows apply_hero_change writes: whole hero
@@ -979,7 +946,6 @@ function heroChange(before: Profile, after: Profile) {
         stars: c.stars,
         level: c.level,
         xp: c.xp,
-        skill: c.skill ?? null,
         legacy: !!c.legacy,
         copies: c.copies ?? [],
         data: { name: c.name, stats: c.stats, traits: c.traits, factors: c.factors, catchphrase: c.catchphrase },

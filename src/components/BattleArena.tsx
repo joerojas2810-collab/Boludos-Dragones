@@ -73,7 +73,7 @@ function heroCue(b: Battle): { action: HeroAction; delay: number } {
   if (ownIdx >= 0) {
     const m = b.events[ownIdx].move;
     return {
-      action: m === "attack1" ? "attack_1" : m === "attack2" ? "attack_2" : "attack_3",
+      action: m === "attack1" ? "attack_1" : "attack_2",
       delay: at(ownIdx, 0),
     };
   }

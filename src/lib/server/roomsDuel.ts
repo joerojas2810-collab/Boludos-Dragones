@@ -338,10 +338,9 @@ export interface DuelMatchView {
     deadlineMs: number;
     hp: { a: number; b: number };
     maxHp: { a: number; b: number };
-    cooldown: { a: number; b: number }; // Ataque 2
-    cooldown3: { a: number; b: number }; // class skill
+    universalCooldowns: { a: Record<string, number>; b: Record<string, number> };
     picked: { a: boolean; b: boolean };
-    heroes: { a: Pick<Character, "name" | "classId" | "element" | "skill">; b: Pick<Character, "name" | "classId" | "element" | "skill"> };
+    heroes: { a: Pick<Character, "name" | "classId" | "element">; b: Pick<Character, "name" | "classId" | "element"> };
     log: string[];
     last: { a: Action | null; b: Action | null } | null; // revealed picks of the last turn
   } | null;
@@ -373,15 +372,16 @@ export async function duelViewOf(
         name: c.name,
         classId: c.classId,
         element: c.element,
-        skill: c.skill,
       });
       fight = {
         turn: du.turn,
         deadlineMs: lv.deadline,
         hp: { a: du.a.hp, b: du.b.hp },
         maxHp: { a: du.a.char.stats.hp, b: du.b.char.stats.hp },
-        cooldown: { a: du.a.cooldown, b: du.b.cooldown },
-        cooldown3: { a: du.a.cooldown3 ?? 0, b: du.b.cooldown3 ?? 0 },
+        universalCooldowns: {
+          a: du.a.universalCooldowns ?? {},
+          b: du.b.universalCooldowns ?? {},
+        },
         picked: { a: lv.pending.a !== undefined, b: lv.pending.b !== undefined },
         heroes: { a: hero(lv.heroes.a), b: hero(lv.heroes.b) },
         log: du.log.slice(-8),

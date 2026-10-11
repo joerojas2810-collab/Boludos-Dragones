@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { autoBlockReason, autoPolicy, autoResolve } from "./auto";
 import {
   CLASS_PASSIVE_DMG_REDUCTION,
-  CLASS_PASSIVE_REGEN,
   generateCharacter,
   type Character,
   type ClassId,
@@ -12,7 +11,9 @@ import {
   DEFEND_FACTOR,
   ENRAGE_AFTER_TURN,
   estimateDamage,
-  GUARD_HEAL,
+  classHeal,
+  classShield,
+  earnGuard,
   livingEnemies,
   MAX_ACTIONS_PER_ROUND,
   pendingIntents,
@@ -24,14 +25,6 @@ import {
   type Intent,
 } from "./combat";
 import { createRng, type Rng } from "./rng";
-import {
-  COUNTER_REFLECT,
-  COUNTER_TAKEN,
-  EXECUTE_MULT,
-  SKILLS,
-  SWEEP_POWER,
-  type SkillId,
-} from "./skills";
 
 const unit = (
   classId: ClassId,
@@ -197,160 +190,126 @@ describe("perfect guard", () => {
   });
 });
 
-describe("class skills (Ataque 3)", () => {
-  const withSkill = (classId: ClassId, skill: SkillId, stats = {}) =>
-    unit(classId, stats, { skill, level: 5 });
+describe("universal skills and class hooks (3c)", () => {
   const three = () => [
     unit("caballero", { hp: 500, atk: 1 }),
     unit("mago", { hp: 500, atk: 1 }),
     unit("picaro", { hp: 500, atk: 1 }),
   ];
 
-  it("is illegal without a learned skill, and during its cooldown", () => {
-    const b = fight(unit("caballero"), three(), [
-      ["defend"],
-      ["defend"],
-      ["defend"],
-    ]);
-    expect(step(b, "attack3", never)).toBe(b);
-    const sk = fight(withSkill("caballero", "barrido"), three(), [[], [], []]);
-    const used = step(sk, "attack3", always);
-    expect(used.player.cooldown3).toBe(SKILLS.barrido.cooldown); // ticked once at round end
-    const again = withRound(used, 0, [[], [], []], 1);
-    expect(step(again, "attack3", always)).toBe(again);
+  it("Golpe has its approved accuracy/power and own-activation cooldown", () => {
+    const b = fight(unit("caballero"), three(), [[], [], []]);
+    expect(step(b, "attack2" as never, always)).toBe(b);
+    expect(step(b, "attack3" as never, always)).toBe(b);
+    const s = step(b, "golpe", always);
+    expect(s.events.filter((e) => e.actor === "player")).toHaveLength(1);
+    expect(s.player.universalCooldowns?.golpe).toBe(1.7);
+    expect(step(s, "golpe", always)).toBe(s);
   });
 
-  it("Barrido hits every living enemy once at SWEEP_POWER", () => {
-    const b = fight(withSkill("caballero", "barrido"), three(), [[], [], []]);
-    const s = step(b, "attack3", always);
+  it("Barrido hits every living enemy once and applies one elemental stack to each", () => {
+    const b = fight(unit("caballero"), three(), [[], [], []]);
+    const s = step(b, "barrido", always);
     expect(s.events.filter((e) => e.actor === "player")).toHaveLength(3);
     s.enemies.forEach((e, i) =>
       expect(b.enemies[i].hp - e.hp).toBe(
-        estimateDamage(b.player, b.enemies[i], "attack3"),
+        estimateDamage(b.player, b.enemies[i], "barrido"),
       ),
     );
-    expect(SKILLS.barrido.power).toBe(SWEEP_POWER);
+    expect(s.enemies.map((e) => e.statuses?.[0]?.stacks)).toEqual([1, 1, 1]);
     // dead enemies are skipped
     const half = {
       ...b,
       enemies: [{ ...b.enemies[0], hp: 0 }, b.enemies[1], b.enemies[2]],
     };
-    expect(step(half, "attack3", always).events).toHaveLength(2);
+    expect(step(half, "barrido", always).events).toHaveLength(2);
   });
 
-  it("Tormenta is an area attack with a long cooldown", () => {
-    const b = fight(withSkill("mago", "tormenta"), three(), [[], [], []]);
-    const s = step(b, "attack3", always);
-    expect(s.events.filter((e) => e.actor === "player")).toHaveLength(3);
-    expect(SKILLS.tormenta.cooldown).toBeGreaterThan(SKILLS.barrido.cooldown);
-  });
-
-  it("Contraataque reduces the next hit and sends it back once", () => {
-    const foe = unit("picaro", { atk: 40 });
-    const b = fight(
-      withSkill("caballero", "contraataque"),
-      [foe],
-      [["attack1"]],
-      1,
-      0,
+  it("implements the approved Golpe class hooks", () => {
+    const foe = unit("mago", { hp: 500, atk: 1 });
+    const base = fight(unit("mago", { atk: 20 }), [foe], [[]]);
+    const mageTarget = { ...base, enemies: [{ ...base.enemies[0], statuses: [{ id: "escarcha" as const, stacks: 1, turns: 2 }] }] };
+    expect(base.enemies[0].hp - step(base, "golpe", always).enemies[0].hp).toBeLessThan(
+      mageTarget.enemies[0].hp - step(mageTarget, "golpe", always).enemies[0].hp,
     );
-    const s = step(b, "attack3", always);
-    const taken = b.player.char.stats.hp - s.player.hp;
-    const plainHit = estimateDamage(
-      b.enemies[0],
-      { ...b.player, reflect: 0 },
-      "attack1",
+    const rogue = { ...base, player: { ...base.player, char: { ...base.player.char, classId: "picaro" as const } }, enemies: [{ ...base.enemies[0], exposed: true }] };
+    expect(rogue.enemies[0].hp - step(rogue, "golpe", always).enemies[0].hp).toBeGreaterThan(
+      base.enemies[0].hp - step(base, "golpe", always).enemies[0].hp,
     );
-    expect(Math.abs(taken - plainHit * COUNTER_TAKEN)).toBeLessThanOrEqual(1); // estimate rounds the full hit
-    // the reflect rounds the unrounded hit, so allow the rounding of `taken` to show
-    expect(
-      Math.abs(b.enemies[0].hp - s.enemies[0].hp - (taken / COUNTER_TAKEN) * COUNTER_REFLECT),
-    ).toBeLessThanOrEqual(2);
-    expect(s.player.reflect).toBeLessThanOrEqual(1); // spent hit, ticking down
-    expect(s.log.some((l) => l.includes("contraataca"))).toBe(true);
-    expect(s.enemies[0].statuses?.length).toBeGreaterThan(0); // the counter carries the element status
-    // it only works once
-    const s2 = step(withRound(s, 1, [["attack1"]], 1), "defend", always);
-    expect(s2.log.filter((l) => l.includes("contraataca"))).toHaveLength(1);
-  });
-
-  it("Detonar hits harder per status stack and clears them", () => {
-    const b0 = fight(withSkill("mago", "detonar"), three(), [[], [], []]);
-    const plain = step(b0, "attack3", always);
-    const marked = {
-      ...b0,
-      enemies: b0.enemies.map((e, i) =>
-        i === 0 ? { ...e, statuses: [{ id: "ruptura" as const, stacks: 2, turns: 3 }] } : e,
-      ),
-    };
-    const s = step(marked, "attack3", always);
-    const d0 = b0.enemies[0].hp - plain.enemies[0].hp;
-    const d1 = marked.enemies[0].hp - s.enemies[0].hp;
-    expect(d1).toBeGreaterThan(d0);
-    expect(s.enemies[0].statuses ?? []).toHaveLength(0);
-  });
-
-  it("Golpe doble strikes the target twice", () => {
-    const b = fight(withSkill("picaro", "golpeDoble"), three(), [[], [], []]);
-    const s = step(b, "attack3", always, 1);
-    expect(s.events.filter((e) => e.actor === "player")).toHaveLength(2);
-    expect(b.enemies[1].hp - s.enemies[1].hp).toBe(
-      2 * estimateDamage(b.player, b.enemies[1], "attack3"),
-    );
-    expect(s.enemies[0].hp).toBe(b.enemies[0].hp);
-  });
-
-  it("Ejecutar multiplies damage on a weakened target only", () => {
-    const b = fight(withSkill("picaro", "ejecutar"), three(), [[], [], []]);
-    const full = estimateDamage(b.player, b.enemies[0], "attack3");
-    const low = estimateDamage(
-      b.player,
-      { ...b.enemies[0], hp: 100 },
-      "attack3",
-    );
-    expect(Math.abs(low - full * EXECUTE_MULT)).toBeLessThanOrEqual(1); // one rounding at the end
-  });
-
-  it("Castigo heals the hero for a share of the damage dealt", () => {
-    const b0 = fight(withSkill("clerigo", "castigo", { hp: 100 }), three(), [
-      [],
-      [],
-      [],
-    ]);
-    const b = { ...b0, player: { ...b0.player, hp: 40 } };
-    const s = step(b, "attack3", always);
-    const dealt = b.enemies[0].hp - s.enemies[0].hp;
-    expect(s.player.hp).toBe(
-      40 +
-        Math.round(dealt * (SKILLS.castigo.lifesteal ?? 0)) +
-        Math.round(100 * CLASS_PASSIVE_REGEN), // Bendición at round end
+    const berserker = { ...base, player: { ...base.player, char: { ...base.player.char, classId: "berserker" as const }, hp: 400 } };
+    expect(base.enemies[0].hp - step(base, "golpe", always).enemies[0].hp).toBeLessThan(
+      berserker.enemies[0].hp - step(berserker, "golpe", always).enemies[0].hp,
     );
   });
 
-  it("Santuario heals, defends and makes a perfect guard against a strong hit", () => {
-    const foe = unit("picaro", { atk: 30 });
-    const b0 = fight(
-      withSkill("clerigo", "santuario", { hp: 200 }),
-      [foe],
-      [["attack2"]],
-      1,
-      1,
+  it("implements Barrido hooks for Mage, Rogue and Berserker", () => {
+    const foe = unit("mago", { hp: 2000, atk: 1 });
+    const mage = unit("mago", { atk: 20 });
+    const clean = fight(mage, [foe], [[]]);
+    const marked = { ...clean, enemies: [{ ...clean.enemies[0], statuses: [{ id: "escarcha" as const, stacks: 1, turns: 2 }] }] };
+    expect(clean.enemies[0].hp - step(clean, "barrido", always).enemies[0].hp).toBeLessThan(
+      marked.enemies[0].hp - step(marked, "barrido", always).enemies[0].hp,
     );
-    const b = { ...b0, player: { ...b0.player, hp: 100 } };
-    const s = step(b, "attack3", always);
-    expect(s.log.some((l) => l.startsWith("¡Guardia perfecta!"))).toBe(true);
-    const guarded = estimateDamage(
-      b.enemies[0],
-      { ...b.player, defending: true, guard: true },
-      "attack2",
+
+    const rogue = fight(unit("picaro", { atk: 20 }), [foe], [[]]);
+    const rogueBase = { ...rogue, player: { ...rogue.player, char: { ...rogue.player.char, classId: "caballero" as const } } };
+    expect(rogue.enemies[0].hp - step(rogue, "barrido", always).enemies[0].hp).toBeGreaterThan(
+      rogueBase.enemies[0].hp - step(rogueBase, "barrido", always).enemies[0].hp,
     );
-    expect(s.player.hp).toBe(
-      100 +
-        Math.round(200 * (SKILLS.santuario.heal ?? 0)) +
-        Math.round(200 * GUARD_HEAL) - // Clérigo's perfect guard heals
-        guarded +
-        Math.round(200 * CLASS_PASSIVE_REGEN),
+
+    const berserker = fight(unit("berserker", { atk: 20 }), [foe], [[]]);
+    const safe = { ...berserker, player: { ...berserker.player, hp: 700 } };
+    const wounded = { ...berserker, player: { ...berserker.player, hp: 400 } };
+    expect(safe.enemies[0].hp - step(safe, "barrido", always).enemies[0].hp).toBeLessThan(
+      wounded.enemies[0].hp - step(wounded, "barrido", always).enemies[0].hp,
     );
+  });
+
+  it("Cleric heals on a landed hit even when the target's shield absorbs it", () => {
+    const b = fight(unit("clerigo"), [unit("mago", { hp: 2000, atk: 1 })], [[]]);
+    const ready = { ...b, player: { ...b.player, hp: 500 }, enemies: [{ ...b.enemies[0], shield: 2000 }] };
+    const result = step(ready, "golpe", always);
+    expect(result.events.some((event) => event.actor === "player" && event.kind === "hit")).toBe(true);
+    expect(result.log.some((line) => line.includes("recupera 10 de vida"))).toBe(true);
+    expect(result.player.hp).toBe(515); // +1% for the skill hook and +0.5% passive regen at round end.
+  });
+
+  it("Resolution replaces the Knight's perfect-guard reflection and boosts the next Golpe", () => {
+    const cab = unit("caballero");
+    const log: string[] = [];
+    const ready = earnGuard({ char: cab, hp: cab.stats.hp, cooldown: 0, defending: false }, log);
+    expect(ready.resolution).toBe(true);
+    const b = fight(cab, [unit("picaro", { hp: 1000, atk: 1 })], [[]]);
+    const plainDamage = b.enemies[0].hp - step(b, "golpe", always).enemies[0].hp;
+    const charged = { ...b, player: { ...b.player, resolution: true } };
+    const chargedDamage = charged.enemies[0].hp - step(charged, "golpe", always).enemies[0].hp;
+    expect(chargedDamage).toBeGreaterThan(plainDamage);
+    expect(step(charged, "golpe", always).player.resolution).toBeUndefined();
+  });
+
+  it("Berserker's perfect-guard bonus shortens the next universal cooldown", () => {
+    const hero = unit("berserker");
+    const b = fight(hero, [unit("mago", { hp: 1500, atk: 1 })], [[]]);
+    const ready = earnGuard(b.player, []);
+    const result = step({ ...b, player: ready }, "golpe", always);
+    expect(result.player.universalCooldowns?.golpe).toBe(0.85);
+    expect(result.player.riposte).toBe(false);
+  });
+
+  it("Barrido grants the Knight a one-hit guard only against groups", () => {
+    const b = fight(unit("caballero"), three(), [[], [], []]);
+    const s = step(b, "barrido", always);
+    expect(s.player.nextHitReduction).toBe(0.1);
+    const one = fight(unit("caballero"), [unit("mago")], [[]]);
+    expect(step(one, "barrido", always).player.nextHitReduction).toBeUndefined();
+  });
+
+  it("caps class heals and shields per activation and round", () => {
+    const c = { char: unit("clerigo"), hp: 0, cooldown: 0, defending: false };
+    const healed = classHeal(classHeal(c, 0.03), 0.03);
+    expect(healed.hp).toBe(30);
+    const shielded = classShield(classShield(c, 0.03), 0.03);
+    expect(shielded.shield).toBe(30);
   });
 });
 
@@ -610,20 +569,20 @@ describe("auto policy", () => {
     const hero = unit(
       "caballero",
       { hp: 800, atk: 40, accuracy: 0 },
-      { skill: "barrido", level: 5 },
+      { level: 5 },
     );
     const b = startBattle(
       hero,
       [...weakFoes(), unit("clerigo", { hp: 100, atk: 3 })],
       createRng(2),
     );
-    expect(autoPolicy(b).action).toBe("attack3");
+    expect(autoPolicy(b).action).toBe("barrido");
     const solo = startBattle(
       strong(),
       [unit("mago", { hp: 900, atk: 3 }), unit("picaro", { hp: 20, atk: 40 })],
       createRng(2),
     );
-    expect(autoPolicy(solo, { skill: false }).target).toBe(1);
+    expect(autoPolicy(solo, { useUniversalSkills: false }).target).toBe(1);
   });
 
   it("defends against announced strong hits that would hurt (guard on) and not with guard off", () => {

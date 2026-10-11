@@ -2,7 +2,6 @@ import { ELEMENTS, type Element } from "./elements";
 import type { RarityId } from "./rarity";
 import type { Rng } from "./rng";
 import type { GearBonus } from "./gear";
-import type { SkillId } from "./skills";
 import type { EnemyFamily } from "./worlds";
 import {
   CATCHPHRASES,
@@ -92,6 +91,7 @@ export interface ClassTemplate {
   passive: Passive;
   stats: Stats;
   attack1: Attack;
+  // Enemy-only strong strike profile. Heroes cannot select this as an action.
   attack2: Attack;
 }
 
@@ -340,8 +340,6 @@ export interface Character {
   weapon?: { element: Element; atkBonus: number; type?: string };
   // Worn gear bonus, already folded into stats (kept so nivelado can undo it).
   gear?: GearBonus;
-  // Third skill: the hero's pick (saved in the collection; see skills.heroSkill).
-  skill?: SkillId;
   // Enemies only: art family and named-boss art id (public/art/enemies/boss_<id>_*).
   family?: EnemyFamily;
   bossId?: string;

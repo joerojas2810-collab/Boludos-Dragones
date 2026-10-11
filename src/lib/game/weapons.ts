@@ -58,130 +58,109 @@ export interface WeaponTypeInfo {
   speedMult: number; // multiplies Stats.speed
   noun: string; // used in generated names (with article: "Hacha de ...")
   basic?: { name: string; power: number; crit?: number; heal?: number };
-  // Replaces the class's Ataque 2 while this weapon is equipped (combat.attackOf).
-  special?: WeaponSpecial;
-}
-
-export interface WeaponSpecial {
-  name: string;
-  power: number;
-  accuracy: number;
-  cooldown: number; // same convention as Attack.cooldown
-  heal: number; // fraction of max hp restored on use
-  selfCost?: number; // fraction of CURRENT hp the user pays (never kills)
 }
 
 // Tune here.
 export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   espada: {
     label: "Espada",
-    description: "Golpe de escudo: golpe fuerte casi cada turno.",
+    description: "Hoja equilibrada, fiable en cada ataque básico.",
     atkMult: 1,
     accuracy: 0,
     crit: 0,
     speedMult: 1,
     noun: "Espada",
     basic: { name: "Tajo", power: 1 },
-    special: { name: "Golpe de escudo", power: 1.8, accuracy: 0.9, cooldown: 1, heal: 0 },
   },
   hacha: {
     label: "Hacha",
-    description: "Hachazo pesado: golpe enorme, falla más y tarda en recargarse.",
+    description: "Hacha pesada: básico contundente con gran potencia de arma.",
     atkMult: 1.1,
     accuracy: -0.05,
     crit: 0,
     speedMult: 1,
     noun: "Hacha",
     basic: { name: "Hachazo", power: 1 },
-    special: { name: "Hachazo pesado", power: 3.2, accuracy: 0.65, cooldown: 3, heal: 0 },
   },
   arco: {
     label: "Arco",
-    description: "Disparo certero: golpe fuerte y seguro, con recarga larga. Más crítico.",
+    description: "Arma de precisión con probabilidad crítica adicional.",
     atkMult: 0.95,
     accuracy: 0,
     crit: 0.05,
     speedMult: 1,
     noun: "Arco",
     basic: { name: "Disparo", power: 1 },
-    special: { name: "Disparo certero", power: 2.6, accuracy: 0.9, cooldown: 3, heal: 0 },
   },
   baston: {
     label: "Bastón",
-    description: "Cataclismo: golpe enorme de magia, falla más y tarda en recargarse. Más velocidad.",
+    description: "Canalizador rúnico que acelera al Mago.",
     atkMult: 1,
     accuracy: 0,
     crit: 0,
     speedMult: 1.1,
     noun: "Bastón",
     basic: { name: "Golpe rúnico", power: 1 },
-    special: { name: "Cataclismo", power: 2.8, accuracy: 0.7, cooldown: 3, heal: 0 },
   },
   daga: {
     label: "Daga",
-    description: "Puñalada rápida: golpe ágil casi cada turno. Más crítico y velocidad.",
+    description: "Arma veloz que favorece los críticos y la iniciativa.",
     atkMult: 0.95,
     accuracy: 0,
     crit: 0.05,
     speedMult: 1.05,
     noun: "Daga",
     basic: { name: "Corte rápido", power: 1 },
-    special: { name: "Puñalada rápida", power: 1.7, accuracy: 0.95, cooldown: 1, heal: 0 },
   },
   maza: {
     label: "Maza",
-    description: "Golpe sagrado: golpe fuerte que además te cura un poco.",
+    description: "Arma pesada con gran poder básico.",
     atkMult: 1.1,
     accuracy: 0,
     crit: 0,
     speedMult: 0.95,
     noun: "Maza",
     basic: { name: "Golpe de maza", power: 1 },
-    special: { name: "Golpe sagrado", power: 2.2, accuracy: 0.85, cooldown: 2, heal: 0.04 },
   },
   varita: {
     label: "Varita",
-    description: "Descarga arcana: hechizo certero casi cada turno. Más precisión y velocidad.",
+    description: "Foco ligero que favorece la precisión y la velocidad.",
     atkMult: 0.9,
     accuracy: 0.05,
     crit: 0,
     speedMult: 1.05,
     noun: "Varita",
     basic: { name: "Chispa", power: 1 },
-    special: { name: "Descarga arcana", power: 1.8, accuracy: 0.95, cooldown: 1, heal: 0 },
   },
   libro: {
     label: "Libro",
-    description: "Plegaria: casi no daña, pero cura mucho. Para sanadores.",
+    description: "Libro de apoyo con precisión y crítico adicionales.",
     atkMult: 0.8,
     accuracy: 0.03,
     crit: 0.04,
     speedMult: 1,
     noun: "Libro",
     basic: { name: "Sello arcano", power: 1 },
-    special: { name: "Plegaria", power: 0.3, accuracy: 1, cooldown: 2, heal: 0.09 },
   },
   mandoble: {
     label: "Mandoble",
-    description: "Frenesí: golpe brutal que te cuesta parte de tu vida actual.",
+    description: "Hoja larga y equilibrada para un golpe básico pesado.",
     atkMult: 0.95,
     accuracy: 0,
     crit: 0,
     speedMult: 1,
     noun: "Mandoble",
     basic: { name: "Tajo pesado", power: 1 },
-    special: { name: "Frenesí", power: 2.9, accuracy: 0.9, cooldown: 2, heal: 0, selfCost: 0.08 },
   },
   martillo: {
     label: "Martillo",
-    description: "Aplastar: golpe explosivo, recarga larga y sin costo de vida.",
+    description: "Martillo de impacto, sólido y lento.",
     atkMult: 1,
     accuracy: -0.05,
     crit: 0,
     speedMult: 0.95,
     noun: "Martillo",
     basic: { name: "Impacto de martillo", power: 1 },
-    special: { name: "Aplastar", power: 3, accuracy: 0.85, cooldown: 3, heal: 0 },
   },
   casco: {
     label: "Casco",
@@ -318,6 +297,3 @@ export function generateWeapon(rng: Rng, rarity: RarityId): Weapon {
     atkBonus: weaponAtk(rarity, 0, type),
   };
 }
-
-export const weaponSpecial = (type: string | undefined): WeaponSpecial | undefined =>
-  type && isWeaponType(type) ? WEAPON_TYPE_DATA[type].special : undefined;

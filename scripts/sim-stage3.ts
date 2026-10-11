@@ -12,15 +12,14 @@ import { levelCap } from "../src/lib/game/heroLevel";
 import { LEVELS_PER_RANK, levelsOf } from "../src/lib/game/levels";
 import { itemRankOf, DUNGEON_IDS, scaleStats, type DungeonId } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
-import { heroSkill } from "../src/lib/game/skills";
 import { ENGINE_VERSION, createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
-import { HAND_TYPES, canUseWeapon, weaponAtk, weaponSecondary, type HandType } from "../src/lib/game/weapons";
+import { CLASS_WEAPONS, HAND_TYPES, canUseWeapon, weaponAtk, weaponSecondary, type HandType } from "../src/lib/game/weapons";
 
 const args = new Map(process.argv.slice(2).map((arg) => {
   const [key, ...value] = arg.replace(/^--/, "").split("=");
   return [key, value.join("=")];
 }));
-const BASE_SEED = Number(args.get("seed") ?? 33013);
+const BASE_SEED = Number(args.get("seed") ?? 13013);
 const RUNS_PER_LEVEL = Number(args.get("runs") ?? 100);
 const OUTPUT = args.get("output") ?? "scripts/baseline/stage3.json";
 const selected = <T extends string>(key: string, all: readonly T[]): readonly T[] => {
@@ -105,7 +104,6 @@ function makeHero(classId: ClassId, element: Element, rank: DungeonId, weaponTyp
     rarity: heroRank,
     stars: STARS,
     level: Math.min(LEVEL, levelCap(STARS)),
-    skill: heroSkill(classId),
     stats: {
       ...geared,
       atk: Math.round((geared.atk + weaponAtk(heroRank, 0, weaponType)) * 10) / 10,
@@ -139,6 +137,7 @@ function runLevel(classId: ClassId, element: Element, rank: DungeonId, weaponTyp
 
 const byClass = new Map(CLASSES.map((id) => [id, aggregate()]));
 const byWeapon = new Map(WEAPONS.map((id) => [id, aggregate()]));
+const byClassRank = new Map<string, Aggregate>();
 const rows: Array<Record<string, unknown>> = [];
 for (const classId of CLASSES) {
   for (const element of ELEMENT_SET) {
@@ -152,6 +151,10 @@ for (const classId of CLASSES) {
             add(cell, result);
             add(byClass.get(classId)!, result);
             add(byWeapon.get(weaponType)!, result);
+            const classRank = `${classId}:${rank}`;
+            if (!byClassRank.has(classRank)) byClassRank.set(classRank, aggregate());
+            if (weaponType === CLASS_WEAPONS[classId][0])
+              add(byClassRank.get(classRank)!, result);
           }
         }
       }
@@ -164,6 +167,40 @@ const classSummary = CLASSES.map((classId) => ({
   classId,
   approvedE2NoiseFloorPp: classNoiseFloors.find((floor) => floor.classId === classId)!.pp,
   ...summarize(byClass.get(classId)!),
+}));
+const baseline = JSON.parse(readFileSync(resolve(process.cwd(), "scripts/baseline/motor13.json"), "utf8")) as {
+  engineVersion: number;
+  rows: Array<{ classId: ClassId; element: Element; rank: DungeonId; levelAttempts: number; clearedLevels: number; meanTurnsPerLevel: number }>;
+};
+if (baseline.engineVersion !== 13) throw new Error("scripts/baseline/motor13.json is not an ENGINE_VERSION 13 baseline");
+const baselineClassRank = new Map<string, { n: number; wins: number; turns: number }>();
+for (const row of baseline.rows) {
+  const key = `${row.classId}:${row.rank}`;
+  const value = baselineClassRank.get(key) ?? { n: 0, wins: 0, turns: 0 };
+  value.n += row.levelAttempts;
+  value.wins += row.clearedLevels;
+  value.turns += row.meanTurnsPerLevel * row.levelAttempts;
+  baselineClassRank.set(key, value);
+}
+const comparison = CLASSES.flatMap((classId) => RANKS.map((rank) => {
+  const key = `${classId}:${rank}`;
+  const current = summarize(byClassRank.get(key) ?? aggregate());
+  const old = baselineClassRank.get(key);
+  if (!old) throw new Error(`Missing baseline cell ${key}`);
+  const baselineWinRate = old.wins / old.n;
+  const baselineTurns = old.turns / old.n;
+  return {
+    classId, rank,
+    baselineAttempts: old.n,
+    currentAttempts: current.attempts,
+    baselineWinRate,
+    currentWinRate: current.winRate,
+    deltaWinRatePp: (current.winRate - baselineWinRate) * 100,
+    baselineMeanTurns: baselineTurns,
+    currentMeanTurns: current.meanTurnsPerLevel,
+    deltaDurationPercent: baselineTurns ? (current.meanTurnsPerLevel / baselineTurns - 1) * 100 : 0,
+    approvedClassNoiseFloorPp: classNoiseFloors.find((floor) => floor.classId === classId)!.pp,
+  };
 }));
 const weaponSummary = WEAPONS.map((weaponType) => ({ weaponType, ...summarize(byWeapon.get(weaponType)!) }));
 const durationMs = Date.now() - RUN_STARTED;
@@ -181,14 +218,15 @@ const result = {
     ALL_WEAPONS
       ? "--all-weapons includes cross-class weapon combinations; these may not be equipable in live play."
       : "Only weapons permitted by each class are included (two per class in the current rules).",
-    "E2 class noise floors are context for later paired comparisons, not a pass/fail result for this standalone run.",
-    "Weapon-specific noise floor is estimated with the displayed 95% normal-approximation half-widths over deterministic samples; this is diagnostic, not an approved threshold.",
+    "Comparison uses the same seed, rank/element fixtures and attempts per level as motor13; the class×rank comparison uses the class's first equipable weapon, matching motor13. The full matrix below also reports both legal weapons.",
+    "Class noise floor from E2_RESULTADO is reported per class; weapon-specific confidence intervals are diagnostic, not approved thresholds.",
     "Win-rate and duration half-widths assume independent level attempts; compare weapons with paired seeds for tighter causal estimates.",
   ],
   runtimeMs: durationMs,
   runtimeSeconds: durationMs / 1000,
   classSummary,
   weaponSummary,
+  comparison,
   matrix: rows,
 };
 const outputPath = resolve(process.cwd(), OUTPUT);
@@ -199,4 +237,7 @@ console.log("Class summary (win rate / mean turns / approved E2 noise floor):");
 for (const row of classSummary) console.log(`${row.classId}: ${(row.winRate * 100).toFixed(2)}% / ${row.meanTurnsPerLevel.toFixed(2)} / ${row.approvedE2NoiseFloorPp.toFixed(2)} pp`);
 console.log("Weapon summary (win rate / mean turns / diagnostic 95% win-rate half-width):");
 for (const row of weaponSummary) console.log(`${row.weaponType}: ${(row.winRate * 100).toFixed(2)}% / ${row.meanTurnsPerLevel.toFixed(2)} / ±${row.winRate95HalfWidthPp.toFixed(2)} pp`);
+const worstWin = Math.max(...comparison.map((row) => Math.abs(row.deltaWinRatePp)));
+const worstDuration = Math.max(...comparison.map((row) => Math.abs(row.deltaDurationPercent)));
+console.log(`Baseline comparison: largest class×rank win-rate delta ${worstWin.toFixed(2)} pp; largest duration delta ${worstDuration.toFixed(2)}%.`);
 console.log(`Runtime ${(durationMs / 1000).toFixed(2)}s; wrote ${outputPath}`);

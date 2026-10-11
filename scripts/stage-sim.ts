@@ -6,7 +6,6 @@ import { step } from "../src/lib/game/combat";
 import { applyGear, gearBonus, rollGear } from "../src/lib/game/gear";
 import { GEAR_TYPES, weaponAtk, CLASS_WEAPONS } from "../src/lib/game/weapons";
 import { levelCap } from "../src/lib/game/heroLevel";
-import { heroSkill } from "../src/lib/game/skills";
 import { LEVELS_PER_RANK, levelsOf } from "../src/lib/game/levels";
 import { RARITY_IDS, scaleStats, type RarityId } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
@@ -42,7 +41,6 @@ function hero(rank: RarityId, seed: number) {
     rarity: rank,
     stars,
     level,
-    skill: heroSkill(c.classId),
     stats: { ...geared, atk: Math.round((geared.atk + watk) * 10) / 10 },
   };
 }

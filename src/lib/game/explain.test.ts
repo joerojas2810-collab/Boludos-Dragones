@@ -132,23 +132,23 @@ describe("explain: elements, traits, actions", () => {
     expect(text(traitTip("sediento"))).toContain("10%");
   });
 
-  it("attack 2 on cooldown explains why", () => {
-    const c = { ...comb(hero("mago", "agua")), cooldown: 2 };
-    expect(attackDisabledReason(c, "attack2")).toBe("Recarga: 2 rondas");
+  it("Golpe cooldown explains why it is unavailable", () => {
+    const c = { ...comb(hero("mago", "agua")), universalCooldowns: { golpe: 1.7 } };
+    expect(attackDisabledReason(c, "golpe")).toBe("Recarga: 2 activaciones");
     expect(attackDisabledReason(c, "attack1")).toBeNull();
     expect(
-      text(attackTip(c, "attack2", comb(hero("mago", "fuego")))),
+      text(attackTip(c, "golpe", comb(hero("mago", "fuego")))),
     ).toContain("No disponible");
   });
 
-  it("attack 2 names the weapon special when equipped", () => {
-    const h = hero("mago", "agua");
-    const plain = text(attackTip(comb(h), "attack2"));
-    expect(plain).toContain("Ataque de la clase");
+  it("the basic uses the weapon profile without an old special", () => {
+    const h = hero("caballero", "agua");
+    const plain = text(attackTip(comb(h), "attack1"));
+    expect(plain).toContain("Tajo");
     const armed = comb({ ...h, weapon: { element: "agua", atkBonus: 5, type: "varita" } });
-    const t = text(attackTip(armed, "attack2"));
-    expect(t).toContain("Ataque especial de Varita");
-    expect(t).toContain("tu arma");
+    const t = text(attackTip(armed, "attack1"));
+    expect(t).toContain("Chispa");
+    expect(t).not.toContain("Ataque 3");
   });
 
   it("explains weapon element as set affinity while attacks use the hero element", () => {

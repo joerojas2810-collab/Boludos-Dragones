@@ -19,21 +19,12 @@ import {
 import type { Element } from "./elements";
 import type { Rng } from "./rng";
 import {
-  COUNTER_REFLECT,
-  COUNTER_ROUNDS,
-  COUNTER_TAKEN,
-  SKILLS,
-  type Skill,
-} from "./skills";
-import {
   addStatus,
   BURN_CAP,
   burnDamage,
-  CLASS_STACKS,
   cleanse,
   defMult,
-  OVERLOAD_BONUS,
-  OVERLOAD_EVERY,
+  MAX_ELEMENT_CHARGES,
   speedMult,
   stacksOf,
   STATUS_DATA,
@@ -68,18 +59,21 @@ import {
   type BossState,
 } from "./bossRules";
 import { EXECUTE_HP, HIGH_HP, RAGE_MAX, traitTotals } from "./traits";
-import { isWeaponType, WEAPON_TYPE_DATA, weaponSpecial } from "./weapons";
+import { isWeaponType, WEAPON_TYPE_DATA } from "./weapons";
 import {
   UNIVERSAL_COOLDOWN_CONVERSION,
   UNIVERSAL_SKILLS,
   type UniversalSkillId,
 } from "./universalSkills";
 
+// Enemy intents retain attack2 as their strong strike. Player actions use only
+// the weapon basic, universal skills and Defender.
+// Internal strike keys: attack2 is only an enemy's announced strong hit.
 export type AttackKey = "attack1" | "attack2";
-export type MoveKey = AttackKey | "attack3"; // attack3 = class skill (skills.ts)
-export type CombatMoveKey = MoveKey | UniversalSkillId;
-export type Action = AttackKey | "attack3" | "defend";
-export type BattleAction = Action | UniversalSkillId;
+export type MoveKey = AttackKey | UniversalSkillId;
+export type CombatMoveKey = MoveKey;
+export type Action = "attack1" | "defend" | UniversalSkillId;
+export type BattleAction = Action;
 export type Intent = AttackKey | "defend";
 export type Status = "ongoing" | "won" | "lost";
 
@@ -94,16 +88,16 @@ export const LIFESTEAL_CAP = 0.15; // gear + perks, fraction of damage dealt
 export const PASSIVE_HEAL_CAP = 0.06; // class blessing + regen, per round
 export const MAX_ENEMIES = 3;
 
-// Perfect guard: choosing Defender while at least one STRONG hit (Ataque 2) is
+// Perfect guard: choosing Defender while at least one strong enemy hit is
 // still announced this round. That strong hit is cut to PERFECT_GUARD_FACTOR of
 // its damage (instead of DEFEND_FACTOR; it replaces it, it does not stack) and
 // the guard earns a bonus of the hero's class (see earnGuard). Weaker hits in the
 // same round still get the normal DEFEND_FACTOR.
 export const PERFECT_GUARD_FACTOR = 0.25;
-export const GUARD_REFLECT = 0.4; // Caballero: share of the avoided damage sent back
 export const GUARD_CRIT_BONUS = 0.5; // Pícaro: extra crit chance on the next hit
-export const GUARD_HEAL = 0.04; // Clérigo: fraction of max hp healed
-export const isStrongIntent = (k: CombatMoveKey | Intent): boolean => k === "attack2";
+export const GUARD_HEAL = 0.03; // Clérigo: fraction of max hp healed (class cap)
+export const isStrongIntent = (k: CombatMoveKey | Intent): boolean =>
+  k === "attack2" || k === "golpe";
 
 // Speed -> actions ("acciones acumuladas"). Per (hero, enemy) pair the slower
 // side acts once per round; the faster side acts floor(carry) times, where
@@ -151,7 +145,6 @@ export interface BattleEvent {
   move: CombatMoveKey;
   weapon?: string; // attacker's weapon type (sfx)
   element?: Element;
-  overload?: boolean;
   enemy: number; // index in Battle.enemies of the enemy involved
 }
 
@@ -160,26 +153,29 @@ export type Side = "player" | "enemy";
 export interface Combatant {
   char: Character;
   hp: number;
-  cooldown: number; // rounds before attack2 is usable again
-  cooldown3?: number; // same for the class skill (attack3)
+  cooldown: number; // enemy strong-strike cooldown (players no longer use it)
   defending: boolean; // lasts until the end of the round
   // (an enemy's Defender is active from round start: it is announced)
   guard?: boolean; // perfect guard earned this round (see PERFECT_GUARD_FACTOR)
-  riposte?: boolean; // Mago / Pícaro guard bonus, spent by the next damaging action
-  reflect?: number; // rounds left of Contraataque
-  taken?: number; // damage received this round (Contraataque returns what already landed)
-  takenFrom?: number; // enemy slot of the last hit received this round
+  riposte?: boolean; // Mago/Pícaro next-hit bonus; Berserker next-skill cooldown discount
+  resolution?: boolean; // Caballero: one guarded hit enables the next Golpe
+  nextHitReduction?: number; // temporary class effect, consumed by the next landed hit
+  classHealThisRound?: number;
+  classHealThisActivation?: number;
+  classShieldThisRound?: number;
+  classShieldThisActivation?: number;
   carry?: number; // enemies: speed remainder against the hero
   shield?: number;
   freeHits?: number;
   perks?: Perks;
   statuses?: StatusEffect[]; // elemental effects (statuses.ts)
-  charge?: number; // Rayo hits since the last overload
+  charge?: number; // Rayo's Sobrecarga charges, consumed later by Explotar
   missed?: boolean; // Terco: the last hit missed
   guardedLast?: boolean; // Paciente: it spent the last round defending (spent by its next hit)
   opened?: boolean; // Fanfarrón: it has already thrown its first hit
   rage?: number; // Furioso: hits taken so far
   boss?: BossState; // dungeon boss mechanic state (bossRules.ts)
+  exposed?: boolean; // target remains Expuesto until its next activation (stage 4)
   healCut?: number; // rounds left with the heals cut (Reina Marchita ritual)
   applies?: boolean; // enemies: strong hits apply their element's status (elites, bosses)
   universalCooldowns?: Partial<Record<UniversalSkillId, number>>;
@@ -267,37 +263,53 @@ export const lifestealOf = (c: Combatant): number =>
 export const healMult = (c: Combatant): number =>
   (1 - rulesOf(c).healPenalty) * ((c.healCut ?? 0) > 0 ? RITUAL_HEAL_CUT : 1);
 
+export const CLASS_HEAL_PER_ACTIVATION_CAP = 0.03;
+export const CLASS_HEAL_PER_ROUND_CAP = 0.06;
+export const CLASS_SHIELD_PER_ACTIVATION_CAP = 0.03;
+export const CLASS_SHIELD_PER_ROUND_CAP = 0.06;
+
+export function classHeal(c: Combatant, requested: number): Combatant {
+  const maxHp = c.char.stats.hp;
+  const allowed = Math.max(0, Math.min(
+    requested,
+    CLASS_HEAL_PER_ACTIVATION_CAP - (c.classHealThisActivation ?? 0),
+    CLASS_HEAL_PER_ROUND_CAP - (c.classHealThisRound ?? 0),
+  ));
+  const hp = Math.min(maxHp, c.hp + Math.round(maxHp * allowed * healMult(c)));
+  const actual = (hp - c.hp) / maxHp;
+  return {
+    ...c,
+    hp,
+    classHealThisActivation: (c.classHealThisActivation ?? 0) + actual,
+    classHealThisRound: (c.classHealThisRound ?? 0) + actual,
+  };
+}
+
+export function classShield(c: Combatant, requested: number): Combatant {
+  const maxHp = c.char.stats.hp;
+  const allowed = Math.max(0, Math.min(
+    requested,
+    CLASS_SHIELD_PER_ACTIVATION_CAP - (c.classShieldThisActivation ?? 0),
+    CLASS_SHIELD_PER_ROUND_CAP - (c.classShieldThisRound ?? 0),
+  ));
+  const value = Math.round(maxHp * allowed);
+  const actual = value / maxHp;
+  return {
+    ...c,
+    shield: (c.shield ?? 0) + value,
+    classShieldThisActivation: (c.classShieldThisActivation ?? 0) + actual,
+    classShieldThisRound: (c.classShieldThisRound ?? 0) + actual,
+  };
+}
+
 // Berserker Furia: damage bonus by hp threshold.
 export const furyBonus = (c: Combatant): number =>
   c.char.classId !== "berserker"
     ? 0
     : (CLASS_PASSIVE_FURY.find((t) => c.hp / c.char.stats.hp < t.below)?.bonus ?? 0);
 
-// Berserker perfect guard: the next Ataque 2 / 3 costs no hp and recharges 1 round sooner.
-export const guardFree = (c: Combatant): boolean =>
-  !!c.riposte && c.char.classId === "berserker";
-
-export const skillOf = (c: Combatant): Skill | undefined =>
-  c.char.skill ? SKILLS[c.char.skill] : undefined;
-
 export function attackOf(c: Combatant, key: CombatMoveKey): Attack {
   if (key in UNIVERSAL_SKILLS) return UNIVERSAL_SKILLS[key as UniversalSkillId].attack;
-  if (key === "attack3") {
-    const s = skillOf(c);
-    if (s)
-      return {
-        name: s.name,
-        power: s.power,
-        accuracy: s.accuracy,
-        cooldown: s.cooldown,
-        heal: 0,
-      };
-    key = "attack1";
-  }
-  if (key === "attack2") {
-    const sp = weaponSpecial(c.char.weapon?.type);
-    if (sp) return sp;
-  }
   if (key === "attack1" && isWeaponType(c.char.weapon?.type)) {
     const basic = WEAPON_TYPE_DATA[c.char.weapon.type].basic;
     if (basic)
@@ -343,7 +355,7 @@ export const strongPending = (b: Battle): boolean =>
 export const actionsLeft = (b: Battle): number =>
   b.queue.filter((s) => s === "player").length;
 
-// One intent per enemy action; at most one Ataque 2 per round (cooldown).
+// One intent per enemy action; at most one strong enemy hit per round (cooldown).
 export function pickIntents(enemy: Combatant, n: number, rng: Rng): Intent[] {
   const out: Intent[] = [];
   let cd = enemy.cooldown;
@@ -585,15 +597,6 @@ const stanceFactor = (def: Combatant, key: CombatMoveKey): number =>
       ? PERFECT_GUARD_FACTOR
       : DEFEND_FACTOR;
 
-// Skill bonus while the user is hurt (Aniquilación).
-function selfFactor(att: Combatant, key: CombatMoveKey): number {
-  const s = key === "attack3" ? skillOf(att) : undefined;
-  return s?.selfBelow !== undefined &&
-    att.hp < att.char.stats.hp * s.selfBelow
-    ? (s.selfMult ?? 1)
-    : 1;
-}
-
 // Boss mechanics on damage: what a boss deals and what it takes.
 function bossDealtMult(att: Combatant): number {
   if (!att.boss) return 1;
@@ -606,21 +609,6 @@ function bossTakenMult(def: Combatant): number {
   if (!def.boss || ruleOf(def) !== "armadura") return 1;
   if ((def.shield ?? 0) > 0) return ARMOR_TAKEN;
   return def.boss.broken > 0 ? BROKEN_TAKEN : 1;
-}
-
-// Detonar: extra damage per status stack on the target.
-function detonateFactor(att: Combatant, def: Combatant, key: CombatMoveKey): number {
-  const d = key === "attack3" ? skillOf(att)?.detonate : undefined;
-  return d ? 1 + d * (def.statuses ?? []).reduce((n, s) => n + s.stacks, 0) : 1;
-}
-
-// Skill bonus vs a weakened target (Ejecutar).
-function executeFactor(att: Combatant, def: Combatant, key: CombatMoveKey): number {
-  const s = key === "attack3" ? skillOf(att) : undefined;
-  return s?.executeBelow !== undefined &&
-    def.hp < def.char.stats.hp * s.executeBelow
-    ? (s.executeMult ?? 1)
-    : 1;
 }
 
 // Expected damage of a non-critical hit (one strike).
@@ -650,10 +638,7 @@ export function estimateDamage(
         (crit ? 1 : 1 - rulesOf(att).nonCritPenalty) *
         (1 - passiveReduction(def)) *
         (1 + (att.char.gear?.dmgDealt ?? 0)) *
-        ((def.reflect ?? 0) > 0 ? COUNTER_TAKEN : 1) *
-        executeFactor(att, def, key) *
-        selfFactor(att, key) *
-        detonateFactor(att, def, key) *
+        (1 - (def.nextHitReduction ?? 0)) *
         bossDealtMult(att) *
         traitDealtMult(att, def) *
         bossTakenMult(def) *
@@ -698,21 +683,18 @@ export function passiveHeal(c: Combatant, log: string[]): Combatant {
 
 // Perfect guard earned: flags the combatant and grants its class bonus.
 const GUARD_TEXT: Record<ClassId, string> = {
-  caballero: "devolverá parte del golpe",
+  caballero: "reúne Resolución para su próximo Golpe",
   mago: "potenciará su próximo golpe",
   picaro: "afinará su puntería",
   clerigo: "se purifica",
-  berserker: "se enciende: su próxima habilidad sale gratis",
+  berserker: "su próxima habilidad recargará una activación antes",
 };
 export function earnGuard(c: Combatant, log: string[]): Combatant {
   let out: Combatant = { ...c, guard: true };
+  if (c.char.classId === "caballero") out.resolution = true;
   if (["mago", "picaro", "berserker"].includes(c.char.classId)) out.riposte = true;
   if (c.char.classId === "clerigo") {
-    const hp = Math.min(
-      c.char.stats.hp,
-      c.hp + Math.round(c.char.stats.hp * GUARD_HEAL * healMult(c)),
-    );
-    out = { ...out, hp, statuses: cleanse(c.statuses) };
+    out = { ...classHeal(out, GUARD_HEAL), statuses: cleanse(c.statuses) };
   }
   log.push(`¡Guardia perfecta! ${c.char.name} ${GUARD_TEXT[c.char.classId]}.`);
   return out;
@@ -785,12 +767,6 @@ export interface Strike {
 }
 
 // Contraataque returns damage without a hit roll: it still carries the hero's element status.
-export function counterStatuses(hero: Combatant, foe: Combatant): Combatant["statuses"] {
-  const sid = STATUS_OF_ELEMENT[hero.char.element];
-  if (!sid || sid === "impulso") return foe.statuses;
-  return addStatus(foe.statuses, sid, CLASS_STACKS, undefined, foe.char.stats.resist);
-}
-
 export function strike(
   att: Combatant,
   def: Combatant,
@@ -801,23 +777,13 @@ export function strike(
   actor: BattleEvent["actor"],
   enemy: number,
   dmgFactor = 1,
-  asHero = actor === "player", // duels: both sides are heroes (class special, statuses, overload)
+  asHero = actor === "player", // duels: both sides are heroes (elemental charges and status rules)
   applyOwnElementalStatus = true,
 ): Strike {
   const a = attackOf(att, key);
-  const skill = key === "attack3" ? skillOf(att) : undefined;
   const who = att.char.name;
   const on = actor === "player" ? ` sobre ${def.char.name}` : "";
   let hp = att.hp;
-  const free = guardFree(att) && key !== "attack1";
-  if (a.selfCost && !free) {
-    // The price of Frenesí: a share of the CURRENT hp, never lethal.
-    const cost = Math.min(hp - 1, Math.round(hp * a.selfCost));
-    if (cost > 0) {
-      hp -= cost;
-      log.push(`${who} se desangra ${cost} al usar ${a.name}.`);
-    }
-  }
   if (a.heal > 0) {
     hp = Math.min(
       att.char.stats.hp,
@@ -828,8 +794,7 @@ export function strike(
   const attacker: Combatant = {
     ...att,
     hp,
-    ...(key === "attack2" && { cooldown: a.cooldown + 1 - (free ? 1 : 0) }),
-    ...(key === "attack3" && { cooldown3: a.cooldown + 1 - (free ? 1 : 0) }),
+    ...(key === "attack2" && !asHero && { cooldown: a.cooldown + 1 }),
   };
   const element = att.char.element;
   const ev = (kind: BattleEvent["kind"]) =>
@@ -864,31 +829,21 @@ export function strike(
   // Apostador: one extra draw per landed hit, only for gamblers (old streams intact).
   const spread = rulesOf(att).spread;
   const gamble = spread > 0 ? 1 + spread * (2 * rng.next() - 1) : 1;
-  // Elemental effects: the player always applies them, enemies only on strong
-  // hits when flagged (elites, bosses). Mago's perfect guard doubles the stacks.
-  // The class special applies statuses, except Detonar, which only consumes them.
-  // Every hero hit applies its element's status (1 stack; the class special 2), except Detonar,
-  // which only consumes them. Enemies apply theirs only when flagged (elites, bosses) on strong hits.
-  const classMove = asHero && key === "attack3" && !skill?.detonate;
-  const canApply = asHero ? !skill?.detonate : !!att.applies && isStrongIntent(key);
+  // Every damaging hero action applies one elemental interaction. Enemies apply
+  // their element only on announced strong attacks when flagged (elites/bosses).
+  const canApply = asHero || (!!att.applies && isStrongIntent(key));
   const guardBoost = att.riposte && att.char.classId === "mago" ? 2 : 1;
-  const stacks = guardBoost * (classMove ? CLASS_STACKS : 1);
-  // Rayo: any landed hit charges, the overload is spent by the class special.
+  const stacks = guardBoost;
+  // Rayo stores up to three charges; Explotar will consume them in stage 5.
   let charge = att.charge ?? 0;
-  let overload = false;
   if (element === "rayo" && (asHero || canApply) && applyOwnElementalStatus) {
-    charge = Math.min(OVERLOAD_EVERY, charge + guardBoost);
-    if (charge >= OVERLOAD_EVERY && (classMove || !asHero)) {
-      overload = true;
-      charge -= OVERLOAD_EVERY;
-    }
+    charge = Math.min(MAX_ELEMENT_CHARGES, charge + 1);
   }
   const dmg = Math.round(
     estimateDamage(att, def, key, crit) *
       (crit ? critMultiplier(att) : 1) *
       dmgFactor *
-      gamble *
-      (overload ? 1 + OVERLOAD_BONUS : 1),
+      gamble,
   );
   events.push({
     actor,
@@ -897,11 +852,10 @@ export function strike(
     move: key,
     weapon: att.char.weapon?.type,
     element,
-    overload,
     enemy,
   });
   log.push(
-    `${who} usa ${a.name}${on}: ${dmg} de daño${crit ? " (¡crítico!)" : ""}${overload ? " ¡Sobrecarga!" : ""}.`,
+    `${who} usa ${a.name}${on}: ${dmg} de daño${crit ? " (¡crítico!)" : ""}.`,
   );
   const absorbed = Math.min(def.shield ?? 0, dmg);
   if (absorbed > 0)
@@ -909,7 +863,6 @@ export function strike(
   const steal = Math.round(
     dmg *
       (lifestealOf(att) +
-        (skill?.lifesteal ?? 0) +
         (ruleOf(att) === "hambre" ? HUNGER_STEAL : 0)) *
       healMult(att),
   );
@@ -919,10 +872,6 @@ export function strike(
     ...(def.shield !== undefined && { shield: def.shield - absorbed }),
   };
   defender = bossOnHit(def, defender, log);
-  if (skill?.detonate && defender.statuses?.length) {
-    log.push(`${def.char.name} detona: se borran sus estados.`);
-    defender = { ...defender, statuses: [] };
-  }
   let ownStatuses = attacker.statuses;
   const sid = canApply ? STATUS_OF_ELEMENT[element] : undefined;
   if (sid === "impulso") {
@@ -942,19 +891,6 @@ export function strike(
   if (sid && (sid !== "impulso" || applyOwnElementalStatus))
     log.push(`${sid === "impulso" ? who : def.char.name}: ${STATUS_DATA[sid].label} ×${stacksOf(sid === "impulso" ? ownStatuses : defender.statuses, sid)}.`);
   let back = 0;
-  if ((def.reflect ?? 0) > 0) {
-    // Contraataque: the hit was already reduced; the attacker eats it in full.
-    back = Math.round((dmg / COUNTER_TAKEN) * COUNTER_REFLECT);
-    defender = { ...defender, reflect: 0 };
-    ownStatuses = counterStatuses(def, { ...attacker, statuses: ownStatuses });
-    log.push(`${def.char.name} contraataca y devuelve ${back} a ${who}.`);
-  }
-  if (def.guard && def.defending && isStrongIntent(key) && def.char.classId === "caballero") {
-    // Reflejo: part of the damage the perfect guard avoided goes back, no hit roll.
-    const reflected = Math.round(dmg * (1 / PERFECT_GUARD_FACTOR - 1) * GUARD_REFLECT);
-    back += reflected;
-    log.push(`${def.char.name} refleja ${reflected} a ${who}.`);
-  }
   const thorns = Math.round(dmg * rulesOf(def).thorns);
   if (thorns > 0) {
     back += thorns;
@@ -971,9 +907,8 @@ export function strike(
     },
     defender: {
       ...defender,
+      ...(def.nextHitReduction ? { nextHitReduction: undefined } : {}),
       rage: Math.min(RAGE_MAX, (defender.rage ?? 0) + 1),
-      taken: (def.taken ?? 0) + Math.max(0, dmg - absorbed),
-      takenFrom: enemy,
     },
     dmg,
   };
@@ -999,12 +934,9 @@ export function step(
   const universal = action in UNIVERSAL_SKILLS
     ? UNIVERSAL_SKILLS[action as UniversalSkillId]
     : undefined;
+  if (action !== "attack1" && action !== "defend" && !universal) return b;
   if (universal && !universal.enabled) return b;
   if (universal && (b.player.universalCooldowns?.[universal.id] ?? 0) > 1e-9)
-    return b;
-  if (action === "attack2" && b.player.cooldown > 0) return b;
-  const skill = action === "attack3" ? skillOf(b.player) : undefined;
-  if (action === "attack3" && (!skill || (b.player.cooldown3 ?? 0) > 0))
     return b;
   const alive = livingEnemies(b);
   if (
@@ -1015,11 +947,18 @@ export function step(
   const tIdx = alive[target ?? 0];
   const log: string[] = [];
   const events: BattleEvent[] = [];
-  let player: Combatant = { ...b.player };
+  const resolutionReady = !!b.player.resolution;
+  let player: Combatant = {
+    ...b.player,
+    resolution: undefined,
+    nextHitReduction: undefined,
+    classHealThisActivation: 0,
+    classShieldThisActivation: 0,
+  };
   const enemies: Combatant[] = b.enemies.map((e) => ({ ...e }));
   const fallen = enemies.map((e) => e.hp <= 0);
 
-  if (action === "defend" || skill?.guard) {
+  if (action === "defend") {
     player.defending = true;
     if (action === "defend") log.push(`${player.char.name} se defiende.`);
     if (!player.guard && strongPending(b)) player = earnGuard(player, log);
@@ -1047,6 +986,7 @@ export function step(
     factor = 1,
     applyOwnElementalStatus = true,
   ) => {
+    const eventCount = events.length;
     if (adapted(i)) {
       factor *= ADAPT_FACTOR;
       log.push(`${enemies[i].char.name} te lee: tu golpe repetido le hace menos.`);
@@ -1066,17 +1006,38 @@ export function step(
     );
     player = r.attacker;
     enemies[i] = r.defender;
+    lastHitLanded = events.length > eventCount && events.at(-1)?.kind !== "miss";
     return r.dmg;
+  };
+  let lastHitLanded = false;
+  const healClass = (fraction: number) => {
+    const before = player.hp;
+    player = classHeal(player, fraction);
+    if (player.hp > before) log.push(`${player.char.name} recupera ${player.hp - before} de vida.`);
   };
   const playMove = () => {
     if (universal) {
+      const cooldownDiscount = player.char.classId === "berserker" && player.riposte ? 1 : 0;
       const targets = universal.target === "all" ? alive : [tIdx];
       let ownerElementApplied = false;
       let dealt = 0;
       for (const i of targets) {
         if (enemies[i]?.hp > 0) {
-          const damage = hit(i, universal.id, 1, !ownerElementApplied);
+          const foe = enemies[i];
+          let hook = 1;
+          if (universal.id === "golpe") {
+            if (player.char.classId === "caballero" && resolutionReady) hook *= 1.15;
+            if (player.char.classId === "mago" && foe.statuses?.length) hook *= 1.15;
+            if (player.char.classId === "picaro" && foe.exposed) hook *= 1.2;
+            if (player.char.classId === "berserker" && player.hp < player.char.stats.hp * 0.5) hook *= 1.2;
+          } else if (universal.id === "barrido") {
+            if (player.char.classId === "mago" && foe.statuses?.length) hook *= 1.1;
+            if (player.char.classId === "picaro" && alive.length === 1) hook *= 1.1;
+            if (player.char.classId === "berserker" && player.hp < player.char.stats.hp * 0.5) hook *= 1.1;
+          }
+          const damage = hit(i, universal.id, hook, !ownerElementApplied);
           dealt += damage;
+          if (lastHitLanded && player.char.classId === "clerigo") healClass(0.01);
           if (
             damage > 0 &&
             (player.char.element === "viento" || player.char.element === "rayo")
@@ -1087,88 +1048,31 @@ export function step(
         player.riposte = false;
         player.guardedLast = false;
       }
+      if (universal.id === "barrido" && player.char.classId === "caballero" && alive.length >= 2) {
+        player.nextHitReduction = 0.10;
+        log.push(`${player.char.name} reduce en 10 % el próximo golpe recibido.`);
+      }
+      if (universal.id === "golpe" && resolutionReady && player.char.classId === "caballero")
+        log.push(`${player.char.name} consume Resolución: +15 % de daño.`);
       player.universalCooldowns = {
         ...player.universalCooldowns,
-        [universal.id]: universal.cooldown * UNIVERSAL_COOLDOWN_CONVERSION,
+        [universal.id]: Math.max(0, universal.cooldown - cooldownDiscount) * UNIVERSAL_COOLDOWN_CONVERSION,
       };
+      if (cooldownDiscount) player.riposte = false;
       return;
     }
-    if (action === "attack1" || action === "attack2") {
+    if (action === "attack1") {
       const dealt = hit(tIdx, action);
-      if (dealt > 0 && !(guardFree(player) && action === "attack1"))
+      if (dealt > 0 && !(player.char.classId === "berserker" && player.riposte))
         player.riposte = false;
       if (dealt > 0) player.guardedLast = false;
       return;
-    }
-    if (!skill) return;
-    const cd = skill.cooldown + 1 - (guardFree(player) ? 1 : 0);
-    if (skill.power === 0) {
-      player.cooldown3 = cd;
-      const m = player.char.stats.hp;
-      const bits: string[] = [];
-      if (skill.heal) {
-        const hp = Math.min(
-          m,
-          player.hp + Math.round(m * skill.heal * healMult(player)),
-        );
-        bits.push(`recupera ${hp - player.hp} de vida`);
-        player.hp = hp;
-      }
-      if (skill.shield) {
-        const s = Math.round(m * skill.shield);
-        player.shield = (player.shield ?? 0) + s;
-        bits.push(`gana un escudo de ${s}`);
-      }
-      if (skill.counter) {
-        player.reflect = COUNTER_ROUNDS;
-        const taken = player.taken ?? 0;
-        const foe = enemies[player.takenFrom ?? tIdx];
-        if (taken > 0 && foe && foe.hp > 0) {
-          // The rival already hit this round: the hit is returned right now.
-          const back = Math.round((taken / COUNTER_TAKEN) * COUNTER_REFLECT);
-          enemies[player.takenFrom ?? tIdx] = {
-            ...foe,
-            hp: Math.max(0, foe.hp - back),
-            statuses: counterStatuses(player, foe),
-          };
-          bits.push(`devuelve ${back} a ${foe.char.name}`);
-          player.taken = 0;
-        } else bits.push("se prepara para devolver el próximo golpe");
-      }
-      if (skill.guard) bits.push("se protege");
-      log.push(`${player.char.name} usa ${skill.name}: ${bits.join(" y ")}.`);
-      events.push({
-        actor: "player",
-        kind: "buff",
-        classId: player.char.classId,
-        move: "attack3",
-        enemy: tIdx,
-      });
-      return;
-    }
-    let dealt = 0;
-    if (skill.area) {
-      for (const i of alive) if (enemies[i].hp > 0) dealt += hit(i, "attack3");
-    } else {
-      for (let h = 0; h < (skill.hits ?? 1) && enemies[tIdx].hp > 0; h++)
-        dealt += hit(tIdx, "attack3");
-    }
-    player.cooldown3 = cd;
-    if (dealt > 0) {
-      player.riposte = false;
-      player.guardedLast = false;
     }
   };
 
   while (queue.length && !end) {
     const slot = queue[0];
-    // Contraataque waits for the first hit that lands: the hero's extra actions
-    // this round are spent so it resolves without another command.
     if (slot === "player" && playerActed) {
-      if ((player.reflect ?? 0) > 0 && action === "attack3" && skill?.counter) {
-        queue.shift();
-        continue;
-      }
       break;
     }
     queue.shift();
@@ -1283,9 +1187,10 @@ export function step(
     defending: false,
     guard: false,
     cooldown: Math.max(0, player.cooldown - 1),
-    cooldown3: Math.max(0, (player.cooldown3 ?? 0) - 1),
-    reflect: Math.max(0, (player.reflect ?? 0) - 1),
-    taken: 0,
+    classHealThisRound: 0,
+    classHealThisActivation: 0,
+    classShieldThisRound: 0,
+    classShieldThisActivation: 0,
   };
   player = statusTick(passiveHeal(player, log), log);
   const bosses = enemies.filter((e) => e.hp > 0 && e.boss);

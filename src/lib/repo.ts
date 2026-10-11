@@ -10,7 +10,6 @@ import {
 import {
   bankLevel,
   bankRun,
-  chooseHeroSkill,
   equipWeapon,
   heroFromOwned,
   lootOptions,
@@ -30,7 +29,6 @@ import {
 } from "./game/dungeonProgress";
 import { levelLoot, rollDado, type LevelLoot } from "./game/levelLoot";
 import { levelsOf } from "./game/levels";
-import type { SkillId } from "./game/skills";
 import { levelFights, type Stage } from "./game/stage";
 import { sweepBlock, sweepStage } from "./game/sweep";
 import { dayPayMult } from "./game/economy";
@@ -125,7 +123,6 @@ export interface ProfileRepo {
     weaponId: string | null,
     slot?: Slot,
   ): Promise<void>;
-  chooseSkill(characterId: string, skill: SkillId): Promise<void>;
   startLevel(
     heroId: string,
     rank: DungeonId,
@@ -244,11 +241,6 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       store.update((p) =>
         w ? equipWeapon(p, c, w) : unequipWeapon(p, c, slot),
       ),
-    chooseSkill: async (id, skill) => {
-      if (!chooseHeroSkill(store.get(), id, skill))
-        throw new RepoError("skill_locked", "Esa habilidad no está disponible.");
-      store.update((p) => chooseHeroSkill(p, id, skill) ?? p);
-    },
     startLevel: async (heroId, rank, level, asc) => {
       const p = store.get();
       if (!isRankUnlocked(p.dungeons, rank))
@@ -479,8 +471,6 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         weaponId,
         ...(slot ? { slot } : {}),
       }),
-    chooseSkill: (characterId, skillId) =>
-      withProfile("/api/collection/skill", { characterId, skillId }),
     startLevel: async (heroId, rank, level, asc) => {
       const r = await api<{
         runId: string;

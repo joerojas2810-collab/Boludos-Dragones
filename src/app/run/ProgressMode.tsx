@@ -65,12 +65,6 @@ import {
   type StageAction,
   type StageReplayState,
 } from "@/lib/game/stageReplay";
-import {
-  heroSkill,
-  SKILLS,
-  SKILLS_BY_CLASS,
-  type SkillId,
-} from "@/lib/game/skills";
 import { SLOTS, WEAPON_TYPE_DATA, type Slot } from "@/lib/game/weapons";
 import type { LevelStartInfo } from "@/lib/repo";
 import { pushNotice, repo, useProfile } from "@/lib/useProfile";
@@ -955,7 +949,6 @@ function Prep({
       </Shell>
     );
 
-  const cur = sel ? heroSkill(sel.classId, sel.skill) : undefined;
   return (
     <Shell>
       <Notice />
@@ -1031,32 +1024,6 @@ function Prep({
                 power={heroPower(profile, sel.id)}
                 rec={recommendedPower(rank, level, asc)}
               />
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[#d9d2ca]">Ataque 2:</span>
-              {SKILLS_BY_CLASS[sel.classId].map((id: SkillId) => (
-                  <Tooltip
-                    key={id}
-                    tip={{
-                      title: SKILLS[id].name,
-                      kind: "info",
-                      lines: [SKILLS[id].description],
-                      source: "Habilidad",
-                    }}
-                  >
-                    <button
-                      aria-pressed={cur === id}
-                      className={`btn text-center ${cur === id ? "" : "btn-gray"}`}
-                      onClick={() =>
-                        void repo
-                          .chooseSkill(sel.id, id)
-                          .catch((e: Error) => pushNotice(e.message))
-                      }
-                    >
-                      {SKILLS[id].name}
-                    </button>
-                  </Tooltip>
-                ))}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {SLOTS.map((slot) => {

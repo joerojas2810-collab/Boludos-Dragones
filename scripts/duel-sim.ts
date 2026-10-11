@@ -5,30 +5,27 @@ import { CLASS_IDS, type ClassId } from "../src/lib/game/characters";
 import type { Action } from "../src/lib/game/combat";
 import { balancedHero, canAct, duelRound, startDuel, type Duel } from "../src/lib/game/duel";
 import { createRng, type Rng } from "../src/lib/game/rng";
-import type { SkillId } from "../src/lib/game/skills";
 
 const N = Number(process.argv[2] ?? 400);
-// The skill each class duels with (DUEL_SKILLS="clerigo=castigo,picaro=ejecutar"); default = first of the class.
-const DUEL_SKILLS: Record<string, SkillId> = Object.fromEntries((process.env.DUEL_SKILLS ?? "").split(",").filter(Boolean).map((x) => x.split("=")));
 type Policy = (d: Duel, side: "a" | "b", rng: Rng) => Action;
 const mix: Policy = (d, side, rng) => {
   const c = d[side];
   const r = rng.next();
   if (r < 0.15) return "defend";
-  if (r < 0.4 && canAct(c, "attack2")) return "attack2";
-  if (r < 0.65 && canAct(c, "attack3")) return "attack3";
+  if (r < 0.4 && canAct(c, "golpe")) return "golpe";
+  if (r < 0.65 && canAct(c, "barrido")) return "barrido";
   return "attack1";
 };
 const greedy: Policy = (d, side) => {
   const c = d[side];
-  return canAct(c, "attack3") ? "attack3" : canAct(c, "attack2") ? "attack2" : "attack1";
+  return canAct(c, "golpe") ? "golpe" : canAct(c, "barrido") ? "barrido" : "attack1";
 };
 
 function winRate(a: ClassId, b: ClassId, pol: Policy): number {
   let w = 0;
   for (let i = 0; i < N; i++) {
     const rng = createRng(i + 1);
-    let d = startDuel(balancedHero(a, "fuego", DUEL_SKILLS[a]), balancedHero(b, "fuego", DUEL_SKILLS[b]));
+    let d = startDuel(balancedHero(a, "fuego"), balancedHero(b, "fuego"));
     for (let k = 0; k < 200 && d.status === "ongoing"; k++)
       d = duelRound(d, pol(d, "a", rng), pol(d, "b", rng), rng);
     w += d.status === "a" ? 1 : d.status === "draw" ? 0.5 : 0;

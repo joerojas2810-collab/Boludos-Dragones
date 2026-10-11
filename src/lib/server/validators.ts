@@ -79,15 +79,10 @@ export const swapCopyBody = z.strictObject({
   index: z.number().int().min(0).max(49),
 });
 export const tutorialBody = z.strictObject({ step: z.number().int().min(0).max(7) });
-export const skillBody = z.strictObject({
-  characterId: z.string().min(1).max(100),
-  skillId: z.string().min(1).max(30),
-});
-
 export const runActionSchema = z.discriminatedUnion("t", [
   z.strictObject({
     t: z.literal("act"),
-    a: z.enum(["attack1", "attack2", "attack3", "defend"]),
+    a: z.enum(["attack1", "golpe", "barrido", "quebrar", "interrumpir", "explotar", "defend"]),
     target: z.number().int().min(0).max(2).optional(),
   }),
   z.strictObject({ t: z.literal("auto") }),

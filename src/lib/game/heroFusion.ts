@@ -1,7 +1,7 @@
 // Hero growth (Forja > Héroes). A hero is class + element + rank and grows on two axes:
 //  - stars (starUpHero): STAR_UNITS units of material of the hero's own rank = +1 star;
 //  - rank (fuseHeroes): HERO_FUSION[rank].ratio - 1 units of material of that rank + coins = the
-//    hero one rank higher (same class, element, name, profile, skill, level), its stars converted by
+//    hero one rank higher (same class, element, name, profile, level), its stars converted by
 //    STAR_CARRY so stars bought at a cheap rank never skip the price of the higher one.
 // A unit of material is any hero of the rank or any spare copy (profile.copies): a hero with c
 // copies holds c + 1 units, the base hero itself only gives its copies. Each copy keeps its full

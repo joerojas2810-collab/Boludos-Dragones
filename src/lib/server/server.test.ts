@@ -14,7 +14,6 @@ import { levelsOf } from "../game/levels";
 import type { RarityId } from "../game/rarity";
 import { heroFromOwned, migrate } from "../game/profile";
 import {
-  doChooseSkill,
   doAscend,
   doStarUpPiece,
   doSwapRoll,
@@ -131,10 +130,13 @@ describe("validators", () => {
     );
     expect(pullBody.safeParse({ ...p, banner: "gold" }).success).toBe(false);
   });
-  it("run actions accept target, auto and quit and reject bad ones", () => {
+  it("run replay accepts the replacement combat actions and rejects retired attacks", () => {
     const ok = (a: unknown) => runActionSchema.safeParse(a).success;
-    expect(ok({ t: "act", a: "attack3", target: 2 })).toBe(true);
+    expect(ok({ t: "act", a: "golpe", target: 2 })).toBe(true);
+    expect(ok({ t: "act", a: "barrido" })).toBe(true);
     expect(ok({ t: "act", a: "attack1" })).toBe(true);
+    expect(ok({ t: "act", a: "attack2" })).toBe(false);
+    expect(ok({ t: "act", a: "attack3" })).toBe(false);
     expect(ok({ t: "act", a: "attack1", target: 3 })).toBe(false);
     expect(ok({ t: "act", a: "attack1", target: -1 })).toBe(false);
     expect(ok({ t: "act", a: "attack1", target: 0.5 })).toBe(false);
@@ -829,25 +831,9 @@ describe("dungeon level services (fake DB)", () => {
   });
 });
 
-describe("skill / profile mapping (fake DB)", () => {
+describe("profile mapping (fake DB)", () => {
   const h0 = generateCharacter(createRng(5), "mago");
-  it("choose skill validates ownership and class before SQL, at any rank", async () => {
-    const db = new FakeDb();
-    const high = heroRow(h0, "c");
-    db.rows.push(high, heroRow(generateCharacter(createRng(8), "picaro"), "f"));
-    await doChooseSkill(db.deps, "u1", high.key, "tormenta");
-    expect(db.skills[0]).toMatchObject({ p_skill: "tormenta" });
-    expect(
-      await catchErr(doChooseSkill(db.deps, "u1", high.key, "barrido")),
-    ).toMatchObject({ code: "skill_locked" }); // a Caballero skill on a Mago
-    await doChooseSkill(db.deps, "u1", db.rows[1].key, "golpeDoble"); // rank F: no unlock gate any more
-    expect(db.skills[1]).toMatchObject({ p_skill: "golpeDoble" });
-    expect(
-      await catchErr(doChooseSkill(db.deps, "u1", high.key, "hackeo")),
-    ).toMatchObject({ code: "invalid_skill" });
-    expect(db.skills).toHaveLength(2);
-  });
-  it("rows from the database keep their legacy flag and are not 'saved before v5'", async () => {
+  it("rows from the database keep their legacy flag and ignore the retired skill pick", async () => {
     const db = new FakeDb();
     const fresh = heroRow(h0, "f");
     const old = heroRow(generateCharacter(createRng(9), "picaro"), "e");
@@ -859,7 +845,8 @@ describe("skill / profile mapping (fake DB)", () => {
     const me = await loadMe(db.deps.rpc, "u1");
     const byId = (id: string) => me.profile.characters.find((c) => c.id === id)!;
     expect(byId(fresh.key).legacy).toBeUndefined();
-    expect(byId(old.key)).toMatchObject({ legacy: true, level: 12, skill: "ejecutar" });
+    expect(byId(old.key)).toMatchObject({ legacy: true, level: 12 });
+    expect("skill" in byId(old.key)).toBe(false);
     expect(me.profile.dungeons.f).toEqual([6, 2]);
     expect(heroFromOwned(me.profile, old.key)?.level).toBe(12);
     // migrate() of a client save without version still marks everything legacy

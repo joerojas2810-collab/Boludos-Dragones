@@ -1,6 +1,7 @@
-// Run v2 SQL + services against PGlite: bank_level, start_level, burn, skill, pulls/forge with rolls,
+// Run v2 SQL + services against PGlite: bank_level, start_level, burn, retired hero skill, pulls/forge with rolls,
 // tower rounds, exposure, and attack attempts. Run: npx tsx supabase/tests/pglite/levels.mts
 import { db, setup, as, rpc } from "./harness.mjs";
+import { readFileSync } from "node:fs";
 import { generateCharacter } from "../../../src/lib/game/characters";
 import { createRng } from "../../../src/lib/game/rng";
 import { levelCoins, firstClearChest } from "../../../src/lib/game/levelPay";
@@ -11,11 +12,13 @@ import { levelLoot } from "../../../src/lib/game/levelLoot";
 import { heroFromOwned, migrate } from "../../../src/lib/game/profile";
 import { heroRow, playLevelBot } from "../../../src/lib/server/testkit";
 import {
-  doChooseSkill, doPull, finishLevelService, loadMe, startLevelService,
+  doPull, finishLevelService, loadMe, startLevelService,
 } from "../../../src/lib/server/services";
 import type { Deps } from "../../../src/lib/server/rpc";
 
 await setup();
+// setup.sql tracks the shipped snapshot; keep the final tower migration exercised too.
+await db.exec(readFileSync(new URL("../../migrations/0055_tower_identity.sql", import.meta.url), "utf8"));
 let pass = 0, fail = 0;
 const ok = (c: unknown, m: string) => { if (c) pass++; else { fail++; console.log("FAIL:", m); } };
 const err = async (p: Promise<unknown>, msg: string, label?: string) => {
@@ -201,15 +204,7 @@ await err(rpc("burn_item", { p_player: P, p_version: v0, p_key: "w-espada-agua-f
 await err(rpc("burn_many", { p_player: P, p_version: v0, p_keys: '{"w-hacha-agua-f"}' }), "burn_many", "burn_many is gone");
 ok((await q(`select public.trade_value('c-mago-fuego-s') v`))[0].v === 8330, "trade_value s 8330");
 
-// 9. hero skill
-await err(rpc("choose_hero_skill", { p_player: P, p_character_id: HERO, p_skill: "tormenta" }), "invalid_skill", "other class skill");
-await db.exec(`update public.characters set stars=3 where key='${HERO}'`);
-await rpc("choose_hero_skill", { p_player: P, p_character_id: HERO, p_skill: "contraataque" });
-ok((await q(`select skill from public.characters where key='${HERO}'`))[0].skill === "contraataque", "skill saved");
-await err(rpc("choose_hero_skill", { p_player: U(2), p_character_id: HERO, p_skill: "barrido" }), "character_not_found", "someone else's hero");
-await db.exec(`update public.characters set stars=0 where key='${HERO}'`);
-
-// 10. pulls and forge carry rolls
+// 9. pulls and forge carry rolls
 let ver = Number((await q(`select version from public.player_state where player_id='${P}'`))[0].version);
 await setCoins(10000);
 const pullW = async (items: unknown[], over: Record<string, unknown> = {}) => {
@@ -237,14 +232,14 @@ await db.exec(`update public.weapons set copies = (select jsonb_agg(jsonb_build_
 await err(forge([{ type: "peto", element: "agua", rarity: "a", name: "P", roll: 1, lines: [] }]), "max_copies", "grant over 50 copies");
 
 // 11. tower rounds tiebreak
-await rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9, p_rounds: 50 });
-await rpc("tower_record", { p_player: U(2), p_mode: "nivelado", p_floor: 9, p_rounds: 30 });
+await rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9, p_rounds: 50, p_class: "caballero", p_element: "agua" });
+await rpc("tower_record", { p_player: U(2), p_mode: "nivelado", p_floor: 9, p_rounds: 30, p_class: "mago", p_element: "rayo" });
 let t = (await rpc("tower_state", { p_player: P })) as any;
 ok(t.modes.nivelado.top[0].name === "beto" && t.modes.nivelado.mine.place === 2, "fewer rounds wins at equal floors");
-await rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9, p_rounds: 20 });
+await rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9, p_rounds: 20, p_class: "caballero", p_element: "agua" });
 t = await rpc("tower_state", { p_player: P });
-ok(t.modes.nivelado.mine.place === 1 && t.modes.nivelado.mine.rounds === 20, "better rounds replace");
-await rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9, p_rounds: 99 });
+ok(t.modes.nivelado.mine.place === 1 && t.modes.nivelado.mine.rounds === 20 && t.modes.nivelado.mine.class === "caballero" && t.modes.nivelado.mine.element === "agua", "better result keeps its chosen identity");
+await rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9, p_rounds: 99, p_class: "picaro", p_element: "viento" });
 ok((await q(`select rounds from public.tower_scores where player_id='${P}'`))[0].rounds === 20, "worse rounds ignored");
 await err(rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9 } as any), "does not exist", "old 3-arg signature is gone");
 
@@ -282,11 +277,10 @@ ok(JSON.stringify(done.loot.pieces) === JSON.stringify(exp.pieces), "service loo
 ok(done.profile.dungeons.f?.[0] === 1, "profile shows progress");
 await err(finishLevelService(deps, P, { runId: info.runId, wins }), "duplicate_run", "service: replay twice");
 const me = await loadMe(deps.rpc, P);
-ok(me.profile.characters.every((c) => c.legacy === undefined), "db rows are not legacy by default");
+ok(me.profile.characters.every((c) => c.legacy === undefined && !("skill" in c)), "db rows are current and retired skill picks are ignored");
 ok(heroFromOwned(me.profile, HERO)!.level >= 1, "hero rebuilt from rows");
 ok(migrate({ characters: [] }).characters.length === 0, "migrate ok");
-// skill + pull through services
-await doChooseSkill(deps, P, HERO, "barrido").catch(() => undefined);
+// Universal combat actions are validated by replay; retired per-class picks are ignored.
 await setCoins(5000);
 const pr = await doPull(deps, P, { banner: "weapon", count: 10, idempotencyKey: crypto.randomUUID() });
 ok(pr.results!.length === 10, "service weapon pull x10");

@@ -47,7 +47,6 @@ export class FakeDb {
   burned: Args[] = [];
   heroChanges: Args[] = [];
   pieceChanges: Args[] = [];
-  skills: Args[] = [];
   xpGrants: Args[] = [];
   dungeons: Record<string, number[]> = {};
   equipped: Record<string, string> = {};
@@ -179,7 +178,6 @@ export class FakeDb {
               xp: h.xp,
               legacy: h.legacy,
               copies: h.copies,
-              ...(h.skill ? { skill: h.skill } : {}),
             },
           };
           const i = this.rows.findIndex((r) => r.key === key);
@@ -226,9 +224,6 @@ export class FakeDb {
         this.version++;
         return this.okv({ coins: this.coins, version: this.version });
       }
-      case "choose_hero_skill":
-        this.skills.push(a);
-        return this.okv({ ok: true });
       case "apply_pull": {
         const idem = String(a.p_idem);
         if (this.idem.has(idem))

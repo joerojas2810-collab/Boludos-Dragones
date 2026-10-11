@@ -13,18 +13,16 @@ import {
   enrageTip,
   freeHitsTip,
   passiveTip,
-  reflectTip,
+  resolutionTip,
   bossBadge,
   riposteTip,
   shieldTip,
-  skillTip,
   statTip,
   traitTip,
   weaponTip,
   type Tip,
 } from "@/lib/game/explain";
 import type { Stats } from "@/lib/game/characters";
-import { SKILLS } from "@/lib/game/skills";
 import { TRAITS } from "@/lib/game/traits";
 import type { EnemyFamily } from "@/lib/game/worlds";
 
@@ -95,7 +93,8 @@ export function HudCard({
     c.riposte ||
     !!c.boss ||
     (c.healCut ?? 0) > 0 ||
-    (c.reflect ?? 0) > 0 ||
+    c.resolution ||
+    (c.nextHitReduction ?? 0) > 0 ||
     (c.freeHits ?? 0) > 0 ||
     (!you && turn > ENRAGE_AFTER_TURN) ||
     !!children;
@@ -186,11 +185,12 @@ export function HudCard({
               Curas ½
             </Chip>
           )}
-          {(c.reflect ?? 0) > 0 && (
-            <Chip tip={reflectTip(c)} tone="info">
-              Contraataque
+          {c.resolution && (
+            <Chip tip={resolutionTip(c)} tone="info">
+              Resolución
             </Chip>
           )}
+          {(c.nextHitReduction ?? 0) > 0 && <Chip tip={{ title: "Guardia preparada", kind: "info", lines: ["El próximo golpe recibido hace menos daño."] }} tone="info">Guardia</Chip>}
           {(c.freeHits ?? 0) > 0 && (
             <Chip tip={freeHitsTip(c)} tone="passive">
               Esquiva ×{c.freeHits}
@@ -229,11 +229,6 @@ export function HudCard({
             {weapon && (
               <Chip tip={weapon} tone="gold">
                 Arma
-              </Chip>
-            )}
-            {you && c.char.skill && (
-              <Chip tip={skillTip(c, foe)} tone="gold">
-                {SKILLS[c.char.skill].name}
               </Chip>
             )}
           </div>

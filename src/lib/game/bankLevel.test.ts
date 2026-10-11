@@ -5,7 +5,6 @@ import { levelLoot } from "./levelLoot";
 import { levelsOf, LEVELS_PER_RANK } from "./levels";
 import {
   bankLevel,
-  chooseHeroSkill,
   createProfile,
   lootOptions,
   migrate,
@@ -14,7 +13,6 @@ import {
   type Profile,
 } from "./profile";
 import { createRng } from "./rng";
-import { SKILLS_BY_CLASS } from "./skills";
 
 const withHero = (): Profile => {
   const p = { ...createProfile(), coins: 100000 };
@@ -68,18 +66,15 @@ describe("bankLevel", () => {
   });
 });
 
-describe("hero skill + migrate", () => {
-  it("chooseHeroSkill validates the class (any rank), and survives migrate", () => {
+describe("hero migration", () => {
+  it("drops the retired class-skill pick because combat actions are universal", () => {
     const p = withHero();
     const c = p.characters[0];
-    const [own, other] = [SKILLS_BY_CLASS[c.classId][1], SKILLS_BY_CLASS[c.classId === "mago" ? "caballero" : "mago"][0]];
-    const base = { ...p, characters: [{ ...c, rarity: "c" as const }] };
-    const ok = chooseHeroSkill(base, c.id, own)!;
-    expect(ok.characters[0].skill).toBe(own);
-    expect(chooseHeroSkill(base, c.id, other)).toBeNull(); // wrong class
-    const low = { ...base, characters: [{ ...c, rarity: "f" as const, stars: 0 }] };
-    expect(chooseHeroSkill(low, c.id, own)!.characters[0].skill).toBe(own); // no rank or star lock
-    expect(migrate(JSON.parse(JSON.stringify(ok))).characters[0].skill).toBe(own);
+    const migrated = migrate({
+      ...p,
+      characters: [{ ...c, skill: "tormenta" }],
+    });
+    expect("skill" in migrated.characters[0]).toBe(false);
   });
   it("old numeric dungeon shapes reset to {}", () => {
     expect(migrate({ dungeons: { f: 3 }, ascensions: { f: 2 } }).dungeons).toEqual({});

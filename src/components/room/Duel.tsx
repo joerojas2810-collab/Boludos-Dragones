@@ -19,7 +19,6 @@ import {
   type DuelEnd,
   type DuelMode,
 } from "@/lib/game/room";
-import { SKILLS, type SkillId } from "@/lib/game/skills";
 import type { DuelView } from "@/lib/rooms/api";
 import type { RoomClient, RoomView } from "@/lib/roomui/types";
 import { errorText, formatCountdown, msLeft } from "@/lib/roomui/viewModels";
@@ -289,8 +288,11 @@ export function DuelBets({ view, client, onError }: Props) {
 // ------------------------------------------------------------ the fight
 const ACTION_ART: Record<Action, HeroAction> = {
   attack1: "attack_1",
-  attack2: "attack_2",
-  attack3: "attack_3",
+  golpe: "attack_2",
+  barrido: "attack_2",
+  quebrar: "attack_2",
+  interrumpir: "attack_2",
+  explotar: "attack_2",
   defend: "defend",
 };
 
@@ -324,16 +326,13 @@ function MatchFight({
     });
   };
   const me = side ? f.heroes[side] : null;
-  const skill = me?.skill ? SKILLS[me.skill as SkillId] : null;
   const cls = me ? CLASSES[me.classId as ClassId] : null;
   const label = (a: Action) =>
     a === "defend"
       ? "Defender"
       : a === "attack1"
         ? cls?.attack1.name
-        : a === "attack2"
-          ? cls?.attack2.name
-          : skill?.name;
+        : a === "golpe" ? "Golpe" : a === "barrido" ? "Barrido" : a === "quebrar" ? "Quebrar" : a === "interrumpir" ? "Interrumpir" : "Explotar";
   const hero = (s: "a" | "b") => {
     const h = f.heroes[s];
     const lastPick = f.last?.[s] ?? null;
@@ -380,10 +379,9 @@ function MatchFight({
       {side && !over && (
         <>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {(["attack1", "attack3", "attack2", "defend"] as Action[])
-              .filter((a) => a !== "attack3" || skill)
+            {(["attack1", "golpe", "barrido", "defend"] as Action[])
               .map((a) => {
-                const cd = a === "attack2" ? f.cooldown[side] : a === "attack3" ? f.cooldown3[side] : 0;
+                const cd = a === "golpe" || a === "barrido" ? f.universalCooldowns[side][a] ?? 0 : 0;
                 return (
                   <button
                     key={a}
@@ -415,13 +413,17 @@ function MatchFight({
   );
 }
 
-function label2(h: { classId: string; skill?: string }, a: Action | null) {
+function label2(h: { classId: string; element: string }, a: Action | null) {
   if (a === null) return "sin respuesta";
   if (a === "defend") return "Defender";
   const cls = CLASSES[h.classId as ClassId];
   if (a === "attack1") return cls.attack1.name;
-  if (a === "attack2") return cls.attack2.name;
-  return h.skill ? SKILLS[h.skill as SkillId].name : "habilidad";
+  if (a === "golpe") return "Golpe";
+  if (a === "barrido") return "Barrido";
+  if (a === "quebrar") return "Quebrar Aguante";
+  if (a === "interrumpir") return "Interrumpir";
+  if (a === "explotar") return "Explotar estado";
+  return cls.attack1.name;
 }
 
 export function DuelFight({ view, client, onError }: Props) {
