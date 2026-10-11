@@ -9775,12 +9775,9 @@ drop function if exists public.burn_item(uuid, int, text);
 drop function if exists public.burn_many(uuid, int, text[]);
 
 -- ===== 0054_hero_factors.sql =====
--- 0054: hero factor profiles. This is a progress reset for heroes: old character
--- rows and open character offers are discarded; profile v6 creates fresh heroes.
--- Piece rows and all non-hero progress remain intact.
-update public.market_offers set status = 'cancelled', closed_at = now()
- where status = 'open' and kind = 'character';
-delete from public.characters;
+-- 0054: hero factor profiles. Run reset_progress.sql before this migration when
+-- migrating legacy data: it removes old heroes and copies without factor profiles.
+-- This migration keeps character rows but replaces the trait-only copies column.
 alter table public.characters drop column copies;
 alter table public.characters add column copies jsonb not null default '[]'::jsonb;
 alter table public.characters add constraint characters_copies_check
@@ -9803,7 +9800,7 @@ end $$;
 
 create or replace function public.hero_trait_valid(p_trait text) returns boolean
 language sql immutable set search_path = '' as $$
-  select p_trait = any(array['terco','temerario','orgulloso','sanguinario','paciente','estoico','gloton','tenaz','veloz','fanfarron','lucido','curioso','cauteloso','furioso','sediento','gafe','filoAzar','ultimoAliento','espinas','apostador'])
+  select p_trait = any(array['terco','temerario','orgulloso','sanguinario','paciente','estoico','glotón','tenaz','veloz','fanfarron','lucido','curioso','cauteloso','furioso','sediento','gafe','filoAzar','ultimoAliento','espinas','apostador'])
 $$;
 
 create or replace function public.grant_starter(

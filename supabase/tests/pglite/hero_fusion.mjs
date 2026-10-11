@@ -28,7 +28,7 @@ await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,s
 let s = await state();
 const args = {
   p_player: U, p_version: s.version, p_coins: 20,
-  p_upsert: [hero("mago", "fuego", "e", { stars: 2, level: 7, xp: 30, copies: [copyOf("gloton")] })],
+  p_upsert: [hero("mago", "fuego", "e", { stars: 2, level: 7, xp: 30, copies: [copyOf("glotón")] })],
   p_delete: ["c-mago-fuego-f", "c-mago-agua-f", "c-caballero-rayo-f"],
   p_equip: [{ weapon: "w-baston-fuego-f", to: "c-mago-fuego-e" }],
 };
@@ -44,7 +44,7 @@ ok(JSON.stringify(await keys()) === JSON.stringify(["c-caballero-rayo-f", "c-mag
 await change(args);
 ok(JSON.stringify(await keys()) === JSON.stringify(["c-mago-fuego-e"]), "only the new hero remains: " + (await keys()));
 const h = await row("c-mago-fuego-e");
-ok(h.level === 7 && h.xp === 30 && h.stars === 2 && h.legacy === false && h.data.name === "Nuevo" && h.copies[0].trait === "gloton", "hero row " + JSON.stringify(h));
+ok(h.level === 7 && h.xp === 30 && h.stars === 2 && h.legacy === false && h.data.name === "Nuevo" && h.copies[0].trait === "glotón", "hero row " + JSON.stringify(h));
 ok((await db.query(`select character_key from public.equipment where player_id='${U}'`)).rows[0]?.character_key === "c-mago-fuego-e", "gear followed the base");
 s = await state();
 ok(s.coins === 4980, "coins spent " + s.coins);
@@ -54,7 +54,7 @@ await db.exec(`insert into public.weapons(player_id,type,element,rarity) values 
 await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,slot) values ('${U}','c-picaro-agua-c','w-daga-agua-c','arma')`);
 await change({
   p_player: U, p_version: s.version, p_coins: 0,
-  p_upsert: [hero("picaro", "agua", "b", { stars: 1, level: 12 }), hero("picaro", "agua", "c", { copies: [copyOf("gloton")], data: { name: "h", traits: ["terco"], factors: neutral } })],
+  p_upsert: [hero("picaro", "agua", "b", { stars: 1, level: 12 }), hero("picaro", "agua", "c", { copies: [copyOf("glotón")], data: { name: "h", traits: ["terco"], factors: neutral } })],
   p_delete: [],
   p_equip: [{ weapon: "w-daga-agua-c", to: "c-picaro-agua-b" }],
 });
@@ -63,7 +63,7 @@ ok((await db.query(`select character_key from public.equipment where weapon_key=
 // unequip (merge): the weapon row is dropped
 await db.exec(`insert into public.weapons(player_id,type,element,rarity) values ('${U}','hacha','fuego','f')`);
 await db.exec(`insert into public.equipment(player_id,character_key,weapon_key,slot) values ('${U}','c-picaro-agua-c','w-hacha-fuego-f','arma')`);
-await change({ p_player: U, p_version: (await state()).version, p_coins: 0, p_upsert: [hero("picaro", "agua", "c", { copies: [copyOf("gloton")] })], p_equip: [{ weapon: "w-hacha-fuego-f", to: null }] });
+await change({ p_player: U, p_version: (await state()).version, p_coins: 0, p_upsert: [hero("picaro", "agua", "c", { copies: [copyOf("glotón")] })], p_equip: [{ weapon: "w-hacha-fuego-f", to: null }] });
 ok((await db.query(`select count(*)::int c from public.equipment where weapon_key='w-hacha-fuego-f'`)).rows[0].c === 0, "unequipped");
 
 // apply_pull: a repeated hero is a spare copy with its own trait; stars do not move; refund at 50 copies
