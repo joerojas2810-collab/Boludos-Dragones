@@ -21,7 +21,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 19; // 19: dungeon fights are generated from independent route and difficulty identities
+export const ENGINE_VERSION = 20; // 20: dungeon enemy stats use the calibrated 6a-2 staircase multipliers
 
 export type FightRole = "normal" | "elite" | "final";
 
@@ -39,11 +39,23 @@ export const KIND_POWER: Record<FightRole, number> = {
   elite: 0.55,
   final: 0.75,
 };
-// Per-rank difficulty tuning (scripts/stage-tune.ts bisects these to hit the target clear rates).
+// Per-rank correction on top of the rarity scale. Calibrate with
+// scripts/stage-tune.ts against the approved reference-hero targets.
 export const RANK_TUNE: Record<Difficulty, number> = {
-  f: 1.24, e: 1.59, d: 1.54, c: 1.61, b: 1.85, a: 2.1, s: 3.07,
+  f: 1.411, e: 1.423, d: 1.483, c: 1.6, b: 1.638, a: 1.842, s: 2.622,
 };
 export const LEVEL_STEP = 0.05; // enemy power grows this much per level index
+// Multiplicative difficulty by ascension, applied to enemy HP, ATK and DEF.
+// The non-numeric ascension rules below remain active as separate gameplay pressure.
+export const ASC_TUNE = [1, 1.03, 1.06, 1.092, 1.124, 1.157] as const;
+// Optional small route correction when a boss mechanic makes a route consistently harder/easier.
+export const ROUTE_TUNE: Record<RouteId, number> = {
+  lord_of_flies: 1, ash_king: 1, eternal_watcher: 1, hollow_colossus: 1,
+  thunder_king: 1, mother_hydra: 1, withered_queen: 1, faceless_one: 1,
+  great_devourer: 1,
+};
+export const DIFFICULTY_MULT = DUNGEON_MULT;
+// Kept for recommendedPower's display estimate; the live stage now uses ASC_TUNE.
 export const ASC_HP_STEP = 0.12; // per ascension level
 export const ASC_ATK_STEP = 0.05;
 export const GROUP_STAT_MULT = [1, 0.96, 0.82] as const; // atk and def by group size
@@ -131,7 +143,7 @@ function makeFight(
   const size = groupSize(rng, role, difficulty, asc);
   const hasBoss = role !== "normal";
   const levelPower = 1 + LEVEL_STEP * spec.index;
-  const rankMult = DUNGEON_MULT[difficulty] * RANK_TUNE[difficulty];
+  const rankMult = DIFFICULTY_MULT[difficulty] * RANK_TUNE[difficulty] * ASC_TUNE[asc] * ROUTE_TUNE[route];
   const theme = DUNGEON_THEMES[route];
   const made: Character[] = [];
   const seen = new Map<string, number>();
@@ -155,8 +167,8 @@ function makeFight(
     const mult = rankMult * levelPower * power * gs;
     const hpMult = rankMult * levelPower * power * gh * ENEMY_HP_MULT;
     const s = base.stats;
-    const atkM = mult * (1 + ASC_ATK_STEP * asc);
-    const hpM = hpMult * (1 + ASC_HP_STEP * asc);
+    const atkM = mult;
+    const hpM = hpMult;
     let name: string;
     if (role === "final" && isLead) name = theme.bossName;
     else {
