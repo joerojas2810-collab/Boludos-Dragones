@@ -3,6 +3,7 @@ import { Icon } from "@/components/Icon";
 import { Panel } from "@/components/Panel";
 import { Tooltip } from "@/components/Tooltip";
 import { iconFor } from "@/lib/art";
+import { UNIVERSAL_SKILLS, universalCooldownLabel, type UniversalSkillId } from "@/lib/game/universalSkills";
 import {
   actionsLeft,
   estimateDamage,
@@ -22,7 +23,6 @@ import {
   defendTip,
   type Tip,
 } from "@/lib/game/explain";
-import { UNIVERSAL_SKILLS, type UniversalSkillId } from "@/lib/game/universalSkills";
 
 type Props = {
   b: Battle;
@@ -37,6 +37,14 @@ type Props = {
 };
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
+const UNIVERSAL_ACTION_ORDER = ["golpe", "barrido", "quebrar", "interrumpir", "explotar"] as const;
+const UNIVERSAL_ACTION_LABELS: Record<UniversalSkillId, string> = {
+  golpe: "Golpe",
+  barrido: "Barrido",
+  quebrar: "Quebrar",
+  interrumpir: "Interrumpir",
+  explotar: "Explotar",
+};
 
 function RoundQueue({ b }: { b: Battle }) {
   const slots = b.queue.filter(
@@ -124,6 +132,8 @@ function ActionButton({
   left,
   wide,
   chip,
+  meta,
+  disabledReason,
 }: {
   tip: Tip;
   disabled?: boolean;
@@ -135,6 +145,8 @@ function ActionButton({
   left?: boolean; // left-aligned content (side column)
   wide?: boolean; // spans the whole row of the actions grid
   chip?: boolean; // slim command-bar chip (desktop bar)
+  meta?: string;
+  disabledReason?: string;
 }) {
   if (chip)
     return (
@@ -144,6 +156,8 @@ function ActionButton({
           <span className="min-w-0">
             <span className="block truncate text-[15px] font-bold leading-tight">{title}</span>
             <span className="block truncate text-[11px] leading-tight text-[#aebccb]">{sub}</span>
+            {meta && <span className="block truncate text-[10px] leading-tight text-[#d9d2ca]">{meta}</span>}
+            {disabledReason && <span className="block truncate text-[10px] leading-tight text-amber-200">{disabledReason}</span>}
           </span>
         </button>
       </Tooltip>
@@ -151,24 +165,25 @@ function ActionButton({
   return (
     <Tooltip
       tip={tip}
-      className={wide ? "col-span-full block" : "block"}
+      className={wide ? "col-span-full block min-w-0" : "block min-w-0"}
       placement={left ? "side" : "auto"}
     >
       <button
-        className={`btn h-full w-full max-md:![border-width:6px_10px] max-md:![border-image-width:6px_10px] max-md:!px-1 max-md:!py-0.5 ${left ? "min-h-11 !px-2 !py-1" : "min-h-14 max-md:min-h-12 md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1"} ${hot ? "!border-yellow-300" : ""}`}
+        className={`btn h-full w-full min-w-0 motion-safe:transition-transform motion-safe:active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none max-md:![border-width:6px_10px] max-md:![border-image-width:6px_10px] max-md:!px-1 max-md:!py-0.5 ${left ? "min-h-11 !px-2 !py-1" : "min-h-14 max-md:min-h-12 md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1"} ${hot ? "!border-yellow-300" : ""}`}
         disabled={disabled}
         onClick={onClick}
+        aria-label={`${title}. ${sub}${meta ? `. ${meta}` : ""}${disabledReason ? `. ${disabledReason}` : ""}`}
       >
         <div
-          className={`flex items-center gap-2 ${left ? "justify-start text-left" : "justify-center"}`}
+          className={`flex min-w-0 items-center gap-2 ${left ? "justify-start text-left" : "justify-center"}`}
         >
           {icon && (
             <Icon
               name={icon}
-              className={`shrink-0 max-md:h-5 ${left ? "h-6" : "h-8"}`}
+              className={`shrink-0 max-md:h-7 ${left ? "h-6" : "h-8"}`}
             />
           )}
-          <div>
+          <div className="min-w-0">
             <div
               className={`font-semibold leading-tight max-md:text-sm ${left ? "text-sm" : "text-base"}`}
             >
@@ -179,6 +194,8 @@ function ActionButton({
             >
               {sub}
             </div>
+            {meta && <div className="text-[10px] leading-tight text-[#d9d2ca]">{meta}</div>}
+            {disabledReason && <div className="text-[10px] leading-tight text-amber-200">{disabledReason}</div>}
           </div>
         </div>
       </button>
@@ -203,32 +220,54 @@ export function ActionPanel({
   const foe = b.enemies[alive[target] ?? alive[0] ?? 0];
   const perfect = strongPending(b);
 
-  const attack = (k: "attack1" | UniversalSkillId, chip = false) => {
-    const a = attackOf(b.player, k);
-    const reason = attackDisabledReason(b.player, k);
-    const universal = k === "attack1" ? undefined : UNIVERSAL_SKILLS[k];
-    const name = a.name;
-    const damage = estimateDamage(b.player, foe, k);
-    const stats = universal?.target === "all"
-      ? `A todos · ~${damage} c/u · ${pct(hitChance(b.player, k))}`
-      : `~${damage} daño · ${k === "attack1" ? "seguro" : `${pct(hitChance(b.player, k))} acierto`}`;
+  const basicAction = (chip = false) => (
+    <ActionButton
+      chip={chip}
+      left={float}
+      tip={attackTip(b.player, "attack1", foe)}
+      disabled={!!attackDisabledReason(b.player, "attack1")}
+      onClick={() => onAct("attack1", target)}
+      icon={iconFor("skill", `${b.player.char.classId}.attack1`)}
+      title="Básico"
+      sub={`~${estimateDamage(b.player, foe, "attack1")} daño · seguro`}
+      meta={chip ? "CD — · 1 rival" : "Sin enfriamiento · Objetivo: 1 rival"}
+    />
+  );
+
+  const universalActions = (chip = false) => UNIVERSAL_ACTION_ORDER.map((id) => {
+    const action = UNIVERSAL_SKILLS[id];
+    const remaining = universalCooldownLabel(b.player.universalCooldowns?.[action.id] ?? 0);
+    const targetLabel = action.target === "all"
+      ? `Objetivo: ${alive.length} ${alive.length === 1 ? "rival" : "rivales"}`
+      : "Objetivo: 1 rival";
+    const reason = action.disabledReason ?? (remaining > 0 ? `Disponible en ${remaining} activ.` : undefined);
+    const damage = action.attack.power === 0
+      ? action.attack.name === "Quebrar Aguante"
+        ? "Reduce Aguante y rompe armadura"
+        : action.attack.name === "Interrumpir"
+          ? "Interrumpe una intención válida"
+          : "Consume un estado para causar daño"
+      : `~${estimateDamage(b.player, foe, action.id)} daño${action.target === "all" ? " c/u" : ""} · ${pct(hitChance(b.player, action.id))} acierto`;
     return (
       <ActionButton
+        key={action.id}
         chip={chip}
         left={float}
-        tip={attackTip(b.player, k, foe)}
+        tip={{ title: action.name, kind: "info", lines: [action.disabledReason ?? (remaining ? `Se activa de nuevo en ${remaining} acciones.` : targetLabel)] }}
         disabled={!!reason}
-        onClick={() => onAct(k, target)}
-        icon={iconFor("skill", k === "attack1" ? `${b.player.char.classId}.${k}` : k)}
-        title={name}
-        sub={reason ?? (a && a.heal > 0 ? `${stats} · cura` : stats)}
+        onClick={() => onAct(action.id, target)}
+        icon={iconFor("skill", action.id)}
+        title={UNIVERSAL_ACTION_LABELS[action.id]}
+        sub={damage}
+        meta={`${chip ? "Restan" : "Activaciones"}: ${remaining} · ${targetLabel}`}
+        disabledReason={reason}
       />
     );
-  };
+  });
 
   const panel = (
     <Panel
-      className={`${float ? "panel-float" : ""} shrink-0 !p-2 max-md:sticky max-md:bottom-0 max-md:z-30 ${side ? `md:w-[22rem] md:overflow-y-auto ${float ? "md:max-h-full" : "md:self-stretch"}` : ""}`}
+      className={`${float ? "panel-float" : ""} shrink-0 !p-2 max-md:sticky max-md:bottom-0 max-md:z-30 max-md:max-h-[62dvh] max-md:overflow-y-auto ${side ? `md:w-[22rem] md:overflow-y-auto ${float ? "md:max-h-full" : "md:self-stretch"}` : ""}`}
     >
       {!over && (
         <div
@@ -276,12 +315,8 @@ export function ActionPanel({
         <div
           className={`grid grid-cols-2 gap-2 ${side ? (float ? "md:grid-cols-2" : "md:grid-cols-1") : "md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]"}`}
         >
-          {attack("attack1")}
-          {attack("golpe")}
-          {attack("barrido")}
-          {attack("quebrar")}
-          {attack("interrumpir")}
-          {attack("explotar")}
+          {basicAction()}
+          {universalActions()}
           <ActionButton
             left={float}
             tip={defendTip(b)}
@@ -289,6 +324,7 @@ export function ActionPanel({
             icon={iconFor("skill", "defend")}
             title="Defender"
             sub={perfect ? "¡Guardia perfecta!" : "Recibes la mitad de daño"}
+            meta="Sin enfriamiento · Objetivo: tú"
             hot={perfect}
           />
           {auto && (
@@ -342,10 +378,9 @@ export function ActionPanel({
                 <RoundQueue b={b} />
               </div>
             </div>
-            <div className="grid min-w-0 flex-1 grid-cols-4 gap-2.5">
-              {attack("attack1", true)}
-              {attack("golpe", true)}
-              {attack("barrido", true)}
+            <div className="grid min-w-0 flex-1 grid-cols-7 gap-1.5">
+              {basicAction(true)}
+              {universalActions(true)}
               <ActionButton
                 chip
                 tip={defendTip(b)}
@@ -353,6 +388,7 @@ export function ActionPanel({
                 icon={iconFor("skill", "defend")}
                 title="Defender"
                 sub={perfect ? "¡Guardia perfecta!" : "Recibes la mitad"}
+                meta="CD — · Tú"
                 hot={perfect}
               />
             </div>
