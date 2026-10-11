@@ -207,7 +207,14 @@ describe("nivelado hero keys", () => {
   it("the round hero is the plain class + element the player picked", async () => {
     const { heroForRound } = await import("./roomRun");
     const h = heroForRound({} as never, "pick:mago:agua", "nivelado", 1, "p");
-    expect(h).toMatchObject({ classId: "mago", element: "agua", level: 1 });
+    expect(h).toMatchObject({
+      classId: "mago",
+      element: "agua",
+      rarity: "d",
+      stars: 0,
+      level: 1,
+      traits: [],
+    });
     const same = heroForRound({} as never, "pick:mago:agua", "nivelado", 99, "q");
     expect(same.stats).toEqual(h.stats); // same power for everybody
   });

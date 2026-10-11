@@ -452,11 +452,13 @@ describe("weekly tower", () => {
     const info = await startRunService(db.deps, "u1", {
       classId: "mago",
       characterId: null,
+      element: "agua",
       tower: "nivelado",
     });
     expect(info).toMatchObject({ seed: 777, rank: null, tower: "nivelado" });
     expect(db.calls.find((c) => c.name === "start_run")!.args).toMatchObject({
       p_seed: 777,
+      p_character_id: null,
       p_hero: { tower: "nivelado" },
     });
     const log = playBot(777, hero, 800);
@@ -473,6 +475,17 @@ describe("weekly tower", () => {
       p_floor: truth.floors,
       p_rounds: truth.rounds, // the tiebreak is stored with the floor
     });
+  });
+
+  it("requires an element for the levelled tower", async () => {
+    const db = new FakeDb();
+    await expect(
+      startRunService(db.deps, "u1", {
+        classId: "mago",
+        characterId: null,
+        tower: "nivelado",
+      }),
+    ).rejects.toMatchObject({ code: "invalid_input" });
   });
 
   it("the tower gives a quarter of the dungeon EXP to the hero that climbed", async () => {
@@ -495,6 +508,18 @@ describe("weekly tower", () => {
       p_character_id: "c-caballero-fuego-f",
     });
     expect(Number(db.xpGrants[0].p_xp)).toBeGreaterThan(0);
+  });
+
+  it("the levelled tower does not grant EXP to a collection hero", async () => {
+    const db = new FakeDb();
+    db.run = {
+      seed: 777,
+      hero: { ...hero, engineVersion: ENGINE_VERSION, tower: "nivelado" },
+      status: "open",
+    };
+    const log = playBot(777, hero, 800);
+    await sub(db, log);
+    expect(db.xpGrants).toHaveLength(0);
   });
 
   it("inflated claims are ignored: the replayed floor is what counts", async () => {

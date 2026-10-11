@@ -1,6 +1,6 @@
 // Hero helpers shared by the real room page and the demo.
 import { generateCharacter, type Character } from "../game/characters";
-import { balancedHero } from "../game/duel";
+import { niveladoHero } from "../game/niveladoHero";
 import { normalizeHero } from "../game/nivelado";
 import { heroFromOwned, type Profile } from "../game/profile";
 import { createRng, hashSeed } from "../game/rng";
@@ -19,7 +19,7 @@ export const heroSummary = (c: Character): HeroSummary => ({
 /** Card of one of MY owned heroes (others' heroes are not exposed). */
 export const ownedSummary = (p: Profile | null, key: string | null) => {
   const pick = parsePickKey(key); // nivelado: class + element, anybody's
-  if (pick) return heroSummary(balancedHero(pick.classId, pick.element));
+  if (pick) return heroSummary(niveladoHero(pick.classId, pick.element));
   const c = p && key && key !== DEFAULT_HERO ? heroFromOwned(p, key) : null;
   return c ? heroSummary(c) : null;
 };
@@ -32,8 +32,12 @@ export function demoHero(
   seed: number,
 ): Character {
   const pick = parsePickKey(key);
-  if (pick) return balancedHero(pick.classId, pick.element);
+  if (pick) return niveladoHero(pick.classId, pick.element);
   const owned = p && key && key !== DEFAULT_HERO ? heroFromOwned(p, key) : null;
+  if (mode === "nivelado") {
+    const candidate = owned ?? generateCharacter(createRng(hashSeed(seed, 7)));
+    return niveladoHero(candidate.classId, candidate.element);
+  }
   return normalizeHero(
     owned ?? generateCharacter(createRng(hashSeed(seed, 7))),
     mode,

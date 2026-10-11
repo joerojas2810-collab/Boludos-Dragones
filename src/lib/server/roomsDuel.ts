@@ -3,7 +3,8 @@
 // the state, applies one transition inside an optimistic transaction and saves
 // state + chip deltas + phase move in ONE store call. Errors are RpcError(code)
 // so the caller's `guarded` maps them to HTTP like every other room error.
-import { balancedHero, canAct, type Duel } from "../game/duel";
+import { canAct, type Duel } from "../game/duel";
+import { niveladoHero } from "../game/niveladoHero";
 import {
   chipDeltas,
   duelMissions,
@@ -236,7 +237,7 @@ async function duelHeroOf(
   const pick = s.players.find((p) => p.id === id)?.duelPick ?? DEFAULT_DUEL_PICK_FOR(s.duelMode);
   const hero =
     "classId" in pick
-      ? balancedHero(pick.classId, pick.element)
+      ? niveladoHero(pick.classId, pick.element)
       : heroForRound((await d.loadProfile(id)).profile, pick.heroId, "completo", seed, id);
   return { ...hero, name: names[id] ?? hero.name };
 }

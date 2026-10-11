@@ -2,6 +2,7 @@ import { z } from "zod";
 import { isFairTrade, isPieceKey } from "../game/market";
 import { DUNGEON_IDS } from "../game/rarity";
 import { SLOTS } from "../game/weapons";
+import { ELEMENTS } from "../game/elements";
 
 // ---- name / PIN ----
 export const NAME_MIN = 3;
@@ -55,6 +56,7 @@ export const runStartBody = z.strictObject({
   classId: z.enum(["caballero", "mago", "picaro", "clerigo", "berserker"]),
   characterId: z.string().min(1).max(100).nullable(),
   tower: z.enum(["nivelado", "coleccion"]),
+  element: z.enum(ELEMENTS).optional(),
 });
 export const levelStartBody = z.strictObject({
   characterId: z.string().min(1).max(100),

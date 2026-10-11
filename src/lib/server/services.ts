@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { CLASS_IDS, type Character, type ClassId } from "../game/characters";
+import { ELEMENTS, type Element } from "../game/elements";
 import { createStarterHero } from "../game/tutorial";
 import { fuseHeroes, starUpHero, swapCopy, type Material } from "../game/heroFusion";
 import { isLevelUnlocked, isRankUnlocked } from "../game/dungeonProgress";
@@ -310,6 +311,7 @@ export interface RunStartBody {
   classId: ClassId;
   characterId: string | null;
   tower?: TowerMode; // weekly tower: the week's seed, no payout
+  element?: Element;
 }
 
 // Opens the run row; a stale open run (page reloaded mid-run) is closed unpaid first.
@@ -349,6 +351,8 @@ export async function startRunService(
   // Dungeon levels have their own route (startLevelService).
   if (!body.tower)
     throw new ApiError(400, "invalid_input", "Falta el modo de la torre.");
+  if (body.tower === "nivelado" && !ELEMENTS.includes(body.element as Element))
+    throw new ApiError(400, "invalid_input", "Elige un elemento para la torre.");
   const me = await loadMe(d.rpc, playerId);
   // Weekly tower: everybody gets the week's seed (first request of the week fixes it).
   const ws = await call<{ seed: number }>(d.rpc, "get_weekly_seed", {
@@ -360,6 +364,7 @@ export async function startRunService(
     body.tower,
     body.characterId,
     body.classId,
+    body.element ?? null,
     seed,
     playerId,
   );
@@ -368,7 +373,7 @@ export async function startRunService(
   try {
     const r = await openRunRow(d, playerId, {
       p_player: playerId,
-      p_character_id: body.characterId,
+      p_character_id: body.tower === "coleccion" ? body.characterId : null,
       p_seed: seed,
       // The engine version rides inside the hero json (no schema change): a log
       // is only replayable by the engine that recorded it. heroId: who gets the EXP.
@@ -376,7 +381,9 @@ export async function startRunService(
         ...hero,
         engineVersion: ENGINE_VERSION,
         tower: body.tower,
-        ...(body.characterId ? { heroId: body.characterId } : {}),
+        ...(body.tower === "coleccion" && body.characterId
+          ? { heroId: body.characterId }
+          : {}),
       },
     });
     return {

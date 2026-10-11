@@ -41,6 +41,7 @@ import { upgradePiece } from "./game/upgrade";
 import type { Weapon } from "./game/weapons";
 import type { RunPiece } from "./game/loot";
 import type { DungeonId } from "./game/rarity";
+import type { Element } from "./game/elements";
 import type { Slot } from "./game/weapons";
 import { ENGINE_VERSION, type StageAction } from "./game/stageReplay";
 import { createRng } from "./game/rng";
@@ -160,6 +161,7 @@ export interface ProfileRepo {
     rank?: DungeonId,
     ascension?: number,
     tower?: TowerMode,
+    element?: Element | null,
   ): Promise<RunStartInfo>;
   submitRun(
     runId: string,
@@ -345,6 +347,7 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       rank = "f",
       ascension = 0,
       tower,
+      element,
     ) => {
       if (tower) {
         // Offline tower: the week's seed from the calendar, no ranking.
@@ -354,6 +357,7 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
           tower,
           characterId,
           classId,
+          element ?? null,
           seed,
           "local",
         );
@@ -569,11 +573,16 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       store.replace(r.profile);
       return { text: r.text, id: r.id };
     },
-    startRun: async (classId, characterId, _seed, _rank, _ascension, tower) => {
+    startRun: async (classId, characterId, _seed, _rank, _ascension, tower, element) => {
       // /api/run/start is the weekly tower only; dungeon levels use startLevel.
       if (!tower)
         throw new RepoError("invalid_input", "Falta el modo de la torre.");
-      return api<RunStartInfo>("/api/run/start", { classId, characterId, tower });
+      return api<RunStartInfo>("/api/run/start", {
+        classId,
+        characterId,
+        tower,
+        ...(element ? { element } : {}),
+      });
     },
     submitRun: async (runId, actions, claimed, keepalive) => {
       const r = await api<{
