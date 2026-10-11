@@ -546,6 +546,8 @@ export async function submitRunService(
         p_mode: tower,
         p_floor: floors,
         p_rounds: Math.min(rep.rounds, 1_000_000),
+        p_class: hero.classId,
+        p_element: hero.element,
       });
       towerPrize = rec?.prize;
       // A quarter of the dungeon EXP for the hero that climbed (best effort).

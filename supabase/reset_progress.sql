@@ -1,7 +1,7 @@
 -- MANUAL, DESTRUCTIVE, NOT A MIGRATION (not part of setup.sql): wipes every player's progress
 -- so all accounts restart as if freshly created (name + PIN are kept).
 -- Run once in the Supabase SQL editor. Cannot be undone: take a backup first if in doubt.
--- Updated for v9/H1 (levels, Escamas/Dados, missions, hero factor profiles, tower).
+-- Updated for v9/H2 (levels, Escamas/Dados, missions, hero factor profiles, tower identity).
 -- Deleting character rows also removes all hero copies and their {trait, factors} profiles.
 -- Deleting tower score rows clears every mode/selection, including future class/element metadata.
 -- Rooms/chips history is left alone.
