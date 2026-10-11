@@ -830,7 +830,7 @@ export function ProgressMode() {
                       <span>Poder recomendado {recommendedPower(spec.difficulty, spec.index, a)}</span>
                     </div>
                     {spec.final && <p className="mt-1 text-xs leading-snug text-red-100">{routeCopy.mechanic}</p>}
-                    {!unlocked && <p className="mt-1 text-xs text-[#c6beb5]">{!isStepUnlocked(profile.dungeons, currentStep) ? `${lockReason(currentStep)}.` : `Completa el nivel ${done} de esta ruta.`}</p>}
+                    {!unlocked && <p className="mt-1 text-xs text-[#c6beb5]">{!isStepUnlocked(profile.dungeons, currentStep) ? `${lockReason(currentStep)}.` : "Completa el nivel anterior."}</p>}
                   </div>
                   {cleared ? <span className="dungeon-stamp dungeon-stamp--small relative z-10 self-center" role="img" aria-label={`Nivel ${spec.index + 1}: completado`}>COMPLETADO</span> : unlocked ? (
                     <span className="relative z-10 self-center text-xl text-yellow-300" aria-hidden="true">›</span>
