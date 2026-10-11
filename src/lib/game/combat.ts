@@ -219,7 +219,7 @@ export const dmgReductionOf = (c: Combatant): number => {
   );
 };
 
-// Class passive + style resonance damage reduction, capped together.
+// Class passive damage reduction, capped together.
 export const PASSIVE_REDUCTION_CAP = 0.25;
 export const passiveReduction = (c: Combatant): number =>
   Math.min(

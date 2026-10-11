@@ -5,18 +5,13 @@ import { RankIcon } from "@/components/RankIcon";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { ElementIcon } from "@/components/ElementIcon";
+import { ELEMENTS, ELEMENT_LABEL } from "@/lib/game/elements";
 import { HeroSprite } from "@/components/HeroSprite";
 import { StarRow } from "@/components/StarRow";
 import { WeaponSprite } from "@/components/WeaponSprite";
 import { CLASSES } from "@/lib/game/characters";
 import {
   activeSets,
-  BUILD_LABEL,
-  buildLabel,
-  resonanceLine,
-  resonances,
-  SKILL_STYLE_GROUP,
-  SET_AFFINITY,
   SET_BONUS,
   SET_TIERS,
   setLine,
@@ -24,7 +19,6 @@ import {
 } from "@/lib/game/gear";
 import {
   autoEquipPlan,
-  heroFromOwned,
   slotKey,
   type AutoMode,
   type OwnedCharacter,
@@ -169,18 +163,8 @@ export function EquipmentEditor({
     );
     return w ? [w.element] : [];
   });
-  const sets = activeSets(wornElements, c.element);
+  const sets = activeSets(wornElements);
   const plan = autoEquipPlan(profile, c.id, mode, { takeFromOthers: steal });
-  const wornPieces = DOLL_SLOTS.flatMap((sl) => {
-    const w = profile.weapons.find(
-      (x) => x.id === profile.equipped[slotKey(c.id, sl)],
-    );
-    return w ? [w] : [];
-  });
-  const skill = heroFromOwned(profile, c.id)?.skill;
-  const styleGroup = skill ? SKILL_STYLE_GROUP[skill] : undefined;
-  const build = buildLabel(wornPieces);
-  const res = resonances(wornPieces, styleGroup);
   const wornSlots = DOLL_SLOTS.filter(
     (sl) => profile.equipped[slotKey(c.id, sl)],
   );
@@ -189,22 +173,13 @@ export function EquipmentEditor({
     .join(" · ");
   return (
     <>
-      <div className="space-y-1">
-        <div className="flex flex-wrap items-center gap-1 text-sm">
-          <span className="text-[#d9d2ca]">Autoequipar:</span>
-          {(
-            [
-              ["poder", "Poder", "Mayor poder total (cuenta sets)"],
-              ["set", "Set", "Prefiere piezas de tu elemento para completar sets"],
-              [
-                "estilo",
-                "Estilo",
-                styleGroup
-                  ? `Prefiere piezas de tu estilo (${BUILD_LABEL[styleGroup]})`
-                  : "Necesita una tercera habilidad elegida",
-              ],
-            ] as const
-          ).map(([m, label, tip]) => (
+      <div className="space-y-2">
+        <div className="text-sm text-[#d9d2ca]">Autoequipar:</div>
+        <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">
+          {([
+            ["poder", "Poder", "Mayor poder bruto sin preferencia de elemento"],
+            ...ELEMENTS.map((el) => [el, ELEMENT_LABEL[el], `Prefiere piezas de ${ELEMENT_LABEL[el]} para completar sets`] as const),
+          ] as const).map(([m, label, tip]) => (
             <button
               key={m}
               title={tip}
@@ -218,6 +193,8 @@ export function EquipmentEditor({
               {label}
             </button>
           ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-1 text-sm">
           <label className="ml-1 flex items-center gap-1 text-xs">
             <input
               type="checkbox"
@@ -277,7 +254,7 @@ export function EquipmentEditor({
           })
         }
       >
-        Quitar todo el equipo
+          Desequipar todo
       </button>
       <div className="text-sm text-[#d9d2ca]">
         Armas de {CLASSES[c.classId].name}:{" "}
@@ -343,19 +320,6 @@ export function EquipmentEditor({
       </div>
 
       <div className="text-sm text-[#d9d2ca]">
-        {build && (
-          <div>
-            Build: <span className="text-yellow-300">{BUILD_LABEL[build]}</span>
-            {styleGroup && (
-              <span className="text-xs"> · tu estilo: {BUILD_LABEL[styleGroup]}</span>
-            )}
-          </div>
-        )}
-        {res.map((r) => (
-          <div key={r.group} className="text-cyan-300">
-            {resonanceLine(r)}
-          </div>
-        ))}
         {sets.length === 0 ? (
           <div>Sets: piezas del mismo elemento dan bonos a 2, 4 y 6.</div>
         ) : (
@@ -385,10 +349,7 @@ export function EquipmentEditor({
                 ))}
               </div>
             ))}
-            <div>
-              ×{SET_AFFINITY} si el set es del elemento de tu héroe. Los bonos
-              de varios sets se suman.
-            </div>
+            <div>Los bonos de varios sets se suman.</div>
           </div>
         </details>
       </div>
