@@ -15,12 +15,14 @@ import {
 import { ELEMENTS, type Element } from "./elements";
 import {
   parseProgress,
+  emptyDungeonProgress,
   recordClear,
   type DungeonProgress,
 } from "./dungeonProgress";
 import { firstClearChest, levelCoins, levelDecay } from "./levelPay";
 import { DADO_DAILY_MAX, type LevelLoot } from "./levelLoot";
 import type { StageStatus } from "./stage";
+import type { RouteId } from "./levels";
 import type { RunPiece } from "./loot";
 import {
   activeSets,
@@ -39,7 +41,7 @@ import {
   RARITY_IDS,
   toRank,
   rollRarity,
-  type DungeonId,
+  type Difficulty,
   scaleStats,
   type RarityId,
 } from "./rarity";
@@ -64,7 +66,7 @@ import {
   type Weapon,
 } from "./weapons";
 
-export const PROFILE_VERSION = 6; // 6: heroes persist their factor profile and copies carry full profiles
+export const PROFILE_VERSION = 7; // 7: dungeon progress is shared by difficulty step and tracked per route
 // Raised from 150: at ~11-22 pulls/day of income the old price made SSR pity reachable in
 // ~2 weeks (cheaper than the forge). Keep in sync with game_constants (0017).
 // Day-1 tutorial progress (tutorial.ts). Only brand-new local accounts carry it (see
@@ -140,7 +142,7 @@ export interface Profile {
   runsDay?: { day: string; n: number }; // runs banked on that game day (pay decays, see economy.ts)
   bestFloor: number;
   runsPlayed: number;
-  dungeons: DungeonProgress; // levels cleared per rank and ascension (dungeonProgress.ts)
+  dungeons: DungeonProgress; // shared cleared steps and per-route level progress
   levelsDay?: { day: string; n: number }; // repeated levels cleared on that game day (pay decays)
   escamas: number; // Mejorar material (upgrade.ts); bound to the account
   dados: number; // Dado cargado (upgrade.ts); bound to the account
@@ -161,7 +163,7 @@ export const createProfile = (): Profile => ({
   pitySsr: { character: 0, weapon: 0 },
   bestFloor: 0,
   runsPlayed: 0,
-  dungeons: {},
+  dungeons: emptyDungeonProgress(),
   escamas: 0,
   dados: 0,
 });
@@ -477,8 +479,9 @@ export function bankRun(
 // ---- Run v2: dungeon levels ----
 
 export interface LevelResult {
-  rank: DungeonId;
-  level: number; // 0-based index in the rank
+  route: RouteId;
+  difficulty: Difficulty;
+  level: number; // 0-based index within the route and step
   asc: number;
   heroId: string;
   status: StageStatus; // the finished stage
@@ -501,11 +504,12 @@ export interface LevelBank {
 // Repeat flag and daily pay multiplier the loot roll needs BEFORE banking.
 export function lootOptions(
   p: Profile,
-  rank: DungeonId,
+  route: RouteId,
+  difficulty: Difficulty,
   level: number,
   asc: number,
 ): { repeat: boolean; payMult: number; dadoLeft: number } {
-  const repeat = (p.dungeons[rank]?.[asc] ?? 0) > level;
+  const repeat = (p.dungeons.routes[`${route}:${difficulty}:${asc}`] ?? 0) > level;
   const today = dayKey();
   const n = (p.levelsDay?.day === today ? p.levelsDay.n : 0) + 1;
   const found = p.dadosDay?.day === today ? p.dadosDay.n : 0;
@@ -528,14 +532,14 @@ export function bankLevel(p: Profile, r: LevelResult): LevelBank {
   let coins = 0;
   let chest = 0;
   if (r.status === "cleared") {
-    const rec = recordClear(p.dungeons, r.rank, r.level, r.asc);
+    const rec = recordClear(p.dungeons, r.route, r.difficulty, r.level, r.asc);
     if (rec) {
       cleared = true;
       repeat = !rec.firstTime;
       const today = dayKey();
       const n = (p.levelsDay?.day === today ? p.levelsDay.n : 0) + (repeat ? 1 : 0);
-      coins = levelCoins(r.rank, r.asc, repeat, n);
-      chest = rec.dungeonFirstClear ? firstClearChest(r.rank, r.asc) : 0;
+      coins = levelCoins(r.difficulty, r.asc, repeat, n);
+      chest = rec.routeFirstClear ? firstClearChest(r.difficulty, r.asc) : 0;
       q = {
         ...q,
         dungeons: rec.progress,

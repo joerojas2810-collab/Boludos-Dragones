@@ -10,9 +10,9 @@ import {
 } from "./characters";
 import type { EnemyMod } from "./combat";
 import { ELEMENTS, type Element } from "./elements";
-import { DUNGEON_THEMES } from "./levels";
+import { DUNGEON_THEMES, ROUTE_IDS, type RouteId } from "./levels";
 import { makePow } from "./powTable";
-import { DUNGEON_IDS, type DungeonId } from "./rarity";
+import { DIFFICULTIES, type Difficulty } from "./rarity";
 import { createRng, hashSeed } from "./rng";
 import {
   createStage,
@@ -85,20 +85,12 @@ export const kindOfFloor = (floor: number): FloorKind =>
 export const isBossRoom = (floor: number) => floor % BOSS_ROOM_EVERY === 0;
 
 // Room / tower difficulty shift per rank (found by simulation, see scripts/run-sim.ts).
-export const RANK_DEPTH_OFFSET: Readonly<Record<DungeonId, number>> = {
-  f: 0,
-  e: 1,
-  d: 1,
-  c: 2,
-  b: 3,
-  a: 4,
-  s: 5,
-  ss: 6,
-  ssr: 8,
+export const RANK_DEPTH_OFFSET: Readonly<Record<Difficulty, number>> = {
+  f: 0, e: 1, d: 1, c: 2, b: 3, a: 4, s: 5,
 };
 
 /** Depth used for scaling: the floor plus the room rank's offset (rooms only). */
-export const depthOf = (floor: number, rank?: DungeonId | null) =>
+export const depthOf = (floor: number, rank?: Difficulty | null) =>
   floor + (rank ? RANK_DEPTH_OFFSET[rank] : 0);
 
 export const earlyEase = (depth: number) =>
@@ -150,17 +142,16 @@ export function groupSize(
 }
 
 export interface FloorOpts {
-  rank?: DungeonId | null; // room difficulty: shifts depth, picks the boss room's boss
+  rank?: Difficulty | null; // room difficulty shifts depth and strength
   kind?: FloorKind; // default: kindOfFloor(floor)
   tower?: boolean; // weekly tower: gentler depth curve (TOWER_SCALE)
   power?: number; // overall multiplier; default ROOM_POWER in rooms (rank set), 1 otherwise
 }
 
 /** The named boss of a boss room: by room rank in rooms, cycling through the nine in the tower. */
-function bossTheme(floor: number, rank: DungeonId | null | undefined) {
-  if (rank) return DUNGEON_THEMES[rank];
-  const k = Math.floor(floor / BOSS_ROOM_EVERY) - 1;
-  return DUNGEON_THEMES[DUNGEON_IDS[k % DUNGEON_IDS.length]];
+function bossTheme(floor: number, difficulty: Difficulty | null | undefined) {
+  const k = difficulty ? DIFFICULTIES.indexOf(difficulty) : Math.floor(floor / BOSS_ROOM_EVERY) - 1;
+  return DUNGEON_THEMES[ROUTE_IDS[k % ROUTE_IDS.length]];
 }
 
 /** Doors of a room floor: a boss floor has only the boss; otherwise easy or hard. */
@@ -170,8 +161,8 @@ export const roomDoors = (floor: number): { kind: FloorKind }[] =>
     : [{ kind: "easy" }, { kind: "hard" }];
 
 /** Rank whose named boss has this art id (the sprites are looked up by rank). */
-export const bossRankOf = (bossId?: string): DungeonId | null =>
-  DUNGEON_IDS.find((r) => DUNGEON_THEMES[r].bossId === bossId) ?? null;
+export const bossRankOf = (bossId?: string): RouteId | null =>
+  ROUTE_IDS.find((route) => DUNGEON_THEMES[route].bossId === bossId) ?? null;
 
 export function floorFight(
   seed: number,
@@ -254,7 +245,7 @@ export interface Climb {
   hp: number;
   floor: number; // floor to play next (1-based)
   status: "active" | "over";
-  rank: DungeonId | null; // room difficulty (null in the tower)
+  rank: Difficulty | null; // room difficulty (null in the tower)
   wins: number;
   bossWins: number;
   rounds: number; // battle rounds fought so far (tower tiebreak)
@@ -264,7 +255,7 @@ export interface Climb {
 export const newClimb = (
   seed: number,
   hero: Character,
-  rank: DungeonId | null = null,
+  rank: Difficulty | null = null,
 ): Climb => ({
   seed,
   hero,

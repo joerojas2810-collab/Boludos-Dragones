@@ -308,17 +308,10 @@ export function BossIntro({
       aria-hidden
       className="fx-bossintro pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-black/80"
     >
-      {finalRank ? (
-        <Vfx
-          id={`boss_entrance_${finalRank}`}
-          className="w-[min(90%,32rem)]"
-        />
-      ) : (
-        <Vfx
-          id="boss_entrance"
-          className="absolute w-[min(70%,20rem)] opacity-80"
-        />
-      )}
+      <Vfx
+        id="boss_entrance"
+        className={finalRank ? "w-[min(90%,32rem)]" : "absolute w-[min(70%,20rem)] opacity-80"}
+      />
       <span className={`fx-bossname relative px-2 text-center text-3xl font-black uppercase tracking-widest text-red-200 md:text-5xl ${finalRank ? "sr-only" : ""}`}>
         {name}
       </span>

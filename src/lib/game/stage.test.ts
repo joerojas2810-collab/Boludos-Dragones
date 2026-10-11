@@ -4,11 +4,11 @@ import { generateCharacter } from "./characters";
 import { step } from "./combat";
 import {
   DUNGEON_THEMES,
-  LEVELS_PER_RANK,
+  LEVELS_PER_ROUTE,
+  ROUTE_IDS,
   levelElement,
   levelsOf,
 } from "./levels";
-import { RARITY_IDS } from "./rarity";
 import { createRng } from "./rng";
 import {
   createStage,
@@ -22,21 +22,21 @@ import {
 
 describe("levels", () => {
   it("has the configured number of levels, deterministic, last is a 5-fight final", () => {
-    for (const r of RARITY_IDS) {
-      const ls = levelsOf(r);
-      expect(ls).toHaveLength(LEVELS_PER_RANK[r]);
-      expect(levelsOf(r)).toBe(ls);
+    for (const r of ROUTE_IDS) {
+      const ls = levelsOf(r, "f");
+      expect(ls).toHaveLength(LEVELS_PER_ROUTE);
+      expect(levelsOf(r, "f")).toBe(ls);
       const last = ls[ls.length - 1];
       expect(last.final).toBe(true);
-      expect(last.length).toBe(5);
+      expect(last.length).toBe(3);
       expect(last.element).toBe(DUNGEON_THEMES[r].bossElement);
       expect(ls.slice(0, -1).every((l) => !l.final)).toBe(true);
-      expect(ls.every((l) => [2, 3, 5].includes(l.length))).toBe(true);
+      expect(ls.every((l) => [2, 3].includes(l.length))).toBe(true);
     }
   });
 
   it("changes the element every ascension but never the drop slot", () => {
-    const l = levelsOf("c")[2];
+    const l = levelsOf(ROUTE_IDS[0], "c")[2];
     let prev = levelElement(l, 0);
     for (let a = 1; a <= 5; a++) {
       const e = levelElement(l, a);
@@ -68,19 +68,19 @@ describe("stage", () => {
   };
 
   it("fights are deterministic and end with an elite/boss", () => {
-    const spec = levelsOf("f")[0];
+    const spec = levelsOf(ROUTE_IDS[0], "f")[0];
     const a = levelFights(spec, 0);
     expect(JSON.stringify(a)).toBe(JSON.stringify(levelFights(spec, 0)));
     expect(a).toHaveLength(spec.length);
     expect(a[a.length - 1].role).toBe("elite");
-    const fin = levelsOf("f")[LEVELS_PER_RANK.f - 1];
+    const fin = levelsOf(ROUTE_IDS[0], "f")[LEVELS_PER_ROUTE - 1];
     const f = levelFights(fin, 0);
     expect(f[f.length - 1].role).toBe("final");
-    expect(f[f.length - 1].enemies[0].name).toBe(DUNGEON_THEMES.f.bossName);
+    expect(f[f.length - 1].enemies[0].name).toBe(DUNGEON_THEMES[ROUTE_IDS[0]].bossName);
   });
 
   it("a strong hero clears a level and earns EXP; a dead hero loses", () => {
-    const fights = levelFights(levelsOf("f")[0], 0);
+    const fights = levelFights(levelsOf(ROUTE_IDS[0], "f")[0], 0);
     const won = play(createStage(1, strong, fights));
     expect(won.status).toBe("cleared");
     expect(won.xp).toBeGreaterThan(0);
@@ -100,7 +100,7 @@ describe("stage replay", () => {
     const { replayStage } = await import("./stageReplay");
     const h = generateCharacter(createRng(3), "caballero");
     const strong = { ...h, stats: { ...h.stats, hp: h.stats.hp * 20, atk: h.stats.atk * 10 } };
-    const fights = levelFights(levelsOf("f")[0], 0);
+    const fights = levelFights(levelsOf(ROUTE_IDS[0], "f")[0], 0);
     const log = fights.flatMap(() => [{ t: "auto" as const }, { t: "fin" as const }]);
     const r = replayStage(5, strong, fights, log);
     expect(r.rejectedAt).toBeNull();
@@ -115,7 +115,7 @@ describe("stage replay", () => {
     const { replayStage } = await import("./stageReplay");
     const h = generateCharacter(createRng(3), "caballero");
     const strong = { ...h, stats: { ...h.stats, hp: h.stats.hp * 20, atk: h.stats.atk * 10 } };
-    const elite = levelFights(levelsOf("f")[0], 0).at(-1)!;
+    const elite = levelFights(levelsOf(ROUTE_IDS[0], "f")[0], 0).at(-1)!;
     const result = replayStage(5, strong, [elite], [{ t: "act", a: "quebrar" }]);
     expect(result.applied).toBe(1);
     expect(result.rejectedAt).toBeNull();

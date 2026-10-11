@@ -1,8 +1,7 @@
 import { ItemCard } from "@/components/ItemCard";
 import { PullRevealPreview } from "./PullRevealPreview";
 import { PIXEL_ICON_NAMES, pixelIconSize } from "@/lib/art/pixel";
-import { RARITY_IDS } from "@/lib/game/rarity";
-import { DUNGEON_THEMES as DUNGEONS } from "@/lib/game/levels";
+import { DUNGEON_INFO, RARITY_IDS } from "@/lib/game/rarity";
 import artIds from "@/lib/artIds.json";
 import pixelItems from "@/lib/art/pixel-items.generated.json";
 
@@ -206,7 +205,7 @@ export function InventoryGallery({ lot, zoom, bg }: { lot: "items" | "icons" | "
             {group.names.map((name) => {
               const id = name.slice(family.length + 1);
               const dungeon = family === "dungeon" ? RARITY_IDS.find((rank) => id === "rank_" + rank) : undefined;
-              const title = family === "relic" ? relicLabel(id) : dungeon ? DUNGEONS[dungeon].name : family === "asc" ? (id === "max_star" ? "Estrella máxima" : "Ascensión " + id) : family === "rank" ? id.toUpperCase() : family === "system" && id === "chest" ? "Cofre" : family === "stat" && id === "flee" ? "Huida" : (family === "door" ? DOOR_LABELS[id] : LABELS[id]) ?? id;
+              const title = family === "relic" ? relicLabel(id) : dungeon ? DUNGEON_INFO[dungeon].label : family === "asc" ? (id === "max_star" ? "Estrella máxima" : "Ascensión " + id) : family === "rank" ? id.toUpperCase() : family === "system" && id === "chest" ? "Cofre" : family === "stat" && id === "flee" ? "Huida" : (family === "door" ? DOOR_LABELS[id] : LABELS[id]) ?? id;
               return <figure key={name}>
                 <PixelImage path={"icons-px/icon_" + name} label={title} zoom={zoom} bg={bg} />
                 <figcaption className="mt-1 text-center text-xs">{title}</figcaption>

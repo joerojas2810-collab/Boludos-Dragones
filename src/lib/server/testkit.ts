@@ -48,7 +48,7 @@ export class FakeDb {
   heroChanges: Args[] = [];
   pieceChanges: Args[] = [];
   xpGrants: Args[] = [];
-  dungeons: Record<string, number[]> = {};
+  dungeons: { steps: Record<string, true>; routes: Record<string, number> } = { steps: {}, routes: {} };
   equipped: Record<string, string> = {};
   runsToday = 0;
   towerRecords: Args[] = [];
@@ -110,7 +110,7 @@ export class FakeDb {
               stars: r.stars,
               data: r.data,
             })),
-          dungeons: this.dungeons,
+          dungeonProgress: this.dungeons,
           equipped: this.equipped,
           bestFloor: 0,
         });
@@ -121,7 +121,8 @@ export class FakeDb {
           hero: {
             ...h,
             kind: "level",
-            rank: a.p_rank,
+            route: a.p_route,
+            difficulty: a.p_difficulty,
             level: a.p_level,
             asc: a.p_asc,
             heroId: a.p_character_id,
@@ -400,7 +401,7 @@ export function playLevelBot(
   asc = 0,
   maxActions = 600,
 ): StageAction[] {
-  let s = initialStageReplay(seed, hero, levelFights(levelsOf(rank)[level], asc), asc);
+  let s = initialStageReplay(seed, hero, levelFights(levelsOf("lord_of_flies", rank)[level], asc), asc);
   const log: StageAction[] = [];
   const push = (a: StageAction): boolean => {
     const n = applyStageAction(s, a);

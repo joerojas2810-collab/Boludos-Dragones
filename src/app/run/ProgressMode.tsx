@@ -18,7 +18,6 @@ import { ItemCard } from "@/components/ItemCard";
 import { MuteButton } from "@/components/MuteButton";
 import { Notice } from "@/components/Notice";
 import { Panel } from "@/components/Panel";
-import { RankIcon } from "@/components/RankIcon";
 import { StarRow } from "@/components/StarRow";
 import { Tooltip } from "@/components/Tooltip";
 import { useTargeting } from "@/components/useTargeting";
@@ -28,16 +27,18 @@ import { type Action } from "@/lib/game/combat";
 import { elementMultiplier, ELEMENT_LABEL } from "@/lib/game/elements";
 import { MOD_LABEL, modTip } from "@/lib/game/explain";
 import { levelCap, xpToNextLevel } from "@/lib/game/heroLevel";
-import { recommendedPower, recommendedPowerRange } from "@/lib/game/recommended";
+import { recommendedPower } from "@/lib/game/recommended";
 import {
   clearedLevels,
   isLevelUnlocked,
-  isRankUnlocked,
+  isStepUnlocked,
   maxAscension,
 } from "@/lib/game/dungeonProgress";
 import {
   DUNGEON_THEMES,
-  LEVELS_PER_RANK,
+  LEVELS_PER_ROUTE,
+  ROUTE_IDS,
+  type RouteId,
   levelElement,
   levelsOf,
   type LevelSpec,
@@ -51,7 +52,7 @@ import {
   type OwnedCharacter,
   type Profile,
 } from "@/lib/game/profile";
-import { DUNGEON_IDS, DUNGEON_INFO, RARITIES, type DungeonId } from "@/lib/game/rarity";
+import { DIFFICULTIES, DUNGEON_INFO, RARITIES, type Difficulty } from "@/lib/game/rarity";
 import {
   ASC_RULES,
   currentFight,
@@ -87,7 +88,8 @@ const ROLE_LABEL: Record<FightRole, string> = {
 };
 
 interface Attempt {
-  rank: DungeonId;
+  route: RouteId;
+  difficulty: Difficulty;
   level: number;
   asc: number;
   heroId: string;
@@ -103,9 +105,10 @@ interface Outcome {
   sweeps?: number; // total of a multi-sweep (×N)
 }
 type View =
-  | { t: "ranks" }
-  | { t: "levels"; rank: DungeonId }
-  | { t: "prep"; rank: DungeonId; level: number }
+  | { t: "routes" }
+  | { t: "steps"; route: RouteId }
+  | { t: "levels"; route: RouteId; difficulty: Difficulty }
+  | { t: "prep"; route: RouteId; difficulty: Difficulty; level: number }
   | { t: "fight"; a: Attempt }
   | { t: "starting" } // waiting for the server to open the attempt
   | { t: "saving" } // waiting for the server to verify and pay the attempt
@@ -119,7 +122,7 @@ const Shell = ({ children }: { children: ReactNode }) => (
 
 export function ProgressMode() {
   const { profile, ready } = useProfile();
-  const [view, setView] = useState<View>({ t: "ranks" });
+  const [view, setView] = useState<View>({ t: "routes" });
   const [asc0, setAsc] = useState(0);
   const asc = asc0;
   const [heroId, setHeroId] = useState<string | null>(null);
@@ -131,7 +134,8 @@ export function ProgressMode() {
   const hero = profile.characters.find((c) => c.id === heroId) ?? null;
 
   const enter = async (
-    rank: DungeonId,
+    route: RouteId,
+    difficulty: Difficulty,
     level: number,
     id: string,
     ascOverride?: number,
@@ -140,11 +144,11 @@ export function ProgressMode() {
     if (ascOverride !== undefined) setAsc(ascOverride);
     const owned = profile.characters.find((c) => c.id === id);
     if (!owned || view.t === "starting") return; // ignore taps while the server opens the attempt
-    const spec = levelsOf(rank)[level];
+    const spec = levelsOf(route, difficulty)[level];
     setHeroId(id); // the next attempt keeps the same hero
     setView({ t: "starting" });
     try {
-      const info = await repo.startLevel(owned.id, rank, level, asc);
+      const info = await repo.startLevel(owned.id, route, difficulty, level, asc);
       const rs = initialStageReplay(
         info.seed,
         info.hero,
@@ -153,16 +157,16 @@ export function ProgressMode() {
       );
       setView({
         t: "fight",
-        a: { rank, level, asc, heroId: owned.id, rs, actions: [], info },
+        a: { route, difficulty, level, asc, heroId: owned.id, rs, actions: [], info },
       });
     } catch (e) {
       pushNotice(e instanceof Error ? e.message : "No se pudo empezar el nivel.");
-      setView({ t: "prep", rank, level });
+      setView({ t: "prep", route, difficulty, level });
     }
   };
 
   // Instant resolution of an already-cleared level; shows the usual result screen.
-  const sweep = async (rank: DungeonId, level: number, id: string, times = 1) => {
+  const sweep = async (route: RouteId, difficulty: Difficulty, level: number, id: string, times = 1) => {
     const owned = profile.characters.find((c) => c.id === id);
     if (!owned || view.t === "saving") return;
     setHeroId(id);
@@ -173,7 +177,7 @@ export function ProgressMode() {
     let done = 0;
     try {
       for (; done < times; done++) {
-        const o = await repo.sweepLevel(owned.id, rank, level, asc);
+        const o = await repo.sweepLevel(owned.id, route, difficulty, level, asc);
         out = o;
         bank = bank
           ? { ...o.bank, coins: bank.coins + o.bank.coins, chest: bank.chest + o.bank.chest, xp: bank.xp + o.bank.xp, levelsGained: bank.levelsGained + o.bank.levelsGained }
@@ -187,7 +191,7 @@ export function ProgressMode() {
           : e instanceof Error ? e.message : "No se pudo barrer el nivel.",
       );
     }
-    if (!out || !bank) return setView({ t: "prep", rank, level });
+    if (!out || !bank) return setView({ t: "prep", route, difficulty, level });
     const info: LevelStartInfo = {
       attemptId: "sweep",
       seed: out.stage.seed,
@@ -197,7 +201,8 @@ export function ProgressMode() {
       t: "result",
       o: {
         attempt: {
-          rank,
+          route,
+          difficulty,
           level,
           asc,
           heroId: owned.id,
@@ -223,7 +228,8 @@ export function ProgressMode() {
       const out = await repo.finishLevel({
         info: a.info,
         heroId: a.heroId,
-        rank: a.rank,
+        route: a.route,
+        difficulty: a.difficulty,
         level: a.level,
         asc: a.asc,
         stage: rs.stage,
@@ -242,7 +248,7 @@ export function ProgressMode() {
       pushNotice(
         e instanceof Error ? e.message : "No se pudo guardar el resultado.",
       );
-      setView({ t: "ranks" });
+      setView({ t: "routes" });
     }
   };
 
@@ -266,8 +272,8 @@ export function ProgressMode() {
     const b = rs.battle;
     const fight = currentFight(rs.stage);
     if (!b || !fight) return null;
-    const theme = DUNGEON_THEMES[a.rank];
-    const spec = levelsOf(a.rank)[a.level];
+    const theme = DUNGEON_THEMES[a.route];
+    const spec = levelsOf(a.route, a.difficulty)[a.level];
     const settled = rs.settled;
     const role = fight.role;
     const tools = (
@@ -295,7 +301,7 @@ export function ProgressMode() {
           <ArenaBackground
             world={theme.world}
             boss={role === "final"}
-            rank={a.rank}
+            rank={a.difficulty}
           />
         </div>
         <div className="mx-auto w-full max-w-[min(100rem,calc((100vh-9rem)*1.78))] md:min-w-[48rem]">
@@ -348,15 +354,14 @@ export function ProgressMode() {
                     element={c.char.element}
                     boss={role === "final" && i === 0}
                     elite={role === "elite" && i === 0}
-                    finalRank={role === "final" && i === 0 ? a.rank : null}
+                    finalRank={role === "final" && i === 0 ? a.route : null}
                   />
                 )}
                 enemy={targeting.enemy}
                 onTarget={targeting.select}
                 inRun
                 world={theme.world}
-                rank={a.rank}
-                finalRank={role === "final" ? a.rank : null}
+                finalRank={role === "final" ? a.route : null}
                 boss={role === "final"}
                 enemyChips={(_, c) =>
                   fight.mods
@@ -446,21 +451,20 @@ export function ProgressMode() {
     const won = st.status === "cleared" && o.bank.cleared;
     const hasNext =
       won &&
-      a.level + 1 < LEVELS_PER_RANK[a.rank] &&
-      isLevelUnlocked(o.bank.profile.dungeons, a.rank, a.level + 1, a.asc);
+      a.level + 1 < LEVELS_PER_ROUTE &&
+      isLevelUnlocked(o.bank.profile.dungeons, a.route, a.difficulty, a.level + 1, a.asc);
     const pieces = o.loot.pieces;
     // Last level cleared: offer the next ascension of this dungeon and the next dungeon.
-    const dungeonEnd = won && a.level + 1 >= LEVELS_PER_RANK[a.rank];
+    const dungeonEnd = won && a.level + 1 >= LEVELS_PER_ROUTE;
     const nextAsc =
       dungeonEnd &&
-      a.asc + 1 <= maxAscension(o.bank.profile.dungeons, a.rank)
+      a.asc + 1 <= maxAscension(o.bank.profile.dungeons, a.difficulty)
         ? a.asc + 1
         : null;
-    const nextRank = dungeonEnd
-      ? DUNGEON_IDS[DUNGEON_IDS.indexOf(a.rank) + 1]
+    const nextDifficulty = dungeonEnd
+      ? DIFFICULTIES[DIFFICULTIES.indexOf(a.difficulty) + 1]
       : undefined;
-    const nextRankOpen =
-      nextRank !== undefined && isRankUnlocked(o.bank.profile.dungeons, nextRank);
+    const nextDifficultyOpen = nextDifficulty !== undefined && isStepUnlocked(o.bank.profile.dungeons, { difficulty: nextDifficulty, asc: 0 });
     return (
       <Shell>
         <Notice />
@@ -470,7 +474,7 @@ export function ProgressMode() {
           className="mx-auto w-full max-w-2xl space-y-2 text-center"
         >
           <div className="text-[#d9d2ca]">
-            {DUNGEON_THEMES[a.rank].name} · Nivel {a.level + 1}
+            {DUNGEON_THEMES[a.route].name} · Nivel {a.level + 1}
             {a.asc > 0 && ` · Ascensión +${a.asc}`}
             {won && o.bank.repeat && " · repetido"}
             {o.sweeps && o.sweeps > 1 && ` · barrido ×${o.sweeps}`}
@@ -548,7 +552,8 @@ export function ProgressMode() {
           {hasNext && (
             <NextStage
               profile={o.bank.profile}
-              rank={a.rank}
+              route={a.route}
+              difficulty={a.difficulty}
               level={a.level + 1}
               asc={a.asc}
               heroId={a.heroId}
@@ -558,7 +563,7 @@ export function ProgressMode() {
             {hasNext && (
               <button
                 className="btn text-center"
-                onClick={() => void enter(a.rank, a.level + 1, a.heroId)}
+                onClick={() => void enter(a.route, a.difficulty, a.level + 1, a.heroId)}
               >
                 Siguiente nivel
               </button>
@@ -566,22 +571,22 @@ export function ProgressMode() {
             {nextAsc !== null && (
               <button
                 className="btn text-center"
-                onClick={() => void enter(a.rank, 0, a.heroId, nextAsc)}
+                onClick={() => void enter(a.route, a.difficulty, 0, a.heroId, nextAsc)}
               >
                 Siguiente ascensión (+{nextAsc})
               </button>
             )}
-            {nextRankOpen && nextRank && (
+            {nextDifficultyOpen && nextDifficulty && (
               <button
                 className={`btn text-center ${nextAsc !== null ? "btn-gray" : ""}`}
-                onClick={() => void enter(nextRank, 0, a.heroId, 0)}
+                onClick={() => void enter(a.route, nextDifficulty, 0, a.heroId, 0)}
               >
-                Siguiente dungeon: {DUNGEON_THEMES[nextRank].name}
+                Siguiente dificultad: {nextDifficulty.toUpperCase()}
               </button>
             )}
             <button
-              className={`btn text-center ${hasNext || nextAsc !== null || nextRankOpen ? "btn-gray" : ""}`}
-              onClick={() => void enter(a.rank, a.level, a.heroId)}
+              className={`btn text-center ${hasNext || nextAsc !== null || nextDifficultyOpen ? "btn-gray" : ""}`}
+              onClick={() => void enter(a.route, a.difficulty, a.level, a.heroId)}
             >
               {won ? "Repetir" : "Reintentar"}
             </button>
@@ -591,7 +596,8 @@ export function ProgressMode() {
                 setHeroId(a.heroId);
                 setView({
                   t: "prep",
-                  rank: a.rank,
+                  route: a.route,
+                  difficulty: a.difficulty,
                   level: hasNext ? a.level + 1 : a.level,
                 });
               }}
@@ -600,7 +606,7 @@ export function ProgressMode() {
             </button>
             <button
               className="btn btn-gray text-center"
-              onClick={() => setView({ t: "levels", rank: a.rank })}
+              onClick={() => setView({ t: "steps", route: a.route })}
             >
               Volver
             </button>
@@ -615,25 +621,56 @@ export function ProgressMode() {
     return (
       <Prep
         profile={profile}
-        rank={view.rank}
+        route={view.route}
+        difficulty={view.difficulty}
         level={view.level}
         asc={asc}
         setHeroId={setHeroId}
         hero={hero}
-        onEnter={(id) => void enter(view.rank, view.level, id)}
-        onSweep={(id, n) => void sweep(view.rank, view.level, id, n)}
-        onBack={() => setView({ t: "levels", rank: view.rank })}
+        onEnter={(id) => void enter(view.route, view.difficulty, view.level, id)}
+        onSweep={(id, n) => void sweep(view.route, view.difficulty, view.level, id, n)}
+        onBack={() => setView({ t: "steps", route: view.route })}
       />
+    );
+  }
+
+  // ---------------- difficulty steps ----------------
+  if (view.t === "steps") {
+    const route = view.route;
+    const theme = DUNGEON_THEMES[route];
+    return (
+      <Shell>
+        <Notice />
+        <Panel title={theme.name} className="mx-auto w-full max-w-4xl space-y-3">
+          <p className="text-center text-[#d9d2ca]">Elige la dificultad. Los escalones desbloqueados sirven en todas las rutas.</p>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {DIFFICULTIES.map((difficulty) => {
+              const unlocked = isStepUnlocked(profile.dungeons, { difficulty, asc: 0 });
+              const done = clearedLevels(profile.dungeons, route, difficulty, 0);
+              return (
+                <button key={difficulty} disabled={!unlocked}
+                  onClick={() => { setAsc(0); setView({ t: "levels", route, difficulty }); }}
+                  className="pixel-frame p-3 text-left disabled:opacity-50">
+                  <b style={{ color: DUNGEON_INFO[difficulty].color }}>{difficulty.toUpperCase()}</b>
+                  <span className="ml-2">{done}/{LEVELS_PER_ROUTE} niveles</span>
+                  {!unlocked && <span className="block text-sm text-red-300">Escalón bloqueado</span>}
+                </button>
+              );
+            })}
+          </div>
+          <button className="btn btn-gray" onClick={() => setView({ t: "routes" })}>← Cambiar de ruta</button>
+        </Panel>
+      </Shell>
     );
   }
 
   // ---------------- levels ----------------
   if (view.t === "levels") {
-    const rank = view.rank;
-    const theme = DUNGEON_THEMES[rank];
-    const top = maxAscension(profile.dungeons, rank);
+    const { route, difficulty } = view;
+    const theme = DUNGEON_THEMES[route];
+    const top = maxAscension(profile.dungeons, difficulty);
     const a = Math.min(asc, top);
-    const done = clearedLevels(profile.dungeons, rank, a);
+    const done = clearedLevels(profile.dungeons, route, difficulty, a);
     return (
       <Shell>
         <Notice />
@@ -660,7 +697,7 @@ export function ProgressMode() {
             </p>
           )}
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {levelsOf(rank).map((spec) => (
+            {levelsOf(route, difficulty).map((spec) => (
               <LevelCard
                 key={spec.index}
                 spec={spec}
@@ -668,13 +705,14 @@ export function ProgressMode() {
                 cleared={spec.index < done}
                 unlocked={isLevelUnlocked(
                   profile.dungeons,
-                  rank,
+                  route,
+                  difficulty,
                   spec.index,
                   a,
                 )}
                 onPick={() => {
                   setAsc(a);
-                  setView({ t: "prep", rank, level: spec.index });
+                  setView({ t: "prep", route, difficulty, level: spec.index });
                 }}
               />
             ))}
@@ -682,9 +720,9 @@ export function ProgressMode() {
           <div className="text-center">
             <button
               className="btn btn-gray"
-              onClick={() => setView({ t: "ranks" })}
+              onClick={() => setView({ t: "steps", route })}
             >
-              ← Cambiar de dungeon
+              ← Cambiar dificultad
             </button>
           </div>
         </Panel>
@@ -692,61 +730,31 @@ export function ProgressMode() {
     );
   }
 
-  // ---------------- ranks ----------------
+  // ---------------- routes ----------------
   return (
     <Shell>
       <Notice />
-      <Panel title="Elige un dungeon" className="mx-auto w-full max-w-5xl">
+      <Panel title="Elige una ruta" className="mx-auto w-full max-w-5xl">
         <p className="mb-3 text-center text-base text-[#d9d2ca]">
-          Cada dungeon es una lista de niveles cortos. Limpia el último para abrir
-          el siguiente rango.
+          Cada ruta tiene un jefe y familias de enemigos propios. Elige una ruta y una dificultad F–S.
         </p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {DUNGEON_IDS.map((rank) => {
-            const theme = DUNGEON_THEMES[rank];
-            const locked = !isRankUnlocked(profile.dungeons, rank);
-            const prev = DUNGEON_IDS[DUNGEON_IDS.indexOf(rank) - 1];
-            const done = clearedLevels(profile.dungeons, rank, 0);
+          {ROUTE_IDS.map((route) => {
+            const theme = DUNGEON_THEMES[route];
+            const done = Object.entries(profile.dungeons.routes).some(([key, count]) => key.startsWith(`${route}:`) && count >= LEVELS_PER_ROUTE);
             return (
               <button
-                key={rank}
-                disabled={locked}
-                onClick={() => {
-                  setAsc(0);
-                  setView({ t: "levels", rank });
-                }}
-                className="pixel-frame flex items-center gap-4 p-3 text-left enabled:hover:brightness-125 disabled:opacity-50"
-                style={{ borderColor: DUNGEON_INFO[rank].color }}
+                key={route}
+                onClick={() => setView({ t: "steps", route })}
+                className="pixel-frame flex items-center gap-4 p-3 text-left enabled:hover:brightness-125"
               >
-                <RankIcon
-                  rank={rank}
-                  letter
-                  className="h-[min(101px,9vh)] w-[min(101px,9vh)]"
-                />
+                <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#26323f] text-2xl text-yellow-300">{theme.bossName.slice(0, 1)}</span>
                 <span className="min-w-0 text-base">
                   <span className="name-title block text-yellow-300">
                     {theme.name}
                   </span>
-                  {locked ? (
-                    <span className="block text-red-300">
-                      <Icon name="system_locked" className="h-4" /> Limpia{" "}
-                      {DUNGEON_THEMES[prev].name}
-                    </span>
-                  ) : (
-                    <span
-                      className={`block ${done >= LEVELS_PER_RANK[rank] ? "text-green-300" : ""}`}
-                    >
-                      {done}/{LEVELS_PER_RANK[rank]} niveles
-                      {maxAscension(profile.dungeons, rank) > 0 &&
-                        ` · Asc. hasta +${maxAscension(profile.dungeons, rank)}`}
-                    </span>
-                  )}
-                  {!locked && (
-                    <span className="block text-sm text-[#d9d2ca]">
-                      Poder recomendado {recommendedPowerRange(rank)[0]}–
-                      {recommendedPowerRange(rank)[1]}
-                    </span>
-                  )}
+                  <span className="block text-sm text-[#d9d2ca]">Jefe: {theme.bossName}</span>
+                  {done && <span className="block text-green-300">✓ COMPLETADO</span>}
                 </span>
               </button>
             );
@@ -784,18 +792,20 @@ function PowerVsRec({ power, rec }: { power: number; rec: number }) {
 // Small banner on the result screen: what the next level is and how ready the hero is.
 function NextStage({
   profile,
-  rank,
+  route,
+  difficulty,
   level,
   asc,
   heroId,
 }: {
   profile: Profile;
-  rank: DungeonId;
+  route: RouteId;
+  difficulty: Difficulty;
   level: number;
   asc: number;
   heroId: string;
 }) {
-  const spec = levelsOf(rank)[level];
+  const spec = levelsOf(route, difficulty)[level];
   if (!spec) return null;
   const dom = levelElement(spec, asc);
   return (
@@ -807,7 +817,7 @@ function NextStage({
       </span>
       <PowerVsRec
         power={heroPower(profile, heroId)}
-        rec={recommendedPower(rank, level, asc)}
+        rec={recommendedPower(difficulty, level, asc)}
       />
     </div>
   );
@@ -841,7 +851,7 @@ function LevelCard({
           {spec.length} peleas{spec.final && " · Jefe final"}
         </span>
         <span className="block text-[#d9d2ca]">
-          Poder rec. {recommendedPower(spec.rank, spec.index, asc)}
+          Poder rec. {recommendedPower(spec.difficulty, spec.index, asc)}
         </span>
       </span>
       {!unlocked ? (
@@ -892,7 +902,8 @@ function SweepMenu({ why, onSweep }: { why: string | null; onSweep: (times: numb
 
 function Prep({
   profile,
-  rank,
+  route,
+  difficulty,
   level,
   asc,
   setHeroId,
@@ -902,7 +913,8 @@ function Prep({
   onBack,
 }: {
   profile: Profile;
-  rank: DungeonId;
+  route: RouteId;
+  difficulty: Difficulty;
   level: number;
   asc: number;
   setHeroId: (id: string) => void;
@@ -912,9 +924,9 @@ function Prep({
   onBack: () => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const spec = levelsOf(rank)[level];
+  const spec = levelsOf(route, difficulty)[level];
   const dom = levelElement(spec, asc);
-  const repeat = level < clearedLevels(profile.dungeons, rank, asc);
+  const repeat = level < clearedLevels(profile.dungeons, route, difficulty, asc);
   // Total power first; the element advantage is only shown on the card.
   const owned = profile.characters
     .map((c) => ({
@@ -928,7 +940,7 @@ function Prep({
   const sel = hero ?? owned[0]?.c ?? null;
   const act = (job: () => Promise<void>) => void job();
   const auto = sel ? bestAutoMode(profile, sel.id) : null;
-  const sweepWhy = sel ? sweepBlock(profile, sel.id, rank, level, asc) : "Elige un héroe.";
+  const sweepWhy = sel ? sweepBlock(profile, sel.id, route, difficulty, level, asc) : "Elige un héroe.";
 
   if (editing && sel)
     return (
@@ -953,7 +965,7 @@ function Prep({
     <Shell>
       <Notice />
       <Panel
-        title={`${DUNGEON_THEMES[rank].name} · Nivel ${level + 1}`}
+        title={`${DUNGEON_THEMES[route].name} · Nivel ${level + 1}`}
         className="mx-auto w-full max-w-4xl space-y-3"
       >
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-base">
@@ -1022,7 +1034,7 @@ function Prep({
               </span>
               <PowerVsRec
                 power={heroPower(profile, sel.id)}
-                rec={recommendedPower(rank, level, asc)}
+                rec={recommendedPower(difficulty, level, asc)}
               />
             </div>
             <div className="flex flex-wrap gap-1.5">

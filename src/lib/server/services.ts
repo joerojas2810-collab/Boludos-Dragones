@@ -3,10 +3,10 @@ import { CLASS_IDS, type Character, type ClassId } from "../game/characters";
 import { ELEMENTS, type Element } from "../game/elements";
 import { createStarterHero } from "../game/tutorial";
 import { fuseHeroes, starUpHero, swapCopy, type Material } from "../game/heroFusion";
-import { isLevelUnlocked, isRankUnlocked } from "../game/dungeonProgress";
+import { isLevelUnlocked, isStepUnlocked } from "../game/dungeonProgress";
 import { missionDeltas } from "../game/missions";
 import { levelLoot, rollDado, type LevelLoot } from "../game/levelLoot";
-import { LEVELS_PER_RANK, levelsOf } from "../game/levels";
+import { LEVELS_PER_ROUTE, isRouteId, levelsOf, type RouteId } from "../game/levels";
 import {
   heroFromOwned,
   lootOptions,
@@ -29,7 +29,7 @@ import {
 } from "../game/tower";
 import { ascendPiece, starUpPiece, swapPieceRoll } from "../game/pieceGrowth";
 import { upgradePiece } from "../game/upgrade";
-import { DUNGEON_IDS, type DungeonId } from "../game/rarity";
+import { isDifficulty, type Difficulty } from "../game/rarity";
 import { createRng } from "../game/rng";
 import { levelFights, resultFromWins } from "../game/stage";
 import { sweepBlock, sweepStage } from "../game/sweep";
@@ -59,7 +59,7 @@ interface RawProfile {
   coins: number;
   pity: { character: number; weapon: number };
   pitySsr?: { character: number; weapon: number };
-  dungeons?: Record<string, number[]>;
+  dungeonProgress?: import("../game/dungeonProgress").DungeonProgress;
   levelsDay?: { day: string; n: number } | null;
   escamas?: number;
   dados?: number;
@@ -98,7 +98,7 @@ export function toMe(raw: RawProfile): Me {
     version: PROFILE_VERSION,
     coins: raw.coins,
     pity: raw.pity,
-    dungeons: raw.dungeons,
+    dungeons: raw.dungeonProgress,
     levelsDay: raw.levelsDay,
     escamas: raw.escamas,
     dados: raw.dados,
@@ -573,7 +573,8 @@ export async function submitRunService(
 
 export interface LevelStartBody {
   characterId: string;
-  rank: DungeonId;
+  route: RouteId;
+  difficulty: Difficulty;
   level: number;
   ascension: number;
 }
@@ -599,11 +600,13 @@ export async function startLevelService(
       "Llegaste al límite de niveles por hora. Descansa un rato y vuelve.",
     ),
   ]);
-  const { rank, level, ascension: asc } = body;
+  const { route, difficulty, level, ascension: asc } = body;
   const me = await loadMe(d.rpc, playerId);
-  if (!isRankUnlocked(me.profile.dungeons, rank))
-    throw new ApiError(409, "dungeon_locked", "Ese dungeon todavía está bloqueado.");
-  if (!isLevelUnlocked(me.profile.dungeons, rank, level, asc))
+  if (!isRouteId(route) || !isDifficulty(difficulty) || !Number.isInteger(asc) || asc < 0 || asc > 5 || !Number.isInteger(level) || level < 0 || level >= LEVELS_PER_ROUTE)
+    throw new ApiError(400, "invalid_input", "Datos inválidos.");
+  if (!isStepUnlocked(me.profile.dungeons, { difficulty, asc: asc as 0 | 1 | 2 | 3 | 4 | 5 }))
+    throw new ApiError(409, "dungeon_locked", "Ese escalón todavía está bloqueado.");
+  if (!isLevelUnlocked(me.profile.dungeons, route, difficulty, level, asc))
     throw new ApiError(409, "level_locked", "Ese nivel todavía está bloqueado.");
   const hero = heroFromOwned(me.profile, body.characterId);
   if (!hero)
@@ -618,7 +621,8 @@ export async function startLevelService(
         p_character_id: body.characterId,
         p_seed: seed,
         p_hero: hero,
-        p_rank: rank,
+        p_route: route,
+        p_difficulty: difficulty,
         p_level: level,
         p_asc: asc,
       },
@@ -628,7 +632,8 @@ export async function startLevelService(
       runId: r.run_id,
       seed,
       hero,
-      rank,
+      route,
+      difficulty,
       level,
       ascension: asc,
     };
@@ -682,21 +687,23 @@ export async function finishLevelService(
     throw new ApiError(409, "duplicate_run", "Este nivel ya fue entregado.");
   const {
     kind,
-    rank,
+    route,
+    difficulty,
     level,
     asc,
     heroId,
     ...hero
   } = row.hero as Character & {
     kind?: string;
-    rank?: string;
+    route?: string;
+    difficulty?: string;
     level?: number;
     asc?: number;
     heroId?: string;
   };
   if (
     kind !== "level" ||
-    !DUNGEON_IDS.includes(rank as DungeonId) ||
+    !isRouteId(route) || !isDifficulty(difficulty) ||
     !Number.isInteger(level) ||
     !Number.isInteger(asc) ||
     !heroId
@@ -706,11 +713,12 @@ export async function finishLevelService(
       "wrong_run_kind",
       "Esa run no es un nivel de dungeon.",
     );
-  const r = rank as DungeonId;
+  const routeId = route as RouteId;
+  const diff = difficulty as Difficulty;
   const lv = level as number;
   const ascension = asc as number;
-  const spec = levelsOf(r)[lv];
-  if (!spec || lv >= LEVELS_PER_RANK[r])
+  const spec = levelsOf(routeId, diff)[lv];
+  if (!spec || lv >= LEVELS_PER_ROUTE)
     throw new ApiError(400, "invalid_input", "Datos inválidos.");
 
   const bank = async (args: Record<string, unknown>) => {
@@ -719,7 +727,8 @@ export async function finishLevelService(
         p_player: playerId,
         p_run_id: body.runId,
         p_hero_id: heroId,
-        p_rank: r,
+        p_route: routeId,
+        p_difficulty: diff,
         p_level: lv,
         p_asc: ascension,
         ...args,
@@ -758,7 +767,7 @@ export async function finishLevelService(
   const dadoRng = createRng(d.randomSeed());
   for (let attempt = 0; !out; attempt++) {
     const me = attempt === 0 && me0 ? me0 : await loadMe(d.rpc, playerId);
-    const opts = lootOptions(me.profile, r, lv, ascension);
+    const opts = lootOptions(me.profile, routeId, diff, lv, ascension);
     const loot = cleared
       ? {
           ...levelLoot(spec, ascension, (hero as Character).classId, row.seed, opts),
@@ -770,7 +779,8 @@ export async function finishLevelService(
         p_player: playerId,
         p_run_id: body.runId,
         p_hero_id: heroId,
-        p_rank: r,
+        p_route: routeId,
+        p_difficulty: diff,
         p_level: lv,
         p_asc: ascension,
         p_status: cleared ? "cleared" : "lost",
@@ -841,11 +851,13 @@ export async function sweepLevelService(
       "Llegaste al límite de barridos por hora. Descansa un rato y vuelve.",
     ),
   ]);
-  const { rank, level, ascension: asc, characterId } = body;
+  const { route, difficulty, level, ascension: asc, characterId } = body;
+  if (!isRouteId(route) || !isDifficulty(difficulty) || !Number.isInteger(asc) || asc < 0 || asc > 5 || !Number.isInteger(level) || level < 0 || level >= LEVELS_PER_ROUTE)
+    throw new ApiError(400, "invalid_input", "Datos inválidos.");
   const me = await loadMe(d.rpc, playerId);
-  const spec = levelsOf(rank)[level];
+  const spec = levelsOf(route, difficulty)[level];
   if (!spec) throw new ApiError(400, "invalid_input", "Datos inválidos.");
-  const why = sweepBlock(me.profile, characterId, rank, level, asc);
+  const why = sweepBlock(me.profile, characterId, route, difficulty, level, asc);
   if (why) throw new ApiError(409, "sweep_locked", why);
   const hero = heroFromOwned(me.profile, characterId);
   if (!hero)
@@ -858,7 +870,7 @@ export async function sweepLevelService(
       "sweep_failed",
       "Tu héroe no logró barrer este nivel solo. Pelea tú el nivel.",
     );
-  const opts = lootOptions(me.profile, rank, level, asc);
+  const opts = lootOptions(me.profile, route, difficulty, level, asc);
   const loot = {
     ...levelLoot(spec, asc, hero.classId, seed, opts),
     dados: rollDado(spec, createRng(d.randomSeed()), opts.dadoLeft),
@@ -872,7 +884,8 @@ export async function sweepLevelService(
         p_character_id: characterId,
         p_seed: seed,
         p_hero: { ...hero, sweep: true },
-        p_rank: rank,
+        p_route: route,
+        p_difficulty: difficulty,
         p_level: level,
         p_asc: asc,
       },
@@ -882,7 +895,8 @@ export async function sweepLevelService(
       p_player: playerId,
       p_run_id: r.run_id,
       p_hero_id: characterId,
-      p_rank: rank,
+      p_route: route,
+        p_difficulty: difficulty,
       p_level: level,
       p_asc: asc,
       p_status: "cleared",

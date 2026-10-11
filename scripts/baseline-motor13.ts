@@ -10,8 +10,8 @@ import { step } from "../src/lib/game/combat";
 import { ELEMENTS, type Element } from "../src/lib/game/elements";
 import { applyGear, gearBonus, rollGear } from "../src/lib/game/gear";
 import { levelCap } from "../src/lib/game/heroLevel";
-import { LEVELS_PER_RANK, levelsOf } from "../src/lib/game/levels";
-import { itemRankOf, DUNGEON_IDS, scaleStats, type DungeonId, type RarityId } from "../src/lib/game/rarity";
+import { LEVELS_PER_ROUTE, levelsOf } from "../src/lib/game/levels";
+import { itemRankOf, RARITY_IDS, scaleStats, type Difficulty, type RarityId } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
 import { ENGINE_VERSION, createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
 import { CLASS_WEAPONS, GEAR_TYPES, weaponAtk } from "../src/lib/game/weapons";
@@ -35,7 +35,7 @@ const FIGHT_STEP_LIMIT = 400;
 type BaselineRow = {
   classId: ClassId;
   element: Element;
-  rank: DungeonId;
+  rank: Difficulty;
   heroRank: RarityId;
   levelAttempts: number;
   clearedLevels: number;
@@ -45,9 +45,9 @@ type BaselineRow = {
   fights: number;
 };
 
-function makeHero(classId: ClassId, element: Element, rank: DungeonId, run: number) {
+function makeHero(classId: ClassId, element: Element, rank: Difficulty, run: number) {
   const heroRank = itemRankOf(rank);
-  const rankIndex = DUNGEON_IDS.indexOf(rank);
+  const rankIndex = RARITY_IDS.indexOf(rank);
   const rng = createRng(hashSeed(BASE_SEED, 11, rankIndex, run));
   const character = generateCharacter(rng, classId);
   character.element = element;
@@ -75,14 +75,14 @@ function makeHero(classId: ClassId, element: Element, rank: DungeonId, run: numb
 function runLevel(
   classId: ClassId,
   element: Element,
-  rank: DungeonId,
+  rank: Difficulty,
   run: number,
   levelIndex: number,
 ) {
-  const spec = levelsOf(rank)[levelIndex];
+  const spec = levelsOf("lord_of_flies", rank)[levelIndex];
   const hero = makeHero(classId, element, rank, run);
   let stage = createStage(
-    hashSeed(BASE_SEED, 23, DUNGEON_IDS.indexOf(rank), levelIndex, run),
+    hashSeed(BASE_SEED, 23, RARITY_IDS.indexOf(rank), levelIndex, run),
     hero,
     levelFights(spec, ASCENSION),
     ASCENSION,
@@ -108,8 +108,8 @@ function runLevel(
 }
 
 const rows: BaselineRow[] = [];
-for (const rank of DUNGEON_IDS) {
-  const levels = levelsOf(rank);
+for (const rank of RARITY_IDS) {
+  const levels = levelsOf("lord_of_flies", rank);
   for (const classId of CLASS_IDS) {
     for (const element of ELEMENTS) {
       let clearedLevels = 0;
@@ -152,8 +152,8 @@ const document = {
   dimensions: {
     classes: CLASS_IDS,
     elements: ELEMENTS,
-    ranks: DUNGEON_IDS,
-    levelsPerRank: LEVELS_PER_RANK,
+    ranks: RARITY_IDS,
+    levelsPerRoute: LEVELS_PER_ROUTE,
   },
   rows,
 };

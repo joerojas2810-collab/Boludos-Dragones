@@ -14,13 +14,14 @@ import {
   levelElement,
   type LevelSpec,
 } from "./levels";
-import { DUNGEON_IDS, DUNGEON_MULT, type DungeonId } from "./rarity";
+import { DIFFICULTIES, DUNGEON_MULT, type Difficulty } from "./rarity";
+import { ROUTE_IDS, type RouteId } from "./levels";
 import { TRAITS, type Trait } from "./traits";
 import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 18; // 18: Impulso needs 3 stacks and its extra action goes to the end of the round queue; Sobrecarga discharge +100 %
+export const ENGINE_VERSION = 19; // 19: dungeon fights are generated from independent route and difficulty identities
 
 export type FightRole = "normal" | "elite" | "final";
 
@@ -39,16 +40,8 @@ export const KIND_POWER: Record<FightRole, number> = {
   final: 0.75,
 };
 // Per-rank difficulty tuning (scripts/stage-tune.ts bisects these to hit the target clear rates).
-export const RANK_TUNE: Record<DungeonId, number> = {
-  f: 1.24,
-  e: 1.59,
-  d: 1.54,
-  c: 1.61,
-  b: 1.85,
-  a: 2.1,
-  s: 3.07,
-  ss: 2.94,
-  ssr: 2.67,
+export const RANK_TUNE: Record<Difficulty, number> = {
+  f: 1.24, e: 1.59, d: 1.54, c: 1.61, b: 1.85, a: 2.1, s: 3.07,
 };
 export const LEVEL_STEP = 0.05; // enemy power grows this much per level index
 export const ASC_HP_STEP = 0.12; // per ascension level
@@ -73,7 +66,8 @@ const hasTag = (hero: Character, tag: NonNullable<Trait["tag"]>) =>
 export const winHeal = (hero: Character, asc = 0) =>
   healBetween(asc) + (hasTag(hero, "healOnWin") ? SEDIENTO_HEAL : 0);
 
-const rankIdx = (r: DungeonId) => DUNGEON_IDS.indexOf(r);
+const difficultyIndex = (d: Difficulty) => DIFFICULTIES.indexOf(d);
+const routeIndex = (route: RouteId) => ROUTE_IDS.indexOf(route);
 
 // Ascension rules (stack): L1 stats (see steps), L2 half heal, L3 bigger normal
 // groups, L4 elites/bosses attack twice, L5 no heal between fights.
@@ -96,8 +90,8 @@ const FAMILY_LABEL: Record<EnemyFamily, string> = {
 };
 const ROMAN = ["", " II", " III"];
 
-function pickFamily(rng: ReturnType<typeof createRng>, rank: DungeonId): EnemyFamily {
-  const t = DUNGEON_THEMES[rank];
+function pickFamily(rng: ReturnType<typeof createRng>, route: RouteId): EnemyFamily {
+  const t = DUNGEON_THEMES[route];
   const all: EnemyFamily[] = ["limo", "diablillo", "arpia", "golem", "espectro"];
   if (!t.guest) return rng.pick(all);
   const r = rng.next();
@@ -107,10 +101,11 @@ function pickFamily(rng: ReturnType<typeof createRng>, rank: DungeonId): EnemyFa
 function groupSize(
   rng: ReturnType<typeof createRng>,
   role: FightRole,
-  rank: DungeonId,
+  difficulty: Difficulty,
   asc: number,
 ): number {
-  const hi = rankIdx(rank) / (DUNGEON_IDS.length - 1); // 0..1
+  // Preserve the old F–S escort thresholds from the former nine-step scale.
+  const hi = difficultyIndex(difficulty) / 8;
   let size = 1;
   if (role === "normal") {
     const r = rng.next();
@@ -119,7 +114,7 @@ function groupSize(
     size = r < p3 ? 3 : r < p3 + p2 ? 2 : 1;
     if (asc >= 3) size = Math.min(3, size + 1);
   } else if (role === "elite") size = rng.chance(0.2 + 0.4 * hi) ? 2 : 1;
-  else size = 1 + (hi > 0.3 ? 1 : 0) + (hi > 0.9 ? 1 : 0); // boss + escorts; two escorts only in SSR
+  else size = 1 + (hi > 0.3 ? 1 : 0) + (hi > 0.9 ? 1 : 0); // boss + escorts
   return size;
 }
 
@@ -129,21 +124,21 @@ function makeFight(
   fightIdx: number,
   role: FightRole,
 ): FightSpec {
-  const { rank } = spec;
-  const rng = createRng(hashSeed(rankIdx(rank), spec.index, fightIdx, 9104));
+  const { difficulty, route } = spec;
+  const rng = createRng(hashSeed(routeIndex(route), difficultyIndex(difficulty), spec.index, fightIdx, 9104));
   const dom = levelElement(spec, asc);
   const share = DOMINANT_SHARE;
-  const size = groupSize(rng, role, rank, asc);
+  const size = groupSize(rng, role, difficulty, asc);
   const hasBoss = role !== "normal";
   const levelPower = 1 + LEVEL_STEP * spec.index;
-  const rankMult = DUNGEON_MULT[rank] * RANK_TUNE[rank];
-  const theme = DUNGEON_THEMES[rank];
+  const rankMult = DUNGEON_MULT[difficulty] * RANK_TUNE[difficulty];
+  const theme = DUNGEON_THEMES[route];
   const made: Character[] = [];
   const seen = new Map<string, number>();
   for (let i = 0; i < size; i++) {
     const isLead = hasBoss && i === 0;
     const base = generateCharacter(rng, rng.pick(CLASS_IDS));
-    const family = role === "final" && isLead ? theme.families[0] : pickFamily(rng, rank);
+    const family = role === "final" && isLead ? theme.families[0] : pickFamily(rng, route);
     const element: Element =
       role === "final" && isLead
         ? levelElement(spec, asc)
@@ -190,7 +185,7 @@ function makeFight(
     role,
     enemies: made,
     mods,
-    battleSeed: hashSeed(rankIdx(rank), spec.index, fightIdx, 9105),
+    battleSeed: hashSeed(routeIndex(route), difficultyIndex(difficulty), spec.index, fightIdx, 9105),
   };
 }
 

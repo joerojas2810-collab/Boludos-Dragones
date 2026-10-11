@@ -13,7 +13,7 @@ const strong = () => {
 
 describe("sweepStage", () => {
   it("clears an easy level with a strong hero, deterministically", () => {
-    const fights = levelFights(levelsOf("f")[0], 0);
+    const fights = levelFights(levelsOf("lord_of_flies", "f")[0], 0);
     const a = sweepStage(7, strong(), fights, 0);
     expect(a.status).toBe("cleared");
     expect(sweepStage(7, strong(), fights, 0).xp).toBe(a.xp);
@@ -21,7 +21,7 @@ describe("sweepStage", () => {
 
   it("does not clear a top dungeon with a weak hero", () => {
     const weak = generateCharacter(createRng(2), "mago");
-    const fights = levelFights(levelsOf("ssr")[0], 0);
+    const fights = levelFights(levelsOf("great_devourer", "s")[0], 0);
     expect(sweepStage(7, weak, fights, 0).status).not.toBe("cleared");
   });
 });

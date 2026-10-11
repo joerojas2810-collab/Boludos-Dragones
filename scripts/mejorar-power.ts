@@ -1,5 +1,5 @@
 // Clear rate of a synthetic hero (as stage-tune.ts) with its 6 gear pieces scaled by "Mejorar" +0/+5/+10.
-//   RANKS=s,ss,ssr ASC=5 STARS=5 npx tsx scripts/mejorar-power.ts [heroes=100]
+//   RANKS=s ASC=5 STARS=5 npx tsx scripts/mejorar-power.ts [heroes=100]
 // Piece bonuses are scaled before the GEAR_CAP clamp; also prints cap saturation (share of cap reached).
 import { autoPolicy } from "../src/lib/game/auto";
 import { CLASS_IDS, generateCharacter } from "../src/lib/game/characters";
@@ -15,7 +15,7 @@ const N = Number(process.argv[2] ?? 100);
 const STARS = Number(process.env.STARS ?? 5);
 const LEVEL = Number(process.env.LEVEL ?? 20);
 const ASC = Number(process.env.ASC ?? 0);
-const RANKS = (process.env.RANKS ?? "s,ss,ssr").split(",") as RarityId[];
+const RANKS = (process.env.RANKS ?? "s").split(",") as RarityId[];
 const KEYS = Object.keys(NO_GEAR) as (keyof GearBonus)[];
 let sat = 0, satN = 0;
 
@@ -35,7 +35,7 @@ function hero(rank: RarityId, seed: number, mult: number) {
 
 function rate(rank: RarityId, mult: number): number {
   let total = 0;
-  const levels = levelsOf(rank);
+  const levels = levelsOf("lord_of_flies", rank);
   for (const spec of levels) {
     let ok = 0;
     for (let i = 0; i < N; i++) {

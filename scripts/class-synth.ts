@@ -5,7 +5,7 @@ import { CLASS_IDS, generateCharacter, type ClassId } from "../src/lib/game/char
 import { step, type Battle } from "../src/lib/game/combat";
 import { applyGear, gearBonus, rollGear } from "../src/lib/game/gear";
 import { levelsOf } from "../src/lib/game/levels";
-import { scaleStats, type DungeonId, type RarityId } from "../src/lib/game/rarity";
+import { scaleStats, type Difficulty, type RarityId } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
 import { createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
 import { GEAR_TYPES, weaponAtk, weaponSecondary, CLASS_WEAPONS, type HandType } from "../src/lib/game/weapons";
@@ -14,8 +14,8 @@ const N = Number(process.argv[2] ?? 30);
 const ASC = Number(process.argv[3] ?? 0);
 const STARS = Number(process.env.STARS ?? 3);
 const LEVEL = Number(process.env.LEVEL ?? 20);
-const rank = (process.env.RANK ?? "ssr") as DungeonId;
-const itemRank: RarityId = rank === "ss" || rank === "ssr" ? "s" : rank;
+const rank = (process.env.RANK ?? "s") as Difficulty;
+const itemRank: RarityId = rank;
 const GEAR = Number(process.env.GEAR ?? 1);
 const POL = process.env.POLICY ?? "both";
 
@@ -39,7 +39,7 @@ function eager(b: Battle): AutoPick {
 
 function clearRate(classId: ClassId, wt: HandType, pick: (b: Battle) => AutoPick): number {
   let total = 0;
-  for (const spec of levelsOf(rank)) {
+  for (const spec of levelsOf("lord_of_flies", rank)) {
     let ok = 0;
     for (let i = 0; i < N; i++) {
       let st = createStage(hashSeed(i, spec.index, 5), hero(classId, hashSeed(i, 31), wt), levelFights(spec, ASC), ASC);
@@ -56,7 +56,7 @@ function clearRate(classId: ClassId, wt: HandType, pick: (b: Battle) => AutoPick
     }
     total += ok / N;
   }
-  return total / levelsOf(rank).length;
+  return total / levelsOf("lord_of_flies", rank).length;
 }
 
 const policies: [string, (b: Battle) => AutoPick][] = [];

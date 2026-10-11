@@ -19,7 +19,7 @@ type Props = {
   element: Element;
   boss?: boolean;
   elite?: boolean; // "hard" fights use the elite design
-  finalRank?: string | null; // unique final boss of that dungeon rank
+  finalRank?: string | null; // unique final boss, keyed by route id
   action?: EnemyAction; // overrides the arena's cue
   flip?: boolean;
   className?: string;

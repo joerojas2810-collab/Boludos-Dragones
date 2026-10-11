@@ -223,7 +223,7 @@ export default function CollectionPage() {
         <Panel title="Materiales de forja" className="mx-auto w-full max-w-6xl space-y-2">
           <p className="flex items-center gap-2"><MatIcon kind="escamas" className="h-8" /> Escamas <b>{profile.escamas}</b></p>
           <p className="flex items-center gap-2"><MatIcon kind="dado" className="h-8" /> Dados cargados <b>{profile.dados}</b></p>
-          <p className="text-sm opacity-80">Salen de los dungeons S, SS y SSR y se usan en Forja &gt; Mejorar.</p>
+          <p className="text-sm opacity-80">Salen de los dungeons de dificultad S y se usan en Forja &gt; Mejorar.</p>
         </Panel>
       ) : tab === "characters" ? (
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 md:grid md:grid-cols-[1fr_22rem] lg:grid-cols-[1fr_32rem] md:items-start">

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { clearedLevels } from "./dungeonProgress";
 import { levelCoins, firstClearChest } from "./levelPay";
 import { levelLoot } from "./levelLoot";
-import { levelsOf, LEVELS_PER_RANK } from "./levels";
+import { levelsOf, LEVELS_PER_ROUTE } from "./levels";
 import {
   bankLevel,
   createProfile,
@@ -20,8 +20,8 @@ const withHero = (): Profile => {
 };
 const res = (p: Profile, over: Partial<LevelResult> = {}): LevelResult => {
   const c = p.characters[0];
-  const loot = levelLoot(levelsOf("f")[0], 0, c.classId, 5, lootOptions(p, "f", 0, 0));
-  return { rank: "f", level: 0, asc: 0, heroId: c.id, status: "cleared", xp: 300, loot, attemptId: "a1", ...over };
+  const loot = levelLoot(levelsOf("lord_of_flies", "f")[0], 0, c.classId, 5, lootOptions(p, "lord_of_flies", "f", 0, 0));
+  return { route: "lord_of_flies", difficulty: "f", level: 0, asc: 0, heroId: c.id, status: "cleared", xp: 300, loot, attemptId: "a1", ...over };
 };
 
 describe("bankLevel", () => {
@@ -30,7 +30,7 @@ describe("bankLevel", () => {
     const before = p.coins;
     const b = bankLevel(p, res(p));
     expect(b.cleared && !b.repeat).toBe(true);
-    expect(clearedLevels(b.profile.dungeons, "f")).toBe(1);
+    expect(clearedLevels(b.profile.dungeons, "lord_of_flies", "f")).toBe(1);
     expect(b.profile.coins).toBe(before + levelCoins("f", 0, false) + b.chest);
     expect(b.profile.characters[0].xp + b.profile.characters[0].level).toBeGreaterThan(
       p.characters[0].xp + p.characters[0].level - 1,
@@ -42,15 +42,15 @@ describe("bankLevel", () => {
     const b = bankLevel(p, res(p, { status: "lost" }));
     expect(b.cleared).toBe(false);
     expect(b.profile.coins).toBe(p.coins);
-    expect(b.profile.dungeons).toEqual({});
+    expect(b.profile.dungeons).toEqual({ steps: {}, routes: {} });
     expect(b.xp).toBe(300);
   });
   it("repeat pays 60% and counts toward the daily decay; last level gives the chest", () => {
     let p = withHero();
-    for (let i = 0; i < LEVELS_PER_RANK.f; i++) {
+    for (let i = 0; i < LEVELS_PER_ROUTE; i++) {
       const b = bankLevel(p, res(p, { level: i, attemptId: `x${i}`, loot: { escamas: 0, dados: 0, pieces: [] } }));
       p = b.profile;
-      if (i === LEVELS_PER_RANK.f - 1) expect(b.chest).toBe(firstClearChest("f", 0));
+      if (i === LEVELS_PER_ROUTE - 1) expect(b.chest).toBe(firstClearChest("f", 0));
     }
     const r = bankLevel(p, res(p, { attemptId: "rep" }));
     expect(r.repeat).toBe(true);
@@ -62,7 +62,7 @@ describe("bankLevel", () => {
     const p = withHero();
     const b = bankLevel(p, res(p, { level: 3 }));
     expect(b.cleared).toBe(false);
-    expect(b.profile.dungeons).toEqual({});
+    expect(b.profile.dungeons).toEqual({ steps: {}, routes: {} });
   });
 });
 
@@ -76,7 +76,7 @@ describe("hero migration", () => {
     });
     expect("skill" in migrated.characters[0]).toBe(false);
   });
-  it("old numeric dungeon shapes reset to {}", () => {
-    expect(migrate({ dungeons: { f: 3 }, ascensions: { f: 2 } }).dungeons).toEqual({});
+  it("old numeric dungeon shapes reset to the empty route structure", () => {
+    expect(migrate({ dungeons: { f: 3 }, ascensions: { f: 2 } }).dungeons).toEqual({ steps: {}, routes: {} });
   });
 });

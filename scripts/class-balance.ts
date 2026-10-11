@@ -1,5 +1,5 @@
 // Class balance on REAL data: loads every account's profile (read-only get_profile RPC with the
-// service key), takes each SSR hero as it is (stars, level, gear) and plays the SSR dungeon with
+// service key), takes each S hero as it is (stars, level, gear) and plays the S difficulty with
 // autoPolicy. Usage: npx tsx --env-file=.env.local scripts/class-balance.ts [runs=30] [asc=0]
 import { createClient } from "@supabase/supabase-js";
 import { autoPolicy } from "../src/lib/game/auto";
@@ -30,7 +30,7 @@ for (const pl of players ?? []) {
   for (const c of me.profile.characters.filter((x) => x.rarity === "s")) {
     const hero = heroFromOwned(me.profile, c.id);
     if (!hero) continue;
-    const clear = levelsOf("ssr").map((spec) => {
+    const clear = levelsOf("great_devourer", "s").map((spec) => {
       let ok = 0;
       for (let i = 0; i < N; i++) {
         let st = createStage(hashSeed(i, spec.index, 77), hero, levelFights(spec, ASC), ASC);
@@ -52,13 +52,13 @@ for (const pl of players ?? []) {
 }
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
-console.log(`\nSSR heroes: ${rows.length} | runs/level ${N} | ascension ${ASC}\n`);
+console.log(`\nS heroes: ${rows.length} | runs/level ${N} | ascension ${ASC}\n`);
 for (const r of rows.sort((a, b) => a.classId.localeCompare(b.classId) || b.power - a.power))
   console.log(`${r.classId.padEnd(9)} ${r.who.padEnd(10)} ${r.name.padEnd(12)} ${r.stars}★ Nv${String(r.level).padEnd(2)} poder ${String(Math.round(r.power)).padEnd(5)} clear ${pct(r.avg).padStart(4)}  [${r.clear.map(pct).join(" ")}]`);
 console.log("\nPor clase:");
 for (const k of CLASS_IDS) {
   const rs = rows.filter((r) => r.classId === k);
-  if (!rs.length) { console.log(`${k.padEnd(9)} sin SSR`); continue; }
+  if (!rs.length) { console.log(`${k.padEnd(9)} sin S`); continue; }
   const m = (f: (r: Row) => number) => rs.reduce((a, r) => a + f(r), 0) / rs.length;
   console.log(`${k.padEnd(9)} n=${rs.length} poder ${Math.round(m((r) => r.power))} clear ${pct(m((r) => r.avg))}  clear/poder ${(m((r) => r.avg) / m((r) => r.power) * 1000).toFixed(2)}`);
 }

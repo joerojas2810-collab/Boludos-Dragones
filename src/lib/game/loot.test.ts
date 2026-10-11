@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { levelLoot } from "./levelLoot";
 import { levelsOf } from "./levels";
 import { dropRank, gachaDropRank, UP_CHANCE } from "./loot";
-import { RARITY_IDS, type DungeonId, type RarityId } from "./rarity";
+import { RARITY_IDS, type Difficulty, type RarityId } from "./rarity";
+import { ROUTE_IDS } from "./levels";
 import { createRng } from "./rng";
 
 describe("loot rank", () => {
@@ -66,7 +67,7 @@ describe("gachaDropRank (dungeon loot rarity)", () => {
 });
 
 describe("levelLoot: the top rank is one roll per level", () => {
-  const spec = (rank: DungeonId) => levelsOf(rank)[2];
+  const spec = (difficulty: Difficulty) => levelsOf(ROUTE_IDS[0], difficulty)[2];
   it("S dungeon: ~5 % of levels give exactly one S piece, never two, never above S", () => {
     let withTop = 0;
     const N = 6000;
@@ -89,30 +90,20 @@ describe("levelLoot: the top rank is one roll per level", () => {
     expect(top / 6000).toBeGreaterThan(0.025);
     expect(top / 6000).toBeLessThan(0.05);
   });
-  it("SS and SSR tiers drop S (never above) and drop more of it than the S dungeon", () => {
-    const sShare = (rank: DungeonId) => {
-      let s = 0, all = 0;
-      for (let i = 0; i < 4000; i++) {
-        const l = levelLoot(spec(rank), 0, "mago", i, { repeat: false });
-        for (const p of l.pieces) {
-          expect(RARITY_IDS.indexOf(p.rarity)).toBeLessThanOrEqual(RARITY_IDS.indexOf("s"));
-          all++;
-          if (p.rarity === "s") s++;
-        }
-      }
-      return s / all;
-    };
-    expect(sShare("ss")).toBeGreaterThan(sShare("s"));
-    expect(sShare("ssr")).toBeGreaterThan(sShare("s"));
+  it("S is the top dungeon difficulty and never drops above S", () => {
+    for (let i = 0; i < 4000; i++) {
+      const loot = levelLoot(spec("s"), 0, "mago", i, { repeat: false });
+      expect(loot.pieces.every((piece) => RARITY_IDS.indexOf(piece.rarity) <= RARITY_IDS.indexOf("s"))).toBe(true);
+    }
   });
   it("the daily decay (payMult) does not touch the pieces, only Escamas", () => {
     for (let i = 0; i < 200; i++) {
-      const full = levelLoot(spec("ss"), 0, "mago", i, { repeat: true, payMult: 1 });
-      const decayed = levelLoot(spec("ss"), 0, "mago", i, { repeat: true, payMult: 0.1 });
+      const full = levelLoot(spec("s"), 0, "mago", i, { repeat: true, payMult: 1 });
+      const decayed = levelLoot(spec("s"), 0, "mago", i, { repeat: true, payMult: 0.1 });
       expect(decayed.pieces).toEqual(full.pieces);
     }
-    const a = levelLoot(spec("ss"), 0, "mago", 1, { repeat: true, payMult: 1 });
-    const b = levelLoot(spec("ss"), 0, "mago", 1, { repeat: true, payMult: 0.1 });
+    const a = levelLoot(spec("s"), 0, "mago", 1, { repeat: true, payMult: 1 });
+    const b = levelLoot(spec("s"), 0, "mago", 1, { repeat: true, payMult: 0.1 });
     expect(b.escamas).toBeLessThanOrEqual(a.escamas);
   });
 });

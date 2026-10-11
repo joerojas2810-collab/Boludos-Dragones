@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isFairTrade, isPieceKey } from "../game/market";
-import { DUNGEON_IDS } from "../game/rarity";
+import { RARITY_IDS } from "../game/rarity";
+import { ROUTE_IDS } from "../game/levels";
 import { SLOTS } from "../game/weapons";
 import { ELEMENTS } from "../game/elements";
 
@@ -60,8 +61,9 @@ export const runStartBody = z.strictObject({
 });
 export const levelStartBody = z.strictObject({
   characterId: z.string().min(1).max(100),
-  rank: z.enum(DUNGEON_IDS),
-  level: z.number().int().min(0).max(11),
+  route: z.enum(ROUTE_IDS),
+  difficulty: z.enum(RARITY_IDS),
+  level: z.number().int().min(0).max(3),
   ascension: z.number().int().min(0).max(5),
 });
 const heroMaterial = z.strictObject({ id: z.string().min(1).max(100), n: z.number().int().min(1).max(51) });

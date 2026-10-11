@@ -24,11 +24,11 @@ import {
 } from "./game/profile";
 import {
   isLevelUnlocked,
-  isRankUnlocked,
+  isStepUnlocked,
   maxAscension,
 } from "./game/dungeonProgress";
 import { levelLoot, rollDado, type LevelLoot } from "./game/levelLoot";
-import { levelsOf } from "./game/levels";
+import { levelsOf, type RouteId } from "./game/levels";
 import { levelFights, type Stage } from "./game/stage";
 import { sweepBlock, sweepStage } from "./game/sweep";
 import { dayPayMult } from "./game/economy";
@@ -38,7 +38,7 @@ import { ascendPiece, starUpPiece, swapPieceRoll, type PieceGrowthResult } from 
 import { upgradePiece } from "./game/upgrade";
 import type { Weapon } from "./game/weapons";
 import type { RunPiece } from "./game/loot";
-import type { DungeonId } from "./game/rarity";
+import type { Difficulty } from "./game/rarity";
 import type { Element } from "./game/elements";
 import type { Slot } from "./game/weapons";
 import { ENGINE_VERSION, type StageAction } from "./game/stageReplay";
@@ -62,7 +62,7 @@ export interface RunStartInfo {
   runId: string;
   seed: number;
   hero: Character;
-  rank: DungeonId | null; // null = weekly tower (no dungeon)
+  rank: Difficulty | null; // null = weekly tower (no dungeon)
   ascension?: number;
   tower?: TowerMode;
 }
@@ -75,7 +75,8 @@ export interface LevelStartInfo {
 export interface LevelFinish {
   info: LevelStartInfo;
   heroId: string;
-  rank: DungeonId;
+  route: RouteId;
+  difficulty: Difficulty;
   level: number;
   asc: number;
   stage: Stage; // local mode banks from it; the server only looks at the action log
@@ -125,7 +126,8 @@ export interface ProfileRepo {
   ): Promise<void>;
   startLevel(
     heroId: string,
-    rank: DungeonId,
+    route: RouteId,
+    difficulty: Difficulty,
     level: number,
     asc: number,
   ): Promise<LevelStartInfo>;
@@ -133,7 +135,8 @@ export interface ProfileRepo {
   /** Instant resolution of an already-cleared level (see game/sweep.ts). */
   sweepLevel(
     heroId: string,
-    rank: DungeonId,
+    route: RouteId,
+    difficulty: Difficulty,
     level: number,
     asc: number,
   ): Promise<LevelOutcome & { stage: Stage }>;
@@ -155,7 +158,7 @@ export interface ProfileRepo {
     classId: ClassId,
     characterId: string | null,
     seedHint?: number,
-    rank?: DungeonId,
+    rank?: Difficulty,
     ascension?: number,
     tower?: TowerMode,
     element?: Element | null,
@@ -167,7 +170,7 @@ export interface ProfileRepo {
       coins: number;
       maxFloor: number;
       loot?: RunPiece[];
-      clear?: { rank: DungeonId; lives: number; asc?: number }; // local mode only; the server replays
+      clear?: { rank: Difficulty; lives: number; asc?: number }; // local mode only; the server replays
     },
     keepalive?: boolean,
   ): Promise<RunBankInfo>;
@@ -241,11 +244,11 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       store.update((p) =>
         w ? equipWeapon(p, c, w) : unequipWeapon(p, c, slot),
       ),
-    startLevel: async (heroId, rank, level, asc) => {
+    startLevel: async (heroId, route, difficulty, level, asc) => {
       const p = store.get();
-      if (!isRankUnlocked(p.dungeons, rank))
-        throw new RepoError("dungeon_locked", "Dungeon bloqueado.");
-      if (!isLevelUnlocked(p.dungeons, rank, level, asc))
+      if (!isStepUnlocked(p.dungeons, { difficulty, asc: asc as 0 | 1 | 2 | 3 | 4 | 5 }))
+        throw new RepoError("dungeon_locked", "Escalón bloqueado.");
+      if (!isLevelUnlocked(p.dungeons, route, difficulty, level, asc))
         throw new RepoError("level_locked", "Nivel bloqueado.");
       const hero = heroFromOwned(p, heroId);
       if (!hero)
@@ -258,8 +261,8 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       const owned = p.characters.find((c) => c.id === a.heroId);
       if (!owned)
         throw new RepoError("character_not_found", "Personaje no encontrado.");
-      const opts = lootOptions(p, a.rank, a.level, a.asc);
-      const spec = levelsOf(a.rank)[a.level];
+      const opts = lootOptions(p, a.route, a.difficulty, a.level, a.asc);
+      const spec = levelsOf(a.route, a.difficulty)[a.level];
       const loot: LevelLoot =
         a.stage.status === "cleared"
           ? {
@@ -268,7 +271,8 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
             }
           : { escamas: 0, dados: 0, pieces: [] };
       const bank = bankLevel(p, {
-        rank: a.rank,
+        route: a.route,
+        difficulty: a.difficulty,
         level: a.level,
         asc: a.asc,
         heroId: a.heroId,
@@ -280,12 +284,12 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       store.update(() => bank.profile);
       return { bank, loot };
     },
-    sweepLevel: async (heroId, rank, level, asc) => {
+    sweepLevel: async (heroId, route, difficulty, level, asc) => {
       const p = store.get();
-      const why = sweepBlock(p, heroId, rank, level, asc);
+      const why = sweepBlock(p, heroId, route, difficulty, level, asc);
       if (why) throw new RepoError("sweep_locked", why);
       const hero = heroFromOwned(p, heroId);
-      const spec = levelsOf(rank)[level];
+      const spec = levelsOf(route, difficulty)[level];
       if (!hero || !spec)
         throw new RepoError("character_not_found", "Personaje no encontrado.");
       const seed = Date.now();
@@ -295,13 +299,14 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
           "sweep_failed",
           "Tu héroe no logró barrer este nivel solo. Pelea tú el nivel.",
         );
-      const opts = lootOptions(p, rank, level, asc);
+      const opts = lootOptions(p, route, difficulty, level, asc);
       const loot = {
         ...levelLoot(spec, asc, hero.classId, seed, opts),
         dados: rollDado(spec, createRng(Date.now() + 1), opts.dadoLeft),
       };
       const bank = bankLevel(p, {
-        rank,
+        route,
+        difficulty,
         level,
         asc,
         heroId,
@@ -367,8 +372,8 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
         };
       }
       const p = store.get();
-      if (!isRankUnlocked(p.dungeons, rank))
-        throw new RepoError("dungeon_locked", "Dungeon bloqueado.");
+      if (!isStepUnlocked(p.dungeons, { difficulty: rank, asc: 0 }))
+        throw new RepoError("dungeon_locked", "Dificultad bloqueada.");
       if (ascension > maxAscension(p.dungeons, rank))
         throw new RepoError("ascension_locked", "Ascensión bloqueada.");
       const seed = seedHint ?? Date.now();
@@ -471,14 +476,15 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         weaponId,
         ...(slot ? { slot } : {}),
       }),
-    startLevel: async (heroId, rank, level, asc) => {
+    startLevel: async (heroId, route, difficulty, level, asc) => {
       const r = await api<{
         runId: string;
         seed: number;
         hero: Character;
       }>("/api/level/start", {
         characterId: heroId,
-        rank,
+        route,
+        difficulty,
         level,
         ascension: asc,
       });
@@ -501,7 +507,7 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       store.replace(r.profile);
       return { bank: { ...r.bank, profile: r.profile }, loot: r.loot };
     },
-    sweepLevel: async (heroId, rank, level, asc) => {
+    sweepLevel: async (heroId, route, difficulty, level, asc) => {
       const r = await api<{
         seed: number;
         hero: Character;
@@ -510,13 +516,14 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         profile: Profile;
       }>("/api/level/sweep", {
         characterId: heroId,
-        rank,
+        route,
+        difficulty,
         level,
         ascension: asc,
       });
       store.replace(r.profile);
       // The server paid from its own play; the same deterministic engine rebuilds it for display.
-      const stage = sweepStage(r.seed, r.hero, levelFights(levelsOf(rank)[level], asc), asc);
+      const stage = sweepStage(r.seed, r.hero, levelFights(levelsOf(route, difficulty)[level], asc), asc);
       return { bank: { ...r.bank, profile: r.profile }, loot: r.loot, stage };
     },
     ascendPiece: async (baseId, materials, keep) => {

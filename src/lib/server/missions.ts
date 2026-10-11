@@ -11,7 +11,7 @@ import {
   type MissionState,
 } from "../game/missions";
 import { createRng } from "../game/rng";
-import { itemRankOf, DUNGEON_IDS, type RarityId } from "../game/rarity";
+import { itemRankOf, RARITY_IDS, type RarityId } from "../game/rarity";
 import { ApiError } from "./http";
 import { call, limit, mapRpcError, type Deps, type Rpc } from "./rpc";
 
@@ -107,9 +107,9 @@ export async function claimMissionService(
     const best = await call<string>(d.rpc, "best_cleared_rank", {
       p_player: playerId,
     });
-    // best cleared dungeon tier -> the item rank the rewards roll at (SS / SSR dungeons: S)
-    const rank: RarityId = (DUNGEON_IDS as readonly string[]).includes(best)
-      ? itemRankOf(best as (typeof DUNGEON_IDS)[number])
+    // The best cleared difficulty maps directly to the highest item rank S.
+    const rank: RarityId = (RARITY_IDS as readonly string[]).includes(best)
+      ? itemRankOf(best as (typeof RARITY_IDS)[number])
       : "f";
     const roll = rollMissionRewards(
       createRng(d.randomSeed()),

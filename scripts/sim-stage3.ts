@@ -2,7 +2,7 @@
 // By default each class uses its two equipable weapons; pass --all-weapons to include all ten.
 // Usage: npx tsx scripts/sim-stage3.ts [--runs=100] [--seed=33013] [--all-weapons] [--output=scripts/baseline/stage3.json]
 //        [--quick] [--workers=N]
-// --quick: fast iteration mode (20 runs/level, canonical weapon per class, ranks f,d,b,s,ssr).
+// --quick: fast iteration mode (20 runs/level, canonical weapon per class, difficulties f,d,b,s).
 //          Good for tuning; use the full run (default) for the final measurement of each stage.
 // --workers=N: split the cells across N processes (default: CPU cores - 1, max 8). The result is
 //          identical for any N: aggregates are plain sums and rows are re-sorted by cell index.
@@ -16,8 +16,8 @@ import { step } from "../src/lib/game/combat";
 import { ELEMENTS, type Element } from "../src/lib/game/elements";
 import { applyGear, gearBonus, rollGear } from "../src/lib/game/gear";
 import { levelCap } from "../src/lib/game/heroLevel";
-import { LEVELS_PER_RANK, levelsOf } from "../src/lib/game/levels";
-import { itemRankOf, DUNGEON_IDS, scaleStats, type DungeonId } from "../src/lib/game/rarity";
+import { LEVELS_PER_ROUTE, levelsOf } from "../src/lib/game/levels";
+import { itemRankOf, RARITY_IDS, scaleStats, type Difficulty } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
 import { ENGINE_VERSION, createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
 import { CLASS_WEAPONS, HAND_TYPES, canUseWeapon, weaponAtk, weaponSecondary, type HandType } from "../src/lib/game/weapons";
@@ -34,7 +34,7 @@ const WORKERS = Math.max(1, Math.floor(Number(args.get("workers") ?? Math.min(Ma
 const [SHARD_INDEX, SHARD_COUNT] = (args.get("shard") ?? "0/1").split("/").map(Number);
 const IS_SHARD = args.has("shard");
 const PARTIAL = args.get("partial") ?? "";
-const QUICK_RANKS: readonly DungeonId[] = ["f", "d", "b", "s", "ssr"];
+const QUICK_RANKS: readonly Difficulty[] = ["f", "d", "b", "s"];
 const selected = <T extends string>(key: string, all: readonly T[]): readonly T[] => {
   const requested = args.get(key)?.split(",") as T[] | undefined;
   if (!requested) return all;
@@ -54,7 +54,7 @@ if ([...WEAPONS_BY_CLASS.values()].some((weapons) => weapons.length === 0)) {
   throw new Error("No eligible weapons remain for a selected class; use --all-weapons to include cross-class weapons.");
 }
 const WEAPONS = [...new Set([...WEAPONS_BY_CLASS.values()].flat())];
-const RANKS = args.has("ranks") ? selected("ranks", DUNGEON_IDS) : QUICK ? QUICK_RANKS : DUNGEON_IDS;
+const RANKS = args.has("ranks") ? selected("ranks", RARITY_IDS) : QUICK ? QUICK_RANKS : RARITY_IDS;
 if (!Number.isInteger(BASE_SEED) || BASE_SEED < 0) throw new Error("--seed must be a nonnegative integer");
 if (!Number.isInteger(RUNS_PER_LEVEL) || RUNS_PER_LEVEL < 1) throw new Error("--runs must be a positive integer");
 
@@ -100,9 +100,9 @@ function readClassNoiseFloors(): Floor[] {
 }
 const classNoiseFloors = readClassNoiseFloors();
 
-function makeHero(classId: ClassId, element: Element, rank: DungeonId, weaponType: HandType, run: number) {
+function makeHero(classId: ClassId, element: Element, rank: Difficulty, weaponType: HandType, run: number) {
   const heroRank = itemRankOf(rank);
-  const rankIndex = DUNGEON_IDS.indexOf(rank);
+  const rankIndex = RARITY_IDS.indexOf(rank);
   const rng = createRng(hashSeed(BASE_SEED, 11, rankIndex, run));
   const character = generateCharacter(rng, classId);
   character.element = element;
@@ -127,10 +127,10 @@ function makeHero(classId: ClassId, element: Element, rank: DungeonId, weaponTyp
   };
 }
 
-function runLevel(classId: ClassId, element: Element, rank: DungeonId, weaponType: HandType, run: number, levelIndex: number): Sample {
-  const spec = levelsOf(rank)[levelIndex];
+function runLevel(classId: ClassId, element: Element, rank: Difficulty, weaponType: HandType, run: number, levelIndex: number): Sample {
+  const spec = levelsOf("lord_of_flies", rank)[levelIndex];
   const hero = makeHero(classId, element, rank, weaponType, run);
-  let stage = createStage(hashSeed(BASE_SEED, 23, DUNGEON_IDS.indexOf(rank), levelIndex, run), hero, levelFights(spec, ASCENSION), ASCENSION);
+  let stage = createStage(hashSeed(BASE_SEED, 23, RARITY_IDS.indexOf(rank), levelIndex, run), hero, levelFights(spec, ASCENSION), ASCENSION);
   let turns = 0;
   let fights = 0;
   while (stage.status === "playing") {
@@ -165,7 +165,7 @@ for (const classId of CLASSES) {
       if (SKIP_LOCAL || cellIndex % SHARD_COUNT !== SHARD_INDEX) continue;
       const cell = aggregate();
       for (const rank of RANKS) {
-        const levels = levelsOf(rank);
+        const levels = levelsOf("lord_of_flies", rank);
         for (let levelIndex = 0; levelIndex < levels.length; levelIndex++) {
           for (let run = 0; run < RUNS_PER_LEVEL; run++) {
             const result = runLevel(classId, element, rank, weaponType, run, levelIndex);
@@ -233,7 +233,7 @@ const classSummary = CLASSES.map((classId) => ({
 }));
 const baseline = JSON.parse(readFileSync(resolve(process.cwd(), "scripts/baseline/motor13.json"), "utf8")) as {
   engineVersion: number;
-  rows: Array<{ classId: ClassId; element: Element; rank: DungeonId; levelAttempts: number; clearedLevels: number; meanTurnsPerLevel: number }>;
+  rows: Array<{ classId: ClassId; element: Element; rank: Difficulty; levelAttempts: number; clearedLevels: number; meanTurnsPerLevel: number }>;
 };
 if (baseline.engineVersion !== 13) throw new Error("scripts/baseline/motor13.json is not an ENGINE_VERSION 13 baseline");
 const baselineClassRank = new Map<string, { n: number; wins: number; turns: number }>();
@@ -329,7 +329,7 @@ const result = {
   hero: { stars: STARS, level: LEVEL, gearStars: 0, gearRank: "same-as-hero" },
   policy: "autoPolicy",
   durationUnit: "turns per attempted dungeon level",
-  dimensions: { classes: CLASSES, elements: ELEMENT_SET, weapons: WEAPONS, ranks: RANKS, levelsPerRank: Object.fromEntries(RANKS.map((rank) => [rank, LEVELS_PER_RANK[rank]])) },
+  dimensions: { classes: CLASSES, elements: ELEMENT_SET, weapons: WEAPONS, ranks: RANKS, levelsPerRank: Object.fromEntries(RANKS.map((rank) => [rank, LEVELS_PER_ROUTE])) },
   notes: [
     ALL_WEAPONS
       ? "--all-weapons includes cross-class weapon combinations; these may not be equipable in live play."

@@ -195,7 +195,7 @@ type Props = {
   playerExtraTip?: Tip;
   inRun?: boolean;
   rank?: string | null; // dungeon rank, for its own scenery
-  finalRank?: string | null; // set on the dungeon's final boss fight (named entrance)
+  finalRank?: string | null; // route id of the dungeon's named final boss
   world?: number; // 0-4 index into WORLDS; omit for the plain test-bench look
   boss?: boolean;
   enemyExtra: (i: number, c: Combatant) => string;

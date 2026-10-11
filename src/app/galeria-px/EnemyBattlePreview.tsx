@@ -8,7 +8,7 @@ import type { EnemyFamily } from "@/lib/game/worlds";
 import { ELEMENTS, ELEMENT_LABEL, type Element } from "@/lib/game/elements";
 import type { EnemyAction } from "@/lib/art/enemies";
 
-type Design = { id: string; label: string; family: EnemyFamily; tier: "normal" | "elite" | "boss"; rank?: string };
+type Design = { id: string; label: string; family: EnemyFamily; tier: "normal" | "elite" | "boss"; route?: string };
 const FAMILIES: { id: string; family: EnemyFamily; label: string }[] = [
   { id: "slime", family: "limo", label: "Limo" },
   { id: "imp", family: "diablillo", label: "Diablillo" },
@@ -18,19 +18,19 @@ const FAMILIES: { id: string; family: EnemyFamily; label: string }[] = [
 ];
 const TIER_LABEL = { normal: "Normal", elite: "Élite", boss: "Jefe" };
 const FINALS = [
-  ["great_devourer", "Gran Devorador", "f", "limo"],
-  ["ash_king", "Rey de Cenizas", "e", "diablillo"],
-  ["withered_queen", "Reina Marchita", "d", "arpia"],
-  ["hollow_colossus", "Coloso Hueco", "c", "golem"],
-  ["eternal_watcher", "Vigía Eterno", "b", "espectro"],
-  ["mother_hydra", "Madre Hidra", "a", "golem"],
-  ["lord_of_flies", "Señor de las Moscas", "s", "diablillo"],
-  ["faceless_one", "El Sin Rostro", "ss", "espectro"],
-  ["thunder_king", "Rey del Trueno", "ssr", "golem"],
+  ["great_devourer", "Gran Devorador", "great_devourer", "limo"],
+  ["ash_king", "Rey de Ceniza", "ash_king", "diablillo"],
+  ["withered_queen", "Reina Marchita", "withered_queen", "arpia"],
+  ["hollow_colossus", "Coloso Hueco", "hollow_colossus", "golem"],
+  ["eternal_watcher", "Vigía Eterno", "eternal_watcher", "espectro"],
+  ["mother_hydra", "Madre Hidra", "mother_hydra", "golem"],
+  ["lord_of_flies", "Señor de las Moscas", "lord_of_flies", "diablillo"],
+  ["faceless_one", "El Sin Rostro", "faceless_one", "espectro"],
+  ["thunder_king", "Rey del Trueno", "thunder_king", "golem"],
 ] as const;
 const DESIGNS: Design[] = [
   ...FAMILIES.flatMap(({ id, family, label }) => (["normal", "elite", "boss"] as const).map((tier) => ({ id: `enemy_${id}_${tier}`, family, tier, label: `${label} · ${TIER_LABEL[tier]}` }))),
-  ...FINALS.map(([id, label, rank, family]) => ({ id: `boss_${id}`, label, rank, family, tier: "boss" as const })),
+  ...FINALS.map(([id, label, route, family]) => ({ id: `boss_${id}`, label, route, family, tier: "boss" as const })),
 ];
 const ACTION_LABEL: Record<EnemyAction, string> = { idle: "Reposo", attack: "Ataque", hit: "Recibir golpe", defeat: "Derrota", entrance: "Entrada" };
 
@@ -57,7 +57,7 @@ export function EnemyBattlePreview() {
         <HeroSprite classId="caballero" element={element} animated action="idle" className="h-full w-full" />
       </div>
       <div className="absolute bottom-[3%] right-[5%] z-10 h-[192px] w-[140px] min-[2200px]:h-[384px] min-[2200px]:w-[280px]" style={{ "--es": 1 } as CSSProperties}>
-        <EnemySprite key={`${id}-${action}-${element}-${play}`} family={design.family} element={element} boss={design.tier === "boss"} elite={design.tier === "elite"} finalRank={design.rank} action={action} />
+        <EnemySprite key={`${id}-${action}-${element}-${play}`} family={design.family} element={element} boss={design.tier === "boss"} elite={design.tier === "elite"} finalRank={design.route} action={action} />
       </div>
     </div>
   </section>;

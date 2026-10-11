@@ -18,7 +18,7 @@ describe("tutorial", () => {
   it("existing profiles count as done; equip auto-advances", () => {
     expect(tutorialStep(migrate({ version: 5, coins: 10 }))).toBe(7);
     let p = createStarterHero(newAccountProfile(), "picaro", createRng(3));
-    p = { ...p, dungeons: { f: [1] } };
+    p = { ...p, dungeons: { steps: {}, routes: { "lord_of_flies:f:0": 1 } } };
     expect(tutorialStep(autoAdvance(p))).toBe(2);
     p = {
       ...p,

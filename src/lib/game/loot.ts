@@ -36,7 +36,7 @@ export function dropRank(
 /**
  * Rank of one dungeon piece, anchored to the gacha: the pull odds of the ranks up to the
  * dungeon's, renormalized, so a rank-R dungeon NEVER drops above R and its own rank is as
- * rare as in a pull (S dungeon: S 3 %, A 6 %, ... F 31 %; SSR dungeon: SSR 0.5 %). `tilt` > 1
+ * rare as in a pull (S difficulty: S 3 %, A 6 %, ... F 31 %). `tilt` > 1
  * leans toward the top (weight x tilt^index); 1 = exactly the gacha odds.
  */
 export function gachaDropRank(rng: Rng, rank: RarityId, tilt = 1): RarityId {

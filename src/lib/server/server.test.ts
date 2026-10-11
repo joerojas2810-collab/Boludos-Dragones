@@ -695,12 +695,13 @@ describe("dungeon level services (fake DB)", () => {
   const ID = row().key;
   const body = (over = {}) => ({
     characterId: ID,
-    rank: "f" as const,
+    route: "lord_of_flies" as const,
+    difficulty: "f" as const,
     level: 0,
     ascension: 0,
     ...over,
   });
-  const N = levelFights(levelsOf("f")[0], 0).length; // fights of F level 1
+  const N = levelFights(levelsOf("lord_of_flies", "f")[0], 0).length; // fights of F level 1
   const fin = (db: FakeDb, wins: number, extra = {}) => {
     if (db.run) db.run.startedAt = Date.now() - 600_000; // a believable pace unless a test says otherwise
     return finishLevelService(db.deps, "u1", { runId: UUID, wins, ...extra });
@@ -714,7 +715,7 @@ describe("dungeon level services (fake DB)", () => {
   it("validates request bodies (strict, level range, no client-side loot or status)", () => {
     expect(levelStartBody.safeParse(body()).success).toBe(true);
     expect(levelStartBody.safeParse(body({ level: 12 })).success).toBe(false);
-    expect(levelStartBody.safeParse(body({ rank: "zz" })).success).toBe(false);
+    expect(levelStartBody.safeParse(body({ difficulty: "zz" })).success).toBe(false);
     expect(levelStartBody.safeParse(body({ ascension: 6 })).success).toBe(false);
     const ok = { runId: UUID, wins: 2 };
     expect(levelFinishBody.safeParse(ok).success).toBe(true);
@@ -726,22 +727,23 @@ describe("dungeon level services (fake DB)", () => {
   it("starts from the persisted hero (server snapshot, seed from the server) and opens the attempt", async () => {
     const db = new FakeDb();
     const info = await started(db);
-    expect(info).toMatchObject({ rank: "f", level: 0, ascension: 0, seed: 12345 });
+    expect(info).toMatchObject({ route: "lord_of_flies", difficulty: "f", level: 0, ascension: 0, seed: 12345 });
     expect(db.levelStarts[0]).toMatchObject({
       p_character_id: ID,
-      p_rank: "f",
+      p_route: "lord_of_flies",
+      p_difficulty: "f",
       p_level: 0,
       p_asc: 0,
     });
   });
 
-  it("refuses locked ranks, ascensions, levels out of order and heroes you do not own", async () => {
+  it("refuses locked difficulties, ascensions, levels out of order and heroes you do not own", async () => {
     const db = new FakeDb();
     db.rows.push(row());
     for (const [over, code] of [
-      [{ rank: "e" }, "dungeon_locked"],
+      [{ difficulty: "e" }, "dungeon_locked"],
       [{ level: 1 }, "level_locked"],
-      [{ ascension: 1 }, "level_locked"],
+      [{ ascension: 1 }, "dungeon_locked"],
       [{ characterId: "c-mago-fuego-ssr" }, "character_not_found"],
     ] as const)
       expect(
@@ -749,9 +751,9 @@ describe("dungeon level services (fake DB)", () => {
         code,
       ).toMatchObject({ code });
     expect(db.levelStarts).toHaveLength(0);
-    // after clearing the whole F dungeon rank E opens; ascension +1 of F opens too
-    db.dungeons = { f: [6] };
-    await startLevelService(db.deps, "u1", body({ rank: "e" }));
+    // A cleared F step opens E+0 and F+1 across the routes.
+    db.dungeons = { steps: { "f:0": true }, routes: { "lord_of_flies:f:0": 4 } };
+    await startLevelService(db.deps, "u1", body({ difficulty: "e" }));
     await startLevelService(db.deps, "u1", body({ ascension: 1 }));
     expect(db.levelStarts).toHaveLength(2);
   });
@@ -764,7 +766,8 @@ describe("dungeon level services (fake DB)", () => {
     const b = db.levelBanks[0];
     expect(b).toMatchObject({
       p_status: "cleared",
-      p_rank: "f",
+      p_route: "lord_of_flies",
+      p_difficulty: "f",
       p_level: 0,
       p_asc: 0,
       p_hero_id: ID,
@@ -772,9 +775,9 @@ describe("dungeon level services (fake DB)", () => {
       p_verdict: "accepted",
       p_log: null,
     });
-    expect(Number(b.p_xp)).toBe(resultFromWins(info.hero, levelFights(levelsOf("f")[0], 0), N).xp);
+    expect(Number(b.p_xp)).toBe(resultFromWins(info.hero, levelFights(levelsOf("lord_of_flies", "f")[0], 0), N).xp);
     // the loot is the one the engine rolls from the SERVER seed
-    const expected = levelLoot(levelsOf("f")[0], 0, "caballero", info.seed, {
+    const expected = levelLoot(levelsOf("lord_of_flies", "f")[0], 0, "caballero", info.seed, {
       repeat: false,
       payMult: 1,
     });
@@ -841,13 +844,13 @@ describe("profile mapping (fake DB)", () => {
     (old.data as Record<string, unknown>).level = 12;
     (old.data as Record<string, unknown>).skill = "ejecutar";
     db.rows.push(fresh, old);
-    db.dungeons = { f: [6, 2] };
+    db.dungeons = { steps: { "f:0": true, "f:1": true }, routes: { "lord_of_flies:f:0": 4, "lord_of_flies:f:1": 2 } };
     const me = await loadMe(db.deps.rpc, "u1");
     const byId = (id: string) => me.profile.characters.find((c) => c.id === id)!;
     expect(byId(fresh.key).legacy).toBeUndefined();
     expect(byId(old.key)).toMatchObject({ legacy: true, level: 12 });
     expect("skill" in byId(old.key)).toBe(false);
-    expect(me.profile.dungeons.f).toEqual([6, 2]);
+    expect(me.profile.dungeons.routes["lord_of_flies:f:1"]).toBe(2);
     expect(heroFromOwned(me.profile, old.key)?.level).toBe(12);
     // migrate() of a client save without version still marks everything legacy
     expect(migrate({ characters: [fresh.data] }).characters).toHaveLength(0);
