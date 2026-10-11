@@ -26,3 +26,6 @@
 
 ## Pendientes de diseño que NO bloquean H1/H3/H2
 Efectos de Explotar de 4 estados, escala del progreso y tolerancia de E2, efecto defensivo del Caballero, tiempo límite del duelo.
+
+## Decisión del dueño: reset total (2026-10-10)
+El reset es **total** con `supabase/reset_progress.sql` (manual y destructivo, solo con confirmación del dueño), después de ejecutar `upgrade_from_NNNN.sql`. La migración 0054 no es el reset: el `delete from public.characters` que incluye debe quitarse o quedar como no-op documentado. `reset_progress.sql` debe revisarse para cubrir todas las tablas y columnas nuevas (copias con perfil, `tower_scores` con clase y elemento).
