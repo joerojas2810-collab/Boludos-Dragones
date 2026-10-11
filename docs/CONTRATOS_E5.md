@@ -15,8 +15,11 @@ Habilitar **Explotar estado** (hoy deshabilitado con motivo) para **Quemadura, R
 - Regla común de cargas de §8 sin cambios (máx. 3; Defender consecutivo conserva/pierde cargas).
 - **Pruebas:** determinista; Explotar consume y no añade cargas; deshabilitado sin estado; cada efecto con su tope; replay del servidor acepta `explotar`; `autoPolicy` lo usa cuando conviene; simulación contra la línea base y el piso de ruido (`docs/E2_RESULTADO.md`) midiendo **por elemento** (Rayo debe recuperar su bono perdido en 3c: `docs/E3_ELEMENTOS.md`).
 
-## 5b — Escarcha e Impulso (bloqueado por Q17)
-Escarcha: consume cargas y resta 10 pp de progreso por carga (máx. 30) al enemigo, sin quitar una activación ya lista. Impulso: suma 10 pp por carga (máx. 30) al PJ, con tope de 90 % (sin acción inmediata). **No programar hasta que el dueño decida Q17** (modelo de progreso en el motor real).
+## 5b — Escarcha e Impulso (Q17-B aprobado: se mantienen las rondas y la lógica de batalla y acciones actuales)
+**No se integra el acumulador de E2 en el motor real.** Los efectos de "progreso" se traducen al modelo por rondas (valores de partida, se ajustan con simulación):
+- **Escarcha (enemigo):** Explotar consume las cargas y **retrasa la próxima ranura pendiente del enemigo objetivo**: pasa a ejecutarse después de la siguiente acción del PJ. Máximo **1 retraso por enemigo y por ronda**; no afecta a una ranura que ya se resolvió ni a intenciones fuertes que ya recibieron su espera de aviso; con 3 cargas puede retrasar hasta 2 ranuras del mismo enemigo.
+- **Impulso (PJ):** Explotar consume las cargas y concede **1 acción extra al PJ en la ronda en curso** si consumió ≥ 2 cargas; máximo 1 acción extra por ronda y sin superar `MAX_ACTIONS_PER_ROUND` (3). No concede acción inmediata gratis: la acción extra se añade a la cola tras la acción actual.
+- Cualquier efecto que cambie `buildQueue`/`planRound` debe conservar el orden determinista y el replay del servidor.
 
 ## Puertas
 `tsc`, `eslint src scripts`, `vitest` y `pglite` en verde; balance dentro del piso de ruido + 2 pp por clase, con Rayo recuperado; auditoría de Claude antes de 5b.
