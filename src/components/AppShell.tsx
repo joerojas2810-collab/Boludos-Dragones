@@ -6,6 +6,7 @@ import { useArt } from "@/components/ArtScope";
 import { uiAsset } from "@/lib/art";
 import { ScreenBg } from "@/components/ScreenBg";
 import { SoundControls } from "@/components/SoundControls";
+import { useMenuMusic } from "@/components/useMenuMusic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -158,6 +159,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     r === "/" ? path === "/" : path === r || path === `${r}/`,
   );
   const remote = repo.mode === "remote" && session.status === "user";
+  useMenuMusic(visible || path === "/run" || path.startsWith("/sala/"));
   const missionsPending = useMissionsPending(remote && visible, path);
   if (!visible) return <>{children}</>;
   const dailyReady = !!profile && !claimedToday(profile.daily, dayKey());

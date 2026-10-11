@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { ArenaBackground } from "@/components/ArenaBackground";
+import { blockMenuMusic } from "@/lib/menu-music";
 import { Chip } from "@/components/Chip";
 import { BossIntro, FxLayer, useBattleFx } from "@/components/fx/BattleFx";
 import { EnemyCueContext, type EnemyCue } from "@/components/EnemySprite";
@@ -170,6 +171,7 @@ export function BattleArena({
   bleed,
   tall,
 }: Props) {
+  useEffect(() => blockMenuMusic(), []);
   const n = b.enemies.length;
   const multi = n > 1;
   const first = b.enemies[Math.min(enemy, n - 1)];

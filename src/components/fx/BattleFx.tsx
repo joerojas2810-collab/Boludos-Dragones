@@ -3,6 +3,10 @@ import { elementMultiplier, type Element } from "@/lib/game/elements";
 import type { Battle } from "@/lib/game/combat";
 import { ELEMENT_COLORS } from "@/sprites/palettes";
 import { ELEMENT_ART } from "@/lib/art";
+import { isPixel } from "@/lib/art/pixel";
+import { enemyAnim } from "@/lib/art/enemies";
+import { DUNGEON_THEMES } from "@/lib/game/levels";
+import { AnimSheet } from "@/components/AnimSheet";
 import { Vfx, VfxNumber } from "./Vfx";
 import { reducedMotion } from "./motion";
 import "./fx.css";
@@ -299,16 +303,29 @@ export function FxLayer({ t, k }: { t?: TargetFx; k: number }) {
 export function BossIntro({
   name,
   finalRank,
+  artStyle,
 }: {
   name: string;
   finalRank?: string | null;
+  artStyle?: "painted" | "pixel";
 }) {
+  const pixel = artStyle ? artStyle === "pixel" : isPixel();
+  const theme = finalRank ? DUNGEON_THEMES[finalRank as keyof typeof DUNGEON_THEMES] : undefined;
+  // Reuse the approved combat design instead of the old baked-in boss portrait.
+  const paintedEntrance = !pixel && theme
+    ? enemyAnim("diablillo", "boss", theme.bossElement, "entrance", finalRank, "painted")
+    : null;
   return (
     <div
       aria-hidden
       className="fx-bossintro pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-black/80"
     >
-      {finalRank ? (
+      {paintedEntrance ? (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4">
+          <AnimSheet anim={paintedEntrance} className="aspect-square w-[min(65%,24rem,55cqh)] shrink-0" />
+          <span className="fx-bossname text-center text-xl font-black uppercase tracking-widest text-red-200 sm:text-3xl md:text-4xl">{name}</span>
+        </div>
+      ) : finalRank ? (
         <Vfx
           id={`boss_entrance_${finalRank}`}
           className="w-[min(90%,32rem)]"
@@ -319,9 +336,9 @@ export function BossIntro({
           className="absolute w-[min(70%,20rem)] opacity-80"
         />
       )}
-      <span className={`fx-bossname relative px-2 text-center text-3xl font-black uppercase tracking-widest text-red-200 md:text-5xl ${finalRank ? "sr-only" : ""}`}>
+      {!paintedEntrance && <span className={`fx-bossname relative px-2 text-center text-3xl font-black uppercase tracking-widest text-red-200 md:text-5xl ${finalRank ? "sr-only" : ""}`}>
         {name}
-      </span>
+      </span>}
     </div>
   );
 }

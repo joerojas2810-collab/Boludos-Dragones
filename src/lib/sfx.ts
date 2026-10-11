@@ -6,8 +6,9 @@ const SETTINGS_KEY = "bd-audio-settings-v1";
 export interface AudioSettings {
   muted: boolean;
   effects: number;
+  music: number;
 }
-const DEFAULT_SETTINGS: AudioSettings = { muted: false, effects: 0.7 };
+const DEFAULT_SETTINGS: AudioSettings = { muted: false, effects: 0.7, music: 0.35 };
 let settings = { ...DEFAULT_SETTINGS };
 let effectsBus: GainNode | null = null;
 let clickBuffer: AudioBuffer | null = null;
@@ -62,6 +63,7 @@ export function loadAudioSettings() {
       settings = {
         muted: parsed.muted === true,
         effects: typeof parsed.effects === "number" ? Math.max(0, Math.min(1, parsed.effects)) : DEFAULT_SETTINGS.effects,
+        music: typeof parsed.music === "number" ? Math.max(0, Math.min(1, parsed.music)) : DEFAULT_SETTINGS.music,
       };
     }
   } catch {
@@ -80,7 +82,7 @@ export function setMuted(muted: boolean) {
   saveSettings();
   notifySettings();
 }
-export function setAudioVolume(channel: "effects", value: number) {
+export function setAudioVolume(channel: "effects" | "music", value: number) {
   settings = { ...settings, [channel]: Math.max(0, Math.min(1, value)) };
   applySettings();
   saveSettings();

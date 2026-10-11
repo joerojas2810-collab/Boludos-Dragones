@@ -38,7 +38,7 @@ export function SoundControls({ compact = false }: { compact?: boolean }) {
     };
   }, [open]);
 
-  const slider = (label: string, value: number) => (
+  const slider = (label: string, value: number, channel: "effects" | "music") => (
     <label className="block text-sm text-white/90" key={label}>
       <span className="mb-1 flex justify-between">
         <span>{label}</span><span>{Math.round(value * 100)}%</span>
@@ -51,7 +51,7 @@ export function SoundControls({ compact = false }: { compact?: boolean }) {
         max="1"
         step="0.01"
         value={value}
-        onChange={(event) => setAudioVolume("effects", Number(event.currentTarget.value))}
+        onChange={(event) => setAudioVolume(channel, Number(event.currentTarget.value))}
       />
     </label>
   );
@@ -76,7 +76,8 @@ export function SoundControls({ compact = false }: { compact?: boolean }) {
             </button>
           </div>
           <div className="grid gap-3">
-            {slider("Efectos", audio.effects)}
+            {slider("Efectos", audio.effects, "effects")}
+            {slider("Música", audio.music, "music")}
           </div>
         </div>
       )}
