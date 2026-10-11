@@ -157,6 +157,45 @@ export function HudCard({
           </span>
         </div>
       </Tooltip>
+      {!you && c.aguante !== undefined && c.aguanteMax !== undefined && (
+        <div
+          className="mt-1"
+          role="group"
+          aria-label={`Aguante: ${Math.max(0, Math.round(c.aguante))} de ${Math.round(c.aguanteMax)}`}
+        >
+          {(() => {
+            const current = Math.max(0, c.aguante);
+            const max = Math.max(1, c.aguanteMax);
+            const nearBreak = current > 0 && current / max <= 0.25;
+            return (
+              <>
+                <div className="mb-0.5 flex items-center justify-between gap-2 text-[10px] leading-3 text-[#e4c98d]">
+                  <span className="font-semibold">Aguante</span>
+                  <span className="tabular-nums">{Math.round(current)} / {Math.round(max)}</span>
+                </div>
+                <div
+                  className="h-1.5 w-full overflow-hidden rounded-full bg-black/65 ring-1 ring-white/10"
+                  role="progressbar"
+                  aria-label={`Aguante de ${c.char.name}`}
+                  aria-valuemin={0}
+                  aria-valuemax={Math.round(max)}
+                  aria-valuenow={Math.round(current)}
+                >
+                  <div
+                    className={`h-full rounded-full motion-reduce:transition-none ${nearBreak ? "bg-gradient-to-r from-red-700 to-amber-300" : "bg-gradient-to-r from-[#855329] to-[#e8b65a]"}`}
+                    style={{ width: `${Math.max(0, Math.min(100, (current / max) * 100))}%` }}
+                  />
+                </div>
+                {nearBreak && (
+                  <div className="mt-0.5 text-right text-[10px] font-semibold leading-3 text-amber-200" role="status">
+                    ¡Quiebre cerca!
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )}
       {hasStatus && (
         <div className="mt-1 flex flex-wrap gap-1">
           {(c.shield ?? 0) > 0 && (
