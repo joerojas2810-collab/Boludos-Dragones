@@ -4,7 +4,7 @@ import { isPixel } from "./pixel";
 import type { Element } from "@/lib/game/elements";
 import type { EnemyFamily } from "@/lib/game/worlds";
 import type { SheetAnim } from "@/components/AnimSheet";
-import { ENEMY_ANIMS, FINAL_BOSS_BY_RANK } from "./enemies.generated";
+import { ENEMY_ANIMS, FINAL_BOSS_BY_ROUTE } from "./enemies.generated";
 import pixelEnemies from "./pixel-enemies.generated.json";
 import paintedVillains from "./painted-villains.generated.json";
 
@@ -34,7 +34,7 @@ const FAMILY_ART: Record<EnemyFamily, string> = {
 };
 
 // Sheet for a family design (normal / elite / family boss), or the unique final
-// boss of a dungeon rank when `finalRank` is given. Missing sheets fall back to idle.
+// boss of a dungeon route when `finalRank` is given. Missing sheets fall back to idle.
 export function enemyAnim(
   family: EnemyFamily,
   tier: EnemyTier,
@@ -44,7 +44,7 @@ export function enemyAnim(
   artStyle?: "painted" | "pixel",
 ): SheetAnim {
   const design =
-    (tier === "boss" && finalRank && FINAL_BOSS_BY_RANK[finalRank]) ||
+    (tier === "boss" && finalRank && FINAL_BOSS_BY_ROUTE[finalRank]) ||
     `enemy_${FAMILY_ART[family]}_${tier}`;
   const e = ELEMENT_ART[element];
   if (artStyle ? artStyle === "pixel" : isPixel()) {

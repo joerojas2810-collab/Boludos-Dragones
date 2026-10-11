@@ -3,7 +3,7 @@
 // database and pulls / run banking MUST be resolved server-side (a client can
 // edit localStorage freely, so nothing here is trustworthy).
 import { newAccountProfile } from "./game/tutorial";
-import { createProfile, migrate, type Profile } from "./game/profile";
+import { createProfile, migrate, PROFILE_VERSION, type Profile } from "./game/profile";
 
 export const PROFILE_KEY = "bd-profile-v2";
 
@@ -29,7 +29,18 @@ export function defaultStore(): KV {
 export function loadProfile(store: KV = defaultStore()): Profile {
   try {
     const raw = store.getItem(PROFILE_KEY);
-    return raw ? migrate(JSON.parse(raw)) : newAccountProfile();
+    if (!raw) return newAccountProfile();
+    const saved: unknown = JSON.parse(raw);
+    if (
+      !saved ||
+      typeof saved !== "object" ||
+      (saved as { version?: unknown }).version !== PROFILE_VERSION
+    ) {
+      const reset = newAccountProfile();
+      store.setItem(PROFILE_KEY, JSON.stringify(reset));
+      return reset;
+    }
+    return migrate(saved);
   } catch {
     return createProfile();
   }

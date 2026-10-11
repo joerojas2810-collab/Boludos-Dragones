@@ -6,8 +6,7 @@ import { step } from "../src/lib/game/combat";
 import { applyGear, gearBonus, rollGear } from "../src/lib/game/gear";
 import { GEAR_TYPES, weaponAtk, CLASS_WEAPONS } from "../src/lib/game/weapons";
 import { levelCap } from "../src/lib/game/heroLevel";
-import { heroSkill } from "../src/lib/game/skills";
-import { LEVELS_PER_RANK, levelsOf } from "../src/lib/game/levels";
+import { LEVELS_PER_ROUTE, levelsOf } from "../src/lib/game/levels";
 import { RARITY_IDS, scaleStats, type RarityId } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
 import { createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
@@ -42,13 +41,12 @@ function hero(rank: RarityId, seed: number) {
     rarity: rank,
     stars,
     level,
-    skill: heroSkill(c.classId),
     stats: { ...geared, atk: Math.round((geared.atk + watk) * 10) / 10 },
   };
 }
 
 for (const rank of ranks) {
-  const levels = levelsOf((process.env.DUNGEON as RarityId | undefined) ?? rank);
+  const levels = levelsOf("lord_of_flies", (process.env.DUNGEON as RarityId | undefined) ?? rank);
   const row: string[] = [];
   let dungeon = 0;
   for (const spec of levels) {
@@ -71,7 +69,7 @@ for (const rank of ranks) {
     dungeon += clears / n;
   }
   console.log(
-    `${rank.toUpperCase().padEnd(3)} L${lvl} ${stars}★ asc${asc}: ${row.join(" ")}  (levels ${LEVELS_PER_RANK[rank]}, avg ${Math.round((100 * dungeon) / levels.length)}%)`,
+    `${rank.toUpperCase().padEnd(3)} L${lvl} ${stars}★ asc${asc}: ${row.join(" ")}  (levels ${LEVELS_PER_ROUTE}, avg ${Math.round((100 * dungeon) / levels.length)}%)`,
   );
 }
 void RARITY_IDS;

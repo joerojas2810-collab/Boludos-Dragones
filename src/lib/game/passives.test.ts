@@ -86,12 +86,12 @@ describe("class passives", () => {
     expect(estimateDamage(mago, def("rayo"), "attack1")).toBe(15); // 20*.75
   });
 
-  it("Foco arcano uses the weapon element when equipped", () => {
+  it("Foco arcano uses the hero element even when weapon element differs", () => {
     const m = hero("mago", "rayo");
     const armed = comb({ ...m, weapon: { element: "agua", atkBonus: 0 } });
     expect(
       estimateDamage(armed, comb(hero("picaro", "fuego")), "attack1"),
-    ).toBe(31);
+    ).toBe(20); // Engine v14: neutral Rayo matchup; the Agua weapon no longer grants advantage.
   });
 
   it("Filo mortal: picaro crits x2.0, others x1.5, relic adds on top", () => {

@@ -6,9 +6,10 @@ import { autoPolicy } from "./auto";
 import { step } from "./combat";
 import type { Character } from "./characters";
 import { clearedLevels, isLevelUnlocked } from "./dungeonProgress";
+import type { RouteId } from "./levels";
 import { heroPower, type Profile } from "./profile";
 import { recommendedPower } from "./recommended";
-import type { DungeonId } from "./rarity";
+import type { Difficulty } from "./rarity";
 import {
   abandonStage,
   createStage,
@@ -45,13 +46,14 @@ export function sweepStage(
 export function sweepBlock(
   p: Profile,
   heroId: string,
-  rank: DungeonId,
+  route: RouteId,
+  difficulty: Difficulty,
   level: number,
   asc: number,
 ): string | null {
-  if (!isLevelUnlocked(p.dungeons, rank, level, asc) || level >= clearedLevels(p.dungeons, rank, asc))
+  if (!isLevelUnlocked(p.dungeons, route, difficulty, level, asc) || level >= clearedLevels(p.dungeons, route, difficulty, asc))
     return "Primero supera este nivel una vez.";
-  if (heroPower(p, heroId) < SWEEP_POWER_FACTOR * recommendedPower(rank, level, asc))
-    return `Necesitas poder ${Math.ceil(SWEEP_POWER_FACTOR * recommendedPower(rank, level, asc))} para barrerlo.`;
+  if (heroPower(p, heroId) < SWEEP_POWER_FACTOR * recommendedPower(difficulty, level, asc))
+    return `Necesitas poder ${Math.ceil(SWEEP_POWER_FACTOR * recommendedPower(difficulty, level, asc))} para barrerlo.`;
   return null;
 }

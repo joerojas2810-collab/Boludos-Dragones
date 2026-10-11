@@ -8,7 +8,7 @@ import { levelFights } from "../game/stage";
 import { levelsOf } from "../game/levels";
 import type { RarityId } from "../game/rarity";
 import { applyTowerAction, startTower } from "../game/tower";
-import type { Character } from "../game/characters";
+import type { Character, HeroFactors } from "../game/characters";
 import { RpcError, type Deps, type RpcResult } from "./rpc";
 
 type Args = Record<string, unknown>;
@@ -47,9 +47,8 @@ export class FakeDb {
   burned: Args[] = [];
   heroChanges: Args[] = [];
   pieceChanges: Args[] = [];
-  skills: Args[] = [];
   xpGrants: Args[] = [];
-  dungeons: Record<string, number[]> = {};
+  dungeons: { steps: Record<string, true>; routes: Record<string, number> } = { steps: {}, routes: {} };
   equipped: Record<string, string> = {};
   runsToday = 0;
   towerRecords: Args[] = [];
@@ -111,7 +110,7 @@ export class FakeDb {
               stars: r.stars,
               data: r.data,
             })),
-          dungeons: this.dungeons,
+          dungeonProgress: this.dungeons,
           equipped: this.equipped,
           bestFloor: 0,
         });
@@ -122,7 +121,8 @@ export class FakeDb {
           hero: {
             ...h,
             kind: "level",
-            rank: a.p_rank,
+            route: a.p_route,
+            difficulty: a.p_difficulty,
             level: a.p_level,
             asc: a.p_asc,
             heroId: a.p_character_id,
@@ -179,7 +179,6 @@ export class FakeDb {
               xp: h.xp,
               legacy: h.legacy,
               copies: h.copies,
-              ...(h.skill ? { skill: h.skill } : {}),
             },
           };
           const i = this.rows.findIndex((r) => r.key === key);
@@ -226,9 +225,6 @@ export class FakeDb {
         this.version++;
         return this.okv({ coins: this.coins, version: this.version });
       }
-      case "choose_hero_skill":
-        this.skills.push(a);
-        return this.okv({ ok: true });
       case "apply_pull": {
         const idem = String(a.p_idem);
         if (this.idem.has(idem))
@@ -379,6 +375,15 @@ export function heroRow(
         atk: c.stats.atk * power,
         def: c.stats.def * power,
       },
+      // Persist the generated H1 factors with simulated server rows. Keep a
+      // neutral valid profile for hand-built Character fixtures.
+      factors: (c as Character & { factors?: HeroFactors }).factors ?? {
+        hp: 1,
+        atk: 1,
+        def: 1,
+        crit: 1,
+        speed: 1,
+      },
       traits: c.traits,
       catchphrase: c.catchphrase,
       level: 1,
@@ -396,7 +401,7 @@ export function playLevelBot(
   asc = 0,
   maxActions = 600,
 ): StageAction[] {
-  let s = initialStageReplay(seed, hero, levelFights(levelsOf(rank)[level], asc), asc);
+  let s = initialStageReplay(seed, hero, levelFights(levelsOf("lord_of_flies", rank)[level], asc), asc);
   const log: StageAction[] = [];
   const push = (a: StageAction): boolean => {
     const n = applyStageAction(s, a);

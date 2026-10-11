@@ -5,8 +5,9 @@ import { statPower } from "./recommended";
 // there; never trust a client-sent profile without migrate()).
 import {
   CLASS_IDS,
-  CLASSES,
+  buildStats,
   generateCharacter,
+  type HeroFactors,
   type Character,
   type ClassId,
   type Stats,
@@ -14,31 +15,26 @@ import {
 import { ELEMENTS, type Element } from "./elements";
 import {
   parseProgress,
+  emptyDungeonProgress,
+  levelAlreadyCleared,
   recordClear,
   type DungeonProgress,
 } from "./dungeonProgress";
 import { firstClearChest, levelCoins, levelDecay } from "./levelPay";
 import { DADO_DAILY_MAX, type LevelLoot } from "./levelLoot";
 import type { StageStatus } from "./stage";
+import type { RouteId } from "./levels";
 import type { RunPiece } from "./loot";
 import {
   activeSets,
   applyGear,
   combineGear,
-  GEAR_CAP,
   plusFactor,
   gearBonus,
-  LINE_BASE,
-  LINE_GROUP,
   NO_GEAR,
   parseRoll,
-  resonanceBonus,
-  resonances,
   rollPiece,
   setBonus,
-  SKILL_STYLE_GROUP,
-  type BuildGroup,
-  type WornPiece,
 } from "./gear";
 import {
   MAX_STARS,
@@ -46,7 +42,7 @@ import {
   RARITY_IDS,
   toRank,
   rollRarity,
-  type DungeonId,
+  type Difficulty,
   scaleStats,
   type RarityId,
 } from "./rarity";
@@ -54,12 +50,6 @@ import type { Rng } from "./rng";
 import { dayKey, isDayKey, type DailyState } from "./streak";
 import { dayPayMult } from "./economy";
 import { addHeroXp, gapMult, levelCap } from "./heroLevel";
-import {
-  heroSkill,
-  isSkillId,
-  SKILLS_BY_CLASS,
-  type SkillId,
-} from "./skills";
 import { TRAIT_IDS, type TraitId } from "./traits";
 import {
   generateWeapon,
@@ -77,7 +67,7 @@ import {
   type Weapon,
 } from "./weapons";
 
-export const PROFILE_VERSION = 5; // 5: pieces have roll/lines, pre-v5 items are marked legacy (burn rate)
+export const PROFILE_VERSION = 7; // 7: dungeon progress is shared by difficulty step and tracked per route
 // Raised from 150: at ~11-22 pulls/day of income the old price made SSR pity reachable in
 // ~2 weeks (cheaper than the forge). Keep in sync with game_constants (0017).
 // Day-1 tutorial progress (tutorial.ts). Only brand-new local accounts carry it (see
@@ -96,11 +86,46 @@ export type OwnedCharacter = Character & {
   id: string; // = characterKey
   rarity: RarityId;
   stars: number;
-  // Spare copies from repeated pulls: each keeps the trait it rolled (swapTrait picks the main one).
+  factors: HeroFactors;
+  // Spare copies keep the full profile they rolled.
   // A copy is also one unit of material for starring up and ranking up (heroFusion.ts).
-  copies?: TraitId[];
+  copies?: HeroProfile[];
   legacy?: boolean; // existed before PROFILE_VERSION 5
 };
+export interface HeroProfile {
+  trait: TraitId;
+  factors: HeroFactors;
+}
+
+export function profileOf(hero: OwnedCharacter): HeroProfile {
+  return { trait: hero.traits[0], factors: hero.factors };
+}
+
+export function withProfile(hero: OwnedCharacter, profile: HeroProfile): OwnedCharacter {
+  return {
+    ...hero,
+    traits: [profile.trait],
+    factors: profile.factors,
+    stats: buildStats(hero.classId, profile.factors, [profile.trait]),
+  };
+}
+
+export function previewProfileChange(
+  hero: OwnedCharacter,
+  newProfile: HeroProfile,
+): { before: Stats; after: Stats; diff: Partial<Record<keyof Stats, number>> } {
+  const before = scaleStats(hero.stats, hero.rarity, hero.stars, hero.level);
+  const after = scaleStats(
+    withProfile(hero, newProfile).stats,
+    hero.rarity,
+    hero.stars,
+    hero.level,
+  );
+  const diff: Partial<Record<keyof Stats, number>> = {};
+  for (const key of Object.keys(before) as (keyof Stats)[])
+    if (after[key] !== before[key]) diff[key] = after[key] - before[key];
+  return { before, after, diff };
+}
 export type OwnedWeapon = Weapon;
 
 export type Banner = "character" | "weapon";
@@ -118,11 +143,12 @@ export interface Profile {
   runsDay?: { day: string; n: number }; // runs banked on that game day (pay decays, see economy.ts)
   bestFloor: number;
   runsPlayed: number;
-  dungeons: DungeonProgress; // levels cleared per rank and ascension (dungeonProgress.ts)
+  dungeons: DungeonProgress; // shared cleared steps and per-route level progress
   levelsDay?: { day: string; n: number }; // repeated levels cleared on that game day (pay decays)
   escamas: number; // Mejorar material (upgrade.ts); bound to the account
   dados: number; // Dado cargado (upgrade.ts); bound to the account
   dadosDay?: { day: string; n: number }; // dice found on that game day by last-level drops (max 2)
+  dungeonRewardsDay?: { day: string; escamas: number; dados: number };
   tutorial?: number; // step 0..TUTORIAL_DONE; missing = done
 }
 
@@ -139,9 +165,10 @@ export const createProfile = (): Profile => ({
   pitySsr: { character: 0, weapon: 0 },
   bestFloor: 0,
   runsPlayed: 0,
-  dungeons: {},
+  dungeons: emptyDungeonProgress(),
   escamas: 0,
   dados: 0,
+  dungeonRewardsDay: { day: dayKey(), escamas: 0, dados: 0 },
 });
 
 const UNIT_COST: Record<Banner, number> = {
@@ -204,7 +231,7 @@ function pull(
         const spare = owned.copies ?? [];
         const trait = c.traits[0];
         if (trait && spare.length < MAX_COPIES) {
-          item = { ...owned, copies: [...spare, trait] };
+          item = { ...owned, copies: [...spare, { trait, factors: c.factors }] };
           status = "copy";
         } else {
           item = owned;
@@ -302,29 +329,18 @@ export function equipWeapon(
   };
 }
 
-export type AutoMode = "poder" | "set" | "estilo";
+export type AutoMode = "poder" | Element;
 export interface AutoPlanItem {
   slot: Slot;
   weaponId: string;
   fromHeroId?: string; // piece currently worn by another hero (takeFromOthers)
 }
 
-// How much of the hero's style group (LINE_GROUP) a piece carries: its stats as a share
-// of the gear caps, so different stats are comparable. 0 for any piece without that stat.
-function styleScore(w: WornPiece, group: BuildGroup): number {
-  const b = gearBonus([w]);
-  let sum = 0;
-  for (const k of Object.keys(LINE_BASE) as (keyof typeof LINE_BASE)[])
-    if (LINE_GROUP[k] === group) sum += b[k] / GEAR_CAP[k];
-  return sum;
-}
-
 // Best piece for each slot of a hero. Modes: "poder" = greedy by the hero's resulting
-// power (element sets count; two passes so a later piece can complete a set); "set" = per
-// slot the piece of the hero's element, else the strongest; "estilo" = per slot the piece
-// richest in the hero's style group (its third skill), ties by power. Pieces worn by OTHER
-// heroes are only taken with takeFromOthers. Returns only the changes, in apply order.
-// ponytail: greedy per slot, not an exhaustive search of combinations.
+// power (element sets count; two passes so a later piece can complete a set). An element
+// mode prefers pieces of that element, then picks the strongest piece within that choice.
+// Pieces worn by OTHER heroes are only taken with takeFromOthers. Returns only changes.
+// This is greedy per slot, not an exhaustive search of combinations.
 export function autoEquipPlan(
   p: Profile,
   heroId: string,
@@ -333,8 +349,7 @@ export function autoEquipPlan(
 ): AutoPlanItem[] {
   const hero = p.characters.find((c) => c.id === heroId);
   if (!hero) return [];
-  const group = SKILL_STYLE_GROUP[heroFromOwned(p, heroId)?.skill ?? ""];
-  const eff: AutoMode = mode === "estilo" && !group ? "poder" : mode;
+  const eff = mode;
   const wornBy = (id: string) =>
     Object.entries(p.equipped).find(([, w]) => w === id)?.[0];
   const otherHolder = (id: string) => {
@@ -346,8 +361,7 @@ export function autoEquipPlan(
     for (const slot of SLOTS) {
       const score = (w: OwnedWeapon) => {
         const power = heroPower(equipWeapon(cur, heroId, w.id), heroId);
-        if (eff === "set") return (w.element === hero.element ? 1e9 : 0) + power;
-        if (eff === "estilo" && group) return styleScore(w, group) * 1e9 + power;
+        if (eff !== "poder") return (w.element === eff ? 1e9 : 0) + power;
         return power;
       };
       const curW = p.weapons.find(
@@ -389,7 +403,7 @@ export function bestAutoMode(
 ): { mode: AutoMode; plan: AutoPlanItem[] } {
   let best = { mode: "poder" as AutoMode, plan: autoEquipPlan(p, heroId, "poder"), power: -1 };
   best.power = heroPower(applyAutoPlan(p, heroId, best.plan), heroId);
-  for (const mode of ["set", "estilo"] as const) {
+  for (const mode of ELEMENTS) {
     const plan = autoEquipPlan(p, heroId, mode);
     const power = heroPower(applyAutoPlan(p, heroId, plan), heroId);
     if (power > best.power) best = { mode, plan, power };
@@ -468,8 +482,9 @@ export function bankRun(
 // ---- Run v2: dungeon levels ----
 
 export interface LevelResult {
-  rank: DungeonId;
-  level: number; // 0-based index in the rank
+  route: RouteId;
+  difficulty: Difficulty;
+  level: number; // 0-based index within the route and step
   asc: number;
   heroId: string;
   status: StageStatus; // the finished stage
@@ -492,14 +507,15 @@ export interface LevelBank {
 // Repeat flag and daily pay multiplier the loot roll needs BEFORE banking.
 export function lootOptions(
   p: Profile,
-  rank: DungeonId,
+  route: RouteId,
+  difficulty: Difficulty,
   level: number,
   asc: number,
 ): { repeat: boolean; payMult: number; dadoLeft: number } {
-  const repeat = (p.dungeons[rank]?.[asc] ?? 0) > level;
+  const repeat = levelAlreadyCleared(p.dungeons, difficulty, asc, level);
   const today = dayKey();
   const n = (p.levelsDay?.day === today ? p.levelsDay.n : 0) + 1;
-  const found = p.dadosDay?.day === today ? p.dadosDay.n : 0;
+  const found = p.dungeonRewardsDay?.day === today ? p.dungeonRewardsDay.dados : 0;
   return { repeat, payMult: repeat ? levelDecay(n) : 1, dadoLeft: Math.max(0, DADO_DAILY_MAX - found) };
 }
 
@@ -519,24 +535,27 @@ export function bankLevel(p: Profile, r: LevelResult): LevelBank {
   let coins = 0;
   let chest = 0;
   if (r.status === "cleared") {
-    const rec = recordClear(p.dungeons, r.rank, r.level, r.asc);
+    const rec = recordClear(p.dungeons, r.route, r.difficulty, r.level, r.asc);
     if (rec) {
       cleared = true;
       repeat = !rec.firstTime;
       const today = dayKey();
       const n = (p.levelsDay?.day === today ? p.levelsDay.n : 0) + (repeat ? 1 : 0);
-      coins = levelCoins(r.rank, r.asc, repeat, n);
-      chest = rec.dungeonFirstClear ? firstClearChest(r.rank, r.asc) : 0;
+      coins = levelCoins(r.difficulty, r.asc, repeat, n);
+      chest = rec.stepFirstClear ? firstClearChest(r.difficulty, r.asc) : 0;
+      const rewardDay = p.dungeonRewardsDay?.day === today
+        ? p.dungeonRewardsDay
+        : { day: today, escamas: 0, dados: 0 };
+      const escamas = Math.min(r.loot.escamas, Math.max(0, 12 - rewardDay.escamas));
+      const dados = Math.min(r.loot.dados, Math.max(0, DADO_DAILY_MAX - rewardDay.dados));
       q = {
         ...q,
         dungeons: rec.progress,
         levelsDay: { day: today, n },
         coins: q.coins + coins + chest,
-        escamas: Math.min(MAX_MATERIAL, q.escamas + r.loot.escamas),
-        dados: Math.min(MAX_MATERIAL, q.dados + r.loot.dados),
-        ...(r.loot.dados > 0
-          ? { dadosDay: { day: today, n: (p.dadosDay?.day === today ? p.dadosDay.n : 0) + r.loot.dados } }
-          : {}),
+        escamas: Math.min(MAX_MATERIAL, q.escamas + escamas),
+        dados: Math.min(MAX_MATERIAL, q.dados + dados),
+        dungeonRewardsDay: { day: today, escamas: rewardDay.escamas + escamas, dados: rewardDay.dados + dados },
       };
       q = r.loot.pieces.reduce((acc, piece) => grantPiece(acc, piece, false), q);
     }
@@ -561,26 +580,6 @@ export function bankLevel(p: Profile, r: LevelResult): LevelBank {
   return { profile: q, cleared, repeat, coins, chest, xp, levelsGained, newLevel };
 }
 
-// Saves the hero's third-skill pick. null when not allowed.
-export function chooseHeroSkill(
-  p: Profile,
-  ownedId: string,
-  skillId: SkillId,
-): Profile | null {
-  const c = p.characters.find((x) => x.id === ownedId);
-  if (
-    !c ||
-    !SKILLS_BY_CLASS[c.classId].includes(skillId)
-  )
-    return null;
-  return {
-    ...p,
-    characters: p.characters.map((x) =>
-      x.id === ownedId ? { ...x, skill: skillId } : x,
-    ),
-  };
-}
-
 export const charactersOfClass = (p: Profile, classId: ClassId) =>
   p.characters.filter((c) => c.classId === classId);
 
@@ -592,7 +591,6 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
   if (!c) return null;
   const level = Math.min(Math.max(1, c.level), levelCap(c.stars));
   const stats = scaleStats(c.stats, c.rarity, c.stars, level);
-  const skill = heroSkill(c.classId, c.skill);
   const w = p.weapons.find((x) => x.id === p.equipped[c.id]);
   const worn = GEAR_TYPES.flatMap((t) => {
     const g = p.weapons.find((x) => x.id === p.equipped[slotKey(c.id, t)]);
@@ -601,16 +599,12 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
   const usableWeapon =
     w && !isGearType(w.type) && canUseWeapon(c.classId, w.type) ? w : null;
   const gear = combineGear(
-    combineGear(
-      gearBonus(worn),
-      resonanceBonus(resonances(worn, skill ? SKILL_STYLE_GROUP[skill] : undefined)),
-    ),
+    gearBonus(worn),
     setBonus(
       activeSets(
         [...worn, ...(usableWeapon ? [usableWeapon] : [])].map(
           (x) => x.element,
         ),
-        c.element,
       ),
     ),
   );
@@ -620,7 +614,6 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
     return {
       ...c,
       level,
-      skill,
       stats: geared,
       ...(hasGear ? { gear } : {}),
     };
@@ -629,7 +622,6 @@ export function heroFromOwned(p: Profile, ownedId: string): Character | null {
   return {
     ...c,
     level,
-    skill,
     ...(hasGear ? { gear } : {}),
     stats: {
       ...geared,
@@ -682,49 +674,46 @@ const str = (v: unknown, fallback: string) =>
   typeof v === "string" && v.length > 0 ? v.slice(0, 200) : fallback;
 
 
-// Stats saved before Run v2 have `flee` and no critDmg/regen/lifesteal: those are filled
-// with the class defaults (the Pícaro already crit x2) instead of dropping the hero.
-const REQUIRED_STATS: (keyof Stats)[] = ["hp", "atk", "def", "crit", "accuracy", "speed"];
+const FACTOR_KEYS: (keyof HeroFactors)[] = ["hp", "atk", "def", "crit", "speed"];
 
-function parseStats(v: unknown, classId: ClassId): Stats | null {
+function parseFactors(v: unknown): HeroFactors | null {
   if (!isObj(v)) return null;
-  const out: Partial<Stats> = {};
-  for (const k of REQUIRED_STATS) {
-    const n = v[k];
-    if (typeof n !== "number" || !Number.isFinite(n)) return null;
-    out[k] = n;
-  }
-  const num = (x: unknown, d: number) =>
-    typeof x === "number" && Number.isFinite(x) ? x : d;
-  out.critDmg = num(v.critDmg, CLASSES[classId].stats.critDmg);
-  out.resist = num(v.resist, 0); // saved before v11: had dodge instead
-  out.regen = num(v.regen, 0);
-  out.lifesteal = num(v.lifesteal, 0);
-  // ponytail: stat magnitudes are not range-checked; server must only store
-  // characters it generated itself. Add per-class ranges if client saves are trusted.
-  return out as Stats;
+  const values = FACTOR_KEYS.map((key) => v[key]);
+  if (values.some((n) => typeof n !== "number" || !Number.isFinite(n) || n < 0.85 || n > 1.15)) return null;
+  const factors = Object.fromEntries(FACTOR_KEYS.map((key) => [key, v[key]])) as unknown as HeroFactors;
+  const mean = (factors.hp + factors.atk + factors.def + factors.speed) / 4;
+  return Math.abs(mean - 1) <= 0.100000001 ? factors : null;
+}
+
+function parseHeroProfile(v: unknown): HeroProfile | null {
+  if (!isObj(v) || !(TRAIT_IDS as readonly unknown[]).includes(v.trait)) return null;
+  const factors = parseFactors(v.factors);
+  return factors ? { trait: v.trait as TraitId, factors } : null;
 }
 
 function parseCharacter(v: unknown, legacyAll: boolean): OwnedCharacter | null {
   if (!isObj(v)) return null;
   const classId = CLASS_IDS.find((c) => c === v.classId);
   const element = ELEMENTS.find((e) => e === v.element);
-  const stats = classId ? parseStats(v.stats, classId) : null;
+  const factors = parseFactors(v.factors);
   const rarity = toRank(v.rarity);
-  if (!classId || !element || !stats || !rarity) return null;
+  if (!classId || !element || !rarity || !factors) return null;
   const traits = (Array.isArray(v.traits) ? v.traits : [])
     .filter((t): t is TraitId => (TRAIT_IDS as readonly unknown[]).includes(t))
     .slice(0, 1); // one trait per hero
+  if (traits.length === 0) return null;
   const copies = (Array.isArray(v.copies) ? v.copies : [])
-    .filter((t): t is TraitId => (TRAIT_IDS as readonly unknown[]).includes(t))
+    .map(parseHeroProfile)
+    .filter((p): p is HeroProfile => p !== null)
     .slice(0, MAX_COPIES);
   return {
     id: characterKey(classId, element, rarity),
     name: str(v.name, "Sin nombre"),
     classId,
     element,
-    stats,
+    stats: buildStats(classId, factors, traits),
     traits,
+    factors,
     catchphrase: str(v.catchphrase, "..."),
     level: Math.max(1, nat(v.level, 999)),
     xp: nat(v.xp),
@@ -732,11 +721,6 @@ function parseCharacter(v: unknown, legacyAll: boolean): OwnedCharacter | null {
     stars: nat(v.stars, MAX_STARS),
     ...(copies.length ? { copies } : {}),
     ...(legacyAll || v.legacy === true ? { legacy: true } : {}),
-    ...(typeof v.skill === "string" &&
-    isSkillId(v.skill) &&
-    SKILLS_BY_CLASS[classId].includes(v.skill)
-      ? { skill: v.skill }
-      : {}),
   };
 }
 
@@ -912,6 +896,9 @@ export function migrate(json: unknown): Profile {
     ...(isObj(json.dadosDay) && isDayKey(json.dadosDay.day)
       ? { dadosDay: { day: json.dadosDay.day, n: nat(json.dadosDay.n, 100) } }
       : {}),
+    dungeonRewardsDay: isObj(json.dungeonRewardsDay) && isDayKey(json.dungeonRewardsDay.day)
+      ? { day: json.dungeonRewardsDay.day, escamas: nat(json.dungeonRewardsDay.escamas, 12), dados: nat(json.dungeonRewardsDay.dados, DADO_DAILY_MAX) }
+      : { day: dayKey(), escamas: 0, dados: 0 },
     ...(typeof json.tutorial === "number" && json.tutorial < TUTORIAL_DONE
       ? { tutorial: nat(json.tutorial, TUTORIAL_DONE) }
       : {}),

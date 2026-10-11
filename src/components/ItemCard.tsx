@@ -3,12 +3,13 @@ import type { Element } from "@/lib/game/elements";
 import { RARITIES, type RarityId } from "@/lib/game/rarity";
 import type { TraitId } from "@/lib/game/traits";
 import type { WeaponType } from "@/lib/game/weapons";
+import type { HeroFactors } from "@/lib/game/characters";
 import { ElementIcon } from "./ElementIcon";
 import { RarityFrame } from "./RarityFrame";
 import { HeroSprite } from "./HeroSprite";
 import { StarRow } from "./StarRow";
 import { WeaponSprite } from "./WeaponSprite";
-import { specialLine } from "@/lib/viewModels";
+import { basicLine } from "@/lib/viewModels";
 import { isPixel, pixelCardOpening } from "@/lib/art/pixel";
 
 // Plain display model: pages map their game objects to this.
@@ -21,6 +22,7 @@ type Base = {
   badge?: string; // "NUEVO", "+1 ★", "REEMBOLSO"
   copies?: number; // spare copies of this hero / piece: shown as a corner tag
   pity?: "ss" | "ssr"; // this pull was the pity guarantee
+  factors?: HeroFactors;
 };
 export type ItemView =
   | (Base & { kind: "character"; classId: ClassId; traits?: TraitId[] })
@@ -54,8 +56,8 @@ export function ItemCard({
   const S = size + 24; // everything lives inside the frame
   const big = S >= 100;
   const o = isPixel() ? pixelCardOpening : OPENING[item.rarity];
-  const sp = item.kind === "weapon" && item.type ? specialLine(item.type) : undefined;
-  const title = [`${item.name} · Rango ${r.label}`, ...(item.lines ?? []), ...(sp ? [sp] : [])].join(
+  const basic = item.kind === "weapon" && item.type ? basicLine(item.type) : undefined;
+  const title = [`${item.name} · Rango ${r.label}`, ...(item.lines ?? []), ...(basic ? [basic] : [])].join(
     "\n",
   );
   return (

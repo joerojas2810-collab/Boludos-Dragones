@@ -2,7 +2,6 @@ import { ELEMENTS, type Element } from "./elements";
 import type { RarityId } from "./rarity";
 import type { Rng } from "./rng";
 import type { GearBonus } from "./gear";
-import type { SkillId } from "./skills";
 import type { EnemyFamily } from "./worlds";
 import {
   CATCHPHRASES,
@@ -35,12 +34,26 @@ export interface Stats {
   lifesteal: number; // gear line: fraction of damage dealt healed (capped in combat)
 }
 
+/** Per-hero multipliers for the five attributes affected by the H1 factor. */
+export interface HeroFactors {
+  hp: number;
+  atk: number;
+  def: number;
+  crit: number;
+  speed: number;
+}
+
+export const FACTOR_MIN = 0.85;
+export const FACTOR_MAX = 1.15;
+export const FACTOR_POWER_CAP = 0.10;
+
 export interface Attack {
   name: string;
   power: number;
   accuracy: number;
   cooldown: number;
   heal: number; // fraction of max hp restored on use
+  crit?: number; // additive critical chance for weapon-defined basics
   selfCost?: number; // fraction of CURRENT hp the user pays (never kills)
 }
 
@@ -78,10 +91,82 @@ export interface ClassTemplate {
   passive: Passive;
   stats: Stats;
   attack1: Attack;
+  // Enemy-only strong strike profile. Heroes cannot select this as an action.
   attack2: Attack;
 }
 
 export const STAT_VARIANCE = 0.15;
+
+const FACTOR_KEYS = ["hp", "atk", "def", "crit", "speed"] as const;
+
+/** Clamp aggregate attribute power without additional random draws. */
+export function capFactors(factors: HeroFactors): HeroFactors {
+  const mean = (factors.hp + factors.atk + factors.def + factors.speed) / 4;
+  const excess = Math.abs(mean - 1);
+  if (excess <= FACTOR_POWER_CAP) return { ...factors };
+  const scale = FACTOR_POWER_CAP / excess;
+  return Object.fromEntries(
+    FACTOR_KEYS.map((key) => [key, 1 + (factors[key] - 1) * scale]),
+  ) as unknown as HeroFactors;
+}
+
+/** Roll in contract order; seeded callers get stable factors and no extra draws. */
+export function rollFactors(rng: Rng): HeroFactors {
+  const rolled = Object.fromEntries(
+    FACTOR_KEYS.map((key) => [
+      key,
+      FACTOR_MIN + rng.next() * (FACTOR_MAX - FACTOR_MIN),
+    ]),
+  ) as unknown as HeroFactors;
+  return capFactors(rolled);
+}
+
+/** Derive the complete base stats from class, factors, and trait. */
+export function buildStats(
+  classId: ClassId,
+  factors: HeroFactors,
+  traits: readonly TraitId[],
+): Stats {
+  const base = CLASSES[classId].stats;
+  return applyTraits(
+    {
+      ...base,
+      hp: base.hp * factors.hp,
+      atk: base.atk * factors.atk,
+      def: base.def * factors.def,
+      crit: base.crit * factors.crit,
+      accuracy: 0,
+      speed: base.speed * factors.speed,
+    },
+    traits,
+  );
+}
+
+const FACTOR_NAMES: Record<keyof HeroFactors, string> = {
+  hp: "VIDA",
+  atk: "ATQ",
+  def: "DEF",
+  crit: "CRIT",
+  speed: "VEL",
+};
+
+export function factorLabel(factors: HeroFactors): {
+  perStat: Record<keyof HeroFactors, string>;
+  summary: "bajo" | "estándar" | "alto";
+} {
+  const perStat = Object.fromEntries(
+    FACTOR_KEYS.map((key) => {
+      const delta = Math.round((factors[key] - 1) * 100);
+      const sign = delta > 0 ? "+" : delta < 0 ? "−" : "";
+      return [key, `${FACTOR_NAMES[key]} ${sign}${Math.abs(delta)} %`];
+    }),
+  ) as Record<keyof HeroFactors, string>;
+  const mean = FACTOR_KEYS.reduce((sum, key) => sum + factors[key] - 1, 0) / 5;
+  return {
+    perStat,
+    summary: mean < -0.03 ? "bajo" : mean > 0.03 ? "alto" : "estándar",
+  };
+}
 
 export const CLASSES: Record<ClassId, ClassTemplate> = {
   caballero: {
@@ -255,8 +340,6 @@ export interface Character {
   weapon?: { element: Element; atkBonus: number; type?: string };
   // Worn gear bonus, already folded into stats (kept so nivelado can undo it).
   gear?: GearBonus;
-  // Third skill: the hero's pick (saved in the collection; see skills.heroSkill).
-  skill?: SkillId;
   // Enemies only: art family and named-boss art id (public/art/enemies/boss_<id>_*).
   family?: EnemyFamily;
   bossId?: string;
@@ -276,10 +359,6 @@ const SYLLABLES = [
   "gor",
   "elu",
 ];
-
-function rollStat(rng: Rng, base: number): number {
-  return base * (1 - STAT_VARIANCE + rng.next() * 2 * STAT_VARIANCE);
-}
 
 const clamp = (v: number, min: number, max: number) =>
   Math.min(max, Math.max(min, v));
@@ -312,23 +391,21 @@ function applyTraits(stats: Stats, ids: readonly TraitId[]): Stats {
 export function generateCharacter(
   rng: Rng,
   classId: ClassId = rng.pick(CLASS_IDS),
-): Character {
-  const base = CLASSES[classId].stats;
-  // Roll order matters for seeds: keep it equal to the Stats declaration order.
-  const raw: Stats = {
-    hp: rollStat(rng, base.hp),
-    atk: rollStat(rng, base.atk),
-    def: rollStat(rng, base.def),
-    crit: rollStat(rng, base.crit),
-    resist: 0,
-    accuracy: rollStat(rng, base.accuracy),
-    speed: rollStat(rng, base.speed),
-    critDmg: base.critDmg,
-    regen: 0,
-    lifesteal: 0,
+): Character & { factors: HeroFactors } {
+  // Preserve the legacy discarded accuracy draw after crit so names and later
+  // random fields keep their seeded sequence. Accuracy is not a hero factor.
+  const factors: HeroFactors = {
+    hp: FACTOR_MIN + rng.next() * 2 * STAT_VARIANCE,
+    atk: FACTOR_MIN + rng.next() * 2 * STAT_VARIANCE,
+    def: FACTOR_MIN + rng.next() * 2 * STAT_VARIANCE,
+    crit: FACTOR_MIN + rng.next() * 2 * STAT_VARIANCE,
+    speed: 1,
   };
+  rng.next(); // Historical accuracy roll, intentionally discarded.
+  factors.speed = FACTOR_MIN + rng.next() * 2 * STAT_VARIANCE;
+  const cappedFactors = capFactors(factors);
   const traits = [rollTrait(rng, classId)];
-  const stats = applyTraits({ ...raw, accuracy: 0 }, traits);
+  const stats = buildStats(classId, cappedFactors, traits);
   const name = Array.from({ length: rng.int(2, 3) }, () =>
     rng.pick(SYLLABLES),
   ).join("");
@@ -338,6 +415,7 @@ export function generateCharacter(
     element: rng.pick(ELEMENTS),
     stats,
     traits,
+    factors: cappedFactors,
     catchphrase: rng.pick(CATCHPHRASES),
     level: 1,
     xp: 0,

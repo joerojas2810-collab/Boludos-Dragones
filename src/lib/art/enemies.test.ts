@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { enemyAnim, PAINTED_FINAL_BOSS_BY_RANK, PX_ACTIONS, PX_ASPECT } from "./enemies";
-import { FINAL_BOSS_BY_RANK } from "./enemies.generated";
+import { FINAL_BOSS_BY_ROUTE } from "./enemies.generated";
 import { isPixel, setPixel } from "./pixel";
 import { ELEMENTS } from "../game/elements";
 import { DUNGEON_THEMES } from "../game/levels";
@@ -48,14 +48,14 @@ describe("FASE VILLANOS combat coverage",()=>{
       expect(anim.src).toContain(aliases[design]||design);
     }
   });
-  it("preserves pixel URLs, timing, aspect and historical rank selection",()=>{
+  it("preserves pixel URLs, timing, aspect and route-keyed final boss selection",()=>{
     setPixel(true);
     for(const action of actions){
       const anim=enemyAnim("golem","boss","tierra",action);
       expect(anim).toEqual({src:`/art/enemies-px/enemy_golem_boss_earth_${action}.png`,...PX_ACTIONS[action],aspect:PX_ASPECT});
     }
-    const final=enemyAnim("golem","boss","agua","idle","f");
-    expect(final.src).toBe(`/art/enemies-px/${FINAL_BOSS_BY_RANK.f}_water_idle.png`);
+    const final=enemyAnim("golem","boss","agua","idle","lord_of_flies");
+    expect(final.src).toBe(`/art/enemies-px/${FINAL_BOSS_BY_ROUTE.lord_of_flies}_water_idle.png`);
   });
   it("lets the gallery force painted art without changing the saved art choice",()=>{
     setPixel(true);

@@ -1042,3 +1042,56 @@ body[data-art="pixel"] .game-select-btn[aria-expanded="true"] { border-image-sou
 .cmd-ghost:disabled {
   opacity: 0.4;
 }
+
+.dungeon-sign {
+  position: relative;
+  border: 2px solid #a77b46;
+  border-radius: 0.4rem;
+  background: linear-gradient(145deg, rgb(37 28 21 / 0.96), rgb(14 21 28 / 0.97));
+  box-shadow: inset 0 0 0 3px rgb(218 176 111 / 0.14), 0 8px 24px rgb(0 0 0 / 0.35);
+}
+.dungeon-sign::before,
+.dungeon-sign::after {
+  position: absolute;
+  top: 0.7rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  content: "";
+  border: 1px solid #d0a66b;
+  border-radius: 50%;
+  background: #49351f;
+  box-shadow: 0 1px 2px #000;
+}
+.dungeon-sign::before { left: 0.7rem; }
+.dungeon-sign::after { right: 0.7rem; }
+.dungeon-stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #63d68b;
+  border-radius: 0.3rem;
+  padding: 0.16rem 0.45rem;
+  color: #8ff0aa;
+  background: rgb(11 49 31 / 0.8);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  line-height: 1.2;
+  text-shadow: 0 1px 3px #06170e;
+  box-shadow: 0 0 0 2px rgb(11 49 31 / 0.55), 0 0 12px rgb(60 213 118 / 0.17);
+}
+.dungeon-stamp--small {
+  align-self: center;
+  flex: 0 0 auto;
+  padding: 0.15rem 0.3rem;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  transform: rotate(-2deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dungeon-stamp { animation: dungeon-stamp-in 260ms cubic-bezier(0.2, 0.9, 0.2, 1.2) both; }
+  @keyframes dungeon-stamp-in {
+    from { opacity: 0; transform: scale(1.12) rotate(-4deg); }
+    to { opacity: 1; transform: scale(1) rotate(-2deg); }
+  }
+}

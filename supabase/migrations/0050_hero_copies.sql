@@ -10,7 +10,16 @@
 -- 6) Heroes are no longer burned: burn_hero goes and burn_many only takes pieces.
 alter table public.characters add column if not exists copies text[] not null default '{}';
 alter table public.characters drop constraint if exists characters_copies_check;
-alter table public.characters add constraint characters_copies_check check (cardinality(copies) <= 50);
+do $$
+begin
+  if (select a.atttypid = 'jsonb'::regtype from pg_attribute a
+      where a.attrelid = 'public.characters'::regclass and a.attname = 'copies' and not a.attisdropped) then
+    alter table public.characters add constraint characters_copies_check
+      check (jsonb_typeof(copies) = 'array' and jsonb_array_length(copies) <= 50);
+  else
+    alter table public.characters add constraint characters_copies_check check (cardinality(copies) <= 50);
+  end if;
+end $$;
 
 -- 2) get_profile
 do $$
@@ -21,7 +30,7 @@ begin
      where n.nspname = 'public' and p.proname = 'get_profile'
   loop
     v_def := pg_get_functiondef(r.oid);
-    continue when v_def like '%to_jsonb(c.copies)%'; -- already patched (re-run)
+    continue when v_def like '%to_jsonb(c.copies)%' or v_def like '%''copies'', c.copies%'; -- legacy or H1 profile already patched
     v_new := replace(v_def,
       'c.data || jsonb_build_object(''level'', c.level, ''xp'', c.xp, ''legacy'', c.legacy)',
       'c.data || jsonb_build_object(''level'', c.level, ''xp'', c.xp, ''legacy'', c.legacy, ''copies'', to_jsonb(c.copies))');
@@ -207,7 +216,7 @@ begin
      where n.nspname = 'public' and p.proname = 'market_create'
   loop
     v_def := pg_get_functiondef(r.oid);
-    continue when v_def like '%cardinality(copies) into v_stars%'; -- already patched (re-run)
+    continue when v_def like '%cardinality(copies) into v_stars%' or v_def like '%jsonb_array_length(copies) into v_stars%'; -- text[] or H1 JSONB schema
     v_new := replace(v_def,
       'select stars into v_stars from public.characters where player_id = p_player and key = p_give;',
       'select cardinality(copies) into v_stars from public.characters where player_id = p_player and key = p_give;');

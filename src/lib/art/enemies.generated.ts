@@ -3307,15 +3307,15 @@ export const ENEMY_ANIMS: Record<string, EnemyAnimMeta> = {
     cell: 384,
   },
 };
-// Final boss design per dungeon rank (boss_catalog.json).
-export const FINAL_BOSS_BY_RANK: Record<string, string> = {
-  f: "boss_great_devourer",
-  e: "boss_ash_king",
-  d: "boss_withered_queen",
-  c: "boss_hollow_colossus",
-  b: "boss_eternal_watcher",
-  a: "boss_mother_hydra",
-  s: "boss_lord_of_flies",
-  ss: "boss_faceless_one",
-  ssr: "boss_thunder_king",
+// Final boss design per route (boss_catalog.json).
+export const FINAL_BOSS_BY_ROUTE: Record<string, string> = {
+  lord_of_flies: "boss_lord_of_flies",
+  ash_king: "boss_ash_king",
+  eternal_watcher: "boss_eternal_watcher",
+  hollow_colossus: "boss_hollow_colossus",
+  thunder_king: "boss_thunder_king",
+  mother_hydra: "boss_mother_hydra",
+  withered_queen: "boss_withered_queen",
+  faceless_one: "boss_faceless_one",
+  great_devourer: "boss_great_devourer",
 };

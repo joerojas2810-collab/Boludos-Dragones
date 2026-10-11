@@ -47,7 +47,9 @@ await rpc("mission_claim", { p_player: U(1), p_scope: "weekly", p_reached: 3 });
 ok((await coins()) === c0 + 1100 + 1300 + 1500 && (await dados()) === 1, "tier 3: 1500 + 1 Dado cargado");
 // a higher best cleared rank allows higher parts: clear all of E at ascension 0
 ok((await rpc("best_cleared_rank", { p_player: U(1) })) === "f", "best cleared rank defaults to F");
-await db.exec(`insert into public.dungeon_progress (player_id, rank, ascension, cleared) values ('${U(1)}','f',0,6),('${U(1)}','e',0,6),('${U(1)}','d',0,3)`);
+await db.exec(`insert into public.step_clears (player_id, difficulty, ascension) values ('${U(1)}','f',0),('${U(1)}','e',0)`);
+await db.exec(`insert into public.route_progress (player_id, route, difficulty, ascension, levels) values
+  ('${U(1)}','ash_king','f',0,4),('${U(1)}','ash_king','e',0,4),('${U(1)}','ash_king','d',0,3)`);
 ok((await rpc("best_cleared_rank", { p_player: U(1) })) === "e", "best cleared rank = highest fully cleared dungeon");
 // reroll once
 await rpc("mission_reroll", { p_player: U(1), p_scope: "weekly", p_slot: 1 });

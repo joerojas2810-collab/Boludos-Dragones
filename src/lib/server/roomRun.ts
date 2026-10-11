@@ -8,7 +8,7 @@ import {
   timeoutClimb,
   type Climb,
 } from "../game/floorFights";
-import { balancedHero } from "../game/duel";
+import { niveladoHero } from "../game/niveladoHero";
 import { normalizeHero } from "../game/nivelado";
 import { heroFromOwned, type Profile } from "../game/profile";
 import type { RarityId } from "../game/rarity";
@@ -39,7 +39,11 @@ export function heroForRound(
 ): Character {
   // nivelado: the player picked a class + element, nothing from the collection
   const pick = parsePickKey(heroKey);
-  if (pick) return balancedHero(pick.classId, pick.element);
+  if (pick) return niveladoHero(pick.classId, pick.element);
+  if (mode === "nivelado") {
+    const candidate = generateCharacter(createRng(hashSeed(roundSeed, strHash(playerId))));
+    return niveladoHero(candidate.classId, candidate.element);
+  }
   const owned =
     heroKey && heroKey !== DEFAULT_HERO
       ? heroFromOwned(profile, heroKey)

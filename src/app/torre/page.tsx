@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { ElementIcon } from "@/components/ElementIcon";
 import { Panel } from "@/components/Panel";
+import { CLASSES, type ClassId } from "@/lib/game/characters";
+import type { Element } from "@/lib/game/elements";
 import {
   TOWER_BLURB,
   TOWER_LABEL,
@@ -21,6 +24,8 @@ interface Row {
   place: number;
   name: string;
   floor: number;
+  class: ClassId | null;
+  element: Element | null;
 }
 interface TowerState {
   week: string;
@@ -28,7 +33,7 @@ interface TowerState {
     TowerMode,
     {
       top: Row[];
-      mine: { floor: number; place: number; paidFloors?: number } | null;
+      mine: { floor: number; place: number; class: ClassId | null; element: Element | null; paidFloors?: number } | null;
     }
   >;
   last: Record<TowerMode, Row[]>;
@@ -145,14 +150,17 @@ export default function TowerPage() {
                     </li>
                   )}
                   {st.modes[m].top.map((r) => (
-                    <li
+                  <li
                       key={r.place}
-                      className="tile-art flex justify-between px-2"
+                      className="tile-art flex min-w-0 items-center justify-between gap-2 px-2"
                     >
-                      <span>
-                        {MEDAL[r.place - 1] ?? `${r.place}.`} {r.name}
+                      <span className="flex min-w-0 items-center gap-1">
+                        <span className="shrink-0">{MEDAL[r.place - 1] ?? `${r.place}.`}</span>
+                        <span className="truncate">{r.name}</span>
+                        {r.class && <span className="shrink-0">· {CLASSES[r.class].name}</span>}
+                        {r.element && <ElementIcon element={r.element} className="h-5 shrink-0" />}
                       </span>
-                      <span className="tabular-nums">piso {r.floor}</span>
+                      <span className="shrink-0 tabular-nums">piso {r.floor}</span>
                     </li>
                   ))}
                 </ol>

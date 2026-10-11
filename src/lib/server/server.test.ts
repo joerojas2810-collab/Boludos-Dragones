@@ -14,13 +14,12 @@ import { levelsOf } from "../game/levels";
 import type { RarityId } from "../game/rarity";
 import { heroFromOwned, migrate } from "../game/profile";
 import {
-  doChooseSkill,
   doAscend,
   doStarUpPiece,
   doSwapRoll,
   doFuseHeroes,
   doStarUpHero,
-  doSwapTrait,
+  doSwapCopy,
   doUpgrade,
   doPull,
   finishLevelService,
@@ -131,10 +130,13 @@ describe("validators", () => {
     );
     expect(pullBody.safeParse({ ...p, banner: "gold" }).success).toBe(false);
   });
-  it("run actions accept target, auto and quit and reject bad ones", () => {
+  it("run replay accepts the replacement combat actions and rejects retired attacks", () => {
     const ok = (a: unknown) => runActionSchema.safeParse(a).success;
-    expect(ok({ t: "act", a: "attack3", target: 2 })).toBe(true);
+    expect(ok({ t: "act", a: "golpe", target: 2 })).toBe(true);
+    expect(ok({ t: "act", a: "barrido" })).toBe(true);
     expect(ok({ t: "act", a: "attack1" })).toBe(true);
+    expect(ok({ t: "act", a: "attack2" })).toBe(false);
+    expect(ok({ t: "act", a: "attack3" })).toBe(false);
     expect(ok({ t: "act", a: "attack1", target: 3 })).toBe(false);
     expect(ok({ t: "act", a: "attack1", target: -1 })).toBe(false);
     expect(ok({ t: "act", a: "attack1", target: 0.5 })).toBe(false);
@@ -343,6 +345,8 @@ describe("pull service (fake DB)", () => {
       p_daily: false,
       p_seed: 12345,
     });
+    const item = (call.args.p_items as { data: { factors: unknown } }[])[0];
+    expect(item.data.factors).toEqual(r.results?.[0]?.character?.factors);
   });
   it("x10 costs 2250 and never trusts anything from the client", async () => {
     const db = new FakeDb();
@@ -450,11 +454,13 @@ describe("weekly tower", () => {
     const info = await startRunService(db.deps, "u1", {
       classId: "mago",
       characterId: null,
+      element: "agua",
       tower: "nivelado",
     });
     expect(info).toMatchObject({ seed: 777, rank: null, tower: "nivelado" });
     expect(db.calls.find((c) => c.name === "start_run")!.args).toMatchObject({
       p_seed: 777,
+      p_character_id: null,
       p_hero: { tower: "nivelado" },
     });
     const log = playBot(777, hero, 800);
@@ -471,6 +477,17 @@ describe("weekly tower", () => {
       p_floor: truth.floors,
       p_rounds: truth.rounds, // the tiebreak is stored with the floor
     });
+  });
+
+  it("requires an element for the levelled tower", async () => {
+    const db = new FakeDb();
+    await expect(
+      startRunService(db.deps, "u1", {
+        classId: "mago",
+        characterId: null,
+        tower: "nivelado",
+      }),
+    ).rejects.toMatchObject({ code: "invalid_input" });
   });
 
   it("the tower gives a quarter of the dungeon EXP to the hero that climbed", async () => {
@@ -493,6 +510,18 @@ describe("weekly tower", () => {
       p_character_id: "c-caballero-fuego-f",
     });
     expect(Number(db.xpGrants[0].p_xp)).toBeGreaterThan(0);
+  });
+
+  it("the levelled tower does not grant EXP to a collection hero", async () => {
+    const db = new FakeDb();
+    db.run = {
+      seed: 777,
+      hero: { ...hero, engineVersion: ENGINE_VERSION, tower: "nivelado" },
+      status: "open",
+    };
+    const log = playBot(777, hero, 800);
+    await sub(db, log);
+    expect(db.xpGrants).toHaveLength(0);
   });
 
   it("inflated claims are ignored: the replayed floor is what counts", async () => {
@@ -666,12 +695,13 @@ describe("dungeon level services (fake DB)", () => {
   const ID = row().key;
   const body = (over = {}) => ({
     characterId: ID,
-    rank: "f" as const,
+    route: "lord_of_flies" as const,
+    difficulty: "f" as const,
     level: 0,
     ascension: 0,
     ...over,
   });
-  const N = levelFights(levelsOf("f")[0], 0).length; // fights of F level 1
+  const N = levelFights(levelsOf("lord_of_flies", "f")[0], 0).length; // fights of F level 1
   const fin = (db: FakeDb, wins: number, extra = {}) => {
     if (db.run) db.run.startedAt = Date.now() - 600_000; // a believable pace unless a test says otherwise
     return finishLevelService(db.deps, "u1", { runId: UUID, wins, ...extra });
@@ -685,7 +715,7 @@ describe("dungeon level services (fake DB)", () => {
   it("validates request bodies (strict, level range, no client-side loot or status)", () => {
     expect(levelStartBody.safeParse(body()).success).toBe(true);
     expect(levelStartBody.safeParse(body({ level: 12 })).success).toBe(false);
-    expect(levelStartBody.safeParse(body({ rank: "zz" })).success).toBe(false);
+    expect(levelStartBody.safeParse(body({ difficulty: "zz" })).success).toBe(false);
     expect(levelStartBody.safeParse(body({ ascension: 6 })).success).toBe(false);
     const ok = { runId: UUID, wins: 2 };
     expect(levelFinishBody.safeParse(ok).success).toBe(true);
@@ -697,22 +727,23 @@ describe("dungeon level services (fake DB)", () => {
   it("starts from the persisted hero (server snapshot, seed from the server) and opens the attempt", async () => {
     const db = new FakeDb();
     const info = await started(db);
-    expect(info).toMatchObject({ rank: "f", level: 0, ascension: 0, seed: 12345 });
+    expect(info).toMatchObject({ route: "lord_of_flies", difficulty: "f", level: 0, ascension: 0, seed: 12345 });
     expect(db.levelStarts[0]).toMatchObject({
       p_character_id: ID,
-      p_rank: "f",
+      p_route: "lord_of_flies",
+      p_difficulty: "f",
       p_level: 0,
       p_asc: 0,
     });
   });
 
-  it("refuses locked ranks, ascensions, levels out of order and heroes you do not own", async () => {
+  it("refuses locked difficulties, ascensions, levels out of order and heroes you do not own", async () => {
     const db = new FakeDb();
     db.rows.push(row());
     for (const [over, code] of [
-      [{ rank: "e" }, "dungeon_locked"],
+      [{ difficulty: "e" }, "dungeon_locked"],
       [{ level: 1 }, "level_locked"],
-      [{ ascension: 1 }, "level_locked"],
+      [{ ascension: 1 }, "dungeon_locked"],
       [{ characterId: "c-mago-fuego-ssr" }, "character_not_found"],
     ] as const)
       expect(
@@ -720,9 +751,9 @@ describe("dungeon level services (fake DB)", () => {
         code,
       ).toMatchObject({ code });
     expect(db.levelStarts).toHaveLength(0);
-    // after clearing the whole F dungeon rank E opens; ascension +1 of F opens too
-    db.dungeons = { f: [6] };
-    await startLevelService(db.deps, "u1", body({ rank: "e" }));
+    // A cleared F step opens E+0 and F+1 across the routes.
+    db.dungeons = { steps: { "f:0": true }, routes: { "lord_of_flies:f:0": 4 } };
+    await startLevelService(db.deps, "u1", body({ difficulty: "e" }));
     await startLevelService(db.deps, "u1", body({ ascension: 1 }));
     expect(db.levelStarts).toHaveLength(2);
   });
@@ -735,7 +766,8 @@ describe("dungeon level services (fake DB)", () => {
     const b = db.levelBanks[0];
     expect(b).toMatchObject({
       p_status: "cleared",
-      p_rank: "f",
+      p_route: "lord_of_flies",
+      p_difficulty: "f",
       p_level: 0,
       p_asc: 0,
       p_hero_id: ID,
@@ -743,9 +775,9 @@ describe("dungeon level services (fake DB)", () => {
       p_verdict: "accepted",
       p_log: null,
     });
-    expect(Number(b.p_xp)).toBe(resultFromWins(info.hero, levelFights(levelsOf("f")[0], 0), N).xp);
+    expect(Number(b.p_xp)).toBe(resultFromWins(info.hero, levelFights(levelsOf("lord_of_flies", "f")[0], 0), N).xp);
     // the loot is the one the engine rolls from the SERVER seed
-    const expected = levelLoot(levelsOf("f")[0], 0, "caballero", info.seed, {
+    const expected = levelLoot(levelsOf("lord_of_flies", "f")[0], 0, "caballero", info.seed, {
       repeat: false,
       payMult: 1,
     });
@@ -802,25 +834,9 @@ describe("dungeon level services (fake DB)", () => {
   });
 });
 
-describe("skill / profile mapping (fake DB)", () => {
+describe("profile mapping (fake DB)", () => {
   const h0 = generateCharacter(createRng(5), "mago");
-  it("choose skill validates ownership and class before SQL, at any rank", async () => {
-    const db = new FakeDb();
-    const high = heroRow(h0, "c");
-    db.rows.push(high, heroRow(generateCharacter(createRng(8), "picaro"), "f"));
-    await doChooseSkill(db.deps, "u1", high.key, "tormenta");
-    expect(db.skills[0]).toMatchObject({ p_skill: "tormenta" });
-    expect(
-      await catchErr(doChooseSkill(db.deps, "u1", high.key, "barrido")),
-    ).toMatchObject({ code: "skill_locked" }); // a Caballero skill on a Mago
-    await doChooseSkill(db.deps, "u1", db.rows[1].key, "golpeDoble"); // rank F: no unlock gate any more
-    expect(db.skills[1]).toMatchObject({ p_skill: "golpeDoble" });
-    expect(
-      await catchErr(doChooseSkill(db.deps, "u1", high.key, "hackeo")),
-    ).toMatchObject({ code: "invalid_skill" });
-    expect(db.skills).toHaveLength(2);
-  });
-  it("rows from the database keep their legacy flag and are not 'saved before v5'", async () => {
+  it("rows from the database keep their legacy flag and ignore the retired skill pick", async () => {
     const db = new FakeDb();
     const fresh = heroRow(h0, "f");
     const old = heroRow(generateCharacter(createRng(9), "picaro"), "e");
@@ -828,12 +844,13 @@ describe("skill / profile mapping (fake DB)", () => {
     (old.data as Record<string, unknown>).level = 12;
     (old.data as Record<string, unknown>).skill = "ejecutar";
     db.rows.push(fresh, old);
-    db.dungeons = { f: [6, 2] };
+    db.dungeons = { steps: { "f:0": true, "f:1": true }, routes: { "lord_of_flies:f:0": 4, "lord_of_flies:f:1": 2 } };
     const me = await loadMe(db.deps.rpc, "u1");
     const byId = (id: string) => me.profile.characters.find((c) => c.id === id)!;
     expect(byId(fresh.key).legacy).toBeUndefined();
-    expect(byId(old.key)).toMatchObject({ legacy: true, level: 12, skill: "ejecutar" });
-    expect(me.profile.dungeons.f).toEqual([6, 2]);
+    expect(byId(old.key)).toMatchObject({ legacy: true, level: 12 });
+    expect("skill" in byId(old.key)).toBe(false);
+    expect(me.profile.dungeons.routes["lord_of_flies:f:1"]).toBe(2);
     expect(heroFromOwned(me.profile, old.key)?.level).toBe(12);
     // migrate() of a client save without version still marks everything legacy
     expect(migrate({ characters: [fresh.data] }).characters).toHaveLength(0);
@@ -879,8 +896,12 @@ describe("skill / profile mapping (fake DB)", () => {
 
 describe("hero growth services (fake DB)", () => {
   const hero = (cls: "mago" | "picaro" | "clerigo" | "caballero", seed: number, rank: RarityId, copies: string[] = []) => {
-    const r = heroRow(generateCharacter(createRng(seed), cls), rank);
-    (r.data as Record<string, unknown>).copies = copies;
+    const character = generateCharacter(createRng(seed), cls);
+    const r = heroRow(character, rank);
+    (r.data as Record<string, unknown>).copies = copies.map((trait) => ({
+      trait,
+      factors: character.factors,
+    }));
     return r;
   };
   const five = () => [
@@ -899,6 +920,7 @@ describe("hero growth services (fake DB)", () => {
     expect(r.id).toBe(base.replace(/-f$/, "-e"));
     const call = db.heroChanges[0];
     expect(call).toMatchObject({ p_version: 0, p_coins: 20 });
+    expect((call.p_upsert as { data: { factors: unknown } }[]).every((h) => !!h.data.factors)).toBe(true);
     expect((call.p_upsert as { rarity: string }[]).map((h) => h.rarity)).toEqual(["f", "e"]); // the material that only gave its copy + the new hero
     expect(call.p_delete).toEqual([base, ...mats.slice(0, 3)]); // the base is renamed to its new rank
     expect(db.coins).toBe(3000 - 20);
@@ -922,14 +944,16 @@ describe("hero growth services (fake DB)", () => {
     expect(db.heroChanges[0]).toMatchObject({ p_coins: 0, p_delete: [] });
   });
 
-  it("swap trait trades the main trait with a copy's", async () => {
+  it("swap copy trades the complete main profile with a copy's", async () => {
     const db = new FakeDb();
     db.rows.push(hero("mago", 1, "c", ["glotón"]));
     const key = db.rows[0].key;
-    const before = (await loadMe(db.deps.rpc, "u1")).profile.characters[0].traits[0];
-    const r = await doSwapTrait(db.deps, "u1", key, 0);
+    const original = (await loadMe(db.deps.rpc, "u1")).profile.characters[0];
+    const r = await doSwapCopy(db.deps, "u1", key, 0);
     const h = r.profile.characters[0];
-    expect([h.traits[0], h.copies?.[0]]).toEqual(["glotón", before]);
+    expect(h.traits[0]).toBe("glotón");
+    expect(h.copies?.[0]).toMatchObject({ trait: original.traits[0], factors: original.factors });
+    expect((db.heroChanges[0].p_upsert as { data: { factors: unknown } }[])[0].data.factors).toEqual(h.factors);
   });
 
   it("refuses invalid input before SQL is reached", async () => {
@@ -937,7 +961,7 @@ describe("hero growth services (fake DB)", () => {
     db.rows.push(...five());
     const base = db.rows[0].key;
     expect(await catchErr(doFuseHeroes(db.deps, "u1", base, [{ id: db.rows[1].key, n: 1 }]))).toMatchObject({ code: "fusion_invalid" });
-    expect(await catchErr(doSwapTrait(db.deps, "u1", base, 3))).toMatchObject({ code: "fusion_invalid" });
+    expect(await catchErr(doSwapCopy(db.deps, "u1", base, 3))).toMatchObject({ code: "fusion_invalid" });
     expect(await catchErr(doStarUpHero(db.deps, "u1", "c-nada-nada-f", []))).toMatchObject({ code: "fusion_invalid" });
     expect(db.heroChanges).toHaveLength(0);
   });

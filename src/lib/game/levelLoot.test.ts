@@ -5,7 +5,7 @@ import { firstClearChest, levelCoins, levelDecay } from "./levelPay";
 import { levelsOf } from "./levels";
 
 describe("level loot", () => {
-  const ls = levelsOf("c");
+  const ls = levelsOf("lord_of_flies", "c");
   const three = ls.find((l) => l.length === 3)!;
   const two = ls.find((l) => l.length === 2)!;
 
@@ -49,22 +49,20 @@ describe("level loot", () => {
     expect(rp).toBeGreaterThan(fp / 3); // still generous: sweeps are repeats
   });
 
-  it("Escamas: only S+ (2/3/4), +10% per ascension; repeats take 0.6 x decay and floor to 0", () => {
+  it("Escamas are limited to S in the current bridge table", () => {
     expect(levelEscamas("a", 0)).toBe(0);
-    expect([levelEscamas("s", 0), levelEscamas("ss", 0), levelEscamas("ssr", 0)]).toEqual([2, 3, 4]);
-    expect(levelEscamas("ssr", 5)).toBe(6);
-    expect(levelEscamas("ssr", 0, true, 1)).toBe(2); // floor(4 x 0.6)
-    expect(levelEscamas("ssr", 5, true, 1)).toBe(3); // floor(6 x 0.6)
-    expect(levelEscamas("ssr", 5, true, 0.1)).toBe(0); // heavily decayed repeats (sweep farm) pay nothing
-    expect(levelEscamas("ssr", 5, true, 0.2)).toBe(0);
-    const last = levelsOf("s").find((l) => l.final)!;
+    expect(levelEscamas("s", 0)).toBe(2);
+    expect(levelEscamas("s", 5)).toBe(3);
+    expect(levelEscamas("s", 0, true, 1)).toBe(1);
+    expect(levelEscamas("s", 5, true, 0.1)).toBe(0);
+    const last = levelsOf("lord_of_flies", "s").find((l) => l.final)!;
     expect(levelLoot(last, 0, "mago", 1, { repeat: false }).escamas).toBe(2);
-    expect(levelLoot(levelsOf("c")[0], 0, "mago", 1, { repeat: false }).escamas).toBe(0);
+    expect(levelLoot(levelsOf("lord_of_flies", "c")[0], 0, "mago", 1, { repeat: false }).escamas).toBe(0);
   });
 
-  it("Dado cargado: 5% from the injected server rng, last level of a dungeon S+ only, never without daily room", () => {
-    const last = levelsOf("ss").find((l) => l.final)!;
-    const notLast = levelsOf("ss").find((l) => !l.final)!;
+  it("Dado cargado: 5% from the injected server rng, last level at S only, never without daily room", () => {
+    const last = levelsOf("lord_of_flies", "s").find((l) => l.final)!;
+    const notLast = levelsOf("lord_of_flies", "s").find((l) => !l.final)!;
     const rng = createRng(77);
     let n = 0;
     for (let s = 0; s < 4000; s++) {
@@ -74,7 +72,7 @@ describe("level loot", () => {
     }
     expect(n / 4000).toBeGreaterThan(0.03);
     expect(n / 4000).toBeLessThan(0.07);
-    expect(rollDado(levelsOf("a").find((l) => l.final)!, { ...rng, chance: () => true }, 2)).toBe(0);
+    expect(rollDado(levelsOf("lord_of_flies", "a").find((l) => l.final)!, { ...rng, chance: () => true }, 2)).toBe(0);
     // the run seed decides nothing about it
     expect(levelLoot(last, 0, "mago", 3, { repeat: false }).dados).toBe(0);
   });

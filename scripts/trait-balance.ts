@@ -1,12 +1,10 @@
 import {
   CLASS_IDS,
-  CLASSES,
   generateCharacter,
   type Character,
 } from "../src/lib/game/characters";
+import { autoPolicy } from "../src/lib/game/auto";
 import {
-  estimateDamage,
-  hitChance,
   startBattle,
   step,
   type Action,
@@ -19,19 +17,7 @@ const N = Number(process.argv[2] ?? 40000);
 const rng = createRng(2024);
 
 function choose(b: Battle): Action {
-  const { player } = b;
-  const enemy = b.enemies[0];
-  if (player.cooldown > 0) return "attack1";
-  const ev = (k: "attack1" | "attack2") =>
-    hitChance(player, k) * estimateDamage(player, enemy, k);
-  const a2 = CLASSES[player.char.classId].attack2;
-  return a2.heal > 0
-    ? player.hp < player.char.stats.hp * 0.6
-      ? "attack2"
-      : "attack1"
-    : ev("attack2") > ev("attack1")
-      ? "attack2"
-      : "attack1";
+  return autoPolicy(b).action;
 }
 function fight(p: Character, e: Character): boolean {
   let b = startBattle(p, e, rng);

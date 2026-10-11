@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
 import { CLASSES } from "@/lib/game/characters";
+import type { Stats } from "@/lib/game/characters";
 import {
   HERO_FUSION,
   STAR_CARRY,
@@ -14,11 +15,12 @@ import {
   type Material,
 } from "@/lib/game/heroFusion";
 import { cheapestUnits } from "@/lib/game/units";
-import { characterKey, heroPower, type OwnedCharacter, type Profile } from "@/lib/game/profile";
+import { characterKey, heroPower, previewProfileChange, profileOf, type HeroProfile, type OwnedCharacter, type Profile } from "@/lib/game/profile";
 import { MAX_STARS, RARITIES, RARITY_IDS, type RarityId } from "@/lib/game/rarity";
 import { TRAITS, type TraitId } from "@/lib/game/traits";
 import { characterView } from "@/lib/viewModels";
 import { MaterialGrid, stepQty } from "./MaterialPicker";
+import { HeroFactor } from "@/components/HeroFactor";
 
 type Mode = "star" | "rank" | "trait";
 const MODES: [Mode, string][] = [
@@ -219,6 +221,7 @@ export function HeroFusionPanel({
                   </button>
                 ))}
               </div>
+              {base && existing && <ProfileComparison left={base} right={keep === "base" ? base : existing} afterHero={rankDry?.ok ? rankDry.fusion.hero : undefined} resultLabel={`Rango ${RARITIES[next!].label} · ${rankDry?.ok ? rankDry.fusion.hero.stars : 0}★`} />}
             </div>
           )}
 
@@ -235,6 +238,9 @@ export function HeroFusionPanel({
                 </details>
               </p>
             )}
+            {mode === "rank" && base && !existing && next ? (
+              <ProfileComparison left={base} right={base} afterHero={rankDry?.ok ? rankDry.fusion.hero : undefined} resultLabel={`Rango ${RARITIES[next].label} · ${STAR_CARRY[rank]?.[base.stars] ?? 0}★`} />
+            ) : null}
             {fusion && result ? (
               <div className="flex items-center gap-3 border-2 border-yellow-300/60 bg-yellow-300/10 p-2 text-sm">
                 <ItemCard item={characterView(result)} size={88} />
@@ -283,6 +289,7 @@ export function HeroFusionPanel({
 }
 
 function TraitSwap({ hero, busy, onSwap }: { hero: OwnedCharacter | null; busy: boolean; onSwap: (id: string, index: number) => void }) {
+  const [selected, setSelected] = useState<number | null>(null);
   if (!hero) return <p className="text-sm opacity-80">Elige un héroe para ver sus rasgos.</p>;
   const copies = hero.copies ?? [];
   const row = (t: TraitId | undefined, action: React.ReactNode) => (
@@ -299,15 +306,43 @@ function TraitSwap({ hero, busy, onSwap }: { hero: OwnedCharacter | null; busy: 
       <h4 className="text-sm font-semibold text-yellow-300">3. Rasgo de {hero.name}</h4>
       {row(hero.traits[0], <span className="text-xs text-green-300">Principal</span>)}
       {copies.length === 0 && <p className="text-sm opacity-80">Sin copias: tira de nuevo en el gacha para probar otros rasgos.</p>}
-      {copies.map((t, i) =>
+      {copies.map((copy, i) =>
         row(
-          t,
-          <button type="button" className="btn !min-h-8 text-center text-xs" disabled={busy} onClick={() => onSwap(hero.id, i)}>
-            Usar este
+          copy.trait,
+          <button type="button" className={`btn !min-h-8 text-center text-xs ${selected === i ? "" : "btn-gray"}`} disabled={busy} aria-pressed={selected === i} onClick={() => setSelected(i)}>
+            Elegir
           </button>,
         ),
       )}
+      {selected !== null && copies[selected] && <>
+        <ProfileComparison left={hero} rightProfile={copies[selected]} />
+        <button type="button" className="btn w-full" disabled={busy} onClick={() => onSwap(hero.id, selected)}>Confirmar intercambio</button>
+      </>}
       <p className="text-xs opacity-80">Al cambiar, el rasgo que tenías pasa a ser una copia: puedes volver a él cuando quieras.</p>
+    </div>
+  );
+}
+
+function ProfileComparison({ left, right, rightProfile, afterHero, resultLabel }: { left: OwnedCharacter; right?: OwnedCharacter; rightProfile?: HeroProfile; afterHero?: OwnedCharacter; resultLabel?: string }) {
+  const nextProfile = rightProfile ?? (right ? profileOf(right) : profileOf(left));
+  const before = previewProfileChange(left, profileOf(left)).before;
+  const chosenPreview = previewProfileChange(left, nextProfile);
+  const after = afterHero ? previewProfileChange(afterHero, profileOf(afterHero)).after : chosenPreview.after;
+  const diff = (key: keyof Stats) => {
+    const value = after[key] - before[key];
+    return value === 0 ? "±0" : `${value > 0 ? "+" : "−"}${Math.abs(Math.round(value * 10) / 10)}`;
+  };
+  const rows: [keyof Stats, string][] = [["hp", "VIDA"], ["atk", "ATQ"], ["def", "DEF"], ["speed", "VEL"], ["crit", "CRIT"]];
+  return (
+    <div className="grid min-w-0 grid-cols-2 gap-2 border-t border-white/15 pt-2 text-xs">
+      <div className="min-w-0 space-y-1 rounded bg-black/20 p-2">
+        <b>Actual · {traitName(left.traits[0])}</b><HeroFactor factors={left.factors} compact />
+        {rows.map(([key, label]) => <div key={key} className="flex justify-between gap-1"><span>{label}</span><span>{Math.round(before[key] * 10) / 10}</span></div>)}
+      </div>
+      <div className="min-w-0 space-y-1 rounded bg-emerald-900/25 p-2">
+        <b>Queda · {traitName(nextProfile.trait)}{resultLabel ? ` · ${resultLabel}` : ""}</b><HeroFactor factors={nextProfile.factors} compact />
+        {rows.map(([key, label]) => <div key={key} className="flex justify-between gap-1"><span>{label}</span><span>{Math.round(after[key] * 10) / 10} <i className="text-amber-200">({diff(key)})</i></span></div>)}
+      </div>
     </div>
   );
 }

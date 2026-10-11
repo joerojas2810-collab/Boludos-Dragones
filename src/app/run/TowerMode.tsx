@@ -16,13 +16,15 @@ import { ItemCard } from "@/components/ItemCard";
 import { MuteButton } from "@/components/MuteButton";
 import { Notice } from "@/components/Notice";
 import { Panel } from "@/components/Panel";
+import { ClassElementPicker } from "@/components/room/ClassElementPicker";
 import { useTargeting } from "@/components/useTargeting";
 import { iconFor } from "@/lib/art";
 import { autoBlockReason } from "@/lib/game/auto";
 import type { Action } from "@/lib/game/combat";
 import { MOD_LABEL, modTip } from "@/lib/game/explain";
 import { bossRankOf } from "@/lib/game/floorFights";
-import { CLASSES, CLASS_IDS, type Character, type ClassId } from "@/lib/game/characters";
+import type { Character, ClassId } from "@/lib/game/characters";
+import type { Element } from "@/lib/game/elements";
 import { heroFromOwned, heroPower } from "@/lib/game/profile";
 import { rewardText } from "@/lib/game/missions";
 import type { StageAction } from "@/lib/game/stageReplay";
@@ -52,6 +54,10 @@ export function TowerMode() {
   const [mode, setMode] = useState<Mode | null>(null);
   const [at, setAt] = useState<Attempt | null>(null);
   const [starting, setStarting] = useState(false);
+  const [niveladoPick, setNiveladoPick] = useState<{
+    classId: ClassId;
+    element: Element;
+  } | null>(null);
   const banked = useRef<string | null>(null);
   const live = useRef<Attempt | null>(null);
   const targeting = useTargeting(at && !at.st.rs.settled ? at.st.rs.battle : null);
@@ -99,11 +105,23 @@ export function TowerMode() {
 
   if (!ready || !profile || !mode) return null;
 
-  const start = async (classId: ClassId, characterId: string | null) => {
+  const start = async (
+    classId: ClassId,
+    element: Element | null,
+    characterId: string | null,
+  ) => {
     if (starting) return;
     setStarting(true);
     try {
-      const info = await repo.startRun(classId, characterId, undefined, "f", 0, mode);
+      const info = await repo.startRun(
+        classId,
+        characterId,
+        undefined,
+        "f",
+        0,
+        mode,
+        element,
+      );
       const next: Attempt = {
         id: info.runId,
         st: startTower(info.seed, info.hero),
@@ -151,7 +169,26 @@ export function TowerMode() {
             {TOWER_BLURB[mode]} Una sola vida: un piso por pelea, sin descanso
             salvo una curación pequeña entre peleas.
           </p>
-          {owned.length > 0 ? (
+          {mode === "nivelado" ? (
+            <div className="space-y-3">
+              <ClassElementPicker
+                value={niveladoPick}
+                onPick={(classId, element) => setNiveladoPick({ classId, element })}
+              />
+              <div className="flex justify-center">
+                <button
+                  className="btn"
+                  disabled={starting || !niveladoPick}
+                  onClick={() =>
+                    niveladoPick &&
+                    void start(niveladoPick.classId, niveladoPick.element, null)
+                  }
+                >
+                  Empezar con este héroe
+                </button>
+              </div>
+            </div>
+          ) : owned.length > 0 ? (
             <div className="grid max-h-[calc(100vh-22rem)] min-h-40 grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] justify-items-center gap-x-2 gap-y-4 overflow-y-auto pr-1">
               {owned.map(({ c, power }) => {
                 const hero = heroFromOwned(profile, c.id);
@@ -160,7 +197,7 @@ export function TowerMode() {
                     key={c.id}
                     aria-label={c.name}
                     disabled={starting}
-                    onClick={() => void start(c.classId, c.id)}
+                    onClick={() => void start(c.classId, c.element, c.id)}
                   >
                     <ItemCard
                       item={characterView(c, {
@@ -174,18 +211,9 @@ export function TowerMode() {
               })}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-              {CLASS_IDS.map((id) => (
-                <button
-                  key={id}
-                  className="btn text-center"
-                  disabled={starting}
-                  onClick={() => void start(id, null)}
-                >
-                  {CLASSES[id].name} al azar
-                </button>
-              ))}
-            </div>
+            <p className="py-8 text-center text-yellow-300">
+              Todavía no tienes héroes. Consigue uno antes de subir la torre de colección.
+            </p>
           )}
           <div className="mt-4 flex justify-center">
             <button

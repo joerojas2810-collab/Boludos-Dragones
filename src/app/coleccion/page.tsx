@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Chip } from "@/components/Chip";
 import { ItemCard } from "@/components/ItemCard";
+import { HeroFactor } from "@/components/HeroFactor";
 import { Panel } from "@/components/Panel";
 import { MatIcon } from "@/app/forja/Upgrade";
 import { TipHover, Tooltip } from "@/components/Tooltip";
@@ -104,7 +105,7 @@ function Detail({
           {c.copies?.length ? (
             <div className="text-sm">
               {c.stars}★ · {c.copies.length} {c.copies.length === 1 ? "copia" : "copias"} (rasgos:{" "}
-              {c.copies.map((t) => TRAITS[t].name).join(", ")})
+              {c.copies.map((copy) => TRAITS[copy.trait].name).join(", ")})
             </div>
           ) : (
             <div className="text-sm">{c.stars}★</div>
@@ -112,6 +113,7 @@ function Detail({
         </div>
       </div>
       <p className="text-sm italic text-[#d9d2ca]">“{c.catchphrase}”</p>
+      <HeroFactor factors={c.factors} />
       <div className="flex flex-wrap gap-x-3 gap-y-1">
         {STAT_ORDER.map((k) => (
           <Tooltip key={k} tip={statTip(k, cmb)}>
@@ -221,7 +223,7 @@ export default function CollectionPage() {
         <Panel title="Materiales de forja" className="mx-auto w-full max-w-6xl space-y-2">
           <p className="flex items-center gap-2"><MatIcon kind="escamas" className="h-8" /> Escamas <b>{profile.escamas}</b></p>
           <p className="flex items-center gap-2"><MatIcon kind="dado" className="h-8" /> Dados cargados <b>{profile.dados}</b></p>
-          <p className="text-sm opacity-80">Salen de los dungeons S, SS y SSR y se usan en Forja &gt; Mejorar.</p>
+          <p className="text-sm opacity-80">Salen de los dungeons de dificultad S y se usan en Forja &gt; Mejorar.</p>
         </Panel>
       ) : tab === "characters" ? (
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 md:grid md:grid-cols-[1fr_22rem] lg:grid-cols-[1fr_32rem] md:items-start">

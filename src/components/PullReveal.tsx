@@ -11,6 +11,7 @@ import { ELEMENT_LABEL } from "@/lib/game/elements";
 import { WEAPON_TYPE_DATA } from "@/lib/game/weapons";
 import "./fx.css";
 import "./pull-reveal.css";
+import { HeroFactor } from "@/components/HeroFactor";
 
 // Light rays behind a Legendario reveal (CSS-rotated SVG, no image files).
 function Rays({ color }: { color: string }) {
@@ -184,6 +185,7 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
               <h3 className="sr-only">{it.name}</h3>
               <p className="pull-detail w-full truncate text-[#bdcce0]">{it.kind === "character" ? CLASSES[it.classId].name : WEAPON_TYPE_DATA[it.type ?? "espada"].label} · {ELEMENT_LABEL[it.element]}</p>
               <p className="pull-detail font-bold" style={{ color: RARITIES[it.rarity].color }}>Rango {RARITIES[it.rarity].label}{it.pity ? " · Garantizado" : ""}</p>
+              {it.kind === "character" && it.factors && <HeroFactor factors={it.factors} compact />}
               <span className={`pull-outcome w-full border font-bold ${it.badge?.startsWith("REEMBOLSO") ? "border-[#aa8747] bg-[#382c16] text-[#ffe0a3]" : it.badge?.startsWith("+1") ? "border-[#567faa] bg-[#1c3454] text-[#d3e8ff]" : "border-[#43846b] bg-[#15362d] text-[#baf3d9]"}`}>
                 <span className="pull-outcome-rank" style={{ color: RARITIES[it.rarity].color }}>{RARITIES[it.rarity].label} · </span>
                 {it.badge?.startsWith("REEMBOLSO") ? it.badge.replace("REEMBOLSO", "Reembolso") + " monedas" : it.badge === "+1 COPIA" ? "Duplicado · copia guardada" : it.badge?.startsWith("+1") ? "Duplicado · +1 estrella" : it.badge === "NUEVO" ? "Nuevo" : it.badge ?? "Obtenido"}

@@ -1,7 +1,8 @@
 // Day-1 tutorial (local flow): ONE starter hero (class of choice, rank F, random element)
 // plus a starter weapon of its class. No extra coins. Progress lives in Profile.tutorial.
 import { generateCharacter, type ClassId } from "./characters";
-import { isDungeonDone } from "./dungeonProgress";
+import { isRouteDone } from "./dungeonProgress";
+import { ROUTE_IDS } from "./levels";
 import {
   characterKey,
   createProfile,
@@ -107,9 +108,9 @@ export function autoAdvance(p: Profile): Profile {
   let s = tutorialStep(p);
   if (s >= TUTORIAL_DONE || s === 0) return p;
   const hero = p.characters[0];
-  const cleared1 = (p.dungeons.f?.[0] ?? 0) >= 1;
+  const cleared1 = Object.entries(p.dungeons.routes).some(([key, count]) => key.endsWith(":f:0") && count >= 1);
   if (s === 1 && cleared1) s = 2;
   if (s === 2 && hero && p.equipped[slotKey(hero.id, "arma")]) s = 3;
-  if (s === 3 && isDungeonDone(p.dungeons, "f")) s = 4;
+  if (s === 3 && ROUTE_IDS.some((route) => isRouteDone(p.dungeons, route, "f", 0))) s = 4;
   return setTutorialStep(p, s);
 }

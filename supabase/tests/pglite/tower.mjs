@@ -13,14 +13,19 @@ for (let i = 1; i <= 4; i++) {
 }
 const coins = async (i) => (await one(`select coins from public.player_state where player_id='${U(i)}'`)).coins;
 
-// record: best floor only, bounded, per mode
-await err(rpc("tower_record", { p_player: U(1), p_mode: "hax", p_floor: 5, p_rounds: 10 }), "invalid_args");
-await err(rpc("tower_record", { p_player: U(1), p_mode: "nivelado", p_floor: 501, p_rounds: 10 }), "invalid_args");
-await rpc("tower_record", { p_player: U(1), p_mode: "nivelado", p_floor: 12, p_rounds: 30 });
-await rpc("tower_record", { p_player: U(1), p_mode: "nivelado", p_floor: 7, p_rounds: 30 });
-ok((await rpc("tower_record", { p_player: U(1), p_mode: "nivelado", p_floor: 9, p_rounds: 30 })).max_floor === 12, "keeps the best floor");
-await rpc("tower_record", { p_player: U(2), p_mode: "nivelado", p_floor: 15, p_rounds: 30 });
-await rpc("tower_record", { p_player: U(1), p_mode: "coleccion", p_floor: 20, p_rounds: 30 });
+// record: best floor only, bounded, per mode; identity follows the best score.
+const rec = (player, mode, floor, rounds, cls = "mago", element = "agua") =>
+  rpc("tower_record", { p_player: U(player), p_mode: mode, p_floor: floor, p_rounds: rounds, p_class: cls, p_element: element });
+const oldRec = (player, mode, floor, rounds) => rec(player, mode, floor, rounds);
+await err(rec(1, "hax", 5, 10), "invalid_args");
+await err(rec(1, "nivelado", 501, 10), "invalid_args");
+await err(rec(1, "nivelado", 3, 10, "hacker", "agua"), "invalid_args");
+await err(rec(1, "nivelado", 3, 10, "mago", "metal"), "invalid_args");
+await rec(1, "nivelado", 12, 30, "mago", "agua");
+await rec(1, "nivelado", 7, 30, "berserker", "rayo");
+ok((await rec(1, "nivelado", 9, 30)).max_floor === 12, "keeps the best floor");
+await rec(2, "nivelado", 15, 30, "picaro", "fuego");
+await rec(1, "coleccion", 20, 30, "clerigo", "tierra");
 await db.exec(`insert into public.tower_scores (week, mode, player_id, max_floor, updated_at) values
   (public.game_week() - 7, 'nivelado', '${U(1)}', 30, now() - interval '3 days'),
   (public.game_week() - 7, 'nivelado', '${U(2)}', 30, now() - interval '2 days'),
@@ -40,7 +45,9 @@ const cb = [0, await cores(1), await cores(2), await cores(3)];
 const c = [0, await coins(1), await coins(2), await coins(3), await coins(4)];
 let s = await rpc("tower_state", { p_player: U(1) }); // settles last week lazily
 ok(s.modes.nivelado.top[0].name === "pl2" && s.modes.nivelado.top[0].floor === 15, "top is the best floor");
+ok(s.modes.nivelado.top[0].class === "picaro" && s.modes.nivelado.top[0].element === "fuego", "ranking returns the record identity");
 ok(s.modes.nivelado.mine.place === 2 && s.modes.nivelado.mine.floor === 12, "my place");
+ok(s.modes.nivelado.mine.class === "mago" && s.modes.nivelado.mine.element === "agua", "mine returns the record identity");
 ok(s.modes.coleccion.top.length === 1 && s.modes.coleccion.mine.place === 1, "modes are separate rankings");
 ok(s.modes.nivelado.top.length === 2, "only players who climbed appear");
 
@@ -59,22 +66,22 @@ ok((await coins(1)) === c[1] + 300, "settling twice never pays twice");
 
 // floor prizes (0030): each floor once per week and mode, only on a verified record
 const cc = await coins(3);
-await err(rpc("tower_record", { p_player: U(3), p_mode: "coleccion", p_floor: 9999, p_rounds: 1 }), "invalid_args");
-await err(rpc("tower_record", { p_player: U(3), p_mode: "coleccion", p_floor: -1, p_rounds: 1 }), "invalid_args");
+await err(rec(3, "coleccion", 9999, 1), "invalid_args");
+await err(rec(3, "coleccion", -1, 1), "invalid_args");
 ok((await coins(3)) === cc, "forged floors pay nothing");
-let t = await rpc("tower_record", { p_player: U(3), p_mode: "coleccion", p_floor: 12, p_rounds: 5 });
+let t = await rec(3, "coleccion", 12, 5);
 ok(t.prize.coins === 500 && t.prize.dados === 0 && t.prize.floors === 12 && (await coins(3)) === cc + 500, "12 floors: 10x5 + 150 + 300, no dice: " + JSON.stringify(t.prize));
-t = await rpc("tower_record", { p_player: U(3), p_mode: "coleccion", p_floor: 12, p_rounds: 4 });
+t = await rec(3, "coleccion", 12, 4, "berserker", "rayo");
 ok(t.prize.coins === 0 && (await coins(3)) === cc + 500, "replaying the same floors pays nothing");
-t = await rpc("tower_record", { p_player: U(3), p_mode: "coleccion", p_floor: 5, p_rounds: 4 });
+t = await rec(3, "coleccion", 5, 4, "picaro", "fuego");
 ok(t.prize.coins === 0 && (await coins(3)) === cc + 500, "a lower climb pays nothing");
-t = await rpc("tower_record", { p_player: U(3), p_mode: "coleccion", p_floor: 15, p_rounds: 4 });
+t = await rec(3, "coleccion", 15, 4, "clerigo", "tierra");
 ok(t.prize.coins === 160 && t.prize.floors === 3, "floors 13-15: 5+5+150");
-t = await rpc("tower_record", { p_player: U(3), p_mode: "nivelado", p_floor: 3, p_rounds: 4 });
+t = await rec(3, "nivelado", 3, 4, "mago", "agua");
 ok(t.prize.coins === 15, "the other mode pays its own floors");
 ok((await one(`select count(*)::int n from public.tower_floor_paid where player_id='${U(3)}'`)).n === 18, "one row per paid floor");
 await db.exec(`update public.tower_floor_paid set week = week - 7 where player_id='${U(3)}'`);
-t = await rpc("tower_record", { p_player: U(3), p_mode: "nivelado", p_floor: 3, p_rounds: 3 });
+t = await rec(3, "nivelado", 3, 3, "berserker", "viento");
 ok(t.prize.coins === 15, "a new week pays the floors again");
 s = await rpc("tower_state", { p_player: U(2) });
 ok(s.king.nivelado.name === "pl2" && s.king.nivelado.me === true && s.king.coleccion.name === "pl1" && s.modes.coleccion.mine === null, "state shows the daily kings");

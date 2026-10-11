@@ -1,5 +1,5 @@
 import { Icon } from "@/components/Icon";
-import { DUNGEON_INFO, type DungeonId, type RarityId } from "@/lib/game/rarity";
+import { DUNGEON_INFO, type RarityId } from "@/lib/game/rarity";
 
 // Painted rank icon. Badges (scripts/import-art2.mjs) come with a blank plate; door icons had their baked letter erased (scripts/import-art.mjs);
 // when `letter` is set it is drawn here in the title font, scaled to the icon (container units).
@@ -10,7 +10,7 @@ export function RankIcon({
   className = "h-8 w-8",
   style,
 }: {
-  rank: RarityId | DungeonId;
+  rank: RarityId;
   door?: boolean; // dungeon door icon instead of the plain badge
   letter?: boolean;
   className?: string;

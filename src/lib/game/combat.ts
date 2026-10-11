@@ -19,21 +19,12 @@ import {
 import type { Element } from "./elements";
 import type { Rng } from "./rng";
 import {
-  COUNTER_REFLECT,
-  COUNTER_ROUNDS,
-  COUNTER_TAKEN,
-  SKILLS,
-  type Skill,
-} from "./skills";
-import {
   addStatus,
   BURN_CAP,
   burnDamage,
-  CLASS_STACKS,
   cleanse,
   defMult,
-  OVERLOAD_BONUS,
-  OVERLOAD_EVERY,
+  MAX_ELEMENT_CHARGES,
   speedMult,
   stacksOf,
   STATUS_DATA,
@@ -42,24 +33,26 @@ import {
   type StatusEffect,
 } from "./statuses";
 import {
-  ADAPT_AFTER,
   ADAPT_FACTOR,
+  adaptAfter,
+  armorBrokenRounds,
   ARMOR_FRACTION,
-  ARMOR_REGROW,
+  armorRegrow,
   ARMOR_TAKEN,
-  BROKEN_ROUNDS,
   BROKEN_TAKEN,
   HEAD_HEAL,
-  HEAD_THRESHOLDS,
-  HUNGER_BELOW,
+  headThresholds,
+  hungerBelow,
   HUNGER_STEAL,
   NEW_BOSS,
-  PLAGUE_LOSS,
+  plagueLoss,
   PRESSURE_MAX,
   PRESSURE_STEP,
+  pressureGain,
   RAMP_MAX,
   RAMP_STEP,
-  RITUAL_EVERY,
+  rampInterval,
+  ritualEvery,
   RITUAL_HEAL_CUT,
   RITUAL_ROUNDS,
   ruleOf,
@@ -68,12 +61,31 @@ import {
   type BossState,
 } from "./bossRules";
 import { EXECUTE_HP, HIGH_HP, RAGE_MAX, traitTotals } from "./traits";
-import { weaponSpecial } from "./weapons";
+import { isWeaponType, WEAPON_TYPE_DATA } from "./weapons";
+import {
+  UNIVERSAL_COOLDOWN_CONVERSION,
+  UNIVERSAL_SKILLS,
+  type UniversalSkillId,
+} from "./universalSkills";
 
+// Enemy intents retain attack2 as their strong strike. Player actions use only
+// the weapon basic, universal skills and Defender.
+// Internal strike keys: attack2 is only an enemy's announced strong hit.
 export type AttackKey = "attack1" | "attack2";
-export type MoveKey = AttackKey | "attack3"; // attack3 = class skill (skills.ts)
-export type Action = MoveKey | "defend";
-export type Intent = AttackKey | "defend";
+export type MoveKey = AttackKey | UniversalSkillId;
+export type CombatMoveKey = MoveKey;
+type TelegraphKey = CombatMoveKey | "charge" | "channeling";
+export type Action = "attack1" | "defend" | UniversalSkillId;
+export type BattleAction = Action;
+/** Semantic categories available to enemy patterns; only Carga and Canalización are new active patterns in E4. */
+export type EnemyIntentType =
+  | "golpe"
+  | "carga"
+  | "preparacion"
+  | "represalia"
+  | "canalizacion"
+  | "ataque_multiple";
+export type Intent = AttackKey | "charge" | "channeling" | "defend";
 export type Status = "ongoing" | "won" | "lost";
 
 export const DEFEND_FACTOR = 0.5;
@@ -87,16 +99,23 @@ export const LIFESTEAL_CAP = 0.15; // gear + perks, fraction of damage dealt
 export const PASSIVE_HEAL_CAP = 0.06; // class blessing + regen, per round
 export const MAX_ENEMIES = 3;
 
-// Perfect guard: choosing Defender while at least one STRONG hit (Ataque 2) is
+// Perfect guard: choosing Defender while at least one strong enemy hit is
 // still announced this round. That strong hit is cut to PERFECT_GUARD_FACTOR of
 // its damage (instead of DEFEND_FACTOR; it replaces it, it does not stack) and
 // the guard earns a bonus of the hero's class (see earnGuard). Weaker hits in the
 // same round still get the normal DEFEND_FACTOR.
 export const PERFECT_GUARD_FACTOR = 0.25;
-export const GUARD_REFLECT = 0.4; // Caballero: share of the avoided damage sent back
+export const AGUANTE_FRACTION = 0.3;
+export const AGUANTE_HIT_FRACTION = 0.25;
+export const QUEBRAR_HIT_FRACTION = 1;
+export const QUIEBRE_EXPOSED_REDUCTION = 0.15;
+export const QUIEBRE_RESIST_ACTIVATIONS = 2;
+const COLOSSAL_GOLEM = "Gólem Colosal";
+const CHARGE_DEFENSE_BYPASS = 0.3;
 export const GUARD_CRIT_BONUS = 0.5; // Pícaro: extra crit chance on the next hit
-export const GUARD_HEAL = 0.04; // Clérigo: fraction of max hp healed
-export const isStrongIntent = (k: MoveKey | Intent): boolean => k === "attack2";
+export const GUARD_HEAL = 0.03; // Clérigo: fraction of max hp healed (class cap)
+export const isStrongIntent = (k: CombatMoveKey | Intent): boolean =>
+  k === "attack2" || k === "golpe" || k === "charge" || k === "channeling";
 
 // Speed -> actions ("acciones acumuladas"). Per (hero, enemy) pair the slower
 // side acts once per round; the faster side acts floor(carry) times, where
@@ -135,16 +154,17 @@ export interface BattleOptions {
   freeHits?: number; // enemy attacks the player evades automatically
   mods?: EnemyMod[];
   enemyStatus?: boolean; // enemies apply their element status on strong hits (elites, bosses)
+  enemyAguante?: boolean; // elites and bosses receive the secondary defense bar
+  ascension?: number;
 }
 
 export interface BattleEvent {
   actor: "player" | "enemy";
   kind: "hit" | "crit" | "miss" | "buff";
   classId: ClassId;
-  move: MoveKey;
+  move: CombatMoveKey;
   weapon?: string; // attacker's weapon type (sfx)
   element?: Element;
-  overload?: boolean;
   enemy: number; // index in Battle.enemies of the enemy involved
 }
 
@@ -153,35 +173,48 @@ export type Side = "player" | "enemy";
 export interface Combatant {
   char: Character;
   hp: number;
-  cooldown: number; // rounds before attack2 is usable again
-  cooldown3?: number; // same for the class skill (attack3)
+  cooldown: number; // enemy strong-strike cooldown (players no longer use it)
   defending: boolean; // lasts until the end of the round
   // (an enemy's Defender is active from round start: it is announced)
   guard?: boolean; // perfect guard earned this round (see PERFECT_GUARD_FACTOR)
-  riposte?: boolean; // Mago / Pícaro guard bonus, spent by the next damaging action
-  reflect?: number; // rounds left of Contraataque
-  taken?: number; // damage received this round (Contraataque returns what already landed)
-  takenFrom?: number; // enemy slot of the last hit received this round
+  riposte?: boolean; // Mago/Pícaro next-hit bonus; Berserker next-skill cooldown discount
+  resolution?: boolean; // Caballero: one guarded hit enables the next Golpe
+  nextHitReduction?: number; // temporary class effect, consumed by the next landed hit
+  classHealThisRound?: number;
+  classHealThisActivation?: number;
+  classShieldThisRound?: number;
+  classShieldThisActivation?: number;
   carry?: number; // enemies: speed remainder against the hero
   shield?: number;
   freeHits?: number;
   perks?: Perks;
   statuses?: StatusEffect[]; // elemental effects (statuses.ts)
-  charge?: number; // Rayo hits since the last overload
+  charge?: number; // Rayo's Sobrecarga charges, consumed later by Explotar
+  nextAttackDefenseBypass?: number; // Ruptura consumed: next player activation's attack
+  nextCritChance?: number; // Pícaro: Explotar Impulso empowers the next attack
   missed?: boolean; // Terco: the last hit missed
   guardedLast?: boolean; // Paciente: it spent the last round defending (spent by its next hit)
   opened?: boolean; // Fanfarrón: it has already thrown its first hit
   rage?: number; // Furioso: hits taken so far
   boss?: BossState; // dungeon boss mechanic state (bossRules.ts)
+  exposed?: boolean; // target remains Expuesto until its next activation (stage 4)
+  aguante?: number;
+  aguanteMax?: number;
+  quiebre?: number;
+  quiebreResist?: number;
+  chargePending?: boolean;
+  chargeUsed?: boolean;
+  channelingState?: "announced" | "resolved" | "cancelled";
   healCut?: number; // rounds left with the heals cut (Reina Marchita ritual)
   applies?: boolean; // enemies: strong hits apply their element's status (elites, bosses)
+  universalCooldowns?: Partial<Record<UniversalSkillId, number>>;
 }
 
 // A round is a queue of action slots (see buildQueue). `step` resolves one
 // player action plus every enemy slot up to the next player slot. An enemy slot
 // carries its announced intent; `n` is its ordinal among that enemy's actions
 // this round.
-export type EnemySlot = { e: number; n: number; intent: Intent };
+export type EnemySlot = { e: number; n: number; intent: Intent; warningWaited?: boolean };
 export type Slot = "player" | EnemySlot;
 
 export interface Battle {
@@ -189,6 +222,8 @@ export interface Battle {
   enemies: Combatant[]; // 1..MAX_ENEMIES; dead ones stay (hp 0) to keep indices
   queue: Slot[]; // action slots still to resolve this round
   playerActions: number; // player's total actions this round
+  frostDelayedEnemies?: number[]; // one Explotar delay event per enemy this round
+  impulseGranted?: boolean; // one extra action from Impulso per round
   turn: number; // round number
   actions: number; // player actions resolved so far (0 = fight not started)
   status: Status;
@@ -196,6 +231,25 @@ export interface Battle {
   events: BattleEvent[]; // what happened in the last step, for sfx/animation
   guardEarned?: boolean; // the last step earned a perfect guard (sfx/animation only)
   mods?: EnemyMod[];
+}
+
+export type ExploitableState =
+  | { id: "escarcha" | "impulso" | "quemadura" | "ruptura"; stacks: number }
+  | { id: "sobrecarga"; stacks: 3 };
+
+/** Returns the first state available to Explotar, in stable priority order. */
+export function exploitableState(player: Combatant, target?: Combatant): ExploitableState | null {
+  const frost = stacksOf(target?.statuses, "escarcha");
+  if (frost > 0) return { id: "escarcha", stacks: frost };
+  const burn = stacksOf(target?.statuses, "quemadura");
+  if (burn > 0) return { id: "quemadura", stacks: burn };
+  const rupture = stacksOf(target?.statuses, "ruptura");
+  if (rupture > 0) return { id: "ruptura", stacks: rupture };
+  const impulse = stacksOf(player.statuses, "impulso");
+  if (impulse > 0) return { id: "impulso", stacks: impulse };
+  return (player.charge ?? 0) >= MAX_ELEMENT_CHARGES
+    ? { id: "sobrecarga", stacks: MAX_ELEMENT_CHARGES }
+    : null;
 }
 
 const clamp = (v: number, min: number, max: number) =>
@@ -219,7 +273,7 @@ export const dmgReductionOf = (c: Combatant): number => {
   );
 };
 
-// Class passive + style resonance damage reduction, capped together.
+// Class passive damage reduction, capped together.
 export const PASSIVE_REDUCTION_CAP = 0.25;
 export const passiveReduction = (c: Combatant): number =>
   Math.min(
@@ -230,10 +284,12 @@ export const passiveReduction = (c: Combatant): number =>
   );
 
 // Fraction of damage absorbed by defense (0..DEF_CAP).
-export const defReduction = (att: Combatant, def: Combatant): number => {
+export const defReduction = (att: Combatant, def: Combatant, defenseBypass = 0): number => {
   const d =
     def.char.stats.def *
     defMult(def.statuses) *
+    (def.exposed ? 1 - QUIEBRE_EXPOSED_REDUCTION : 1) *
+    (1 - defenseBypass) *
     (def.boss && ruleOf(def) === "posturas" ? STANCES[def.boss.stance].def : 1);
   return Math.min(DEF_CAP, d / Math.max(1e-6, d + DEF_K * att.char.stats.atk));
 };
@@ -259,37 +315,77 @@ export const lifestealOf = (c: Combatant): number =>
 export const healMult = (c: Combatant): number =>
   (1 - rulesOf(c).healPenalty) * ((c.healCut ?? 0) > 0 ? RITUAL_HEAL_CUT : 1);
 
+export const CLASS_HEAL_PER_ACTIVATION_CAP = 0.03;
+export const CLASS_HEAL_PER_ROUND_CAP = 0.06;
+export const CLASS_SHIELD_PER_ACTIVATION_CAP = 0.03;
+export const CLASS_SHIELD_PER_ROUND_CAP = 0.06;
+export const BERSERKER_SKILL_FURY_THRESHOLD = 0.6;
+export const BERSERKER_GOLPE_BONUS = 0.5;
+export const BERSERKER_BARRIDO_BONUS = 0.3;
+export const EXPLOIT_BASIC_DAMAGE_FRACTION = 0.4;
+export const EXPLOIT_OVERLOAD_DAMAGE_FRACTION = 1.0;
+export const EXPLOIT_IMPULSE_EXTRA_ACTION_MIN_STACKS = 3;
+export const EXPLOIT_RUPTURE_DEFENSE_PER_STACK = 0.08;
+export const EXPLOIT_MAGE_EFFECT_MULT = 1.25;
+export const EXPLOIT_BERSERKER_BURN_MULT = 1.25;
+
+export function classHeal(c: Combatant, requested: number): Combatant {
+  const maxHp = c.char.stats.hp;
+  const allowed = Math.max(0, Math.min(
+    requested,
+    CLASS_HEAL_PER_ACTIVATION_CAP - (c.classHealThisActivation ?? 0),
+    CLASS_HEAL_PER_ROUND_CAP - (c.classHealThisRound ?? 0),
+  ));
+  const hp = Math.min(maxHp, c.hp + Math.round(maxHp * allowed * healMult(c)));
+  const actual = (hp - c.hp) / maxHp;
+  return {
+    ...c,
+    hp,
+    classHealThisActivation: (c.classHealThisActivation ?? 0) + actual,
+    classHealThisRound: (c.classHealThisRound ?? 0) + actual,
+  };
+}
+
+export function classShield(c: Combatant, requested: number): Combatant {
+  const maxHp = c.char.stats.hp;
+  const allowed = Math.max(0, Math.min(
+    requested,
+    CLASS_SHIELD_PER_ACTIVATION_CAP - (c.classShieldThisActivation ?? 0),
+    CLASS_SHIELD_PER_ROUND_CAP - (c.classShieldThisRound ?? 0),
+  ));
+  const value = Math.round(maxHp * allowed);
+  const actual = value / maxHp;
+  return {
+    ...c,
+    shield: (c.shield ?? 0) + value,
+    classShieldThisActivation: (c.classShieldThisActivation ?? 0) + actual,
+    classShieldThisRound: (c.classShieldThisRound ?? 0) + actual,
+  };
+}
+
 // Berserker Furia: damage bonus by hp threshold.
 export const furyBonus = (c: Combatant): number =>
   c.char.classId !== "berserker"
     ? 0
     : (CLASS_PASSIVE_FURY.find((t) => c.hp / c.char.stats.hp < t.below)?.bonus ?? 0);
 
-// Berserker perfect guard: the next Ataque 2 / 3 costs no hp and recharges 1 round sooner.
-export const guardFree = (c: Combatant): boolean =>
-  !!c.riposte && c.char.classId === "berserker";
-
-export const skillOf = (c: Combatant): Skill | undefined =>
-  c.char.skill ? SKILLS[c.char.skill] : undefined;
-
-export function attackOf(c: Combatant, key: MoveKey): Attack {
-  if (key === "attack3") {
-    const s = skillOf(c);
-    if (s)
+export function attackOf(c: Combatant, intent: TelegraphKey): Attack {
+  if (intent === "channeling")
+    return { name: "Canalización", power: 0, accuracy: 1, cooldown: 0, heal: 0 };
+  const key: CombatMoveKey = intent === "charge" ? "attack2" : intent;
+  if (key in UNIVERSAL_SKILLS) return UNIVERSAL_SKILLS[key as UniversalSkillId].attack;
+  if (key === "attack1" && isWeaponType(c.char.weapon?.type)) {
+    const basic = WEAPON_TYPE_DATA[c.char.weapon.type].basic;
+    if (basic)
       return {
-        name: s.name,
-        power: s.power,
-        accuracy: s.accuracy,
-        cooldown: s.cooldown,
-        heal: 0,
+        ...CLASSES[c.char.classId].attack1,
+        name: basic.name,
+        power: basic.power,
+        ...(basic.crit !== undefined && { crit: basic.crit }),
+        ...(basic.heal !== undefined && { heal: basic.heal }),
       };
-    key = "attack1";
   }
-  if (key === "attack2") {
-    const sp = weaponSpecial(c.char.weapon?.type);
-    if (sp) return sp;
-  }
-  return CLASSES[c.char.classId][key];
+  return CLASSES[c.char.classId][key as AttackKey];
 }
 
 const newCombatant = (char: Character): Combatant => ({
@@ -316,6 +412,13 @@ export const enemyIntents = (b: Battle, e: number): Intent[] =>
     .filter((s) => s.e === e)
     .map((s) => s.intent);
 
+export const intentType = (intent: Intent): EnemyIntentType | null => {
+  if (intent === "charge") return "carga";
+  if (intent === "channeling") return "canalizacion";
+  if (intent === "attack1" || intent === "attack2") return "golpe";
+  return null;
+};
+
 // A strong hit is still coming: Defender now would be a perfect guard.
 export const strongPending = (b: Battle): boolean =>
   pendingIntents(b).some((s) => isStrongIntent(s.intent));
@@ -323,7 +426,7 @@ export const strongPending = (b: Battle): boolean =>
 export const actionsLeft = (b: Battle): number =>
   b.queue.filter((s) => s === "player").length;
 
-// One intent per enemy action; at most one Ataque 2 per round (cooldown).
+// One intent per enemy action; at most one strong enemy hit per round (cooldown).
 export function pickIntents(enemy: Combatant, n: number, rng: Rng): Intent[] {
   const out: Intent[] = [];
   let cd = enemy.cooldown;
@@ -381,6 +484,41 @@ export function buildQueue(
   return q;
 }
 
+// A strong intention announced before the hero's first slot waits until just
+// after that slot. It is moved only once, so it resolves at its next enemy turn.
+function grantFirstPlayerResponse(queue: Slot[]): Slot[] {
+  const firstPlayer = queue.indexOf("player");
+  if (firstPlayer <= 0) return queue;
+  const waiting = queue.slice(0, firstPlayer).filter(
+    (slot): slot is EnemySlot => slot !== "player" && isStrongIntent(slot.intent),
+  ).map((slot) => ({ ...slot, warningWaited: true }));
+  if (!waiting.length) return queue;
+  const waitingKeys = new Set(waiting.map((slot) => `${slot.e}:${slot.n}`));
+  const before = queue.slice(0, firstPlayer).filter(
+    (slot) => slot === "player" || !waitingKeys.has(`${slot.e}:${slot.n}`),
+  );
+  return [...before, "player", ...waiting, ...queue.slice(firstPlayer + 1)];
+}
+
+// Move at most `limit` eligible pending slots for one enemy to just after the
+// next player slot. Strong intents already moved once for their warning stay put.
+function delayEnemySlots(queue: Slot[], enemy: number, limit: number): { queue: Slot[]; moved: number } {
+  const nextPlayer = queue.indexOf("player");
+  if (nextPlayer < 0) return { queue, moved: 0 };
+  const selected = queue.slice(0, nextPlayer).filter(
+    (slot): slot is EnemySlot =>
+      slot !== "player" && slot.e === enemy && !(isStrongIntent(slot.intent) && slot.warningWaited),
+  ).slice(0, limit);
+  if (!selected.length) return { queue, moved: 0 };
+  const selectedKeys = new Set(selected.map((slot) => `${slot.e}:${slot.n}`));
+  const remaining = queue.filter((slot) =>
+    slot === "player" || !selectedKeys.has(`${slot.e}:${slot.n}`),
+  );
+  const playerIndex = remaining.indexOf("player");
+  remaining.splice(playerIndex + 1, 0, ...selected);
+  return { queue: remaining, moved: selected.length };
+}
+
 // Enemy action slots of a round: pass k lists every enemy with a k-th action,
 // in initiative order.
 function enemySlots(
@@ -416,7 +554,7 @@ function planRound(
   // Bosses: Hidra heads and a starving Devorador add actions on top of the speed ones.
   const extra = (e: Combatant) =>
     (e.boss?.heads ?? 0) +
-    (ruleOf(e) === "hambre" && e.hp < e.char.stats.hp * HUNGER_BELOW ? 1 : 0);
+    (ruleOf(e) === "hambre" && e.hp < e.char.stats.hp * hungerBelow(e.boss?.ascension ?? 0) ? 1 : 0);
   const counts = enemies.map((e) => {
     if (e.hp <= 0) return null;
     const c = actionCounts(speedOf(player), speedOf(e), e.carry ?? 0);
@@ -425,6 +563,27 @@ function planRound(
   const intents: Intent[][] = enemies.map((e, i) =>
     counts[i] ? pickIntents(e, counts[i].enemy, rng) : [],
   );
+  const preparingCharge = enemies.map(() => false);
+  enemies.forEach((e, i) => {
+    if (e.char.name !== COLOSSAL_GOLEM || !intents[i].length) return;
+    if (e.chargePending) {
+      intents[i][0] = "charge";
+    } else if (!e.chargeUsed) {
+      const strongIndex = intents[i].indexOf("attack2");
+      if (strongIndex >= 0) {
+        intents[i][strongIndex] = "defend";
+        preparingCharge[i] = true;
+      }
+    }
+  });
+  enemies.forEach((e, i) => {
+    if (ruleOf(e) === "marchitar" && turn % ritualEvery(e.boss?.ascension ?? 0) === 0 && intents[i].length) {
+      intents[i][0] = "channeling";
+      enemies[i] = { ...e, channelingState: "announced" };
+    } else {
+      enemies[i] = { ...e, channelingState: undefined };
+    }
+  });
   const rolls = enemies.map((e) => (e.hp > 0 ? roll(e, rng) : -1));
   const mine = roll(player, rng);
   const order = [...live].sort((a, b) => rolls[b] - rolls[a] || a - b);
@@ -438,9 +597,19 @@ function planRound(
   for (const i of live) {
     const e = enemies[i];
     if (ruleOf(e) === "posturas")
-      lines.push(`${e.char.name} adopta la postura ${stanceFor(turn)}.`);
-    if (ruleOf(e) === "marchitar" && turn % RITUAL_EVERY === 0)
-      lines.push(`${e.char.name} prepara un ritual: defiende con guardia perfecta para anularlo.`);
+      lines.push(`${e.char.name} adopta la postura ${stanceFor(turn, e.boss?.ascension ?? 0)}.`);
+    if (intents[i].includes("channeling"))
+      lines.push(`${e.char.name} canaliza su ritual: Interrumpir lo detiene; una guardia perfecta también lo anula.`);
+    if (intents[i].includes("charge"))
+      lines.push(`${e.char.name} anuncia una Carga: tendrás una activación para responder; Defender la mitiga y Quebrar Aguante puede cancelarla.`);
+    else if (intents[i].includes("attack2"))
+      lines.push(
+        ruleOf(e) === "presion"
+          ? `${e.char.name} anuncia su golpe fuerte: tendrás una activación para responder; la guardia perfecta apaga su Presión.`
+          : `${e.char.name} anuncia un golpe fuerte: tendrás una activación para responder.`,
+      );
+    if (preparingCharge[i])
+      lines.push(`${e.char.name} prepara una Carga cancelable por Quiebre.`);
   }
   for (const i of live)
     if ((counts[i]?.enemy ?? 1) > 1)
@@ -448,13 +617,14 @@ function planRound(
         `${enemies[i].char.name} es más veloz: actúa ${counts[i]?.enemy} veces.`,
       );
   return {
-    queue: buildQueue(playerActions, enemySlots(order, intents), lead),
+    queue: grantFirstPlayerResponse(buildQueue(playerActions, enemySlots(order, intents), lead)),
     playerActions,
     enemies: enemies.map((e, i) => ({
       ...e,
       carry: counts[i]?.carry ?? e.carry,
       defending: intents[i].includes("defend"),
-      ...(e.boss && ruleOf(e) === "posturas" && { boss: { ...e.boss, stance: stanceFor(turn) } }),
+      ...(e.boss && ruleOf(e) === "posturas" && { boss: { ...e.boss, stance: stanceFor(turn, e.boss.ascension) } }),
+      ...(preparingCharge[i] && { chargeUsed: true, chargePending: true }),
     })),
     lines,
   };
@@ -478,6 +648,8 @@ export function withRound(
   return {
     ...b,
     playerActions,
+    frostDelayedEnemies: [],
+    impulseGranted: false,
     queue: buildQueue(
       playerActions,
       enemySlots(order, per),
@@ -486,6 +658,7 @@ export function withRound(
     enemies: b.enemies.map((e, i) => ({
       ...e,
       defending: (per[i] ?? []).includes("defend"),
+      channelingState: per[i]?.includes("channeling") ? "announced" : undefined,
     })),
   };
 }
@@ -498,10 +671,14 @@ export function startBattle(
 ): Battle {
   const mods = opts.mods ?? [];
   const list: readonly Character[] = "name" in foes ? [foes] : foes;
-  const es = list.slice(0, MAX_ENEMIES).map((c) => {
+  const es = list.slice(0, MAX_ENEMIES).map((c, i) => {
     const e = newCombatant(c);
     if (opts.enemyStatus) e.applies = true;
-    if (ruleOf(e)) e.boss = { ...NEW_BOSS };
+    if ((opts.enemyAguante && i === 0) || c.bossId || c.name === COLOSSAL_GOLEM) {
+      e.aguanteMax = Math.max(1, Math.round(c.stats.hp * AGUANTE_FRACTION));
+      e.aguante = e.aguanteMax;
+    }
+    if (ruleOf(e)) e.boss = { ...NEW_BOSS, ascension: Math.max(0, Math.min(5, Math.floor(opts.ascension ?? 0))) };
     if (ruleOf(e) === "armadura") e.shield = Math.round(c.stats.hp * ARMOR_FRACTION);
     if (mods.includes("escudo"))
       e.shield = Math.round(c.stats.hp * SHIELD_FRACTION);
@@ -517,6 +694,8 @@ export function startBattle(
     ...(mods.length ? { mods } : {}),
     queue: plan.queue,
     playerActions: plan.playerActions,
+    frostDelayedEnemies: [],
+    impulseGranted: false,
     player: p,
     enemies: plan.enemies,
     turn: 1,
@@ -538,7 +717,9 @@ export function startBattle(
 }
 
 // No dodge in engine v11: only accuracy decides a hit.
-export function hitChance(att: Combatant, key: MoveKey): number {
+export function hitChance(att: Combatant, intent: TelegraphKey): number {
+  if (intent === "channeling") return 1;
+  const key: CombatMoveKey = intent === "charge" ? "attack2" : intent;
   if (key === "attack1") return 1; // the basic attack is the safe one; accuracy is the risk of the others
   const retry = att.missed ? rulesOf(att).retryAccuracy : 0; // Terco insists after a miss
   return clamp(attackOf(att, key).accuracy + att.char.stats.accuracy + retry, 0.05, 1);
@@ -558,21 +739,12 @@ function traitDealtMult(att: Combatant, def: Combatant): number {
 }
 
 // Damage multiplier of the defender's stance against this move.
-const stanceFactor = (def: Combatant, key: MoveKey): number =>
+const stanceFactor = (def: Combatant, key: CombatMoveKey): number =>
   !def.defending
     ? 1
     : def.guard && isStrongIntent(key)
       ? PERFECT_GUARD_FACTOR
       : DEFEND_FACTOR;
-
-// Skill bonus while the user is hurt (Aniquilación).
-function selfFactor(att: Combatant, key: MoveKey): number {
-  const s = key === "attack3" ? skillOf(att) : undefined;
-  return s?.selfBelow !== undefined &&
-    att.hp < att.char.stats.hp * s.selfBelow
-    ? (s.selfMult ?? 1)
-    : 1;
-}
 
 // Boss mechanics on damage: what a boss deals and what it takes.
 function bossDealtMult(att: Combatant): number {
@@ -588,21 +760,6 @@ function bossTakenMult(def: Combatant): number {
   return def.boss.broken > 0 ? BROKEN_TAKEN : 1;
 }
 
-// Detonar: extra damage per status stack on the target.
-function detonateFactor(att: Combatant, def: Combatant, key: MoveKey): number {
-  const d = key === "attack3" ? skillOf(att)?.detonate : undefined;
-  return d ? 1 + d * (def.statuses ?? []).reduce((n, s) => n + s.stacks, 0) : 1;
-}
-
-// Skill bonus vs a weakened target (Ejecutar).
-function executeFactor(att: Combatant, def: Combatant, key: MoveKey): number {
-  const s = key === "attack3" ? skillOf(att) : undefined;
-  return s?.executeBelow !== undefined &&
-    def.hp < def.char.stats.hp * s.executeBelow
-    ? (s.executeMult ?? 1)
-    : 1;
-}
-
 // Expected damage of a non-critical hit (one strike).
 // Every hit (both sides) is scaled by this: longer fights, so statuses, guard and cooldowns matter.
 export const DAMAGE_SCALE = 0.8;
@@ -610,15 +767,18 @@ export const DAMAGE_SCALE = 0.8;
 export function estimateDamage(
   att: Combatant,
   def: Combatant,
-  key: MoveKey,
+  intent: TelegraphKey,
   crit = false, // true: skip the non-crit penalty (the crit multiplier is applied by the caller)
+  defenseBypass = 0,
 ): number {
+  if (intent === "channeling") return 0;
+  const key: CombatMoveKey = intent === "charge" ? "attack2" : intent;
   const a = attackOf(att, key);
   const raw =
     att.char.stats.atk *
     a.power *
     attackElementMultiplier(att, def) *
-    (1 - defReduction(att, def));
+    (1 - defReduction(att, def, defenseBypass));
   return Math.max(
     1,
     Math.round(
@@ -630,10 +790,7 @@ export function estimateDamage(
         (crit ? 1 : 1 - rulesOf(att).nonCritPenalty) *
         (1 - passiveReduction(def)) *
         (1 + (att.char.gear?.dmgDealt ?? 0)) *
-        ((def.reflect ?? 0) > 0 ? COUNTER_TAKEN : 1) *
-        executeFactor(att, def, key) *
-        selfFactor(att, key) *
-        detonateFactor(att, def, key) *
+        (1 - (def.nextHitReduction ?? 0)) *
         bossDealtMult(att) *
         traitDealtMult(att, def) *
         bossTakenMult(def) *
@@ -656,7 +813,7 @@ export function attackElementMultiplier(
   def: Combatant,
 ): number {
   const m = elementMultiplier(
-    att.char.weapon?.element ?? att.char.element,
+    att.char.element,
     def.char.element,
   );
   return att.char.classId === "mago" && m > 1
@@ -678,21 +835,18 @@ export function passiveHeal(c: Combatant, log: string[]): Combatant {
 
 // Perfect guard earned: flags the combatant and grants its class bonus.
 const GUARD_TEXT: Record<ClassId, string> = {
-  caballero: "devolverá parte del golpe",
+  caballero: "reúne Resolución para su próximo Golpe",
   mago: "potenciará su próximo golpe",
   picaro: "afinará su puntería",
   clerigo: "se purifica",
-  berserker: "se enciende: su próxima habilidad sale gratis",
+  berserker: "su próxima habilidad recargará una activación antes",
 };
 export function earnGuard(c: Combatant, log: string[]): Combatant {
   let out: Combatant = { ...c, guard: true };
+  if (c.char.classId === "caballero") out.resolution = true;
   if (["mago", "picaro", "berserker"].includes(c.char.classId)) out.riposte = true;
   if (c.char.classId === "clerigo") {
-    const hp = Math.min(
-      c.char.stats.hp,
-      c.hp + Math.round(c.char.stats.hp * GUARD_HEAL * healMult(c)),
-    );
-    out = { ...out, hp, statuses: cleanse(c.statuses) };
+    out = { ...classHeal(out, GUARD_HEAL), statuses: cleanse(c.statuses) };
   }
   log.push(`¡Guardia perfecta! ${c.char.name} ${GUARD_TEXT[c.char.classId]}.`);
   return out;
@@ -720,8 +874,8 @@ function bossRoundEnd(c: Combatant, turn: number, log: string[]): Combatant {
   const rule = ruleOf(c);
   const boss = { ...c.boss };
   let out = c;
-  if (rule === "presion") boss.pressure = Math.min(PRESSURE_MAX, boss.pressure + 1);
-  if (rule === "velocidad" && turn % 2 === 0) boss.ramp = Math.min(RAMP_MAX, boss.ramp + 1);
+  if (rule === "presion") boss.pressure = Math.min(PRESSURE_MAX, boss.pressure + pressureGain(boss.ascension));
+  if (rule === "velocidad" && turn % rampInterval(boss.ascension) === 0) boss.ramp = Math.min(RAMP_MAX, boss.ramp + 1);
   if (rule === "armadura") {
     boss.broken = Math.max(0, boss.broken - 1);
     if (boss.regrow > 0 && --boss.regrow === 0) {
@@ -739,11 +893,11 @@ function bossOnHit(before: Combatant, after: Combatant, log: string[]): Combatan
   if (!after.boss || !rule) return after;
   if (rule === "armadura" && (before.shield ?? 0) > 0 && (after.shield ?? 0) <= 0) {
     log.push(`¡La armadura de ${after.char.name} se rompe! Queda Roto.`);
-    return { ...after, boss: { ...after.boss, broken: BROKEN_ROUNDS, regrow: ARMOR_REGROW } };
+    return { ...after, boss: { ...after.boss, broken: armorBrokenRounds(after.boss.ascension), regrow: armorRegrow(after.boss.ascension) } };
   }
   if (rule === "cabezas" && after.hp > 0) {
     const max = after.char.stats.hp;
-    const crossed = HEAD_THRESHOLDS.filter(
+    const crossed = headThresholds(after.boss.ascension).filter(
       (t) => before.hp > t * max && after.hp <= t * max,
     ).length;
     if (crossed > 0) {
@@ -765,38 +919,25 @@ export interface Strike {
 }
 
 // Contraataque returns damage without a hit roll: it still carries the hero's element status.
-export function counterStatuses(hero: Combatant, foe: Combatant): Combatant["statuses"] {
-  const sid = STATUS_OF_ELEMENT[hero.char.weapon?.element ?? hero.char.element];
-  if (!sid || sid === "impulso") return foe.statuses;
-  return addStatus(foe.statuses, sid, CLASS_STACKS, undefined, foe.char.stats.resist);
-}
-
 export function strike(
   att: Combatant,
   def: Combatant,
-  key: MoveKey,
+  key: CombatMoveKey,
   rng: Rng,
   log: string[],
   events: BattleEvent[],
   actor: BattleEvent["actor"],
   enemy: number,
   dmgFactor = 1,
-  asHero = actor === "player", // duels: both sides are heroes (class special, statuses, overload)
+  asHero = actor === "player", // duels: both sides are heroes (elemental charges and status rules)
+  applyOwnElementalStatus = true,
+  defenseBypass = 0,
+  applyElementalStatus = true,
 ): Strike {
   const a = attackOf(att, key);
-  const skill = key === "attack3" ? skillOf(att) : undefined;
   const who = att.char.name;
   const on = actor === "player" ? ` sobre ${def.char.name}` : "";
   let hp = att.hp;
-  const free = guardFree(att) && key !== "attack1";
-  if (a.selfCost && !free) {
-    // The price of Frenesí: a share of the CURRENT hp, never lethal.
-    const cost = Math.min(hp - 1, Math.round(hp * a.selfCost));
-    if (cost > 0) {
-      hp -= cost;
-      log.push(`${who} se desangra ${cost} al usar ${a.name}.`);
-    }
-  }
   if (a.heal > 0) {
     hp = Math.min(
       att.char.stats.hp,
@@ -807,10 +948,9 @@ export function strike(
   const attacker: Combatant = {
     ...att,
     hp,
-    ...(key === "attack2" && { cooldown: a.cooldown + 1 - (free ? 1 : 0) }),
-    ...(key === "attack3" && { cooldown3: a.cooldown + 1 - (free ? 1 : 0) }),
+    ...(key === "attack2" && !asHero && { cooldown: a.cooldown + 1 }),
   };
-  const element = att.char.weapon?.element ?? att.char.element;
+  const element = att.char.element;
   const ev = (kind: BattleEvent["kind"]) =>
     events.push({
       actor,
@@ -836,37 +976,29 @@ export function strike(
   }
   const crit = rng.chance(
     att.char.stats.crit +
+      (a.crit ?? 0) +
+      (att.nextCritChance ?? 0) +
       (att.char.classId === "mago" ? CLASS_PASSIVE_MAGE_CRIT : 0) +
       (att.riposte && att.char.classId === "picaro" ? GUARD_CRIT_BONUS : 0),
   );
   // Apostador: one extra draw per landed hit, only for gamblers (old streams intact).
   const spread = rulesOf(att).spread;
   const gamble = spread > 0 ? 1 + spread * (2 * rng.next() - 1) : 1;
-  // Elemental effects: the player always applies them, enemies only on strong
-  // hits when flagged (elites, bosses). Mago's perfect guard doubles the stacks.
-  // The class special applies statuses, except Detonar, which only consumes them.
-  // Every hero hit applies its element's status (1 stack; the class special 2), except Detonar,
-  // which only consumes them. Enemies apply theirs only when flagged (elites, bosses) on strong hits.
-  const classMove = asHero && key === "attack3" && !skill?.detonate;
-  const canApply = asHero ? !skill?.detonate : !!att.applies && isStrongIntent(key);
+  // Every damaging hero action applies one elemental interaction. Enemies apply
+  // their element only on announced strong attacks when flagged (elites/bosses).
+  const canApply = asHero || (!!att.applies && isStrongIntent(key));
   const guardBoost = att.riposte && att.char.classId === "mago" ? 2 : 1;
-  const stacks = guardBoost * (classMove ? CLASS_STACKS : 1);
-  // Rayo: any landed hit charges, the overload is spent by the class special.
+  const stacks = guardBoost;
+  // Rayo stores up to three charges; Explotar will consume them in stage 5.
   let charge = att.charge ?? 0;
-  let overload = false;
-  if (element === "rayo" && (asHero || canApply)) {
-    charge = Math.min(OVERLOAD_EVERY, charge + guardBoost);
-    if (charge >= OVERLOAD_EVERY && (classMove || !asHero)) {
-      overload = true;
-      charge -= OVERLOAD_EVERY;
-    }
+  if (applyElementalStatus && element === "rayo" && (asHero || canApply) && applyOwnElementalStatus) {
+    charge = Math.min(MAX_ELEMENT_CHARGES, charge + 1);
   }
   const dmg = Math.round(
-    estimateDamage(att, def, key, crit) *
+      estimateDamage(att, def, key, crit, defenseBypass) *
       (crit ? critMultiplier(att) : 1) *
       dmgFactor *
-      gamble *
-      (overload ? 1 + OVERLOAD_BONUS : 1),
+      gamble,
   );
   events.push({
     actor,
@@ -875,11 +1007,10 @@ export function strike(
     move: key,
     weapon: att.char.weapon?.type,
     element,
-    overload,
     enemy,
   });
   log.push(
-    `${who} usa ${a.name}${on}: ${dmg} de daño${crit ? " (¡crítico!)" : ""}${overload ? " ¡Sobrecarga!" : ""}.`,
+    `${who} usa ${a.name}${on}: ${dmg} de daño${crit ? " (¡crítico!)" : ""}.`,
   );
   const absorbed = Math.min(def.shield ?? 0, dmg);
   if (absorbed > 0)
@@ -887,7 +1018,6 @@ export function strike(
   const steal = Math.round(
     dmg *
       (lifestealOf(att) +
-        (skill?.lifesteal ?? 0) +
         (ruleOf(att) === "hambre" ? HUNGER_STEAL : 0)) *
       healMult(att),
   );
@@ -897,14 +1027,11 @@ export function strike(
     ...(def.shield !== undefined && { shield: def.shield - absorbed }),
   };
   defender = bossOnHit(def, defender, log);
-  if (skill?.detonate && defender.statuses?.length) {
-    log.push(`${def.char.name} detona: se borran sus estados.`);
-    defender = { ...defender, statuses: [] };
-  }
   let ownStatuses = attacker.statuses;
-  const sid = canApply ? STATUS_OF_ELEMENT[element] : undefined;
-  if (sid === "impulso") ownStatuses = addStatus(ownStatuses, sid, stacks);
-  else if (sid)
+  const sid = applyElementalStatus && canApply ? STATUS_OF_ELEMENT[element] : undefined;
+  if (sid === "impulso") {
+    if (applyOwnElementalStatus) ownStatuses = addStatus(ownStatuses, sid, stacks);
+  } else if (sid) {
     defender = {
       ...defender,
       statuses: addStatus(
@@ -915,21 +1042,10 @@ export function strike(
         defender.char.stats.resist,
       ),
     };
-  if (sid) log.push(`${sid === "impulso" ? who : def.char.name}: ${STATUS_DATA[sid].label} ×${stacksOf(sid === "impulso" ? ownStatuses : defender.statuses, sid)}.`);
+  }
+  if (sid && (sid !== "impulso" || applyOwnElementalStatus))
+    log.push(`${sid === "impulso" ? who : def.char.name}: ${STATUS_DATA[sid].label} ×${stacksOf(sid === "impulso" ? ownStatuses : defender.statuses, sid)}.`);
   let back = 0;
-  if ((def.reflect ?? 0) > 0) {
-    // Contraataque: the hit was already reduced; the attacker eats it in full.
-    back = Math.round((dmg / COUNTER_TAKEN) * COUNTER_REFLECT);
-    defender = { ...defender, reflect: 0 };
-    ownStatuses = counterStatuses(def, { ...attacker, statuses: ownStatuses });
-    log.push(`${def.char.name} contraataca y devuelve ${back} a ${who}.`);
-  }
-  if (def.guard && def.defending && isStrongIntent(key) && def.char.classId === "caballero") {
-    // Reflejo: part of the damage the perfect guard avoided goes back, no hit roll.
-    const reflected = Math.round(dmg * (1 / PERFECT_GUARD_FACTOR - 1) * GUARD_REFLECT);
-    back += reflected;
-    log.push(`${def.char.name} refleja ${reflected} a ${who}.`);
-  }
   const thorns = Math.round(dmg * rulesOf(def).thorns);
   if (thorns > 0) {
     back += thorns;
@@ -946,9 +1062,8 @@ export function strike(
     },
     defender: {
       ...defender,
+      ...(def.nextHitReduction ? { nextHitReduction: undefined } : {}),
       rage: Math.min(RAGE_MAX, (defender.rage ?? 0) + 1),
-      taken: (def.taken ?? 0) + Math.max(0, dmg - absorbed),
-      takenFrom: enemy,
     },
     dmg,
   };
@@ -966,14 +1081,17 @@ export const ENRAGE_STEP = 0.1;
 // Defender ignores it. An out-of-range target is an illegal action.
 export function step(
   b: Battle,
-  action: Action,
+  action: BattleAction,
   rng: Rng,
   target?: number,
 ): Battle {
   if (b.status !== "ongoing" || !b.queue.includes("player")) return b;
-  if (action === "attack2" && b.player.cooldown > 0) return b;
-  const skill = action === "attack3" ? skillOf(b.player) : undefined;
-  if (action === "attack3" && (!skill || (b.player.cooldown3 ?? 0) > 0))
+  const universal = action in UNIVERSAL_SKILLS
+    ? UNIVERSAL_SKILLS[action as UniversalSkillId]
+    : undefined;
+  if (action !== "attack1" && action !== "defend" && !universal) return b;
+  if (universal && !universal.enabled) return b;
+  if (universal && (b.player.universalCooldowns?.[universal.id] ?? 0) > 1e-9)
     return b;
   const alive = livingEnemies(b);
   if (
@@ -982,20 +1100,43 @@ export function step(
   )
     return b;
   const tIdx = alive[target ?? 0];
+  if (
+    action === "interrumpir" &&
+    (tIdx === undefined ||
+      b.enemies[tIdx].channelingState !== "announced" ||
+      !b.queue.some((slot) => slot !== "player" && slot.e === tIdx && slot.intent === "channeling"))
+  )
+    return b;
+  if (action === "explotar" && !exploitableState(b.player, tIdx === undefined ? undefined : b.enemies[tIdx]))
+    return b;
   const log: string[] = [];
   const events: BattleEvent[] = [];
-  let player: Combatant = { ...b.player };
+  const resolutionReady = !!b.player.resolution;
+  let player: Combatant = {
+    ...b.player,
+    resolution: undefined,
+    nextHitReduction: undefined,
+    nextAttackDefenseBypass: undefined,
+    classHealThisActivation: 0,
+    classShieldThisActivation: 0,
+  };
   const enemies: Combatant[] = b.enemies.map((e) => ({ ...e }));
   const fallen = enemies.map((e) => e.hp <= 0);
 
-  if (action === "defend" || skill?.guard) {
+  if (action === "defend") {
     player.defending = true;
+    // A next-attack bonus survives the action that grants it, then expires
+    // after this activation if the player chooses to defend instead of attack.
+    player.nextCritChance = undefined;
     if (action === "defend") log.push(`${player.char.name} se defiende.`);
     if (!player.guard && strongPending(b)) player = earnGuard(player, log);
   }
 
   const guardEarned = log.some((l) => l.startsWith("¡Guardia perfecta!"));
-  const queue = [...b.queue];
+  let queue = [...b.queue];
+  let playerActions = b.playerActions;
+  const frostDelayed = new Set(b.frostDelayedEnemies ?? []);
+  let impulseGranted = b.impulseGranted ?? false;
   let playerDone = b.playerActions - queue.filter((s) => s === "player").length;
   let playerActed = false;
   let end: Status | null = null;
@@ -1006,15 +1147,24 @@ export function step(
     const last = enemies[i].boss?.last ?? [];
     return (
       ruleOf(enemies[i]) === "aprende" &&
-      last.length >= ADAPT_AFTER &&
-      last.every((a) => a === action)
+      last.length >= adaptAfter(enemies[i].boss?.ascension ?? 0) &&
+      last.slice(-adaptAfter(enemies[i].boss?.ascension ?? 0)).every((a) => a === action)
     );
   };
-  const hit = (i: number, key: MoveKey, factor = 1) => {
+  const hit = (
+    i: number,
+    key: CombatMoveKey,
+    factor = 1,
+    applyOwnElementalStatus = true,
+    defenseBypass = 0,
+    applyElementalStatus = true,
+  ) => {
+    const eventCount = events.length;
     if (adapted(i)) {
       factor *= ADAPT_FACTOR;
       log.push(`${enemies[i].char.name} te lee: tu golpe repetido le hace menos.`);
     }
+    const before = enemies[i];
     const r = strike(
       player,
       enemies[i],
@@ -1025,120 +1175,302 @@ export function step(
       "player",
       i,
       factor,
+      undefined,
+      applyOwnElementalStatus,
+      Math.min(0.9, defenseBypass + (b.player.nextAttackDefenseBypass ?? 0)),
+      applyElementalStatus,
     );
-    player = r.attacker;
+    player = key === action
+      ? { ...r.attacker, nextCritChance: undefined }
+      : r.attacker;
     enemies[i] = r.defender;
+    if (before.aguante !== undefined && r.dmg > 0) {
+      const lifeDamage = Math.max(0, before.hp - r.defender.hp);
+      let aguanteFactor = key === "quebrar" ? QUEBRAR_HIT_FRACTION : AGUANTE_HIT_FRACTION;
+      if (key === "quebrar") {
+        if (player.char.classId === "caballero" && resolutionReady) aguanteFactor *= 1.25;
+        if (player.char.classId === "mago" && attackElementMultiplier(player, before) > 1) aguanteFactor *= 1.2;
+        if (player.char.classId === "picaro" && before.statuses?.length) aguanteFactor *= 1.2;
+        if (player.char.classId === "berserker" && player.hp < player.char.stats.hp * BERSERKER_SKILL_FURY_THRESHOLD) aguanteFactor *= 1.25;
+      }
+      const rawRemaining = before.aguante - Math.round(lifeDamage * aguanteFactor);
+      const remaining = Math.max(1, rawRemaining);
+      const broke = rawRemaining <= 0 && (before.quiebreResist ?? 0) === 0;
+      if (broke) {
+        if (key === "quebrar") chargeBrokenTargets.add(i);
+        enemies[i] = {
+          ...enemies[i],
+          aguante: before.aguanteMax,
+          exposed: true,
+          quiebre: 1,
+          quiebreResist: QUIEBRE_RESIST_ACTIVATIONS,
+          chargePending: key === "quebrar" ? false : before.chargePending,
+        };
+        log.push(`¡Quiebre! ${before.char.name} queda Expuesto.`);
+        if (player.char.classId === "clerigo" && key === "quebrar") healClass(0.03);
+        if (key === "quebrar" && before.chargePending)
+          log.push(`El Quiebre cancela la Carga de ${before.char.name}.`);
+      } else {
+        enemies[i] = { ...enemies[i], aguante: remaining };
+      }
+      if (key === "quebrar" && resolutionReady && player.char.classId === "caballero")
+        log.push(`${player.char.name} consume Resolución: +15 % de daño.`);
+    }
+    lastHitLanded = events.length > eventCount && events.at(-1)?.kind !== "miss";
     return r.dmg;
   };
+  let lastHitLanded = false;
+  const chargeBrokenTargets = new Set<number>();
+  const healClass = (fraction: number) => {
+    const before = player.hp;
+    player = classHeal(player, fraction);
+    if (player.hp > before) log.push(`${player.char.name} recupera ${player.hp - before} de vida.`);
+  };
   const playMove = () => {
-    if (action === "attack1" || action === "attack2") {
+    if (universal) {
+      const cooldownDiscount = player.char.classId === "berserker" && player.riposte ? 1 : 0;
+      const targets = universal.target === "all" ? alive : [tIdx];
+      if (universal.id === "explotar") {
+        if (tIdx === undefined) return;
+        const foe = enemies[tIdx];
+        const state = exploitableState(player, foe);
+        if (!state) return;
+        const mageEffect = player.char.classId === "mago" ? EXPLOIT_MAGE_EFFECT_MULT : 1;
+        let factor = EXPLOIT_BASIC_DAMAGE_FRACTION;
+        if (state.id === "sobrecarga")
+          factor += EXPLOIT_OVERLOAD_DAMAGE_FRACTION * mageEffect;
+        const damage = hit(tIdx, "attack1", factor, false, 0, false);
+        if (damage > 0) {
+          player.riposte = false;
+          player.guardedLast = false;
+        }
+        log.push(`${player.char.name} explota ${state.id === "sobrecarga" ? "Sobrecarga" : STATUS_DATA[state.id].label} ×${state.stacks}.`);
+        if (state.id === "quemadura") {
+          const current = enemies[tIdx];
+          const berserkerEffect = player.char.classId === "berserker" && player.hp < player.char.stats.hp * BERSERKER_SKILL_FURY_THRESHOLD
+            ? EXPLOIT_BERSERKER_BURN_MULT
+            : 1;
+          const burn = Math.min(
+            Math.round(burnDamage(current.statuses) * mageEffect * berserkerEffect),
+            Math.round(current.char.stats.hp * BURN_CAP),
+          );
+          if (burn > 0) {
+            enemies[tIdx] = {
+              ...current,
+              hp: Math.max(0, current.hp - burn),
+              statuses: (current.statuses ?? []).filter((item) => item.id !== "quemadura"),
+            };
+            log.push(`${current.char.name} sufre ${burn} de Quemadura adelantada; el efecto termina.`);
+          } else {
+            enemies[tIdx] = {
+              ...current,
+              statuses: (current.statuses ?? []).filter((item) => item.id !== "quemadura"),
+            };
+          }
+        } else if (state.id === "ruptura") {
+          enemies[tIdx] = {
+            ...enemies[tIdx],
+            statuses: (enemies[tIdx].statuses ?? []).filter((item) => item.id !== "ruptura"),
+          };
+          const bypass = Math.min(0.9, state.stacks * EXPLOIT_RUPTURE_DEFENSE_PER_STACK * mageEffect);
+          player.nextAttackDefenseBypass = bypass;
+          log.push(`${player.char.name} prepara el siguiente ataque: ignora ${Math.round(bypass * 100)} % de DEF.`);
+        } else if (state.id === "escarcha") {
+          enemies[tIdx] = {
+            ...enemies[tIdx],
+            statuses: (enemies[tIdx].statuses ?? []).filter((item) => item.id !== "escarcha"),
+          };
+          if (!frostDelayed.has(tIdx)) {
+            const delayed = delayEnemySlots(queue, tIdx, state.stacks >= 3 ? 2 : 1);
+            queue = delayed.queue;
+            if (delayed.moved > 0) {
+              frostDelayed.add(tIdx);
+              log.push(`Escarcha retrasa ${delayed.moved === 1 ? "una acción" : `${delayed.moved} acciones`} de ${foe.char.name} hasta después de tu próxima acción.`);
+            } else {
+              log.push(`${foe.char.name} no tiene una acción pendiente que Escarcha pueda retrasar.`);
+            }
+          } else {
+            log.push(`Escarcha ya retrasó una acción de ${foe.char.name} esta ronda.`);
+          }
+        } else if (state.id === "impulso") {
+          player = {
+            ...player,
+            statuses: (player.statuses ?? []).filter((item) => item.id !== "impulso"),
+          };
+          if (player.char.classId === "picaro") {
+            player.nextCritChance = (player.nextCritChance ?? 0) + 0.15;
+            log.push(`${player.char.name} consume Impulso: +15 % de crítico en su próximo ataque.`);
+          }
+          if (state.stacks >= EXPLOIT_IMPULSE_EXTRA_ACTION_MIN_STACKS && !impulseGranted && playerActions < MAX_ACTIONS_PER_ROUND) {
+            queue.push("player");
+            playerActions++;
+            impulseGranted = true;
+            log.push(`${player.char.name} consume Impulso: añade una acción al final de la cola de esta ronda.`);
+          } else if (state.stacks >= EXPLOIT_IMPULSE_EXTRA_ACTION_MIN_STACKS && playerActions >= MAX_ACTIONS_PER_ROUND) {
+            log.push(`Impulso no puede superar el máximo de ${MAX_ACTIONS_PER_ROUND} acciones por ronda.`);
+          }
+        } else {
+          player.charge = 0;
+          log.push(`La Sobrecarga de ${player.char.name} se descarga.`);
+        }
+        if (player.char.classId === "caballero") {
+          const shieldBefore = player.shield ?? 0;
+          player = classShield(player, 0.03);
+          if ((player.shield ?? 0) > shieldBefore)
+            log.push(`${player.char.name} gana un escudo de ${Math.round((player.shield ?? 0) - shieldBefore)}.`);
+        }
+        if (player.char.classId === "clerigo") healClass(0.03);
+        player.universalCooldowns = {
+          ...player.universalCooldowns,
+          explotar: Math.max(0, universal.cooldown - cooldownDiscount) * UNIVERSAL_COOLDOWN_CONVERSION,
+        };
+        if (cooldownDiscount) player.riposte = false;
+        return;
+      }
+      if (universal.id === "interrumpir") {
+        if (tIdx === undefined) return;
+        const foe = enemies[tIdx];
+        hit(tIdx, "interrumpir");
+        enemies[tIdx] = { ...enemies[tIdx], channelingState: "cancelled" };
+        for (let q = queue.length - 1; q >= 0; q--) {
+          const queued = queue[q];
+          if (queued !== "player" && queued.e === tIdx && queued.intent === "channeling")
+            queue.splice(q, 1);
+        }
+        log.push(`${foe.char.name}: canalización interrumpida; su ritual queda cancelado.`);
+        player.universalCooldowns = {
+          ...player.universalCooldowns,
+          interrumpir: Math.max(0, universal.cooldown - cooldownDiscount) * UNIVERSAL_COOLDOWN_CONVERSION,
+        };
+        if (cooldownDiscount) player.riposte = false;
+        return;
+      }
+      let ownerElementApplied = false;
+      let dealt = 0;
+      for (const i of targets) {
+        if (enemies[i]?.hp > 0) {
+          const foe = enemies[i];
+          let hook = 1;
+          if (universal.id === "golpe") {
+            if (player.char.classId === "caballero" && resolutionReady) hook *= 1.15;
+            if (player.char.classId === "mago" && foe.statuses?.length) hook *= 1.15;
+            if (player.char.classId === "picaro" && foe.exposed) hook *= 1.2;
+            if (player.char.classId === "berserker" && player.hp < player.char.stats.hp * BERSERKER_SKILL_FURY_THRESHOLD) hook *= 1 + BERSERKER_GOLPE_BONUS;
+          } else if (universal.id === "quebrar") {
+            if (player.char.classId === "caballero" && resolutionReady) hook *= 1.15;
+          } else if (universal.id === "barrido") {
+            if (player.char.classId === "mago" && foe.statuses?.length) hook *= 1.1;
+            if (player.char.classId === "picaro" && alive.length === 1) hook *= 1.1;
+            if (player.char.classId === "berserker" && player.hp < player.char.stats.hp * BERSERKER_SKILL_FURY_THRESHOLD) hook *= 1 + BERSERKER_BARRIDO_BONUS;
+          }
+          const damage = hit(i, universal.id, hook, !ownerElementApplied);
+          dealt += damage;
+          if (lastHitLanded && player.char.classId === "clerigo") healClass(0.03);
+          if (
+            damage > 0 &&
+            (player.char.element === "viento" || player.char.element === "rayo")
+          ) ownerElementApplied = true;
+        }
+      }
+      if (dealt > 0) {
+        player.riposte = false;
+        player.guardedLast = false;
+      }
+      if (universal.id === "barrido" && player.char.classId === "caballero" && alive.length >= 2) {
+        player.nextHitReduction = 0.10;
+        log.push(`${player.char.name} reduce en 10 % el próximo golpe recibido.`);
+      }
+      if (universal.id === "golpe" && resolutionReady && player.char.classId === "caballero")
+        log.push(`${player.char.name} consume Resolución: +15 % de daño.`);
+      player.universalCooldowns = {
+        ...player.universalCooldowns,
+        [universal.id]: Math.max(0, universal.cooldown - cooldownDiscount) * UNIVERSAL_COOLDOWN_CONVERSION,
+      };
+      if (cooldownDiscount) player.riposte = false;
+      return;
+    }
+    if (action === "attack1") {
       const dealt = hit(tIdx, action);
-      if (dealt > 0 && !(guardFree(player) && action === "attack1"))
+      if (dealt > 0 && !(player.char.classId === "berserker" && player.riposte))
         player.riposte = false;
       if (dealt > 0) player.guardedLast = false;
       return;
-    }
-    if (!skill) return;
-    const cd = skill.cooldown + 1 - (guardFree(player) ? 1 : 0);
-    if (skill.power === 0) {
-      player.cooldown3 = cd;
-      const m = player.char.stats.hp;
-      const bits: string[] = [];
-      if (skill.heal) {
-        const hp = Math.min(
-          m,
-          player.hp + Math.round(m * skill.heal * healMult(player)),
-        );
-        bits.push(`recupera ${hp - player.hp} de vida`);
-        player.hp = hp;
-      }
-      if (skill.shield) {
-        const s = Math.round(m * skill.shield);
-        player.shield = (player.shield ?? 0) + s;
-        bits.push(`gana un escudo de ${s}`);
-      }
-      if (skill.counter) {
-        player.reflect = COUNTER_ROUNDS;
-        const taken = player.taken ?? 0;
-        const foe = enemies[player.takenFrom ?? tIdx];
-        if (taken > 0 && foe && foe.hp > 0) {
-          // The rival already hit this round: the hit is returned right now.
-          const back = Math.round((taken / COUNTER_TAKEN) * COUNTER_REFLECT);
-          enemies[player.takenFrom ?? tIdx] = {
-            ...foe,
-            hp: Math.max(0, foe.hp - back),
-            statuses: counterStatuses(player, foe),
-          };
-          bits.push(`devuelve ${back} a ${foe.char.name}`);
-          player.taken = 0;
-        } else bits.push("se prepara para devolver el próximo golpe");
-      }
-      if (skill.guard) bits.push("se protege");
-      log.push(`${player.char.name} usa ${skill.name}: ${bits.join(" y ")}.`);
-      events.push({
-        actor: "player",
-        kind: "buff",
-        classId: player.char.classId,
-        move: "attack3",
-        enemy: tIdx,
-      });
-      return;
-    }
-    let dealt = 0;
-    if (skill.area) {
-      for (const i of alive) if (enemies[i].hp > 0) dealt += hit(i, "attack3");
-    } else {
-      for (let h = 0; h < (skill.hits ?? 1) && enemies[tIdx].hp > 0; h++)
-        dealt += hit(tIdx, "attack3");
-    }
-    player.cooldown3 = cd;
-    if (dealt > 0) {
-      player.riposte = false;
-      player.guardedLast = false;
     }
   };
 
   while (queue.length && !end) {
     const slot = queue[0];
-    // Contraataque waits for the first hit that lands: the hero's extra actions
-    // this round are spent so it resolves without another command.
     if (slot === "player" && playerActed) {
-      if ((player.reflect ?? 0) > 0 && action === "attack3" && skill?.counter) {
-        queue.shift();
-        continue;
-      }
       break;
     }
     queue.shift();
     if (slot === "player") {
       playerActed = true;
+      const clocks = Object.fromEntries(
+        Object.entries(player.universalCooldowns ?? {}).map(([id, value]) => [
+          id,
+          Math.max(0, (value ?? 0) - UNIVERSAL_COOLDOWN_CONVERSION),
+        ]),
+      ) as Combatant["universalCooldowns"];
+      if (Object.keys(clocks ?? {}).length) player.universalCooldowns = clocks;
       if (playerDone++ > 0) log.push(`${player.char.name} actúa de nuevo.`);
       if (action !== "defend") playMove();
+      if (chargeBrokenTargets.size)
+        for (let q = queue.length - 1; q >= 0; q--) {
+          const queued = queue[q];
+          if (queued !== "player" && queued?.intent === "charge" && chargeBrokenTargets.has(queued.e))
+            queue.splice(q, 1);
+        }
       enemies.forEach((e, i) => {
         if (e.boss && ruleOf(e) === "aprende")
           enemies[i] = {
             ...e,
-            boss: { ...e.boss, last: [...e.boss.last, action].slice(-ADAPT_AFTER) },
+            boss: { ...e.boss, last: [...e.boss.last, action].slice(-adaptAfter(e.boss.ascension)) },
           };
       });
     } else if (enemies[slot.e].hp > 0) {
       let foe = enemies[slot.e];
+      if (slot.intent === "channeling") {
+        if (foe.channelingState === "announced") {
+          enemies[slot.e] = { ...foe, channelingState: "resolved" };
+          log.push(`${foe.char.name} completa su canalización.`);
+        }
+        continue;
+      }
       if (slot.n > 0) log.push(`${foe.char.name} actúa de nuevo.`);
       if (slot.intent === "defend") {
         log.push(`${foe.char.name} se defiende.`);
+        enemies[slot.e] = {
+          ...foe,
+          exposed: false,
+          quiebre: 0,
+          quiebreResist: Math.max(0, (foe.quiebreResist ?? 0) - 1),
+        };
         continue;
       }
+      if (slot.intent === "charge")
+        log.push(`${foe.char.name} lanza su Carga.`);
       const r = strike(
         foe,
         player,
-        slot.intent,
+        slot.intent === "charge" ? "attack2" : slot.intent,
         rng,
         log,
         events,
         "enemy",
         slot.e,
+        1,
+        undefined,
+        true,
+        slot.intent === "charge" ? CHARGE_DEFENSE_BYPASS : 0,
       );
-      foe = r.attacker;
+      foe = {
+        ...r.attacker,
+        exposed: false,
+        quiebre: 0,
+        quiebreResist: Math.max(0, (r.attacker.quiebreResist ?? 0) - 1),
+        chargePending: false,
+      };
       player = r.defender;
       if (
         foe.boss &&
@@ -1196,6 +1528,9 @@ export function step(
       ...b,
       player,
       enemies,
+      playerActions,
+      frostDelayedEnemies: [...frostDelayed].sort((a, z) => a - z),
+      impulseGranted,
       queue: end ? [] : queue,
       status: end ?? "ongoing",
       events,
@@ -1214,19 +1549,21 @@ export function step(
     defending: false,
     guard: false,
     cooldown: Math.max(0, player.cooldown - 1),
-    cooldown3: Math.max(0, (player.cooldown3 ?? 0) - 1),
-    reflect: Math.max(0, (player.reflect ?? 0) - 1),
-    taken: 0,
+    classHealThisRound: 0,
+    classHealThisActivation: 0,
+    classShieldThisRound: 0,
+    classShieldThisActivation: 0,
   };
   player = statusTick(passiveHeal(player, log), log);
   const bosses = enemies.filter((e) => e.hp > 0 && e.boss);
   const bossRule = (r: string) => bosses.some((e) => ruleOf(e) === r);
   if (bossRule("plaga")) {
-    const loss = Math.round(player.char.stats.hp * PLAGUE_LOSS);
+    const plagueBoss = bosses.find((e) => ruleOf(e) === "plaga")!;
+    const loss = Math.round(player.char.stats.hp * plagueLoss(plagueBoss.boss!.ascension));
     player = { ...player, hp: Math.max(0, player.hp - loss) };
     log.push(`La plaga te consume ${loss} de vida.`);
   }
-  if (bossRule("marchitar") && b.turn % RITUAL_EVERY === 0) {
+  if (enemies.some((e) => e.hp > 0 && ruleOf(e) === "marchitar" && e.channelingState === "resolved")) {
     if (guarded) log.push("Tu guardia perfecta anula el ritual marchito.");
     else {
       player = {
@@ -1302,6 +1639,8 @@ export function step(
     ...b,
     queue: plan.queue,
     playerActions: plan.playerActions,
+    frostDelayedEnemies: [],
+    impulseGranted: false,
     player,
     enemies: plan.enemies,
     turn,

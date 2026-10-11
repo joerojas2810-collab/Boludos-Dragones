@@ -194,7 +194,7 @@ export default function ForgePage() {
               busy={busy}
               onStarUp={(b, m, gave) => void act("Subir ★", () => repo.starUpHero(b, m), ["forge_merge", "forge_success"], gave)}
               onFuse={(b, m, keep, gave) => void act("Subir de rango", () => repo.fuseHeroes(b, m, keep), ["forge_merge", "forge_success"], gave)}
-              onSwap={(id, i, gave) => void act("Cambiar de rasgo", () => repo.swapTrait(id, i), ["forge_craft", "forge_success"], gave)}
+              onSwap={(id, i, gave) => void act("Cambiar perfil", () => repo.swapCopy(id, i), ["forge_craft", "forge_success"], gave)}
             />
           )}
           {tab === "upgrade" && (
