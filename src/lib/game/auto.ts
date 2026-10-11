@@ -8,6 +8,7 @@ import {
   BERSERKER_GOLPE_BONUS,
   BERSERKER_BARRIDO_BONUS,
   attackElementMultiplier,
+  critMultiplier,
   enemyIntents,
   estimateDamage,
   EXPLOIT_BERSERKER_BURN_MULT,
@@ -25,6 +26,7 @@ import {
   type Action,
   type Battle,
   type Combatant,
+  type EnemySlot,
   type MoveKey,
 } from "./combat";
 import type { Rng } from "./rng";
@@ -130,6 +132,28 @@ export function autoPolicy(b: Battle, opts: AutoOptions = {}): AutoPick {
         if (state.id === "ruptura") {
           const bypass = Math.min(0.9, state.stacks * EXPLOIT_RUPTURE_DEFENSE_PER_STACK * effectMult);
           value += ev(p, foe, "attack1") * bypass;
+        }
+        if (state.id === "escarcha") {
+          const current = b.queue.indexOf("player");
+          const nextPlayer = b.queue.findIndex((slot, i) => i > current && slot === "player");
+          if (current >= 0 && nextPlayer > current) {
+            const threatened = b.queue.slice(current + 1, nextPlayer).filter(
+              (slot): slot is EnemySlot => slot !== "player" && slot.intent !== "defend" && slot.e === enemyIndex &&
+                !(isStrongIntent(slot.intent) && slot.warningWaited),
+            ).slice(0, state.stacks >= 3 ? 2 : 1);
+            // Delaying damage creates a window for one more player response, so
+            // value the threat it moves behind that activation.
+            value += threatened.reduce(
+              (sum, slot) => sum + (slot.intent === "defend" ? 0 : ev(b.enemies[slot.e], p, slot.intent)),
+              0,
+            );
+          }
+        }
+        if (state.id === "impulso") {
+          if (state.stacks >= 2 && !b.impulseGranted && b.playerActions < 3)
+            value += a1;
+          if (p.char.classId === "picaro")
+            value += a1 * 0.15 * (critMultiplier(p) - 1);
         }
         if (p.char.classId === "clerigo") value += clericHealUtility(0.03);
         if (p.char.classId === "caballero") value += maxHp * 0.03 * 0.2;

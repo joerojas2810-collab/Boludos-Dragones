@@ -223,6 +223,116 @@ describe("elemental statuses", () => {
   });
 });
 
+describe("Explotar Escarcha e Impulso sobre la cola de ronda", () => {
+  const frostTarget = (b: Battle, stacks: number) => ({
+    ...b.enemies[0],
+    statuses: addStatus(undefined, "escarcha", stacks),
+  });
+
+  it("consumes Escarcha and moves the next pending enemy slot after the next player action", () => {
+    const hero = withWeapon(unit("caballero"), "agua");
+    const foe = unit("mago", { hp: 10000 });
+    const base = fight(hero, [foe], [["attack1", "attack1"]]);
+    const prepared = withRound({ ...base, enemies: [frostTarget(base, 1)] }, false, [["attack1", "attack1"]], 2);
+    const out = step(prepared, "explotar", always);
+
+    expect(stacksOf(out.enemies[0].statuses, "escarcha")).toBe(0);
+    expect(out.queue[0]).toBe("player");
+    expect(out.queue[1]).toMatchObject({ e: 0, n: 0 });
+    expect(out.log.join(" ")).toContain("Escarcha retrasa una acción");
+  });
+
+  it("three Escarcha charges move up to two queued slots in one event", () => {
+    const hero = withWeapon(unit("caballero"), "agua");
+    const foe = unit("mago", { hp: 10000 });
+    const base = fight(hero, [foe], [["attack1"]]);
+    const prepared: Battle = {
+      ...base,
+      playerActions: 2,
+      enemies: [frostTarget(base, 3)],
+      queue: [
+        "player",
+        { e: 0, n: 0, intent: "attack1" as const },
+        { e: 0, n: 1, intent: "attack1" as const },
+        "player",
+        { e: 0, n: 2, intent: "attack1" as const },
+      ],
+    };
+    const out = step(prepared, "explotar", always);
+
+    expect(out.queue).toEqual([
+      "player",
+      { e: 0, n: 0, intent: "attack1" },
+      { e: 0, n: 1, intent: "attack1" },
+      { e: 0, n: 2, intent: "attack1" },
+    ]);
+    expect(out.frostDelayedEnemies).toEqual([0]);
+  });
+
+  it("does not delay a strong slot that already received its warning wait", () => {
+    const hero = withWeapon(unit("caballero"), "agua");
+    const foe = unit("mago", { hp: 10000 });
+    const base = fight(hero, [foe], [["attack2"]]);
+    const prepared: Battle = {
+      ...base,
+      playerActions: 2,
+      enemies: [frostTarget(base, 3)],
+      queue: ["player", { e: 0, n: 0, intent: "attack2" as const, warningWaited: true }, "player"],
+    };
+    const out = step(prepared, "explotar", always);
+
+    expect(out.log.join(" ")).not.toContain("Escarcha retrasa");
+    expect(out.frostDelayedEnemies).toEqual([]);
+  });
+
+  it("consumes 2+ Impulso stacks for one queued action, never exceeding three", () => {
+    const hero = withWeapon({ ...unit("mago"), element: "viento" }, "agua");
+    const foe = unit("mago", { hp: 10000 });
+    const base = fight(hero, [foe], [["attack1"]]);
+    const prepared: Battle = {
+      ...base,
+      player: { ...base.player, statuses: addStatus(undefined, "impulso", 2) },
+      playerActions: 2,
+      queue: ["player", { e: 0, n: 0, intent: "attack1" as const }, "player"],
+    };
+    const out = step(prepared, "explotar", always);
+
+    expect(stacksOf(out.player.statuses, "impulso")).toBe(0);
+    expect(out.playerActions).toBe(3);
+    expect(out.impulseGranted).toBe(true);
+    expect(out.queue.slice(0, 2)).toEqual(["player", { e: 0, n: 0, intent: "attack1" }]);
+  });
+
+  it("keeps the three-action cap and Pícaro consumes Impulso for next-attack critical chance", () => {
+    const rogue = withWeapon({ ...unit("picaro", { crit: 0.2 }), element: "viento" }, "agua");
+    const foe = unit("mago", { hp: 10000 });
+    const base = fight(rogue, [foe], [["attack1", "attack1"]]);
+    const capped: Battle = {
+      ...base,
+      player: { ...base.player, statuses: addStatus(undefined, "impulso", 2) },
+      playerActions: 3,
+      queue: ["player", { e: 0, n: 0, intent: "attack1" as const }, "player", { e: 0, n: 1, intent: "attack1" as const }, "player"],
+    };
+    const cappedOut = step(capped, "explotar", always);
+    expect(cappedOut.playerActions).toBe(3);
+    expect(cappedOut.log.join(" ")).not.toContain("añade una acción");
+
+    const critRng: Rng = { ...createRng(5), chance: (p) => p >= 0.3 };
+    const bonusBase: Battle = {
+      ...base,
+      player: { ...base.player, statuses: addStatus(undefined, "impulso", 1) },
+      queue: ["player", "player"],
+    };
+    const primed = step(bonusBase, "explotar", always);
+    expect(primed.player.nextCritChance).toBe(0.15);
+    const defended = step(primed, "defend", always);
+    expect(defended.player.nextCritChance).toBeUndefined();
+    const next = step(primed, "attack1", critRng);
+    expect(next.events.some((event) => event.kind === "crit")).toBe(true);
+    expect(next.player.nextCritChance).toBeUndefined();
+  });
+});
+
 describe("perfect guard class bonuses", () => {
   const log: string[] = [];
   const earn = (cls: ClassId, hp?: number) => {

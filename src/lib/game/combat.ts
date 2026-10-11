@@ -188,6 +188,7 @@ export interface Combatant {
   statuses?: StatusEffect[]; // elemental effects (statuses.ts)
   charge?: number; // Rayo's Sobrecarga charges, consumed later by Explotar
   nextAttackDefenseBypass?: number; // Ruptura consumed: next player activation's attack
+  nextCritChance?: number; // Pícaro: Explotar Impulso empowers the next attack
   missed?: boolean; // Terco: the last hit missed
   guardedLast?: boolean; // Paciente: it spent the last round defending (spent by its next hit)
   opened?: boolean; // Fanfarrón: it has already thrown its first hit
@@ -210,7 +211,7 @@ export interface Combatant {
 // player action plus every enemy slot up to the next player slot. An enemy slot
 // carries its announced intent; `n` is its ordinal among that enemy's actions
 // this round.
-export type EnemySlot = { e: number; n: number; intent: Intent };
+export type EnemySlot = { e: number; n: number; intent: Intent; warningWaited?: boolean };
 export type Slot = "player" | EnemySlot;
 
 export interface Battle {
@@ -218,6 +219,8 @@ export interface Battle {
   enemies: Combatant[]; // 1..MAX_ENEMIES; dead ones stay (hp 0) to keep indices
   queue: Slot[]; // action slots still to resolve this round
   playerActions: number; // player's total actions this round
+  frostDelayedEnemies?: number[]; // one Explotar delay event per enemy this round
+  impulseGranted?: boolean; // one extra action from Impulso per round
   turn: number; // round number
   actions: number; // player actions resolved so far (0 = fight not started)
   status: Status;
@@ -227,14 +230,20 @@ export interface Battle {
   mods?: EnemyMod[];
 }
 
-export type ExploitableState = { id: "quemadura" | "ruptura"; stacks: number } | { id: "sobrecarga"; stacks: 3 };
+export type ExploitableState =
+  | { id: "escarcha" | "impulso" | "quemadura" | "ruptura"; stacks: number }
+  | { id: "sobrecarga"; stacks: 3 };
 
-/** States available to Explotar in stage 5a; Escarcha and Impulso arrive in 5b. */
+/** Returns the first state available to Explotar, in stable priority order. */
 export function exploitableState(player: Combatant, target?: Combatant): ExploitableState | null {
+  const frost = stacksOf(target?.statuses, "escarcha");
+  if (frost > 0) return { id: "escarcha", stacks: frost };
   const burn = stacksOf(target?.statuses, "quemadura");
   if (burn > 0) return { id: "quemadura", stacks: burn };
   const rupture = stacksOf(target?.statuses, "ruptura");
   if (rupture > 0) return { id: "ruptura", stacks: rupture };
+  const impulse = stacksOf(player.statuses, "impulso");
+  if (impulse > 0) return { id: "impulso", stacks: impulse };
   return (player.charge ?? 0) >= MAX_ELEMENT_CHARGES
     ? { id: "sobrecarga", stacks: MAX_ELEMENT_CHARGES }
     : null;
@@ -478,12 +487,32 @@ function grantFirstPlayerResponse(queue: Slot[]): Slot[] {
   if (firstPlayer <= 0) return queue;
   const waiting = queue.slice(0, firstPlayer).filter(
     (slot): slot is EnemySlot => slot !== "player" && isStrongIntent(slot.intent),
-  );
+  ).map((slot) => ({ ...slot, warningWaited: true }));
   if (!waiting.length) return queue;
+  const waitingKeys = new Set(waiting.map((slot) => `${slot.e}:${slot.n}`));
   const before = queue.slice(0, firstPlayer).filter(
-    (slot) => slot === "player" || !isStrongIntent(slot.intent),
+    (slot) => slot === "player" || !waitingKeys.has(`${slot.e}:${slot.n}`),
   );
   return [...before, "player", ...waiting, ...queue.slice(firstPlayer + 1)];
+}
+
+// Move at most `limit` eligible pending slots for one enemy to just after the
+// next player slot. Strong intents already moved once for their warning stay put.
+function delayEnemySlots(queue: Slot[], enemy: number, limit: number): { queue: Slot[]; moved: number } {
+  const nextPlayer = queue.indexOf("player");
+  if (nextPlayer < 0) return { queue, moved: 0 };
+  const selected = queue.slice(0, nextPlayer).filter(
+    (slot): slot is EnemySlot =>
+      slot !== "player" && slot.e === enemy && !(isStrongIntent(slot.intent) && slot.warningWaited),
+  ).slice(0, limit);
+  if (!selected.length) return { queue, moved: 0 };
+  const selectedKeys = new Set(selected.map((slot) => `${slot.e}:${slot.n}`));
+  const remaining = queue.filter((slot) =>
+    slot === "player" || !selectedKeys.has(`${slot.e}:${slot.n}`),
+  );
+  const playerIndex = remaining.indexOf("player");
+  remaining.splice(playerIndex + 1, 0, ...selected);
+  return { queue: remaining, moved: selected.length };
 }
 
 // Enemy action slots of a round: pass k lists every enemy with a k-th action,
@@ -615,6 +644,8 @@ export function withRound(
   return {
     ...b,
     playerActions,
+    frostDelayedEnemies: [],
+    impulseGranted: false,
     queue: buildQueue(
       playerActions,
       enemySlots(order, per),
@@ -659,6 +690,8 @@ export function startBattle(
     ...(mods.length ? { mods } : {}),
     queue: plan.queue,
     playerActions: plan.playerActions,
+    frostDelayedEnemies: [],
+    impulseGranted: false,
     player: p,
     enemies: plan.enemies,
     turn: 1,
@@ -940,6 +973,7 @@ export function strike(
   const crit = rng.chance(
     att.char.stats.crit +
       (a.crit ?? 0) +
+      (att.nextCritChance ?? 0) +
       (att.char.classId === "mago" ? CLASS_PASSIVE_MAGE_CRIT : 0) +
       (att.riposte && att.char.classId === "picaro" ? GUARD_CRIT_BONUS : 0),
   );
@@ -1087,12 +1121,18 @@ export function step(
 
   if (action === "defend") {
     player.defending = true;
+    // A next-attack bonus survives the action that grants it, then expires
+    // after this activation if the player chooses to defend instead of attack.
+    player.nextCritChance = undefined;
     if (action === "defend") log.push(`${player.char.name} se defiende.`);
     if (!player.guard && strongPending(b)) player = earnGuard(player, log);
   }
 
   const guardEarned = log.some((l) => l.startsWith("¡Guardia perfecta!"));
-  const queue = [...b.queue];
+  let queue = [...b.queue];
+  let playerActions = b.playerActions;
+  const frostDelayed = new Set(b.frostDelayedEnemies ?? []);
+  let impulseGranted = b.impulseGranted ?? false;
   let playerDone = b.playerActions - queue.filter((s) => s === "player").length;
   let playerActed = false;
   let end: Status | null = null;
@@ -1136,7 +1176,9 @@ export function step(
       Math.min(0.9, defenseBypass + (b.player.nextAttackDefenseBypass ?? 0)),
       applyElementalStatus,
     );
-    player = r.attacker;
+    player = key === action
+      ? { ...r.attacker, nextCritChance: undefined }
+      : r.attacker;
     enemies[i] = r.defender;
     if (before.aguante !== undefined && r.dmg > 0) {
       const lifeDamage = Math.max(0, before.hp - r.defender.hp);
@@ -1229,6 +1271,40 @@ export function step(
           const bypass = Math.min(0.9, state.stacks * EXPLOIT_RUPTURE_DEFENSE_PER_STACK * mageEffect);
           player.nextAttackDefenseBypass = bypass;
           log.push(`${player.char.name} prepara el siguiente ataque: ignora ${Math.round(bypass * 100)} % de DEF.`);
+        } else if (state.id === "escarcha") {
+          enemies[tIdx] = {
+            ...enemies[tIdx],
+            statuses: (enemies[tIdx].statuses ?? []).filter((item) => item.id !== "escarcha"),
+          };
+          if (!frostDelayed.has(tIdx)) {
+            const delayed = delayEnemySlots(queue, tIdx, state.stacks >= 3 ? 2 : 1);
+            queue = delayed.queue;
+            if (delayed.moved > 0) {
+              frostDelayed.add(tIdx);
+              log.push(`Escarcha retrasa ${delayed.moved === 1 ? "una acción" : `${delayed.moved} acciones`} de ${foe.char.name} hasta después de tu próxima acción.`);
+            } else {
+              log.push(`${foe.char.name} no tiene una acción pendiente que Escarcha pueda retrasar.`);
+            }
+          } else {
+            log.push(`Escarcha ya retrasó una acción de ${foe.char.name} esta ronda.`);
+          }
+        } else if (state.id === "impulso") {
+          player = {
+            ...player,
+            statuses: (player.statuses ?? []).filter((item) => item.id !== "impulso"),
+          };
+          if (player.char.classId === "picaro") {
+            player.nextCritChance = (player.nextCritChance ?? 0) + 0.15;
+            log.push(`${player.char.name} consume Impulso: +15 % de crítico en su próximo ataque.`);
+          }
+          if (state.stacks >= 2 && !impulseGranted && playerActions < MAX_ACTIONS_PER_ROUND) {
+            queue.unshift("player");
+            playerActions++;
+            impulseGranted = true;
+            log.push(`${player.char.name} consume Impulso: añade una acción a esta ronda.`);
+          } else if (state.stacks >= 2 && playerActions >= MAX_ACTIONS_PER_ROUND) {
+            log.push(`Impulso no puede superar el máximo de ${MAX_ACTIONS_PER_ROUND} acciones por ronda.`);
+          }
         } else {
           player.charge = 0;
           log.push(`La Sobrecarga de ${player.char.name} se descarga.`);
@@ -1448,6 +1524,9 @@ export function step(
       ...b,
       player,
       enemies,
+      playerActions,
+      frostDelayedEnemies: [...frostDelayed].sort((a, z) => a - z),
+      impulseGranted,
       queue: end ? [] : queue,
       status: end ?? "ongoing",
       events,
@@ -1555,6 +1634,8 @@ export function step(
     ...b,
     queue: plan.queue,
     playerActions: plan.playerActions,
+    frostDelayedEnemies: [],
+    impulseGranted: false,
     player,
     enemies: plan.enemies,
     turn,

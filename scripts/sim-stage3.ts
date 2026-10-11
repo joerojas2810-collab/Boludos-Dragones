@@ -1,8 +1,15 @@
 // Deterministic stage 3 audit: class × element × class-eligible hand weapon × dungeon rank.
 // By default each class uses its two equipable weapons; pass --all-weapons to include all ten.
 // Usage: npx tsx scripts/sim-stage3.ts [--runs=100] [--seed=33013] [--all-weapons] [--output=scripts/baseline/stage3.json]
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+//        [--quick] [--workers=N]
+// --quick: fast iteration mode (20 runs/level, canonical weapon per class, ranks f,d,b,s,ssr).
+//          Good for tuning; use the full run (default) for the final measurement of each stage.
+// --workers=N: split the cells across N processes (default: CPU cores - 1, max 8). The result is
+//          identical for any N: aggregates are plain sums and rows are re-sorted by cell index.
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpus, tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { autoPolicy } from "../src/lib/game/auto";
 import { CLASS_IDS, generateCharacter, type ClassId } from "../src/lib/game/characters";
 import { step } from "../src/lib/game/combat";
@@ -20,8 +27,14 @@ const args = new Map(process.argv.slice(2).map((arg) => {
   return [key, value.join("=")];
 }));
 const BASE_SEED = Number(args.get("seed") ?? 13013);
-const RUNS_PER_LEVEL = Number(args.get("runs") ?? 100);
-const OUTPUT = args.get("output") ?? "scripts/baseline/stage3.json";
+const QUICK = args.has("quick");
+const RUNS_PER_LEVEL = Number(args.get("runs") ?? (QUICK ? 20 : 100));
+const OUTPUT = args.get("output") ?? (QUICK ? "scripts/baseline/stage3-quick.json" : "scripts/baseline/stage3.json");
+const WORKERS = Math.max(1, Math.floor(Number(args.get("workers") ?? Math.min(Math.max(1, cpus().length - 1), 8))));
+const [SHARD_INDEX, SHARD_COUNT] = (args.get("shard") ?? "0/1").split("/").map(Number);
+const IS_SHARD = args.has("shard");
+const PARTIAL = args.get("partial") ?? "";
+const QUICK_RANKS: readonly DungeonId[] = ["f", "d", "b", "s", "ssr"];
 const selected = <T extends string>(key: string, all: readonly T[]): readonly T[] => {
   const requested = args.get(key)?.split(",") as T[] | undefined;
   if (!requested) return all;
@@ -35,13 +48,13 @@ const REQUESTED_WEAPONS = selected("weapons", HAND_TYPES);
 const ALL_WEAPONS = args.has("all-weapons");
 const WEAPONS_BY_CLASS = new Map(CLASSES.map((classId) => [
   classId,
-  REQUESTED_WEAPONS.filter((weaponType) => ALL_WEAPONS || canUseWeapon(classId, weaponType)),
+  REQUESTED_WEAPONS.filter((weaponType) => ALL_WEAPONS || (QUICK ? weaponType === CLASS_WEAPONS[classId][0] : canUseWeapon(classId, weaponType))),
 ]));
 if ([...WEAPONS_BY_CLASS.values()].some((weapons) => weapons.length === 0)) {
   throw new Error("No eligible weapons remain for a selected class; use --all-weapons to include cross-class weapons.");
 }
 const WEAPONS = [...new Set([...WEAPONS_BY_CLASS.values()].flat())];
-const RANKS = selected("ranks", DUNGEON_IDS);
+const RANKS = args.has("ranks") ? selected("ranks", DUNGEON_IDS) : QUICK ? QUICK_RANKS : DUNGEON_IDS;
 if (!Number.isInteger(BASE_SEED) || BASE_SEED < 0) throw new Error("--seed must be a nonnegative integer");
 if (!Number.isInteger(RUNS_PER_LEVEL) || RUNS_PER_LEVEL < 1) throw new Error("--runs must be a positive integer");
 
@@ -143,9 +156,13 @@ const byClassElement = new Map<string, Aggregate>();
 const canonicalByElement = new Map(ELEMENT_SET.map((id) => [id, aggregate()]));
 const canonicalByClassElement = new Map<string, Aggregate>();
 const rows: Array<Record<string, unknown>> = [];
+const SKIP_LOCAL = WORKERS > 1 && !IS_SHARD; // the parent only merges what the shards computed
+let cellIndex = -1;
 for (const classId of CLASSES) {
   for (const element of ELEMENT_SET) {
     for (const weaponType of WEAPONS_BY_CLASS.get(classId)!) {
+      cellIndex++;
+      if (SKIP_LOCAL || cellIndex % SHARD_COUNT !== SHARD_INDEX) continue;
       const cell = aggregate();
       for (const rank of RANKS) {
         const levels = levelsOf(rank);
@@ -171,10 +188,43 @@ for (const classId of CLASSES) {
           }
         }
       }
-      rows.push({ classId, element, weaponType, ...summarize(cell) });
+      rows.push({ cellIndex, classId, element, weaponType, ...summarize(cell) });
     }
   }
 }
+
+// ---- sharding: children write their partial sums, the parent merges them ----
+const SUM_MAPS: Record<string, Map<string, Aggregate>> = { byClass, byWeapon, byClassRank, byElement, byClassElement, canonicalByElement, canonicalByClassElement };
+if (IS_SHARD) {
+  const dump = Object.fromEntries(Object.entries(SUM_MAPS).map(([name, map]) => [name, [...map.entries()]]));
+  writeFileSync(PARTIAL, JSON.stringify({ maps: dump, rows }));
+  process.exit(0);
+}
+if (SKIP_LOCAL) {
+  const dir = mkdtempSync(join(tmpdir(), "sim-stage3-"));
+  const quote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
+  const passthrough = process.argv.slice(2).filter((arg) => !arg.startsWith("--workers") && !arg.startsWith("--output"));
+  const files = Array.from({ length: WORKERS }, (_, index) => join(dir, `part-${index}.json`));
+  const commands = files.map((file, index) =>
+    [process.execPath, ...process.execArgv, process.argv[1], ...passthrough, `--shard=${index}/${WORKERS}`, `--partial=${file}`]
+      .map(quote).join(" ") + " &");
+  spawnSync("sh", ["-c", `${commands.join("\n")}\nwait`], { stdio: "inherit" });
+  for (const file of files) {
+    if (!existsSync(file)) throw new Error(`Shard did not finish: ${file}`);
+    const part = JSON.parse(readFileSync(file, "utf8")) as { maps: Record<string, Array<[string, Aggregate]>>; rows: Array<Record<string, unknown>> };
+    for (const [name, entries] of Object.entries(part.maps)) {
+      const target = SUM_MAPS[name];
+      for (const [key, value] of entries) {
+        const into = target.get(key) ?? aggregate();
+        into.n += value.n; into.wins += value.wins; into.turns += value.turns; into.turnSquares += value.turnSquares;
+        target.set(key, into);
+      }
+    }
+    rows.push(...part.rows);
+  }
+}
+rows.sort((a, b) => (a.cellIndex as number) - (b.cellIndex as number));
+for (const row of rows) delete row.cellIndex;
 
 const classSummary = CLASSES.map((classId) => ({
   classId,

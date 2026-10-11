@@ -123,11 +123,14 @@ Afinidades y `elements.ts` sin cambios; la ventaja elemental no aplica más esta
 
 - **Regla común de cargas (cerrada):** máximo 3 cargas por portador del estado elemental. Todo ataque que inflige daño aplica 1 carga, hasta ese máximo, al portador correspondiente según el estado; un ataque de área aplica como máximo 1 carga a cada enemigo alcanzado. Para estados cuyo portador es el PJ, un uso aplica como máximo 1 carga aunque dañe a varios enemigos. Explotar consume las cargas y no aplica ni añade cargas. Defender no añade cargas: la primera defensa consecutiva las conserva; si el PJ vuelve a Defender sin haber atacado entre ambas defensas, las cargas se pierden al terminar la segunda defensa. Un ataque dañino posterior añade una carga (si está bajo el máximo), renueva la duración y reinicia la secuencia de defensas.
 - **Daño común:** 40 % del daño que causaría el básico del PJ con el arma equipada, a un objetivo. Para calcular el básico, el ATQ del arma se suma al ATQ del PJ antes de calcular el daño. Explotar no aplica una carga elemental nueva.
-- **Escarcha (objetivo):** por acumulación consumida resta 10 puntos porcentuales del progreso actual; máximo 30. No baja de 0 ni quita una activación ya lista.
-- **Impulso (Viento), Quemadura (Fuego), Ruptura (Tierra) y Sobrecarga (Rayo):** sus efectos exactos al Explotar siguen pendientes de aprobación creativa. Las cifras que aparecen en borradores anteriores son propuestas de prueba, no decisiones cerradas.
+- **Escarcha (Agua):** Explotar consume las cargas y retrasa la próxima ranura pendiente del objetivo hasta después de la siguiente acción del PJ. Una vez por enemigo y ronda; 1–2 cargas mueven una ranura y 3 mueven hasta dos. No afecta ranuras resueltas ni intenciones fuertes que ya recibieron su espera de aviso.
+- **Impulso (Viento):** Explotar consume las cargas; con 2+ añade una acción del PJ a la cola de la ronda actual, máximo una extra y sin superar 3 acciones. El Pícaro gana además +15 % de crítico en su siguiente ataque.
+- **Quemadura (Fuego):** consume las cargas y adelanta un tic de daño, respetando `BURN_CAP`; el efecto termina.
+- **Ruptura (Tierra):** consume las cargas; el próximo ataque ignora 8 % de DEF por carga (máximo 24 %) y el bono expira tras una activación propia si no se usa.
+- **Sobrecarga (Rayo):** con 3 cargas, consume el contador y descarga +40 % del daño básico adicional. La calibración autorizada queda en `docs/E5_5A_RESULTADO.md`.
 - **Detonar del Mago:** deja de ser botón aparte; el Mago usa Explotar con +25 % a la magnitud del efecto. Se calibra por debajo del Detonar actual (~57 % sobre el resto).
 
-Los efectos de progreso (Escarcha, Impulso) exigen la etapa 2. Estados que hoy actúan sobre la velocidad (`statuses.ts`: Escarcha −10 %/acum., Impulso +8 %) se reinterpretan sobre el progreso al implementarse la etapa 2.
+El motor real conserva las rondas y la cola de acciones: Escarcha e Impulso aplican sus efectos de Explotar sobre las ranuras, sin el acumulador de E2. Sus modificadores de velocidad por carga siguen activos en el cálculo de acciones de la ronda.
 
 ## 9. Plan por etapas (con puerta de salida)
 
@@ -149,11 +152,10 @@ H1 y H2 van **antes del motor** (bajo riesgo, no dependen de la línea de progre
 
 ## 10. Puntos abiertos (para el contrato de cada etapa)
 
-1. Efectos exactos de Explotar para Impulso, Quemadura, Ruptura y Sobrecarga; Escarcha ya está definida (§8).
-2. Escala del progreso (E2): cómo se normaliza para que "puntos porcentuales" sean comparables entre combatientes.
-3. Tolerancia de equivalencia de la etapa 2 respecto del motor 13.
-4. Valores definitivos de balance, incluido el 15 % inicial de Expuesto: salen de simulación (`class-balance.ts`, `balance.ts`, `scripts/*-sim.ts`).
-5. Efecto defensivo temporal del Caballero (§6.2): modelo y duración.
+1. Escala del progreso en el prototipo aislado E2; no se aplica al motor real mientras conserve rondas.
+2. Tolerancia de equivalencia del prototipo E2 respecto del motor 13.
+3. Balance final de los valores iniciales (§6.2 y §8), según simulación (`class-balance.ts`, `balance.ts`, `scripts/*-sim.ts`).
+4. Efecto defensivo temporal del Caballero (§6.2): modelo y duración.
 
 ## 11. Criterios de éxito
 El jugador explica la próxima amenaza; hay más de una respuesta razonable por intención; el Pícaro de Viento no domina por acciones; Defender no es la respuesta automática; la duración no sube sin añadir decisiones.

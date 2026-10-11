@@ -20,7 +20,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 16; // 16: Explotar consumes Quemadura, Ruptura, and Sobrecarga
+export const ENGINE_VERSION = 17; // 17: Explotar also reorders round slots for Escarcha and Impulso
 
 export type FightRole = "normal" | "elite" | "final";
 

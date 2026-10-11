@@ -528,7 +528,7 @@ export function attackDisabledReason(c: Combatant, key: MoveKey, foe?: Combatant
   const universal = UNIVERSAL_SKILLS[key as UniversalSkillId];
   if (universal && !universal.enabled) return universal.disabledReason ?? "Aún no disponible.";
   if (key === "explotar" && !exploitableState(c, foe))
-    return "Requiere Quemadura, Ruptura o 3 cargas de Sobrecarga.";
+    return "Requiere Escarcha, Impulso, Quemadura, Ruptura o 3 cargas de Sobrecarga.";
   if (key === "quebrar" && foe?.aguante === undefined) return "Este enemigo no tiene Aguante.";
   if (key === "interrumpir" && foe?.channelingState !== "announced")
     return "No hay una Canalización anunciada que puedas interrumpir.";
@@ -705,9 +705,9 @@ export const riposteTip = (c: Combatant): Tip => ({
 });
 
 const STATUS_RULE: Record<StatusId, string> = {
-  escarcha: `Cada acumulación quita ${pct(STATUS_DATA.escarcha.per)} de velocidad (máx. ${STATUS_DATA.escarcha.max}).`,
+  escarcha: `Cada acumulación quita ${pct(STATUS_DATA.escarcha.per)} de velocidad. Explotarla retrasa una acción pendiente del enemigo; con 3 cargas puede retrasar dos.`,
   quemadura: `Cada ronda sufre ${pct(STATUS_DATA.quemadura.per)} del golpe que la causó por acumulación (máx. ${STATUS_DATA.quemadura.max}), con tope de ${pct(BURN_CAP)} de la vida máxima.`,
-  impulso: `Cada acumulación da +${pct(STATUS_DATA.impulso.per)} de velocidad propia (máx. ${STATUS_DATA.impulso.max}).`,
+  impulso: `Cada acumulación da +${pct(STATUS_DATA.impulso.per)} de velocidad propia. Explotarlo con 2+ cargas añade una acción a esta ronda; el Pícaro gana además +15 % de crítico en su siguiente ataque.`,
   ruptura: `Cada acumulación quita ${pct(STATUS_DATA.ruptura.per)} de DEF (máx. ${STATUS_DATA.ruptura.max}).`,
 };
 
