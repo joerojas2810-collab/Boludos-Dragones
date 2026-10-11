@@ -230,7 +230,7 @@ export function ActionPanel({
       icon={iconFor("skill", `${b.player.char.classId}.attack1`)}
       title="Básico"
       sub={`~${estimateDamage(b.player, foe, "attack1")} daño · seguro`}
-      meta={chip ? "CD — · 1 rival" : "Sin enfriamiento · Objetivo: 1 rival"}
+      meta={chip ? `CD — · ${foe.char.name}` : `Sin enfriamiento · Objetivo: ${foe.char.name}`}
     />
   );
 
@@ -239,8 +239,8 @@ export function ActionPanel({
     const remaining = universalCooldownLabel(b.player.universalCooldowns?.[action.id] ?? 0);
     const targetLabel = action.target === "all"
       ? `Objetivo: ${alive.length} ${alive.length === 1 ? "rival" : "rivales"}`
-      : "Objetivo: 1 rival";
-    const reason = action.disabledReason ?? (remaining > 0 ? `Disponible en ${remaining} activ.` : undefined);
+      : `Objetivo: ${foe.char.name}`;
+    const reason = attackDisabledReason(b.player, id, foe) ?? undefined;
     const damage = action.attack.power === 0
       ? action.attack.name === "Quebrar Aguante"
         ? "Reduce Aguante y rompe armadura"
@@ -253,13 +253,13 @@ export function ActionPanel({
         key={action.id}
         chip={chip}
         left={float}
-        tip={{ title: action.name, kind: "info", lines: [action.disabledReason ?? (remaining ? `Se activa de nuevo en ${remaining} acciones.` : targetLabel)] }}
+        tip={{ title: action.name, kind: "info", lines: [reason ?? (remaining ? `Se activa de nuevo en ${remaining} acciones.` : targetLabel)] }}
         disabled={!!reason}
         onClick={() => onAct(action.id, target)}
         icon={iconFor("skill", action.id)}
         title={UNIVERSAL_ACTION_LABELS[action.id]}
         sub={damage}
-        meta={`${chip ? "Restan" : "Activaciones"}: ${remaining} · ${targetLabel}`}
+        meta={`${chip ? "Restan" : "Activaciones"}: ${remaining} · ${targetLabel}${action.id === "quebrar" && foe.aguante !== undefined ? ` · Aguante ${foe.aguante}/${foe.aguanteMax}` : ""}`}
         disabledReason={reason}
       />
     );
