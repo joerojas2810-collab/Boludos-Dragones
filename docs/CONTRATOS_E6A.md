@@ -72,6 +72,7 @@ Intensificar la mecánica propia de cada jefe, **sin mecánicas nuevas**, con pa
 Valores por escalón salen de simulación (vigilar duración y daño acumulado con una vida y curación entre peleas). Documentar en `docs/E6A_4_RESULTADO.md`. Las 9 mecánicas vigentes se conservan; en 4a/4b ya se adaptaron Rey de Ceniza y Reina Marchita.
 
 ## 6a-5 — Interfaz
+- **Corrección del dueño (2026-10-11):** la **dificultad y la ascensión se eligen dentro de cada dungeon (ruta)**, no en un selector global. Flujo: (1) lista de las 9 rutas (nombre, jefe, familias, resumen de avance de esa ruta: escalón más alto superado y sello si corresponde); (2) al entrar en una ruta, aparece **su** escalera (rangos F–S y ascensiones +0…+5, con bloqueos y motivo; el desbloqueo sigue siendo compartido entre rutas), la lista de sus 4 niveles en el escalón elegido y el aviso de una línea de la mecánica del jefe (6a-4). El escalón elegido se recuerda por ruta.
 - **Selector de rutas y escalera:** lista de las 9 rutas (nombre, jefe, familias) y la escalera F…S con +0…+5; el escalón actual se escribe "Ruta · C+2"; escalones bloqueados con el motivo; al elegir, el aviso de una línea de 6a-4.
 - **Letrero y sello:** al terminar el último nivel, una pantalla con el nombre de la dungeon y el sello verde **COMPLETADO** (CSS/SVG mientras no haya arte); en la lista, las rutas ya completadas en ese escalón llevan el sello.
 - Sin desbordes en celular, el arte manda, poco texto, `prefers-reduced-motion`. Verificar en `/run` a 375 px y en escritorio.
