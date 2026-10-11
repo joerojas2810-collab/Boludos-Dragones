@@ -32,6 +32,7 @@ import {
   clearedLevels,
   isLevelUnlocked,
   isStepUnlocked,
+  isRouteDone,
   maxAscension,
 } from "@/lib/game/dungeonProgress";
 import {
@@ -52,7 +53,7 @@ import {
   type OwnedCharacter,
   type Profile,
 } from "@/lib/game/profile";
-import { DIFFICULTIES, DUNGEON_INFO, RARITIES, type Difficulty } from "@/lib/game/rarity";
+import { DIFFICULTIES, RARITIES, type Difficulty } from "@/lib/game/rarity";
 import {
   ASC_RULES,
   currentFight,
@@ -106,7 +107,6 @@ interface Outcome {
 }
 type View =
   | { t: "routes" }
-  | { t: "steps"; route: RouteId }
   | { t: "levels"; route: RouteId; difficulty: Difficulty }
   | { t: "prep"; route: RouteId; difficulty: Difficulty; level: number }
   | { t: "fight"; a: Attempt }
@@ -124,6 +124,8 @@ export function ProgressMode() {
   const { profile, ready } = useProfile();
   const [view, setView] = useState<View>({ t: "routes" });
   const [asc0, setAsc] = useState(0);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>("f");
+  const [selectedAsc, setSelectedAsc] = useState(0);
   const asc = asc0;
   const [heroId, setHeroId] = useState<string | null>(null);
   const targeting = useTargeting(
@@ -473,6 +475,13 @@ export function ProgressMode() {
           title={won ? "¡Nivel superado!" : "Nivel perdido"}
           className="mx-auto w-full max-w-2xl space-y-2 text-center"
         >
+          {won && dungeonEnd && (
+            <div className="dungeon-sign mx-auto mb-3 max-w-lg px-4 py-5 sm:px-8" aria-label={`${DUNGEON_THEMES[a.route].name}: completado`}>
+              <span className="block text-xs font-bold uppercase tracking-[0.2em] text-[#d9d2ca]">Ruta · {a.difficulty.toUpperCase()}+{a.asc}</span>
+              <h2 className="name-title mt-1 text-2xl text-yellow-200 sm:text-3xl">{DUNGEON_THEMES[a.route].name}</h2>
+              <span className="dungeon-stamp mt-3" role="img" aria-label="Completado">COMPLETADO</span>
+            </div>
+          )}
           <div className="text-[#d9d2ca]">
             {DUNGEON_THEMES[a.route].name} · Nivel {a.level + 1}
             {a.asc > 0 && ` · Ascensión +${a.asc}`}
@@ -606,7 +615,7 @@ export function ProgressMode() {
             </button>
             <button
               className="btn btn-gray text-center"
-              onClick={() => setView({ t: "steps", route: a.route })}
+              onClick={() => setView({ t: "routes" })}
             >
               Volver
             </button>
@@ -629,38 +638,8 @@ export function ProgressMode() {
         hero={hero}
         onEnter={(id) => void enter(view.route, view.difficulty, view.level, id)}
         onSweep={(id, n) => void sweep(view.route, view.difficulty, view.level, id, n)}
-        onBack={() => setView({ t: "steps", route: view.route })}
+        onBack={() => setView({ t: "routes" })}
       />
-    );
-  }
-
-  // ---------------- difficulty steps ----------------
-  if (view.t === "steps") {
-    const route = view.route;
-    const theme = DUNGEON_THEMES[route];
-    return (
-      <Shell>
-        <Notice />
-        <Panel title={theme.name} className="mx-auto w-full max-w-4xl space-y-3">
-          <p className="text-center text-[#d9d2ca]">Elige la dificultad. Los escalones desbloqueados sirven en todas las rutas.</p>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {DIFFICULTIES.map((difficulty) => {
-              const unlocked = isStepUnlocked(profile.dungeons, { difficulty, asc: 0 });
-              const done = clearedLevels(profile.dungeons, route, difficulty, 0);
-              return (
-                <button key={difficulty} disabled={!unlocked}
-                  onClick={() => { setAsc(0); setView({ t: "levels", route, difficulty }); }}
-                  className="pixel-frame p-3 text-left disabled:opacity-50">
-                  <b style={{ color: DUNGEON_INFO[difficulty].color }}>{difficulty.toUpperCase()}</b>
-                  <span className="ml-2">{done}/{LEVELS_PER_ROUTE} niveles</span>
-                  {!unlocked && <span className="block text-sm text-red-300">Escalón bloqueado</span>}
-                </button>
-              );
-            })}
-          </div>
-          <button className="btn btn-gray" onClick={() => setView({ t: "routes" })}>← Cambiar de ruta</button>
-        </Panel>
-      </Shell>
     );
   }
 
@@ -675,7 +654,7 @@ export function ProgressMode() {
       <Shell>
         <Notice />
         <Panel
-          title={theme.name}
+          title={`${theme.name} · ${difficulty.toUpperCase()}+${a}`}
           className="mx-auto w-full max-w-4xl space-y-3"
         >
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -720,9 +699,9 @@ export function ProgressMode() {
           <div className="text-center">
             <button
               className="btn btn-gray"
-              onClick={() => setView({ t: "steps", route })}
+              onClick={() => setView({ t: "routes" })}
             >
-              ← Cambiar dificultad
+              ← Cambiar ruta o escalón
             </button>
           </div>
         </Panel>
@@ -730,32 +709,84 @@ export function ProgressMode() {
     );
   }
 
-  // ---------------- routes ----------------
+  // ---------------- route and shared-step selector ----------------
+  const nextAscStep = selectedAsc < 5 ? selectedAsc + 1 : null;
+  const nextDifficultyStep = DIFFICULTIES[DIFFICULTIES.indexOf(selectedDifficulty) + 1];
+  const nextLockReason = nextAscStep !== null && !isStepUnlocked(profile.dungeons, { difficulty: selectedDifficulty, asc: nextAscStep as 1 | 2 | 3 | 4 | 5 })
+    ? `Completa ${selectedDifficulty.toUpperCase()}+${selectedAsc} en cualquier ruta para abrir ${selectedDifficulty.toUpperCase()}+${nextAscStep}.`
+    : nextDifficultyStep && !isStepUnlocked(profile.dungeons, { difficulty: nextDifficultyStep, asc: 0 })
+      ? `Completa ${selectedDifficulty.toUpperCase()}+0 en cualquier ruta para abrir ${nextDifficultyStep.toUpperCase()}+0.`
+      : null;
   return (
     <Shell>
       <Notice />
       <Panel title="Elige una ruta" className="mx-auto w-full max-w-5xl">
-        <p className="mb-3 text-center text-base text-[#d9d2ca]">
-          Cada ruta tiene un jefe y familias de enemigos propios. Elige una ruta y una dificultad F–S.
-        </p>
+        <div className="mx-auto mb-4 max-w-3xl space-y-3">
+          <p className="text-center text-sm text-[#d9d2ca]">El escalón se comparte entre rutas. Cada dungeon conserva su jefe y sus familias.</p>
+          <div aria-label="Dificultad" className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">
+            {DIFFICULTIES.map((difficulty) => {
+              const unlocked = isStepUnlocked(profile.dungeons, { difficulty, asc: 0 });
+              const selected = difficulty === selectedDifficulty;
+              const reason = difficulty === "f" ? "Siempre disponible" : `Completa ${DIFFICULTIES[DIFFICULTIES.indexOf(difficulty) - 1]?.toUpperCase()}+0 en cualquier ruta`;
+              return (
+                <button key={difficulty} type="button" disabled={!unlocked}
+                  title={unlocked ? `${difficulty.toUpperCase()}+0` : reason}
+                  aria-label={unlocked ? `${difficulty.toUpperCase()}+0` : `${difficulty.toUpperCase()}+0 bloqueado. ${reason}`}
+                  aria-pressed={selected}
+                  onClick={() => { setSelectedDifficulty(difficulty); setSelectedAsc(0); }}
+                  className={`pixel-frame min-h-10 px-2 py-1 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-55 ${selected ? "text-yellow-200 ring-2 ring-yellow-400" : "text-[#d9d2ca]"}`}>
+                  {difficulty.toUpperCase()}
+                  {!unlocked && <span className="block text-[10px] font-normal leading-tight">Bloq.</span>}
+                </button>
+              );
+            })}
+          </div>
+          <div aria-label="Ascensión" className="grid grid-cols-6 gap-1.5">
+            {Array.from({ length: 6 }, (_, ascension) => {
+              const unlocked = isStepUnlocked(profile.dungeons, { difficulty: selectedDifficulty, asc: ascension as 0 | 1 | 2 | 3 | 4 | 5 });
+              const selected = selectedAsc === ascension;
+              const reason = ascension > 0
+                ? `Completa ${selectedDifficulty.toUpperCase()}+${ascension - 1} en cualquier ruta`
+                : `Completa ${DIFFICULTIES[DIFFICULTIES.indexOf(selectedDifficulty) - 1]?.toUpperCase()}+0 en cualquier ruta`;
+              return (
+                <button key={ascension} type="button" disabled={!unlocked}
+                  title={unlocked ? `${selectedDifficulty.toUpperCase()}+${ascension}` : reason}
+                  aria-label={unlocked ? `${selectedDifficulty.toUpperCase()}+${ascension}` : `${selectedDifficulty.toUpperCase()}+${ascension} bloqueado. ${reason}`}
+                  aria-pressed={selected}
+                  onClick={() => setSelectedAsc(ascension)}
+                  className={`pixel-frame min-h-10 px-1 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-55 ${selected ? "text-yellow-200 ring-2 ring-yellow-400" : "text-[#d9d2ca]"}`}>
+                  +{ascension}{!unlocked && <span className="block text-[10px] leading-tight">Bloq.</span>}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-center text-sm font-semibold text-yellow-200" aria-live="polite">
+            Escalón compartido: {selectedDifficulty.toUpperCase()}+{selectedAsc}
+          </p>
+          {nextLockReason && <p className="text-center text-xs text-[#c6beb5]">{nextLockReason}</p>}
+        </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {ROUTE_IDS.map((route) => {
             const theme = DUNGEON_THEMES[route];
-            const done = Object.entries(profile.dungeons.routes).some(([key, count]) => key.startsWith(`${route}:`) && count >= LEVELS_PER_ROUTE);
+            const done = isRouteDone(profile.dungeons, route, selectedDifficulty, selectedAsc);
+            const familyNames: Record<string, string> = { limo: "Limos", diablillo: "Diablillos", arpia: "Arpías", golem: "Gólems", espectro: "Espectros" };
+            const families = [...theme.families, ...(theme.guest ? [theme.guest] : [])];
             return (
               <button
                 key={route}
-                onClick={() => setView({ t: "steps", route })}
-                className="pixel-frame flex items-center gap-4 p-3 text-left enabled:hover:brightness-125"
+                onClick={() => { setAsc(selectedAsc); setView({ t: "levels", route, difficulty: selectedDifficulty }); }}
+                className="pixel-frame flex min-w-0 items-center gap-3 p-3 text-left enabled:hover:brightness-125"
               >
-                <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#26323f] text-2xl text-yellow-300">{theme.bossName.slice(0, 1)}</span>
-                <span className="min-w-0 text-base">
-                  <span className="name-title block text-yellow-300">
-                    {theme.name}
-                  </span>
-                  <span className="block text-sm text-[#d9d2ca]">Jefe: {theme.bossName}</span>
-                  {done && <span className="block text-green-300">✓ COMPLETADO</span>}
+                <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-yellow-700/70 bg-[#26323f]">
+                  <ElementIcon element={theme.bossElement} className="h-7" bare />
                 </span>
+                <span className="min-w-0 flex-1 text-sm">
+                  <span className="name-title block break-words text-base text-yellow-300">{theme.name}</span>
+                  <span className="block text-xs text-[#d9d2ca]">Jefe: {theme.bossName}</span>
+                  <span className="block text-xs text-[#c6beb5]">{families.map((family) => familyNames[family] ?? family).join(" · ")}</span>
+                  {done && <span className="dungeon-stamp mt-1 inline-flex">COMPLETADO</span>}
+                </span>
+                <span className="shrink-0 text-xs text-[#d9d2ca]">{selectedDifficulty.toUpperCase()}+{selectedAsc} ›</span>
               </button>
             );
           })}
