@@ -32,12 +32,13 @@ export function nextActivations(runners: Runner[], opts?: { cap?: number }): { o
 - Un jugador no puede actuar fuera de su ventana; nada avanza mientras espera la decisión (el planificador es puro: no tiene reloj).
 - Sin `Math.random()` ni `Math.pow`/`**` en la lógica (tablas precalculadas, regla del motor).
 
-## 4. Criterios de viabilidad (comparación contra `motor13.json`)
-Usar **≥ 10 corridas por nivel** (la línea base actual usa 2: regenerar con `--runs=10` o más; ~12 s). Comparar con **las mismas semillas**:
-- Winrate **por rango** dentro de ±3 puntos porcentuales y **por clase** dentro de ±3 puntos.
-- Duración media (rondas/activaciones convertidas) dentro de ±10 %.
-- Ninguna celda clase × elemento × rango fuera de ±15 puntos (para detectar rupturas locales, sabiendo que el ruido es mayor).
-- Si falla: ajustar las constantes de conversión de §2 (máximo 3 iteraciones documentadas). Si sigue fuera tras las 3 → **ABORTAR** y reportar al dueño con la tabla de diferencias; no forzar.
+## 4. Criterios de viabilidad (revisión 3, aprobada por el dueño el 2026-10-11)
+Con 10 corridas por nivel la comparación no tiene precisión: el error de azar por rango (~2 pp) ya roza la tolerancia y por celda (~20 pp) supera el límite, así que el criterio no se puede cumplir ni con un motor idéntico. Nuevo procedimiento:
+1. **Piso de ruido:** comparar el motor 13 consigo mismo con **semillas distintas** y **≥ 100 corridas por nivel** (~2 min). Registrar la diferencia por rango y por clase: `RUIDO_rango`, `RUIDO_clase` (p. ej. el percentil 95 de varias repeticiones).
+2. **Comparación del prototipo** contra la línea base con ≥ 100 corridas por nivel y la conversión **1:1** (cooldowns, estados, reflect, defensa y Quemadura por activación; iteración 1 de `E2_RESULTADO.md`).
+3. **Tolerancias:** winrate por rango y por clase dentro de `RUIDO + 2 pp`; duración media dentro de ±10 %. **Se elimina el criterio por celda** (queda como diagnóstico: listar las 10 celdas más alejadas).
+4. Si falla: hasta 3 ajustes de conversión (la conversión 1:1 es el punto de partida; las iteraciones 0,7 y 0,5 empeoraron). **Abortar solo si, con esta precisión, sigue fuera de tolerancia tras los 3 ajustes.**
+5. Informar en `docs/E2_RESULTADO.md`: piso de ruido, tabla de diferencias y recomendación (continuar / ajustar / abortar).
 
 ## 5. Reglas de entrega
 - Un commit en `v2-e2`. `tsc`, `eslint src scripts`, `vitest` completo en verde. Sin push, sin tocar `combat.ts`, `stage.ts` ni SQL.
