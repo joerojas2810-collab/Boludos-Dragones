@@ -20,7 +20,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 17; // 17: Explotar also reorders round slots for Escarcha and Impulso
+export const ENGINE_VERSION = 18; // 18: Impulso needs 3 stacks and its extra action goes to the end of the round queue; Sobrecarga discharge +100 %
 
 export type FightRole = "normal" | "elite" | "final";
 
