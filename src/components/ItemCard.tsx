@@ -3,6 +3,7 @@ import type { Element } from "@/lib/game/elements";
 import { RARITIES, type RarityId } from "@/lib/game/rarity";
 import type { TraitId } from "@/lib/game/traits";
 import type { WeaponType } from "@/lib/game/weapons";
+import type { HeroFactors } from "@/lib/game/characters";
 import { ElementIcon } from "./ElementIcon";
 import { RarityFrame } from "./RarityFrame";
 import { HeroSprite } from "./HeroSprite";
@@ -21,6 +22,7 @@ type Base = {
   badge?: string; // "NUEVO", "+1 ★", "REEMBOLSO"
   copies?: number; // spare copies of this hero / piece: shown as a corner tag
   pity?: "ss" | "ssr"; // this pull was the pity guarantee
+  factors?: HeroFactors;
 };
 export type ItemView =
   | (Base & { kind: "character"; classId: ClassId; traits?: TraitId[] })
