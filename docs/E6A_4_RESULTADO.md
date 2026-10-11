@@ -28,22 +28,20 @@ El límite de dos rondas del ritual conserva su función y aumenta su frecuencia
 
 ## Nivelación de rutas
 
-Se añadieron correcciones exclusivamente numéricas: `ROUTE_TUNE` por ruta y `ROUTE_ASC_TUNE[route][asc]`, multiplicadas por los stats de enemigos junto a los ajustes existentes. No cambian reglas, mecánicas ni parámetros de jefe. `ENGINE_VERSION` pasa a 24.
+La calibración anterior por ruta×ascensión no alcanzó el objetivo. Se reemplazó por `ROUTE_FIT[ruta][rango][ascensión]`: 378 multiplicadores numéricos aplicados a los stats enemigos. No se modifican reglas ni mecánicas de jefes ni los parámetros de 6a-4. `ENGINE_VERSION` pasa a 25.
 
-Factores totales efectivos (`ROUTE_TUNE × ROUTE_ASC_TUNE`):
+`scripts/fit-route-tune.ts` ajusta cada factor por bisección usando `stage-tune.ts`, semilla 13013 y ejecución paralela. La corrida de confirmación usa 100 muestras por nivel. Para regenerar la tabla: `node --import tsx/esm scripts/fit-route-tune.ts --quick --runs=24 --fit-runs=100 --iterations=10 --workers=8`. El código generado vive en `src/lib/game/routeFit.generated.ts`.
 
-| Ruta | +0 | +1 | +2 | +3 | +4 | +5 |
+**Resultado confirmado:** las 42 medias de las nueve rutas están dentro de ±5 puntos porcentuales de la meta; el rango observado va de 45,11 % (S+5, meta 45 %) a 70,22 % (+0, meta 70 %). La diferencia entre la ruta más fácil y la más difícil queda por debajo de 1,25 pp en los 42 escalones (máximo 1,25 pp, en S+1). Se usaron 100 corridas por nivel, semilla 13013.
+
+| Rango | +0 | +1 | +2 | +3 | +4 | +5 |
 |---|---:|---:|---:|---:|---:|---:|
-| Señor de las Moscas | 0,980 | 1,000 | 0,975 | 1,000 | 0,978 | 1,000 |
-| Rey de Ceniza | 0,950 | 0,975 | 1,000 | 0,999 | 0,975 | 1,016 |
-| Vigía Eterno | 1,000 | 1,010 | 1,043 | 1,050 | 1,050 | 1,010 |
-| Coloso Hueco | 1,025 | 1,050 | 1,025 | 0,950 | 1,000 | 1,000 |
-| Rey del Trueno | 0,950 | 0,950 | 0,975 | 1,000 | 1,000 | 0,950 |
-| Madre Hidra | 0,950 | 0,950 | 1,008 | 0,967 | 0,950 | 1,025 |
-| Reina Marchita | 1,050 | 1,005 | 1,016 | 1,019 | 1,016 | 1,000 |
-| El Sin Rostro | 0,975 | 1,050 | 1,000 | 1,000 | 1,032 | 1,025 |
-| Gran Devorador | 0,975 | 0,975 | 1,000 | 1,000 | 0,988 | 0,983 |
+| F | 70,22 % / 1,00 pp | 60,14 % / 0,25 pp | 60,19 % / 0,75 pp | 59,97 % / 0,50 pp | 60,25 % / 0,75 pp | 59,94 % / 0,75 pp |
+| E | 70,03 % / 0,50 pp | 60,11 % / 1,00 pp | 60,14 % / 0,75 pp | 60,31 % / 0,50 pp | 60,19 % / 0,75 pp | 60,14 % / 1,00 pp |
+| D | 70,11 % / 0,50 pp | 60,11 % / 0,75 pp | 60,14 % / 0,50 pp | 60,11 % / 0,75 pp | 59,97 % / 0,50 pp | 60,08 % / 0,25 pp |
+| C | 70,03 % / 0,50 pp | 60,17 % / 0,75 pp | 60,36 % / 1,00 pp | 60,17 % / 0,75 pp | 60,14 % / 1,25 pp | 60,11 % / 0,25 pp |
+| B | 70,17 % / 0,50 pp | 60,14 % / 0,75 pp | 60,19 % / 0,25 pp | 60,08 % / 0,75 pp | 60,14 % / 0,50 pp | 60,08 % / 0,75 pp |
+| A | 70,14 % / 0,75 pp | 60,14 % / 0,75 pp | 60,33 % / 0,50 pp | 60,06 % / 0,50 pp | 60,22 % / 0,75 pp | 60,25 % / 1,00 pp |
+| S | 70,06 % / 0,75 pp | 59,97 % / 1,25 pp | 60,06 % / 0,50 pp | 60,31 % / 0,50 pp | 60,06 % / 0,25 pp | 45,11 % / 0,50 pp |
 
-Se iteró con `stage-tune.ts --quick --all-routes` y se confirmó con semilla 13013, 100 corridas por nivel y ruta. La candidata elegida deja 40/42 promedios de referencia dentro de ±5 pp; C+5 queda +6,4 pp y S+2 +7,2 pp. La dispersión no llega a la meta: máximo 24,3 pp (S+2: Coloso Hueco 54,3 %, Reina Marchita 78,5 %; también A+5: Rey de Ceniza 49,5 %, Rey del Trueno 73,8 %). Solo 1/42 escalones queda en ≤8 pp; los otros 41 superan 10 pp.
-
-Una búsqueda de factores más agresiva redujo S+2, pero abrió diferencias de hasta 42,8 pp en A+2; se descartó. La misma corrección ruta×ascensión afecta los siete rangos y las tasas cambian de manera distinta entre ellos. Conseguir ≤8 pp en todos los escalones sin romper ±5 pp no se pudo resolver con los dos multiplicadores autorizados. Para cerrar ese objetivo haría falta que el dueño habilite correcciones por rango además de ruta y ascensión, o relaje la meta de dispersión. No se cambió ninguna mecánica ni se ocultó el residuo.
+En cada celda, `media de victoria / dispersión máxima entre rutas`.

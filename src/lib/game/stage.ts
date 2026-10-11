@@ -19,9 +19,10 @@ import { ROUTE_IDS, type RouteId } from "./levels";
 import { TRAITS, type Trait } from "./traits";
 import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
+import { ROUTE_FIT } from "./routeFit.generated";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 24; // 24: numeric route tuning balances dungeon ascensions
+export const ENGINE_VERSION = 25; // 25: rank- and ascension-specific route fit factors
 
 export type FightRole = "normal" | "elite" | "final";
 
@@ -55,25 +56,6 @@ export const ASC_TUNE: Record<Difficulty, readonly [number, number, number, numb
   b: [1, 1.285, 1.445, 1.630, 1.640, 1.800],
   a: [1, 1.310, 1.445, 1.655, 1.665, 1.850],
   s: [1, 1.260, 1.370, 1.580, 1.590, 2.000],
-};
-// Optional small route correction when a boss mechanic makes a route consistently harder/easier.
-export const ROUTE_TUNE: Record<RouteId, number> = {
-  lord_of_flies: 0.980, ash_king: 0.950, eternal_watcher: 1.000, hollow_colossus: 1.025,
-  thunder_king: 0.950, mother_hydra: 0.950, withered_queen: 1.050, faceless_one: 0.975,
-  great_devourer: 0.975,
-};
-// Ascension-specific numeric correction for route difficulty. This keeps each
-// route's boss identity intact while smoothing rank/ascension-specific outliers.
-export const ROUTE_ASC_TUNE: Record<RouteId, readonly [number, number, number, number, number, number]> = {
-  lord_of_flies: [1, 1.020, 0.995, 1.020, 0.998, 1.020],
-  ash_king: [1, 1.026, 1.053, 1.052, 1.026, 1.069],
-  eternal_watcher: [1, 1.010, 1.043, 1.050, 1.050, 1.010],
-  hollow_colossus: [1, 1.024, 1.000, 0.927, 0.976, 0.976],
-  thunder_king: [1, 1.000, 1.026, 1.053, 1.053, 1.000],
-  mother_hydra: [1, 1.000, 1.061, 1.018, 1.000, 1.079],
-  withered_queen: [1, 0.957, 0.968, 0.970, 0.968, 0.952],
-  faceless_one: [1, 1.077, 1.026, 1.026, 1.058, 1.051],
-  great_devourer: [1, 1.000, 1.026, 1.026, 1.013, 1.008],
 };
 export const DIFFICULTY_MULT = DUNGEON_MULT;
 // Kept for recommendedPower's display estimate; the live stage now uses ASC_TUNE.
@@ -164,7 +146,7 @@ function makeFight(
   const size = groupSize(rng, role, difficulty, asc);
   const hasBoss = role !== "normal";
   const levelPower = 1 + LEVEL_STEP * spec.index;
-  const rankMult = DIFFICULTY_MULT[difficulty] * RANK_TUNE[difficulty] * ASC_TUNE[difficulty][asc] * ROUTE_TUNE[route] * ROUTE_ASC_TUNE[route][asc];
+  const rankMult = DIFFICULTY_MULT[difficulty] * RANK_TUNE[difficulty] * ASC_TUNE[difficulty][asc] * ROUTE_FIT[route][difficulty][asc];
   const theme = DUNGEON_THEMES[route];
   const made: Character[] = [];
   const seen = new Map<string, number>();

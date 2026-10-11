@@ -1,6 +1,6 @@
 // Simulate the approved F–S dungeon staircase reference heroes.
-// Usage: npx tsx scripts/stage-tune.ts [--quick] [--runs=100] [--route=lord_of_flies]
-// Optional numeric overrides: --route-tune=route:value,... --route-asc-tune=route:v0,...,v5;...
+// Usage: node --import tsx/esm scripts/stage-tune.ts [--quick] [--runs=100] [--route=lord_of_flies]
+// Optional: --references-only and --route-fit-file=/path/to/factors.json
 // --quick uses 8 runs per level; the full run defaults to 100. Use --all-routes for
 // a route-variance audit. Output is deterministic for a given seed and run count.
 import { autoPolicy } from "../src/lib/game/auto";
@@ -12,7 +12,8 @@ import { levelCap } from "../src/lib/game/heroLevel";
 import { LEVELS_PER_ROUTE, ROUTE_IDS, levelsOf, type RouteId } from "../src/lib/game/levels";
 import { RARITY_IDS, scaleStats, type Difficulty } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
-import { ASC_TUNE, createStage, finishFight, levelFights, RANK_TUNE, ROUTE_ASC_TUNE, ROUTE_TUNE, startFight } from "../src/lib/game/stage";
+import { ASC_TUNE, createStage, finishFight, levelFights, RANK_TUNE, startFight } from "../src/lib/game/stage";
+import { ROUTE_FIT } from "../src/lib/game/routeFit.generated";
 import { CLASS_WEAPONS, GEAR_TYPES, weaponAtk } from "../src/lib/game/weapons";
 import { cpus } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -35,24 +36,21 @@ const [SHARD_INDEX, SHARD_COUNT] = (args.get("shard") ?? "0/1").split("/").map(N
 const IS_SHARD = args.has("shard");
 const PARTIAL = args.get("partial") ?? "";
 const OUTPUT = resolve(args.get("output") ?? "scripts/baseline/staircase-sim.json");
+const QUIET = args.has("quiet");
 for (const assignment of (args.get("rank-tune") ?? "").split(",").filter(Boolean)) {
   const [rank, value] = assignment.split(":");
   if (!RARITY_IDS.includes(rank as Difficulty) || !Number.isFinite(Number(value))) throw new Error(`Invalid --rank-tune entry: ${assignment}`);
   RANK_TUNE[rank as Difficulty] = Number(value);
 }
-for (const assignment of (args.get("route-tune") ?? "").split(",").filter(Boolean)) {
-  const [route, rawValue] = assignment.split(":");
-  const value = Number(rawValue);
-  if (!ROUTE_IDS.includes(route as RouteId) || !Number.isFinite(value) || value <= 0) throw new Error(`Invalid --route-tune entry: ${assignment}`);
-  ROUTE_TUNE[route as RouteId] = value;
-}
-for (const assignment of (args.get("route-asc-tune") ?? "").split(";").filter(Boolean)) {
-  const [route, rawValues] = assignment.split(":");
-  const values = rawValues?.split(",").map(Number);
-  if (!ROUTE_IDS.includes(route as RouteId) || !values || values.length !== 6 || values.some((value) => !Number.isFinite(value) || value <= 0)) {
-    throw new Error("--route-asc-tune requires route:value,value,value,value,value separated by semicolons");
+if (args.has("route-fit-file")) {
+  const fit = JSON.parse(readFileSync(resolve(args.get("route-fit-file")!), "utf8")) as Record<string, Record<string, number[]>>;
+  for (const route of ROUTE_IDS) for (const rank of RARITY_IDS) {
+    const values = fit[route]?.[rank];
+    if (!values || values.length !== 6 || values.some((value) => !Number.isFinite(value) || value <= 0)) {
+      throw new Error(`Invalid route fit values for ${route}/${rank}`);
+    }
+    ROUTE_FIT[route][rank] = [...values] as [number, number, number, number, number, number];
   }
-  (ROUTE_ASC_TUNE[route as RouteId] as unknown as number[]).splice(0, 6, ...values);
 }
 if (args.has("asc-tune")) {
   const assignments = args.get("asc-tune")!.split(";").filter(Boolean);
@@ -82,7 +80,7 @@ function scenarios(difficulty: Difficulty, asc: number): Scenario[] {
 type Cell = { difficulty: Difficulty; asc: number; stars: number; target: number; label: string };
 const cells: Cell[] = RARITY_IDS.flatMap((difficulty) =>
   ASC_TUNE[difficulty].map((_, asc) => scenarios(difficulty, asc).map((scenario) => ({ difficulty, asc, ...scenario }))).flat(),
-);
+).filter((cell) => !args.has("references-only") || cell.label === "reference");
 type Sum = { attempts: number; wins: number; fights: number; turns: number };
 const keyOf = (c: Cell, route: RouteId) => `${route}:${c.difficulty}:${c.asc}:${c.stars}:${c.label}`;
 const totals = new Map<string, Sum>();
@@ -292,11 +290,10 @@ const result = {
   seed: BASE_SEED,
   runsPerLevel: RUNS,
   routes: ROUTES,
-  formula: "DIFFICULTY_MULT × RANK_TUNE × ASC_TUNE[difficulty] × (1 + LEVEL_STEP × levelIndex) × ROUTE_TUNE × ROUTE_ASC_TUNE[route][asc]",
+  formula: "DIFFICULTY_MULT × RANK_TUNE × ASC_TUNE[difficulty] × (1 + LEVEL_STEP × levelIndex) × ROUTE_FIT[route][difficulty][asc]",
   rankTune: RANK_TUNE,
   ascTune: ASC_TUNE,
-  routeTune: Object.fromEntries(ROUTES.map((route) => [route, ROUTE_TUNE[route]])),
-  routeAscTune: Object.fromEntries(ROUTES.map((route) => [route, ROUTE_ASC_TUNE[route]])),
+  routeFit: Object.fromEntries(ROUTES.map((route) => [route, ROUTE_FIT[route]])),
   monotonicity,
   rows,
   routeRows,
@@ -306,11 +303,13 @@ const result = {
   elementReferenceRows: elementRows.filter((row) => row.key.split(":")[4] === "reference"),
 };
 writeFileSync(OUTPUT, `${JSON.stringify(result, null, 2)}\n`);
-console.log(`Staircase simulation: ${rows.length} step/scenario rows; ${RUNS} runs/level; routes ${ROUTES.join(", ")}`);
-for (const cell of cells) {
+if (!QUIET) console.log(`Staircase simulation: ${rows.length} step/scenario rows; ${RUNS} runs/level; routes ${ROUTES.join(", ")}`);
+for (const cell of QUIET ? [] : cells) {
   const selected = rows.filter((row) => row.difficulty === cell.difficulty && row.asc === cell.asc && row.label === cell.label);
   const row = selected[0];
   console.log(`${cell.difficulty}+${cell.asc} ${cell.stars}★ ${cell.label}: ${(row.winRate * 100).toFixed(1)}% (target ${(cell.target * 100).toFixed(0)}%, ${row.deltaPp >= 0 ? "+" : ""}${row.deltaPp.toFixed(1)} pp), ${row.attempts} attempts, ${row.meanTurnsPerLevel.toFixed(1)} turns; route range ${(row.routeMinWinRate * 100).toFixed(1)}–${(row.routeMaxWinRate * 100).toFixed(1)}%`);
 }
-for (const row of monotonicity) console.log(`Monotonic ${row.rank} ${row.from} < ${row.to}: ${row.passes ? "PASS" : "FAIL"} (${row.fromEnemyFactor.toFixed(3)} vs ${row.toEnemyFactor.toFixed(3)})`);
-console.log(`Wrote ${OUTPUT}`);
+if (!QUIET) {
+  for (const row of monotonicity) console.log(`Monotonic ${row.rank} ${row.from} < ${row.to}: ${row.passes ? "PASS" : "FAIL"} (${row.fromEnemyFactor.toFixed(3)} vs ${row.toEnemyFactor.toFixed(3)})`);
+  console.log(`Wrote ${OUTPUT}`);
+}
