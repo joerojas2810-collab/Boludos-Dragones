@@ -290,7 +290,7 @@ describe("Explotar Escarcha e Impulso sobre la cola de ronda", () => {
     expect(out.frostDelayedEnemies).toEqual([]);
   });
 
-  it("consumes 2+ Impulso stacks for one queued action, never exceeding three", () => {
+  it("requires 3 Impulso stacks for one queued action, never exceeding three", () => {
     const hero = withWeapon({ ...unit("mago"), element: "viento" }, "agua");
     const foe = unit("mago", { hp: 10000 });
     const base = fight(hero, [foe], [["attack1"]]);
@@ -303,9 +303,18 @@ describe("Explotar Escarcha e Impulso sobre la cola de ronda", () => {
     const out = step(prepared, "explotar", always);
 
     expect(stacksOf(out.player.statuses, "impulso")).toBe(0);
-    expect(out.playerActions).toBe(3);
-    expect(out.impulseGranted).toBe(true);
-    expect(out.queue.slice(0, 2)).toEqual(["player", { e: 0, n: 0, intent: "attack1" }]);
+    expect(out.playerActions).toBe(2);
+    expect(out.impulseGranted).toBe(false);
+    expect(out.queue).toEqual(["player"]);
+
+    const charged: Battle = {
+      ...prepared,
+      player: { ...prepared.player, statuses: addStatus(undefined, "impulso", 3) },
+    };
+    const granted = step(charged, "explotar", always);
+    expect(granted.playerActions).toBe(3);
+    expect(granted.impulseGranted).toBe(true);
+    expect(granted.queue).toEqual(["player", "player"]);
   });
 
   it("keeps the three-action cap and Pícaro consumes Impulso for next-attack critical chance", () => {

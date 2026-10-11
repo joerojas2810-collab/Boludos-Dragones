@@ -14,6 +14,7 @@ import {
   EXPLOIT_BERSERKER_BURN_MULT,
   EXPLOIT_BASIC_DAMAGE_FRACTION,
   EXPLOIT_MAGE_EFFECT_MULT,
+  EXPLOIT_IMPULSE_EXTRA_ACTION_MIN_STACKS,
   EXPLOIT_OVERLOAD_DAMAGE_FRACTION,
   EXPLOIT_RUPTURE_DEFENSE_PER_STACK,
   exploitableState,
@@ -150,7 +151,7 @@ export function autoPolicy(b: Battle, opts: AutoOptions = {}): AutoPick {
           }
         }
         if (state.id === "impulso") {
-          if (state.stacks >= 2 && !b.impulseGranted && b.playerActions < 3)
+          if (state.stacks >= EXPLOIT_IMPULSE_EXTRA_ACTION_MIN_STACKS && !b.impulseGranted && b.playerActions < 3)
             value += a1;
           if (p.char.classId === "picaro")
             value += a1 * 0.15 * (critMultiplier(p) - 1);

@@ -321,6 +321,7 @@ export const BERSERKER_GOLPE_BONUS = 0.5;
 export const BERSERKER_BARRIDO_BONUS = 0.3;
 export const EXPLOIT_BASIC_DAMAGE_FRACTION = 0.4;
 export const EXPLOIT_OVERLOAD_DAMAGE_FRACTION = 1.0;
+export const EXPLOIT_IMPULSE_EXTRA_ACTION_MIN_STACKS = 3;
 export const EXPLOIT_RUPTURE_DEFENSE_PER_STACK = 0.08;
 export const EXPLOIT_MAGE_EFFECT_MULT = 1.25;
 export const EXPLOIT_BERSERKER_BURN_MULT = 1.25;
@@ -1297,12 +1298,12 @@ export function step(
             player.nextCritChance = (player.nextCritChance ?? 0) + 0.15;
             log.push(`${player.char.name} consume Impulso: +15 % de crítico en su próximo ataque.`);
           }
-          if (state.stacks >= 2 && !impulseGranted && playerActions < MAX_ACTIONS_PER_ROUND) {
-            queue.unshift("player");
+          if (state.stacks >= EXPLOIT_IMPULSE_EXTRA_ACTION_MIN_STACKS && !impulseGranted && playerActions < MAX_ACTIONS_PER_ROUND) {
+            queue.push("player");
             playerActions++;
             impulseGranted = true;
-            log.push(`${player.char.name} consume Impulso: añade una acción a esta ronda.`);
-          } else if (state.stacks >= 2 && playerActions >= MAX_ACTIONS_PER_ROUND) {
+            log.push(`${player.char.name} consume Impulso: añade una acción al final de la cola de esta ronda.`);
+          } else if (state.stacks >= EXPLOIT_IMPULSE_EXTRA_ACTION_MIN_STACKS && playerActions >= MAX_ACTIONS_PER_ROUND) {
             log.push(`Impulso no puede superar el máximo de ${MAX_ACTIONS_PER_ROUND} acciones por ronda.`);
           }
         } else {
