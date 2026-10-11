@@ -55,7 +55,6 @@ import {
 } from "@/lib/game/profile";
 import { DIFFICULTIES, RARITIES, type Difficulty } from "@/lib/game/rarity";
 import {
-  ASC_RULES,
   currentFight,
   levelFights,
   type FightRole,
@@ -87,6 +86,75 @@ const ROLE_LABEL: Record<FightRole, string> = {
   elite: "Élite",
   final: "Jefe",
 };
+const ROUTE_STEP_STORAGE_KEY = "dungeon-route-steps-v1";
+type SavedRouteStep = { difficulty: Difficulty; asc: 0 | 1 | 2 | 3 | 4 | 5 };
+const ROUTE_ASC_NOTICE: Record<RouteId, string> = {
+  lord_of_flies: "La Plaga del jefe gana intensidad.",
+  ash_king: "El Rey de Ceniza acumula Presión más rápido.",
+  eternal_watcher: "El Vigía Eterno se adapta con menos repeticiones.",
+  hollow_colossus: "La Armadura del Coloso dura más y se recupera antes.",
+  thunder_king: "El Rey del Trueno acelera su ritmo antes.",
+  mother_hydra: "Las cabezas de la Hidra activan sus curas antes.",
+  withered_queen: "La Reina Marchita inicia su ritual con más frecuencia.",
+  faceless_one: "El Sin Rostro cambia de postura con más frecuencia.",
+  great_devourer: "El Gran Devorador activa Hambre con más vida.",
+};
+
+function readRouteStep(route: RouteId): SavedRouteStep {
+  try {
+    const raw = window.localStorage.getItem(ROUTE_STEP_STORAGE_KEY);
+    if (!raw) return { difficulty: "f", asc: 0 };
+    const stored = JSON.parse(raw) as Record<string, { difficulty?: unknown; asc?: unknown }>;
+    const candidate = stored[route];
+    if (
+      candidate && DIFFICULTIES.includes(candidate.difficulty as Difficulty) &&
+      Number.isInteger(candidate.asc) && Number(candidate.asc) >= 0 && Number(candidate.asc) <= 5
+    ) return { difficulty: candidate.difficulty as Difficulty, asc: Number(candidate.asc) as SavedRouteStep["asc"] };
+  } catch {
+    // Storage can be disabled; this preference is optional.
+  }
+  return { difficulty: "f", asc: 0 };
+}
+
+function rememberRouteStep(route: RouteId, difficulty: Difficulty, asc: number): void {
+  try {
+    const raw = window.localStorage.getItem(ROUTE_STEP_STORAGE_KEY);
+    const stored = raw ? JSON.parse(raw) as Record<string, unknown> : {};
+    stored[route] = { difficulty, asc };
+    window.localStorage.setItem(ROUTE_STEP_STORAGE_KEY, JSON.stringify(stored));
+  } catch {
+    // Storage can be disabled; the current selection still works in memory.
+  }
+}
+
+function highestRouteClear(progress: Profile["dungeons"], route: RouteId): string | null {
+  let highest: string | null = null;
+  for (const difficulty of DIFFICULTIES) {
+    for (let asc = 0; asc <= 5; asc++) {
+      if (isRouteDone(progress, route, difficulty, asc)) highest = `${difficulty.toUpperCase()}+${asc}`;
+    }
+  }
+  return highest;
+}
+
+function routeProgressSummary(progress: Profile["dungeons"], route: RouteId): string {
+  const highest = highestRouteClear(progress, route);
+  if (highest) return `Mayor escalón superado: ${highest}`;
+  let partial: { step: string; levels: number } | null = null;
+  for (const difficulty of DIFFICULTIES) {
+    for (let asc = 0; asc <= 5; asc++) {
+      const levels = clearedLevels(progress, route, difficulty, asc);
+      if (levels > (partial?.levels ?? 0)) partial = { step: `${difficulty.toUpperCase()}+${asc}`, levels };
+    }
+  }
+  return partial ? `En curso: ${partial.step} · ${partial.levels}/4 niveles` : "Aún sin completar";
+}
+
+function hasAnyRouteClear(progress: Profile["dungeons"], route: RouteId): boolean {
+  return DIFFICULTIES.some((difficulty) =>
+    Array.from({ length: 6 }, (_, asc) => isRouteDone(progress, route, difficulty, asc)).some(Boolean),
+  );
+}
 
 interface Attempt {
   route: RouteId;
@@ -124,8 +192,6 @@ export function ProgressMode() {
   const { profile, ready } = useProfile();
   const [view, setView] = useState<View>({ t: "routes" });
   const [asc0, setAsc] = useState(0);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>("f");
-  const [selectedAsc, setSelectedAsc] = useState(0);
   const asc = asc0;
   const [heroId, setHeroId] = useState<string | null>(null);
   const targeting = useTargeting(
@@ -643,159 +709,119 @@ export function ProgressMode() {
     );
   }
 
-  // ---------------- levels ----------------
+  // ---------------- route difficulty and levels ----------------
   if (view.t === "levels") {
     const { route, difficulty } = view;
     const theme = DUNGEON_THEMES[route];
-    const top = maxAscension(profile.dungeons, difficulty);
-    const a = Math.min(asc, top);
+    const a = asc;
     const done = clearedLevels(profile.dungeons, route, difficulty, a);
+    const routeDone = isRouteDone(profile.dungeons, route, difficulty, a);
+    const steps = DIFFICULTIES.flatMap((stepDifficulty) =>
+      Array.from({ length: 6 }, (_, stepAsc) => ({ difficulty: stepDifficulty, asc: stepAsc as SavedRouteStep["asc"] })),
+    );
+    const nextLocked = steps.find((step) => !isStepUnlocked(profile.dungeons, step));
+    const lockReason = (step: SavedRouteStep) => step.asc > 0
+      ? `Completa ${step.difficulty.toUpperCase()}+${step.asc - 1} en cualquier ruta`
+      : `Completa ${DIFFICULTIES[DIFFICULTIES.indexOf(step.difficulty) - 1]?.toUpperCase()}+0 en cualquier ruta`;
+    const selectStep = (step: SavedRouteStep) => {
+      if (!isStepUnlocked(profile.dungeons, step)) return;
+      setAsc(step.asc);
+      rememberRouteStep(route, step.difficulty, step.asc);
+      setView({ t: "levels", route, difficulty: step.difficulty });
+    };
+    const families: Record<string, string> = { limo: "Limos", diablillo: "Diablillos", arpia: "Arpías", golem: "Gólems", espectro: "Espectros" };
+    const routeFamilies = [...theme.families, ...(theme.guest ? [theme.guest] : [])].map((family) => families[family]).join(" · ");
     return (
       <Shell>
         <Notice />
-        <Panel
-          title={`${theme.name} · ${difficulty.toUpperCase()}+${a}`}
-          className="mx-auto w-full max-w-4xl space-y-3"
-        >
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <span className="text-[#d9d2ca]">Ascensión:</span>
-            {Array.from({ length: top + 1 }, (_, n) => (
-              <button
-                key={n}
-                aria-pressed={n === a}
-                className={`btn text-center ${n === a ? "" : "btn-gray"}`}
-                onClick={() => setAsc(n)}
-              >
-                <Icon name={`asc_${n}`} className="h-5" /> {n}
-              </button>
-            ))}
+        <Panel title={`${theme.name} · ${difficulty.toUpperCase()}+${a}`} className="mx-auto w-full max-w-4xl space-y-3">
+          <div className="pixel-frame p-2 sm:p-3">
+            <div className="grid grid-cols-6 gap-1 sm:grid-cols-7" aria-label="Escalera F a S, ascensión 0 a 5">
+              {steps.map((step) => {
+                const unlocked = isStepUnlocked(profile.dungeons, step);
+                const selected = step.difficulty === difficulty && step.asc === a;
+                const label = `${step.difficulty.toUpperCase()}+${step.asc}`;
+                const reason = lockReason(step);
+                return (
+                  <button key={label} type="button" disabled={!unlocked} aria-pressed={selected}
+                    title={unlocked ? label : `${label} bloqueado: ${reason}`}
+                    aria-label={unlocked ? label : `${label} bloqueado. ${reason}`}
+                    onClick={() => selectStep(step)}
+                    className={`pixel-frame min-h-9 px-0.5 py-1 text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-45 sm:text-sm ${selected ? "text-yellow-200 ring-2 ring-yellow-400" : "text-[#d9d2ca]"}`}>
+                    {label}{!unlocked && <span className="block text-[9px] font-normal leading-tight">Bloq.</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {nextLocked && <p className="mt-2 text-center text-xs text-[#d9d2ca]">Siguiente desbloqueo: {lockReason(nextLocked)}.</p>}
           </div>
-          {a > 0 && (
-            <p className="text-center text-xs text-[#d9d2ca]">
-              {ASC_RULES.slice(0, a).join(" · ")}
-            </p>
+          <div className="text-center text-sm text-[#d9d2ca]">
+            <span className="block">Jefe: {theme.bossName}</span>
+            <span className="block text-xs">Familias: {routeFamilies}</span>
+            <span className="mt-1 block text-xs text-yellow-100">{ROUTE_ASC_NOTICE[route]}{a > 0 ? ` Ascensión +${a}.` : ""}</span>
+          </div>
+          {routeDone && (
+            <div className="dungeon-sign mx-auto max-w-lg px-4 py-3 text-center" aria-label={`${theme.name}: completado`}>
+              <span className="name-title block text-xl text-yellow-200">{theme.name}</span>
+              <span className="dungeon-stamp mt-2" role="img" aria-label="Completado">COMPLETADO</span>
+            </div>
           )}
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {levelsOf(route, difficulty).map((spec) => (
-              <LevelCard
-                key={spec.index}
-                spec={spec}
-                asc={a}
+              <LevelCard key={spec.index} spec={spec} asc={a}
                 cleared={spec.index < done}
-                unlocked={isLevelUnlocked(
-                  profile.dungeons,
-                  route,
-                  difficulty,
-                  spec.index,
-                  a,
-                )}
+                unlocked={isLevelUnlocked(profile.dungeons, route, difficulty, spec.index, a)}
                 onPick={() => {
                   setAsc(a);
+                  rememberRouteStep(route, difficulty, a);
                   setView({ t: "prep", route, difficulty, level: spec.index });
                 }}
               />
             ))}
           </div>
           <div className="text-center">
-            <button
-              className="btn btn-gray"
-              onClick={() => setView({ t: "routes" })}
-            >
-              ← Cambiar ruta o escalón
-            </button>
+            <button className="btn btn-gray" onClick={() => setView({ t: "routes" })}>← Volver a rutas</button>
           </div>
         </Panel>
       </Shell>
     );
   }
 
-  // ---------------- route and shared-step selector ----------------
-  const nextAscStep = selectedAsc < 5 ? selectedAsc + 1 : null;
-  const nextDifficultyStep = DIFFICULTIES[DIFFICULTIES.indexOf(selectedDifficulty) + 1];
-  const nextLockReason = nextAscStep !== null && !isStepUnlocked(profile.dungeons, { difficulty: selectedDifficulty, asc: nextAscStep as 1 | 2 | 3 | 4 | 5 })
-    ? `Completa ${selectedDifficulty.toUpperCase()}+${selectedAsc} en cualquier ruta para abrir ${selectedDifficulty.toUpperCase()}+${nextAscStep}.`
-    : nextDifficultyStep && !isStepUnlocked(profile.dungeons, { difficulty: nextDifficultyStep, asc: 0 })
-      ? `Completa ${selectedDifficulty.toUpperCase()}+0 en cualquier ruta para abrir ${nextDifficultyStep.toUpperCase()}+0.`
-      : null;
+  // ---------------- route selector ----------------
+  const familyNames: Record<string, string> = { limo: "Limos", diablillo: "Diablillos", arpia: "Arpías", golem: "Gólems", espectro: "Espectros" };
   return (
     <Shell>
       <Notice />
       <Panel title="Elige una ruta" className="mx-auto w-full max-w-5xl">
-        <div className="mx-auto mb-4 max-w-3xl space-y-3">
-          <p className="text-center text-sm text-[#d9d2ca]">El escalón se comparte entre rutas. Cada dungeon conserva su jefe y sus familias.</p>
-          <div aria-label="Dificultad" className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">
-            {DIFFICULTIES.map((difficulty) => {
-              const unlocked = isStepUnlocked(profile.dungeons, { difficulty, asc: 0 });
-              const selected = difficulty === selectedDifficulty;
-              const reason = difficulty === "f" ? "Siempre disponible" : `Completa ${DIFFICULTIES[DIFFICULTIES.indexOf(difficulty) - 1]?.toUpperCase()}+0 en cualquier ruta`;
-              return (
-                <button key={difficulty} type="button" disabled={!unlocked}
-                  title={unlocked ? `${difficulty.toUpperCase()}+0` : reason}
-                  aria-label={unlocked ? `${difficulty.toUpperCase()}+0` : `${difficulty.toUpperCase()}+0 bloqueado. ${reason}`}
-                  aria-pressed={selected}
-                  onClick={() => { setSelectedDifficulty(difficulty); setSelectedAsc(0); }}
-                  className={`pixel-frame min-h-10 px-2 py-1 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-55 ${selected ? "text-yellow-200 ring-2 ring-yellow-400" : "text-[#d9d2ca]"}`}>
-                  {difficulty.toUpperCase()}
-                  {!unlocked && <span className="block text-[10px] font-normal leading-tight">Bloq.</span>}
-                </button>
-              );
-            })}
-          </div>
-          <div aria-label="Ascensión" className="grid grid-cols-6 gap-1.5">
-            {Array.from({ length: 6 }, (_, ascension) => {
-              const unlocked = isStepUnlocked(profile.dungeons, { difficulty: selectedDifficulty, asc: ascension as 0 | 1 | 2 | 3 | 4 | 5 });
-              const selected = selectedAsc === ascension;
-              const reason = ascension > 0
-                ? `Completa ${selectedDifficulty.toUpperCase()}+${ascension - 1} en cualquier ruta`
-                : `Completa ${DIFFICULTIES[DIFFICULTIES.indexOf(selectedDifficulty) - 1]?.toUpperCase()}+0 en cualquier ruta`;
-              return (
-                <button key={ascension} type="button" disabled={!unlocked}
-                  title={unlocked ? `${selectedDifficulty.toUpperCase()}+${ascension}` : reason}
-                  aria-label={unlocked ? `${selectedDifficulty.toUpperCase()}+${ascension}` : `${selectedDifficulty.toUpperCase()}+${ascension} bloqueado. ${reason}`}
-                  aria-pressed={selected}
-                  onClick={() => setSelectedAsc(ascension)}
-                  className={`pixel-frame min-h-10 px-1 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-55 ${selected ? "text-yellow-200 ring-2 ring-yellow-400" : "text-[#d9d2ca]"}`}>
-                  +{ascension}{!unlocked && <span className="block text-[10px] leading-tight">Bloq.</span>}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-center text-sm font-semibold text-yellow-200" aria-live="polite">
-            Escalón compartido: {selectedDifficulty.toUpperCase()}+{selectedAsc}
-          </p>
-          {nextLockReason && <p className="text-center text-xs text-[#c6beb5]">{nextLockReason}</p>}
-        </div>
+        <p className="mb-3 text-center text-sm text-[#d9d2ca]">Cada ruta conserva su jefe, sus familias y su propio avance.</p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {ROUTE_IDS.map((route) => {
             const theme = DUNGEON_THEMES[route];
-            const done = isRouteDone(profile.dungeons, route, selectedDifficulty, selectedAsc);
-            const familyNames: Record<string, string> = { limo: "Limos", diablillo: "Diablillos", arpia: "Arpías", golem: "Gólems", espectro: "Espectros" };
-            const families = [...theme.families, ...(theme.guest ? [theme.guest] : [])];
+            const completed = hasAnyRouteClear(profile.dungeons, route);
+            const routeFamilies = [...theme.families, ...(theme.guest ? [theme.guest] : [])].map((family) => familyNames[family]).join(" · ");
             return (
-              <button
-                key={route}
-                onClick={() => { setAsc(selectedAsc); setView({ t: "levels", route, difficulty: selectedDifficulty }); }}
-                className="pixel-frame flex min-w-0 items-center gap-3 p-3 text-left enabled:hover:brightness-125"
-              >
+              <button key={route} onClick={() => {
+                const saved = readRouteStep(route);
+                const selected = isStepUnlocked(profile.dungeons, saved) ? saved : { difficulty: "f" as const, asc: 0 as const };
+                setAsc(selected.asc);
+                setView({ t: "levels", route, difficulty: selected.difficulty });
+              }} className="pixel-frame flex min-w-0 items-center gap-3 p-3 text-left enabled:hover:brightness-125">
                 <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-yellow-700/70 bg-[#26323f]">
                   <ElementIcon element={theme.bossElement} className="h-7" bare />
                 </span>
                 <span className="min-w-0 flex-1 text-sm">
                   <span className="name-title block break-words text-base text-yellow-300">{theme.name}</span>
                   <span className="block text-xs text-[#d9d2ca]">Jefe: {theme.bossName}</span>
-                  <span className="block text-xs text-[#c6beb5]">{families.map((family) => familyNames[family] ?? family).join(" · ")}</span>
-                  {done && <span className="dungeon-stamp mt-1 inline-flex">COMPLETADO</span>}
+                  <span className="block text-xs text-[#c6beb5]">{routeFamilies}</span>
+                  <span className="mt-1 block text-xs text-[#d9d2ca]">{routeProgressSummary(profile.dungeons, route)}</span>
+                  {completed && <span className="dungeon-stamp mt-1 inline-flex">COMPLETADO</span>}
                 </span>
-                <span className="shrink-0 text-xs text-[#d9d2ca]">{selectedDifficulty.toUpperCase()}+{selectedAsc} ›</span>
+                <span className="shrink-0 text-xs text-[#d9d2ca]" aria-hidden="true">›</span>
               </button>
             );
           })}
         </div>
-        <div className="mt-3 text-center">
-          <Link href="/" className="btn btn-gray inline-block text-center">
-            ← Volver al menú
-          </Link>
-        </div>
+        <div className="mt-3 text-center"><Link href="/" className="btn btn-gray inline-block text-center">← Volver al menú</Link></div>
       </Panel>
     </Shell>
   );
@@ -878,7 +904,7 @@ function LevelCard({
       </span>
       <span className="min-w-0 flex-1 text-sm">
         <span className="flex items-center gap-1.5">
-          <ElementIcon element={levelElement(spec, asc)} className="h-5" />
+          <ElementIcon element={levelElement(spec, asc)} className="h-5" bare />
           {spec.length} peleas{spec.final && " · Jefe final"}
         </span>
         <span className="block text-[#d9d2ca]">
