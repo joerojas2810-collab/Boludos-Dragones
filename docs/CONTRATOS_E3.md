@@ -32,6 +32,9 @@ Puerta: `tsc`, `eslint src scripts`, `vitest` en verde y simulación sin deriva.
 - Las habilidades viejas (Ataque 2 y 3) siguen funcionando hasta 3c.
 
 ## 3c — Ganchos de clase y retirada de las viejas
+- **Acciones nuevas en todo el sistema (hallazgo de la auditoría de 3b):** hoy solo el motor acepta `golpe`/`barrido`. Torre y duelos se verifican en el servidor reproduciendo el log, así que hay que aceptar las acciones nuevas y retirar las viejas en: `server/validators.ts` (~línea 90, enum de acciones), el tipo `StageAction`/`stageReplay.ts`, `duel.ts` (~100, ~130: acciones y cooldowns de duelo), `auto.ts` (`autoPolicy` debe **elegir** las habilidades nuevas), `explain.ts` (~520–592) y los `pglite`/tests de torre y duelo. Sin esto los intentos con habilidades nuevas serían rechazados.
+- **Calibración:** hasta que `autoPolicy` use Golpe/Barrido, la simulación de 3b solo confirma que la ruta heredada no cambió. En 3c se mide el balance real con `scripts/sim-stage3.ts` contra la línea base y el piso de ruido de `docs/E2_RESULTADO.md`.
+- **Enfriamientos:** el factor 0,85 de 3b equivale en la práctica a enteros (1,7 baja 0,85 por activación = 2 activaciones). Aceptable; si 3c necesita fraccionales de verdad, documentarlo.
 - Implementar la tabla clase × habilidad de `COMBATE_V2.md` §6.2 **solo para Golpe y Barrido** (los de Quebrar/Interrumpir/Explotar esperan a sus etapas), máximo 1 gancho por celda, con los topes de curas/escudos indicados.
 - **Resolución del Caballero** (§6.3): reemplaza el Reflejo; da bono de daño al siguiente Golpe/Quebrar.
 - Retirar Ataque 2 (clase) y Ataque 3 (arma) del motor, de `skills.ts`, `weapons.ts` (`special`) y de la IA/`autoPolicy`; migrar tests y datos.
