@@ -7,7 +7,6 @@ import { UNIVERSAL_SKILLS, universalCooldownLabel, type UniversalSkillId } from 
 import {
   actionsLeft,
   estimateDamage,
-  hitChance,
   isStrongIntent,
   livingEnemies,
   strongPending,
@@ -34,11 +33,10 @@ type Props = {
   auto?: { reason: string | null; onAuto: () => void };
   side?: boolean; // vertical list in a side column (desktop)
   float?: boolean; // translucent panel over a full-screen scene (run fights)
-  bar?: boolean; // desktop: a slim command bar under the scene (phones keep the panel)
+  bar?: boolean; // wide screens use the full command rail; smaller screens keep the compact panel
   children?: ReactNode; // shown below the result once the fight is over
 };
 
-const pct = (v: number) => `${Math.round(v * 100)}%`;
 const UNIVERSAL_ACTION_ORDER = ["golpe", "barrido", "quebrar", "interrumpir", "explotar"] as const;
 const UNIVERSAL_ACTION_LABELS: Record<UniversalSkillId, string> = {
   golpe: "Golpe",
@@ -48,7 +46,7 @@ const UNIVERSAL_ACTION_LABELS: Record<UniversalSkillId, string> = {
   explotar: "Explotar",
 };
 
-function RoundQueue({ b }: { b: Battle }) {
+function RoundQueue({ b, desktop = false }: { b: Battle; desktop?: boolean }) {
   const slots = b.queue.filter(
     (slot): slot is "player" | EnemySlot =>
       slot === "player" || b.enemies[slot.e].hp > 0,
@@ -59,20 +57,20 @@ function RoundQueue({ b }: { b: Battle }) {
   return (
     <section
       aria-label="Cola de acciones de la ronda"
-      className="rounded-md border border-[#b9855a]/30 bg-black/25 px-2 py-1.5"
+      className={desktop ? "min-w-0" : "rounded-md border border-[#b9855a]/30 bg-black/25 px-2 py-1.5"}
     >
-      <div className="mb-1 flex items-center justify-between gap-2 text-[11px] leading-tight text-[#d9d2ca]">
+      {!desktop && <div className="mb-1 flex items-center justify-between gap-2 text-[11px] leading-tight text-[#d9d2ca]">
         <span className="font-semibold uppercase tracking-wide text-[#f1d5a4]">
           Orden de la ronda
         </span>
         <span className="shrink-0">Tú eliges ahora</span>
-      </div>
+      </div>}
       {slots.length === 0 ? (
         <div className="text-xs text-[#aebccb]">Ronda resuelta</div>
       ) : (
         <ol
           aria-label="Acciones pendientes, en orden de resolución"
-          className="flex min-w-0 gap-1.5 overflow-x-auto pb-1"
+          className={desktop ? "cmd-order-list" : "flex min-w-0 gap-1.5 overflow-x-auto pb-1"}
         >
           {slots.map((slot, i) => {
             const current = i === firstPlayer;
@@ -86,7 +84,7 @@ function RoundQueue({ b }: { b: Battle }) {
                   key={`player-${playerNumber}`}
                   aria-current={current ? "step" : undefined}
                   aria-label={label}
-                  className={`flex min-h-10 min-w-[5.5rem] shrink-0 flex-col justify-center rounded border px-2 py-1 text-center ${current ? "border-yellow-300 bg-yellow-300/15 text-yellow-100 shadow-[0_0_0_1px_#fcd34d66]" : "border-emerald-700/60 bg-emerald-950/50 text-emerald-100"}`}
+                  className={`${desktop ? "cmd-order-slot" : "flex min-h-10 min-w-[5.5rem] shrink-0 flex-col justify-center rounded border px-2 py-1"} text-center ${current ? "border-yellow-300 bg-yellow-300/15 text-yellow-100 shadow-[0_0_0_1px_#fcd34d66]" : "border-emerald-700/60 bg-emerald-950/50 text-emerald-100"}`}
                 >
                   <span className="text-xs font-bold leading-tight">TÚ</span>
                   <span className="text-[10px] leading-tight">
@@ -125,7 +123,7 @@ function RoundQueue({ b }: { b: Battle }) {
               <li
                 key={`enemy-${slot.e}-${slot.n}-${i}`}
                 aria-label={label}
-                className={`flex min-h-10 min-w-[5.5rem] shrink-0 flex-col justify-center rounded border px-1.5 py-1 text-center ${slot.intent === "channeling" ? "border-rose-500/80 bg-rose-950/75 text-rose-100" : "border-red-900/70 bg-red-950/55 text-red-100"}`}
+                className={`${desktop ? "cmd-order-slot" : "flex min-h-10 min-w-[5.5rem] shrink-0 flex-col justify-center rounded border px-1.5 py-1"} text-center ${slot.intent === "channeling" ? "border-rose-500/80 bg-rose-950/75 text-rose-100" : "border-red-900/70 bg-red-950/55 text-red-100"}`}
               >
                 <Tooltip tip={intentTip(slot.intent, b, slot.e)} className="block min-w-0">
                   <span className="block min-w-0">
@@ -187,14 +185,14 @@ function ActionButton({
   if (chip)
     return (
       <Tooltip tip={tip} className="block min-w-0">
-        <button className="cmd-chip !h-auto min-h-[4.25rem] w-full flex-col gap-0.5 px-1 py-1 text-center disabled:!opacity-80" data-hot={hot ? "" : undefined} disabled={disabled} onClick={onClick}>
+        <button className="cmd-chip !h-auto min-h-[5.25rem] w-full flex-col gap-0.5 px-1.5 py-1 text-center disabled:!opacity-80" data-hot={hot ? "" : undefined} disabled={disabled} onClick={onClick}>
           <span className="flex min-w-0 items-center justify-center gap-1">
-            {icon && <Icon name={icon} className="h-4 shrink-0" />}
-            <span className="min-w-0 whitespace-nowrap text-xs font-bold leading-tight">{title}</span>
+            {icon && <Icon name={icon} className="h-6 shrink-0" />}
+            <span className="min-w-0 whitespace-nowrap text-[13px] font-bold leading-tight">{title}</span>
           </span>
-          <span className={`block max-w-full truncate whitespace-nowrap text-[10px] leading-tight ${disabled ? "text-[#fff1d0]" : "text-[#d9d2ca]"}`} title={sub}>{sub}</span>
-          {meta && <span className="block max-w-full truncate whitespace-nowrap text-[9px] leading-tight text-[#d9d2ca]" title={meta}>{meta}</span>}
-          {compactReason && <span className="block max-w-full truncate whitespace-nowrap text-[9px] leading-tight text-amber-200" title={disabledReason}>{compactReason}</span>}
+          <span className={`block max-w-full whitespace-nowrap text-xs leading-tight ${disabled ? "text-[#fff1d0]" : "text-[#d9d2ca]"}`} title={sub}>{sub}</span>
+          {meta && <span className="block max-w-full border-t border-white/15 pt-0.5 text-[11px] leading-tight text-[#d9d2ca]" title={meta}>{meta}</span>}
+          {compactReason && <span className="block max-w-full whitespace-nowrap text-[10px] leading-tight text-amber-200" title={disabledReason}>{compactReason}</span>}
         </button>
       </Tooltip>
     );
@@ -265,7 +263,7 @@ export function ActionPanel({
       onClick={() => onAct("attack1", target)}
       icon={iconFor("skill", `${b.player.char.classId}.attack1`)}
       title="Básico"
-      sub={`~${estimateDamage(b.player, foe, "attack1")} daño · seguro`}
+      sub={`~${estimateDamage(b.player, foe, "attack1")} daño`}
       meta={chip ? "CD —" : `Sin enfriamiento${alive.length > 1 ? ` · Objetivo: ${foe.char.name}` : ""}`}
     />
   );
@@ -281,11 +279,11 @@ export function ActionPanel({
     const reason = attackDisabledReason(b.player, id, foe) ?? undefined;
     const damage = action.attack.power === 0
       ? action.attack.name === "Quebrar Aguante"
-        ? "Reduce Aguante y rompe armadura"
+        ? "Reduce Aguante"
         : action.attack.name === "Interrumpir"
-          ? "Interrumpe una intención válida"
-          : "Consume un estado para causar daño"
-      : `~${estimateDamage(b.player, foe, action.id)} daño${action.target === "all" ? " c/u" : ""} · ${pct(hitChance(b.player, action.id))} acierto`;
+          ? "Detiene canalización"
+          : "Consume el estado"
+      : `~${estimateDamage(b.player, foe, action.id)} daño`;
     return (
       <ActionButton
         key={action.id}
@@ -297,7 +295,7 @@ export function ActionPanel({
         icon={iconFor("skill", action.id)}
         title={UNIVERSAL_ACTION_LABELS[action.id]}
         sub={damage}
-        meta={`${remaining ? `${chip ? "Restan" : "Activaciones"}: ${remaining}` : "Listo"}${targetLabel ? ` · ${targetLabel}` : ""}${action.id === "quebrar" && foe.aguante !== undefined ? ` · Aguante ${foe.aguante}/${foe.aguanteMax}` : ""}`}
+        meta={remaining ? `${chip ? "CD" : "Activaciones"}: ${remaining}` : "Listo"}
         disabledReason={reason}
       />
     );
@@ -396,8 +394,8 @@ export function ActionPanel({
   // Desktop: a slim command bar under the scene (own look, one row); phones keep the panel.
   return (
     <>
-      <div className="md:hidden">{panel}</div>
-      <div className="cmd-bar hidden items-center gap-3 px-4 py-2 md:flex">
+      <div className="sm:hidden">{panel}</div>
+      <div className="cmd-bar hidden flex-col gap-1 px-3 py-1.5 sm:flex">
         {over ? (
           <div className="flex flex-1 items-center gap-4">
             <b className="text-yellow-300">Fin de la pelea</b>
@@ -405,19 +403,26 @@ export function ActionPanel({
           </div>
         ) : (
           <>
-            <div className="shrink-0 leading-tight">
-              <div className="text-sm font-semibold text-[#7ce0a3]">Tu turno</div>
-              <Tooltip tip={announceTip(b)}>
-                <div className="text-xs text-[#d9d2ca]">
-                  Ronda {b.turn} · <span className="tracking-wider text-yellow-300">{Array.from({ length: mine }, (_, i) => (i < mine - left ? "○" : "●")).join("")}</span> {left}/{mine}
-                </div>
-              </Tooltip>
-              {alive.length > 1 && <div className="text-[11px] text-yellow-300">Objetivo: {foe.char.name}</div>}
-              <div className="mt-1 w-[min(18rem,22vw)]">
-                <RoundQueue b={b} />
+            <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 lg:flex-nowrap">
+              <div className="w-40 shrink-0 leading-tight">
+                <div className="text-sm font-semibold text-[#7ce0a3]">Tu turno</div>
+                <Tooltip tip={announceTip(b)}>
+                  <div className="text-xs text-[#d9d2ca]">
+                    Ronda {b.turn} · <span className="tracking-wider text-yellow-300">{Array.from({ length: mine }, (_, i) => (i < mine - left ? "○" : "●")).join("")}</span> {left}/{mine}
+                  </div>
+                </Tooltip>
+                {alive.length > 1 && <div className="text-[11px] text-yellow-300">Objetivo: {foe.char.name}</div>}
               </div>
+              <div className="order-last min-w-0 basis-full lg:order-none lg:basis-0 lg:flex-1">
+                <RoundQueue b={b} desktop />
+              </div>
+              {auto && (
+                <Tooltip tip={autoTip(auto.reason)} className="ml-auto lg:ml-0">
+                  <button className="cmd-ghost shrink-0" disabled={!!auto.reason} onClick={auto.onAuto}>Resolver rápido</button>
+                </Tooltip>
+              )}
             </div>
-            <div className="grid min-w-0 flex-1 grid-cols-7 gap-1.5">
+            <div className="grid min-w-0 grid-cols-4 gap-1.5 lg:grid-cols-7">
               {basicAction(true)}
               {universalActions(true).slice(0, 4)}
               <ActionButton
@@ -432,13 +437,6 @@ export function ActionPanel({
               />
               {universalActions(true).slice(4)}
             </div>
-            {auto && (
-              <Tooltip tip={autoTip(auto.reason)}>
-                <button className="cmd-ghost" disabled={!!auto.reason} onClick={auto.onAuto}>
-                  Resolver rápido
-                </button>
-              </Tooltip>
-            )}
           </>
         )}
       </div>

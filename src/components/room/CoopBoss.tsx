@@ -220,7 +220,7 @@ export function CoopFight({ client }: { client: RoomClient }) {
         world={0}
         boss
       />
-      <ActionPanel b={b} target={targeting.target} onAct={act} />
+      <ActionPanel bar b={b} target={targeting.target} onAct={act} />
     </>
   );
 }
