@@ -8,6 +8,7 @@ import {
   actionsLeft,
   estimateDamage,
   hitChance,
+  isStrongIntent,
   livingEnemies,
   strongPending,
   type EnemySlot,
@@ -21,6 +22,7 @@ import {
   attackTip,
   autoTip,
   defendTip,
+  intentTip,
   type Tip,
 } from "@/lib/game/explain";
 
@@ -98,20 +100,45 @@ function RoundQueue({ b }: { b: Battle }) {
             const intent =
               slot.intent === "defend"
                 ? "Defender"
+                : slot.intent === "charge"
+                  ? "Carga"
+                  : slot.intent === "channeling"
+                    ? "Canalización"
                 : attackOf(enemy, slot.intent).name;
-            const strong = slot.intent === "attack2";
-            const label = `${enemy.char.name}: ${strong ? "golpe fuerte, " : ""}${intent}`;
+            const strong = isStrongIntent(slot.intent);
+            const cue = slot.intent === "channeling"
+              ? "Interrumpible"
+              : slot.intent === "charge"
+                ? "Cancelable por Quiebre"
+                : strong
+                  ? "Golpe fuerte"
+                  : "";
+            const label = `${enemy.char.name}: ${intent}${cue ? ` · ${cue}` : ""}`;
+            const compactCue = slot.intent === "channeling"
+              ? "Interrumpible"
+              : slot.intent === "charge"
+                ? "Quiebre"
+                : slot.intent === "attack2"
+                  ? "Fuerte"
+                  : "";
             return (
               <li
                 key={`enemy-${slot.e}-${slot.n}-${i}`}
                 aria-label={label}
-                className="flex min-h-10 min-w-[5.5rem] shrink-0 flex-col justify-center rounded border border-red-900/70 bg-red-950/55 px-2 py-1 text-center text-red-100"
+                className={`flex min-h-10 min-w-[5.5rem] shrink-0 flex-col justify-center rounded border px-1.5 py-1 text-center ${slot.intent === "channeling" ? "border-rose-500/80 bg-rose-950/75 text-rose-100" : "border-red-900/70 bg-red-950/55 text-red-100"}`}
               >
-                <span className="text-xs font-bold leading-tight">R{slot.e + 1}</span>
-                <span className="max-w-28 truncate text-[10px] leading-tight" title={label}>
-                  {strong && <span aria-hidden="true">⚠ </span>}
-                  {intent}
-                </span>
+                <Tooltip tip={intentTip(slot.intent, b, slot.e)} className="block min-w-0">
+                  <span className="block min-w-0">
+                    <span className="flex items-center justify-center gap-1 text-xs font-bold leading-tight">
+                      <span>R{slot.e + 1}</span>
+                      {compactCue && <span className="truncate text-[9px] text-[#f1d5a4]">{compactCue}</span>}
+                    </span>
+                    <span className="block max-w-28 truncate text-[10px] leading-tight" title={label}>
+                      {strong && <span aria-hidden="true">⚠ </span>}
+                      {intent}
+                    </span>
+                  </span>
+                </Tooltip>
               </li>
             );
           })}
@@ -169,7 +196,7 @@ function ActionButton({
       placement={left ? "side" : "auto"}
     >
       <button
-        className={`btn h-full w-full min-w-0 motion-safe:transition-transform motion-safe:active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none max-md:![border-width:6px_10px] max-md:![border-image-width:6px_10px] max-md:!px-1 max-md:!py-0.5 ${left ? "min-h-11 !px-2 !py-1" : "min-h-14 max-md:min-h-12 md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1"} ${hot ? "!border-yellow-300" : ""}`}
+        className={`btn h-full w-full min-w-0 motion-safe:transition-transform motion-safe:active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none max-md:![border-width:6px_10px] max-md:![border-image-width:6px_10px] max-md:!px-1 max-md:!py-0.5 ${left ? "min-h-11 !px-2 !py-1" : "min-h-14 max-md:min-h-[4.25rem] md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1"} ${hot ? "!border-yellow-300" : ""}`}
         disabled={disabled}
         onClick={onClick}
         aria-label={`${title}. ${sub}${meta ? `. ${meta}` : ""}${disabledReason ? `. ${disabledReason}` : ""}`}
@@ -190,12 +217,12 @@ function ActionButton({
               {title}
             </div>
             <div
-              className={`leading-snug max-md:text-[11px] max-md:leading-tight ${left ? "text-[11px]" : "text-sm"}`}
+              className={`leading-snug !text-[#24382f] max-md:truncate max-md:text-xs max-md:leading-tight ${left ? "text-xs" : "text-sm"}`}
             >
               {sub}
             </div>
-            {meta && <div className="text-[10px] leading-tight text-[#d9d2ca]">{meta}</div>}
-            {disabledReason && <div className="text-[10px] leading-tight text-amber-200">{disabledReason}</div>}
+            {meta && <div className="!text-[11px] leading-tight !text-[#24382f] max-md:truncate">{meta}</div>}
+            {disabledReason && <div className="text-[11px] leading-tight text-amber-100 max-md:truncate" title={disabledReason}>{disabledReason}</div>}
           </div>
         </div>
       </button>
@@ -230,16 +257,18 @@ export function ActionPanel({
       icon={iconFor("skill", `${b.player.char.classId}.attack1`)}
       title="Básico"
       sub={`~${estimateDamage(b.player, foe, "attack1")} daño · seguro`}
-      meta={chip ? `CD — · ${foe.char.name}` : `Sin enfriamiento · Objetivo: ${foe.char.name}`}
+      meta={chip ? "CD —" : `Sin enfriamiento${alive.length > 1 ? ` · Objetivo: ${foe.char.name}` : ""}`}
     />
   );
 
   const universalActions = (chip = false) => UNIVERSAL_ACTION_ORDER.map((id) => {
     const action = UNIVERSAL_SKILLS[id];
     const remaining = universalCooldownLabel(b.player.universalCooldowns?.[action.id] ?? 0);
-    const targetLabel = action.target === "all"
-      ? `Objetivo: ${alive.length} ${alive.length === 1 ? "rival" : "rivales"}`
-      : `Objetivo: ${foe.char.name}`;
+    const targetLabel = alive.length <= 1
+      ? ""
+      : action.target === "all"
+        ? `Objetivo: ${alive.length} rivales`
+        : `Objetivo: ${foe.char.name}`;
     const reason = attackDisabledReason(b.player, id, foe) ?? undefined;
     const damage = action.attack.power === 0
       ? action.attack.name === "Quebrar Aguante"
@@ -253,13 +282,13 @@ export function ActionPanel({
         key={action.id}
         chip={chip}
         left={float}
-        tip={{ title: action.name, kind: "info", lines: [reason ?? (remaining ? `Se activa de nuevo en ${remaining} acciones.` : targetLabel)] }}
+        tip={{ title: action.name, kind: "info", lines: [reason ?? (remaining ? `Se activa de nuevo en ${remaining} acciones.` : targetLabel || "Disponible para usar.")] }}
         disabled={!!reason}
         onClick={() => onAct(action.id, target)}
         icon={iconFor("skill", action.id)}
         title={UNIVERSAL_ACTION_LABELS[action.id]}
         sub={damage}
-        meta={`${chip ? "Restan" : "Activaciones"}: ${remaining} · ${targetLabel}${action.id === "quebrar" && foe.aguante !== undefined ? ` · Aguante ${foe.aguante}/${foe.aguanteMax}` : ""}`}
+        meta={`${remaining ? `${chip ? "Restan" : "Activaciones"}: ${remaining}` : "Listo"}${targetLabel ? ` · ${targetLabel}` : ""}${action.id === "quebrar" && foe.aguante !== undefined ? ` · Aguante ${foe.aguante}/${foe.aguanteMax}` : ""}`}
         disabledReason={reason}
       />
     );
@@ -313,7 +342,7 @@ export function ActionPanel({
       )}
       {!over && (
         <div
-          className={`grid grid-cols-2 gap-2 ${side ? (float ? "md:grid-cols-2" : "md:grid-cols-1") : "md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]"}`}
+          className={`grid grid-cols-3 gap-1.5 sm:gap-2 ${side ? (float ? "md:grid-cols-2" : "md:grid-cols-1") : "md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]"}`}
         >
           {basicAction()}
           {universalActions()}
