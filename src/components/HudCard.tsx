@@ -27,7 +27,7 @@ import { TRAITS } from "@/lib/game/traits";
 import type { EnemyFamily } from "@/lib/game/worlds";
 
 const FAMILY_LABEL: Record<EnemyFamily, string> = {
-  limo: "Limo", diablillo: "Diablillo", arpia: "Arpía", golem: "Gólem", espectro: "Espectro",
+  limo: "Slime", diablillo: "Diablillo", arpia: "Arpía", golem: "Gólem", espectro: "Espectro",
 };
 
 type Props = {

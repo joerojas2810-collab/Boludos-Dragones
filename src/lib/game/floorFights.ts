@@ -62,14 +62,14 @@ const towerPow = makePow(TOWER_SCALE);
 const stepPow = makePow(1 + STEP_BONUS);
 
 const FAMILY_LABEL: Record<EnemyFamily, string> = {
-  limo: "Limo",
+  limo: "Slime",
   diablillo: "Diablillo",
   arpia: "Arpía",
   golem: "Gólem",
   espectro: "Espectro",
 };
 const FAMILY_BOSS_LABEL: Record<EnemyFamily, string> = {
-  limo: "Limo Supremo",
+  limo: "Slime Supremo",
   diablillo: "Diablillo Mayor",
   arpia: "Arpía Matriarca",
   golem: "Gólem Colosal",

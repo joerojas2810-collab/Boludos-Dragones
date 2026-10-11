@@ -97,7 +97,7 @@ export const ASC_RULES: readonly string[] = [
 ];
 
 const FAMILY_LABEL: Record<EnemyFamily, string> = {
-  limo: "Limo",
+  limo: "Slime",
   diablillo: "Diablillo",
   arpia: "Arpía",
   golem: "Gólem",

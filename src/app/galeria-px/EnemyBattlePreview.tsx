@@ -10,7 +10,7 @@ import type { EnemyAction } from "@/lib/art/enemies";
 
 type Design = { id: string; label: string; family: EnemyFamily; tier: "normal" | "elite" | "boss"; route?: string };
 const FAMILIES: { id: string; family: EnemyFamily; label: string }[] = [
-  { id: "slime", family: "limo", label: "Limo" },
+  { id: "slime", family: "limo", label: "Slime" },
   { id: "imp", family: "diablillo", label: "Diablillo" },
   { id: "harpy", family: "arpia", label: "Arpía" },
   { id: "golem", family: "golem", label: "Gólem" },
