@@ -43,7 +43,7 @@ interface DungeonProgress {
 - Tests `pglite`: desbloqueo de los 42 escalones, orden de niveles por ruta, que superar un escalón con una ruta habilita ese escalón para las demás, y rechazo de `ss`/`ssr`.
 
 ## 6a-2 — Escalera de dificultad
-- Dificultad = `DIFFICULTY_MULT[difficulty] × RANK_TUNE[difficulty] × ASC_TUNE[asc] × (1 + 0,05 × índice de nivel)` con un pequeño desvío `ROUTE_TUNE` (±) por ruta si las mecánicas de jefe lo exigen. La escalera debe ser **monótona**: R+5 no más difícil que (R+1)+0 para un héroe del rango correspondiente.
+- Dificultad = `DIFFICULTY_MULT[difficulty] × RANK_TUNE[difficulty] × ASC_TUNE[asc] × (1 + 0,05 × índice de nivel)` con un pequeño desvío `ROUTE_TUNE` (±) por ruta si las mecánicas de jefe lo exigen. La escalera es **monótona solo dentro de cada rango** (+0 < +1 < … < +5); entre rangos no se exige (Q22-C, 2026-10-11): un héroe recién conseguido de rango R (0★) debe poder con R+0 al ~70 %. Los pasos de ascensión pueden crecer hasta ~×2 entre +0 y +5 para mantener el 60 % del héroe con n★.
 - **Héroe de referencia por escalón R+n (APROBADO por el dueño el 2026-10-11):** rango de ítem R, **n★**, nivel tope de ese ★ (`levelCap`), equipo completo del rango R sin mejoras. **Metas de victorias** de ese héroe: R+n con n★ ≈ **60 %**; con 2★ más ≈ **85 %**; con 2★ menos ≈ **25 %**; R+0 con 0★ ≈ **70 %**; S+5 con 5★ al máximo ≈ **45 %**. Los valores se ajustan al simular.
 - Reescribir `scripts/stage-tune.ts` (o equivalente) para calibrar la escalera con `--quick` y confirmar con la corrida completa; documentar tabla y desviaciones en `docs/E6A_2_RESULTADO.md`. Criterio: por escalón dentro de ±5 pp de la meta; por clase y elemento sin desviaciones mayores que el piso de ruido + 2 pp del agregado.
 
