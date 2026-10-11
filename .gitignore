@@ -50,3 +50,4 @@ next-env.d.ts
 /.next-pixel/
 /.next-toggle/
 scripts/baseline/stage3-quick.json
+/.next-local/
