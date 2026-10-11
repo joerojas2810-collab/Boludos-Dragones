@@ -72,9 +72,10 @@ import {
 export type AttackKey = "attack1" | "attack2";
 export type MoveKey = AttackKey | UniversalSkillId;
 export type CombatMoveKey = MoveKey;
+type TelegraphKey = CombatMoveKey | "charge";
 export type Action = "attack1" | "defend" | UniversalSkillId;
 export type BattleAction = Action;
-export type Intent = AttackKey | "defend";
+export type Intent = AttackKey | "charge" | "defend";
 export type Status = "ongoing" | "won" | "lost";
 
 export const DEFEND_FACTOR = 0.5;
@@ -94,10 +95,17 @@ export const MAX_ENEMIES = 3;
 // the guard earns a bonus of the hero's class (see earnGuard). Weaker hits in the
 // same round still get the normal DEFEND_FACTOR.
 export const PERFECT_GUARD_FACTOR = 0.25;
+export const AGUANTE_FRACTION = 0.3;
+export const AGUANTE_HIT_FRACTION = 0.25;
+export const QUEBRAR_HIT_FRACTION = 1;
+export const QUIEBRE_EXPOSED_REDUCTION = 0.15;
+export const QUIEBRE_RESIST_ACTIVATIONS = 2;
+const COLOSSAL_GOLEM = "Gólem Colosal";
+const CHARGE_DEFENSE_BYPASS = 0.3;
 export const GUARD_CRIT_BONUS = 0.5; // Pícaro: extra crit chance on the next hit
 export const GUARD_HEAL = 0.03; // Clérigo: fraction of max hp healed (class cap)
 export const isStrongIntent = (k: CombatMoveKey | Intent): boolean =>
-  k === "attack2" || k === "golpe";
+  k === "attack2" || k === "golpe" || k === "charge";
 
 // Speed -> actions ("acciones acumuladas"). Per (hero, enemy) pair the slower
 // side acts once per round; the faster side acts floor(carry) times, where
@@ -136,6 +144,7 @@ export interface BattleOptions {
   freeHits?: number; // enemy attacks the player evades automatically
   mods?: EnemyMod[];
   enemyStatus?: boolean; // enemies apply their element status on strong hits (elites, bosses)
+  enemyAguante?: boolean; // elites and bosses receive the secondary defense bar
 }
 
 export interface BattleEvent {
@@ -176,6 +185,12 @@ export interface Combatant {
   rage?: number; // Furioso: hits taken so far
   boss?: BossState; // dungeon boss mechanic state (bossRules.ts)
   exposed?: boolean; // target remains Expuesto until its next activation (stage 4)
+  aguante?: number;
+  aguanteMax?: number;
+  quiebre?: number;
+  quiebreResist?: number;
+  chargePending?: boolean;
+  chargeUsed?: boolean;
   healCut?: number; // rounds left with the heals cut (Reina Marchita ritual)
   applies?: boolean; // enemies: strong hits apply their element's status (elites, bosses)
   universalCooldowns?: Partial<Record<UniversalSkillId, number>>;
@@ -234,10 +249,12 @@ export const passiveReduction = (c: Combatant): number =>
   );
 
 // Fraction of damage absorbed by defense (0..DEF_CAP).
-export const defReduction = (att: Combatant, def: Combatant): number => {
+export const defReduction = (att: Combatant, def: Combatant, defenseBypass = 0): number => {
   const d =
     def.char.stats.def *
     defMult(def.statuses) *
+    (def.exposed ? 1 - QUIEBRE_EXPOSED_REDUCTION : 1) *
+    (1 - defenseBypass) *
     (def.boss && ruleOf(def) === "posturas" ? STANCES[def.boss.stance].def : 1);
   return Math.min(DEF_CAP, d / Math.max(1e-6, d + DEF_K * att.char.stats.atk));
 };
@@ -311,7 +328,8 @@ export const furyBonus = (c: Combatant): number =>
     ? 0
     : (CLASS_PASSIVE_FURY.find((t) => c.hp / c.char.stats.hp < t.below)?.bonus ?? 0);
 
-export function attackOf(c: Combatant, key: CombatMoveKey): Attack {
+export function attackOf(c: Combatant, intent: TelegraphKey): Attack {
+  const key: CombatMoveKey = intent === "charge" ? "attack2" : intent;
   if (key in UNIVERSAL_SKILLS) return UNIVERSAL_SKILLS[key as UniversalSkillId].attack;
   if (key === "attack1" && isWeaponType(c.char.weapon?.type)) {
     const basic = WEAPON_TYPE_DATA[c.char.weapon.type].basic;
@@ -460,6 +478,19 @@ function planRound(
   const intents: Intent[][] = enemies.map((e, i) =>
     counts[i] ? pickIntents(e, counts[i].enemy, rng) : [],
   );
+  const preparingCharge = enemies.map(() => false);
+  enemies.forEach((e, i) => {
+    if (e.char.name !== COLOSSAL_GOLEM || !intents[i].length) return;
+    if (e.chargePending) {
+      intents[i][0] = "charge";
+    } else if (!e.chargeUsed) {
+      const strongIndex = intents[i].indexOf("attack2");
+      if (strongIndex >= 0) {
+        intents[i][strongIndex] = "defend";
+        preparingCharge[i] = true;
+      }
+    }
+  });
   const rolls = enemies.map((e) => (e.hp > 0 ? roll(e, rng) : -1));
   const mine = roll(player, rng);
   const order = [...live].sort((a, b) => rolls[b] - rolls[a] || a - b);
@@ -476,6 +507,8 @@ function planRound(
       lines.push(`${e.char.name} adopta la postura ${stanceFor(turn)}.`);
     if (ruleOf(e) === "marchitar" && turn % RITUAL_EVERY === 0)
       lines.push(`${e.char.name} prepara un ritual: defiende con guardia perfecta para anularlo.`);
+    if (preparingCharge[i])
+      lines.push(`${e.char.name} prepara una Carga: Defender la mitiga; Quebrar Aguante puede cancelarla.`);
   }
   for (const i of live)
     if ((counts[i]?.enemy ?? 1) > 1)
@@ -490,6 +523,7 @@ function planRound(
       carry: counts[i]?.carry ?? e.carry,
       defending: intents[i].includes("defend"),
       ...(e.boss && ruleOf(e) === "posturas" && { boss: { ...e.boss, stance: stanceFor(turn) } }),
+      ...(preparingCharge[i] && { chargeUsed: true, chargePending: true }),
     })),
     lines,
   };
@@ -533,9 +567,13 @@ export function startBattle(
 ): Battle {
   const mods = opts.mods ?? [];
   const list: readonly Character[] = "name" in foes ? [foes] : foes;
-  const es = list.slice(0, MAX_ENEMIES).map((c) => {
+  const es = list.slice(0, MAX_ENEMIES).map((c, i) => {
     const e = newCombatant(c);
     if (opts.enemyStatus) e.applies = true;
+    if ((opts.enemyAguante && i === 0) || c.bossId || c.name === COLOSSAL_GOLEM) {
+      e.aguanteMax = Math.max(1, Math.round(c.stats.hp * AGUANTE_FRACTION));
+      e.aguante = e.aguanteMax;
+    }
     if (ruleOf(e)) e.boss = { ...NEW_BOSS };
     if (ruleOf(e) === "armadura") e.shield = Math.round(c.stats.hp * ARMOR_FRACTION);
     if (mods.includes("escudo"))
@@ -573,7 +611,8 @@ export function startBattle(
 }
 
 // No dodge in engine v11: only accuracy decides a hit.
-export function hitChance(att: Combatant, key: CombatMoveKey): number {
+export function hitChance(att: Combatant, intent: TelegraphKey): number {
+  const key: CombatMoveKey = intent === "charge" ? "attack2" : intent;
   if (key === "attack1") return 1; // the basic attack is the safe one; accuracy is the risk of the others
   const retry = att.missed ? rulesOf(att).retryAccuracy : 0; // Terco insists after a miss
   return clamp(attackOf(att, key).accuracy + att.char.stats.accuracy + retry, 0.05, 1);
@@ -621,15 +660,17 @@ export const DAMAGE_SCALE = 0.8;
 export function estimateDamage(
   att: Combatant,
   def: Combatant,
-  key: CombatMoveKey,
+  intent: TelegraphKey,
   crit = false, // true: skip the non-crit penalty (the crit multiplier is applied by the caller)
+  defenseBypass = 0,
 ): number {
+  const key: CombatMoveKey = intent === "charge" ? "attack2" : intent;
   const a = attackOf(att, key);
   const raw =
     att.char.stats.atk *
     a.power *
     attackElementMultiplier(att, def) *
-    (1 - defReduction(att, def));
+    (1 - defReduction(att, def, defenseBypass));
   return Math.max(
     1,
     Math.round(
@@ -782,6 +823,7 @@ export function strike(
   dmgFactor = 1,
   asHero = actor === "player", // duels: both sides are heroes (elemental charges and status rules)
   applyOwnElementalStatus = true,
+  defenseBypass = 0,
 ): Strike {
   const a = attackOf(att, key);
   const who = att.char.name;
@@ -843,7 +885,7 @@ export function strike(
     charge = Math.min(MAX_ELEMENT_CHARGES, charge + 1);
   }
   const dmg = Math.round(
-    estimateDamage(att, def, key, crit) *
+      estimateDamage(att, def, key, crit, defenseBypass) *
       (crit ? critMultiplier(att) : 1) *
       dmgFactor *
       gamble,
@@ -994,6 +1036,7 @@ export function step(
       factor *= ADAPT_FACTOR;
       log.push(`${enemies[i].char.name} te lee: tu golpe repetido le hace menos.`);
     }
+    const before = enemies[i];
     const r = strike(
       player,
       enemies[i],
@@ -1009,10 +1052,43 @@ export function step(
     );
     player = r.attacker;
     enemies[i] = r.defender;
+    if (before.aguante !== undefined && r.dmg > 0) {
+      const lifeDamage = Math.max(0, before.hp - r.defender.hp);
+      let aguanteFactor = key === "quebrar" ? QUEBRAR_HIT_FRACTION : AGUANTE_HIT_FRACTION;
+      if (key === "quebrar") {
+        if (player.char.classId === "caballero" && resolutionReady) aguanteFactor *= 1.25;
+        if (player.char.classId === "mago" && attackElementMultiplier(player, before) > 1) aguanteFactor *= 1.2;
+        if (player.char.classId === "picaro" && before.statuses?.length) aguanteFactor *= 1.2;
+        if (player.char.classId === "berserker" && player.hp < player.char.stats.hp * BERSERKER_SKILL_FURY_THRESHOLD) aguanteFactor *= 1.25;
+      }
+      const rawRemaining = before.aguante - Math.round(lifeDamage * aguanteFactor);
+      const remaining = Math.max(1, rawRemaining);
+      const broke = rawRemaining <= 0 && (before.quiebreResist ?? 0) === 0;
+      if (broke) {
+        if (key === "quebrar") chargeBrokenTargets.add(i);
+        enemies[i] = {
+          ...enemies[i],
+          aguante: before.aguanteMax,
+          exposed: true,
+          quiebre: 1,
+          quiebreResist: QUIEBRE_RESIST_ACTIVATIONS,
+          chargePending: key === "quebrar" ? false : before.chargePending,
+        };
+        log.push(`¡Quiebre! ${before.char.name} queda Expuesto.`);
+        if (player.char.classId === "clerigo" && key === "quebrar") healClass(0.03);
+        if (key === "quebrar" && before.chargePending)
+          log.push(`El Quiebre cancela la Carga de ${before.char.name}.`);
+      } else {
+        enemies[i] = { ...enemies[i], aguante: remaining };
+      }
+      if (key === "quebrar" && resolutionReady && player.char.classId === "caballero")
+        log.push(`${player.char.name} consume Resolución: +15 % de daño.`);
+    }
     lastHitLanded = events.length > eventCount && events.at(-1)?.kind !== "miss";
     return r.dmg;
   };
   let lastHitLanded = false;
+  const chargeBrokenTargets = new Set<number>();
   const healClass = (fraction: number) => {
     const before = player.hp;
     player = classHeal(player, fraction);
@@ -1033,6 +1109,8 @@ export function step(
             if (player.char.classId === "mago" && foe.statuses?.length) hook *= 1.15;
             if (player.char.classId === "picaro" && foe.exposed) hook *= 1.2;
             if (player.char.classId === "berserker" && player.hp < player.char.stats.hp * BERSERKER_SKILL_FURY_THRESHOLD) hook *= 1 + BERSERKER_GOLPE_BONUS;
+          } else if (universal.id === "quebrar") {
+            if (player.char.classId === "caballero" && resolutionReady) hook *= 1.15;
           } else if (universal.id === "barrido") {
             if (player.char.classId === "mago" && foe.statuses?.length) hook *= 1.1;
             if (player.char.classId === "picaro" && alive.length === 1) hook *= 1.1;
@@ -1090,6 +1168,12 @@ export function step(
       if (Object.keys(clocks ?? {}).length) player.universalCooldowns = clocks;
       if (playerDone++ > 0) log.push(`${player.char.name} actúa de nuevo.`);
       if (action !== "defend") playMove();
+      if (chargeBrokenTargets.size)
+        for (let q = queue.length - 1; q >= 0; q--) {
+          const queued = queue[q];
+          if (queued !== "player" && queued?.intent === "charge" && chargeBrokenTargets.has(queued.e))
+            queue.splice(q, 1);
+        }
       enemies.forEach((e, i) => {
         if (e.boss && ruleOf(e) === "aprende")
           enemies[i] = {
@@ -1102,19 +1186,37 @@ export function step(
       if (slot.n > 0) log.push(`${foe.char.name} actúa de nuevo.`);
       if (slot.intent === "defend") {
         log.push(`${foe.char.name} se defiende.`);
+        enemies[slot.e] = {
+          ...foe,
+          exposed: false,
+          quiebre: 0,
+          quiebreResist: Math.max(0, (foe.quiebreResist ?? 0) - 1),
+        };
         continue;
       }
+      if (slot.intent === "charge")
+        log.push(`${foe.char.name} lanza su Carga.`);
       const r = strike(
         foe,
         player,
-        slot.intent,
+        slot.intent === "charge" ? "attack2" : slot.intent,
         rng,
         log,
         events,
         "enemy",
         slot.e,
+        1,
+        undefined,
+        true,
+        slot.intent === "charge" ? CHARGE_DEFENSE_BYPASS : 0,
       );
-      foe = r.attacker;
+      foe = {
+        ...r.attacker,
+        exposed: false,
+        quiebre: 0,
+        quiebreResist: Math.max(0, (r.attacker.quiebreResist ?? 0) - 1),
+        chargePending: false,
+      };
       player = r.defender;
       if (
         foe.boss &&

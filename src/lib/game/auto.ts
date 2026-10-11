@@ -39,7 +39,7 @@ export interface AutoOptions {
   useUniversalSkills?: boolean; // consider Golpe/Barrido (default on)
 }
 
-const ev = (att: Combatant, def: Combatant, key: MoveKey) =>
+const ev = (att: Combatant, def: Combatant, key: MoveKey | "charge") =>
   hitChance(att, key) * estimateDamage(att, def, key);
 
 // Expected damage per slot this enemy still has this round.

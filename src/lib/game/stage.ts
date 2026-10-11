@@ -20,7 +20,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 14; // 14: attacks/statuses use hero element; basic attack profile comes from weapon type
+export const ENGINE_VERSION = 15; // 15: Aguante and Quiebre for elites and bosses
 
 export type FightRole = "normal" | "elite" | "final";
 
@@ -253,6 +253,7 @@ export function startFight(st: Stage): { battle: Battle; rng: Rng } {
     playerHp: st.hp,
     mods: f.mods,
     enemyStatus: f.role !== "normal",
+    enemyAguante: f.role !== "normal",
   });
   return { battle, rng };
 }

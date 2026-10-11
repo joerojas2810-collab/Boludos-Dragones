@@ -6,7 +6,7 @@ import {
 } from "./universalSkills";
 
 describe("universal skill definitions", () => {
-  it("declares all five actions and exposes reasons for the deferred three", () => {
+  it("declares all five actions and exposes reasons for the deferred two", () => {
     expect(Object.keys(UNIVERSAL_SKILLS).sort()).toEqual([
       "barrido",
       "explotar",
@@ -14,7 +14,9 @@ describe("universal skill definitions", () => {
       "interrumpir",
       "quebrar",
     ]);
-    for (const id of ["quebrar", "interrumpir", "explotar"] as const) {
+    expect(UNIVERSAL_SKILLS.quebrar.enabled).toBe(true);
+    expect(UNIVERSAL_SKILLS.quebrar.disabledReason).toBeUndefined();
+    for (const id of ["interrumpir", "explotar"] as const) {
       expect(UNIVERSAL_SKILLS[id].enabled).toBe(false);
       expect(UNIVERSAL_SKILLS[id].disabledReason).toBeTruthy();
     }

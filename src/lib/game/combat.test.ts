@@ -237,7 +237,7 @@ describe("universal skills (3b)", () => {
     }
   });
 
-  it("cooldowns advance by 0.85 per later player activation and disabled moves are inert", () => {
+  it("cooldowns advance by 0.85 per later player activation and Quebrar is active", () => {
     const b0 = startBattle(
       unit("caballero", { speed: 12 }),
       unit("picaro", { speed: 6 }),
@@ -253,8 +253,79 @@ describe("universal skills (3b)", () => {
     expect(b.player.universalCooldowns?.golpe).toBe(0);
     b = step(b, "golpe", always);
     expect(b.player.universalCooldowns?.golpe).toBeCloseTo(1.7);
-    const disabled = step(b, "quebrar", always);
-    expect(disabled).toBe(b);
+    const quebrado = step(b, "quebrar", always);
+    expect(quebrado).not.toBe(b);
+    expect(quebrado.player.universalCooldowns?.quebrar).toBe(0.85);
+  });
+});
+
+describe("Aguante and Quiebre", () => {
+  it("gives Aguante only to elite fights and named bosses", () => {
+    const hero = unit("caballero");
+    const common = startBattle(hero, unit("picaro"), createRng(2));
+    const elite = startBattle(hero, [unit("picaro"), unit("mago")], createRng(2), { enemyAguante: true });
+    const named = startBattle(hero, { ...unit("picaro"), bossId: "ash_king" }, createRng(2));
+    expect(common.enemies[0].aguante).toBeUndefined();
+    expect(elite.enemies[0].aguante).toBe(Math.round(elite.enemies[0].char.stats.hp * 0.3));
+    expect(elite.enemies[1].aguante).toBeUndefined();
+    expect(named.enemies[0].aguante).toBe(Math.round(named.enemies[0].char.stats.hp * 0.3));
+  });
+
+  it("restores Aguante on Quiebre and cancels the Colossal Golem's pending Charge", () => {
+    const golem = { ...unit("picaro", { hp: 1000, def: 0 }), name: "Gólem Colosal" };
+    const b0 = startBattle(unit("caballero", { speed: 20 }), golem, createRng(2));
+    const b = {
+      ...withRound(b0, false, ["charge"], 1),
+      enemies: [{ ...b0.enemies[0], aguante: 1, chargePending: true, chargeUsed: true }],
+      queue: ["player" as const, { e: 0, n: 0, intent: "charge" as const }],
+    };
+    const next = step(b, "quebrar", always);
+    expect(next.enemies[0].aguante).toBe(next.enemies[0].aguanteMax);
+    expect(next.enemies[0].exposed).toBe(true);
+    expect(next.enemies[0].quiebreResist).toBe(2);
+    expect(next.queue.some((slot) => slot !== "player" && slot.intent === "charge")).toBe(false);
+    expect(next.log.some((line) => line.includes("cancela la Carga"))).toBe(true);
+  });
+
+  it("announces the Colossal Golem's single Charge before its strike", () => {
+    const golem = { ...unit("picaro", { hp: 1000, def: 0 }), name: "Gólem Colosal" };
+    const announced = Array.from({ length: 100 }, (_, seed) =>
+      startBattle(unit("caballero"), golem, createRng(seed + 1)),
+    ).find((battle) => battle.log.some((line) => line.includes("prepara una Carga")));
+    expect(announced).toBeDefined();
+    expect(announced?.enemies[0].chargePending).toBe(true);
+    expect(announced?.enemies[0].chargeUsed).toBe(true);
+  });
+
+  it("does not chain Quiebres while resistance remains", () => {
+    const target = {
+      ...unit("picaro", { hp: 1000, def: 0 }),
+      bossId: "ash_king",
+    };
+    const b0 = startBattle(unit("berserker", { speed: 20 }), target, createRng(3));
+    const b = {
+      ...withRound(b0, false, ["attack1"], 1),
+      enemies: [{ ...b0.enemies[0], aguante: 1, aguanteMax: 300, quiebreResist: 2 }],
+      queue: ["player" as const, { e: 0, n: 0, intent: "attack1" as const }],
+    };
+    const next = step(b, "attack1", always);
+    expect(next.enemies[0].aguante).toBe(1);
+    expect(next.enemies[0].exposed).toBe(false);
+    expect(next.log.some((line) => line.startsWith("¡Quiebre!"))).toBe(false);
+  });
+
+  it("a damaging basic can break Aguante but cannot cancel Charge", () => {
+    const golem = { ...unit("picaro", { hp: 1000, def: 0 }), name: "Gólem Colosal" };
+    const b0 = startBattle(unit("berserker", { speed: 20 }), golem, createRng(3));
+    const b = {
+      ...b0,
+      enemies: [{ ...b0.enemies[0], aguante: 1, chargePending: true, chargeUsed: true }],
+      queue: ["player" as const, { e: 0, n: 0, intent: "charge" as const }],
+    };
+    const next = step(b, "attack1", always);
+    expect(next.log.some((line) => line.startsWith("¡Quiebre!"))).toBe(true);
+    expect(next.log.some((line) => line.includes("lanza su Carga"))).toBe(true);
+    expect(next.log.some((line) => line.includes("cancela la Carga"))).toBe(false);
   });
 });
 

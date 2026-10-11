@@ -523,9 +523,10 @@ export const cooldownOf = (c: Combatant, key: MoveKey): number =>
     ? universalCooldownLabel(c.universalCooldowns?.[key as UniversalSkillId] ?? 0)
     : 0;
 
-export function attackDisabledReason(c: Combatant, key: MoveKey): string | null {
+export function attackDisabledReason(c: Combatant, key: MoveKey, foe?: Combatant): string | null {
   const universal = UNIVERSAL_SKILLS[key as UniversalSkillId];
   if (universal && !universal.enabled) return universal.disabledReason ?? "Aún no disponible.";
+  if (key === "quebrar" && foe?.aguante === undefined) return "Este enemigo no tiene Aguante.";
   const cd = cooldownOf(c, key);
   return cd > 0 ? `Recarga: ${cdText(cd)}` : null;
 }
@@ -593,7 +594,7 @@ export function attackTip(
     lines.push(
       `Cura ${pct(a.heal)} de tu vida máxima (≈${Math.round(st.hp * a.heal)} PV), aunque falle el golpe.`,
     );
-  const why = attackDisabledReason(c, key);
+  const why = attackDisabledReason(c, key, foe);
   if (why)
     lines.push(
       `No disponible: faltan ${cdText(cooldownOf(c, key))} de recarga.`,

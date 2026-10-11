@@ -91,6 +91,7 @@ export const startDuel = (a: Character, b: Character): Duel => ({
 
 /** Whether `act` can be used now. */
 export function canAct(c: Combatant, act: Action): boolean {
+  if (act === "quebrar") return false; // Duel opponents do not have Aguante.
   if (act in UNIVERSAL_SKILLS) {
     const skill = UNIVERSAL_SKILLS[act as keyof typeof UNIVERSAL_SKILLS];
     return skill.enabled && (c.universalCooldowns?.[skill.id] ?? 0) <= 1e-9;

@@ -107,8 +107,17 @@ describe("stage replay", () => {
     expect(r.stage.status).toBe("cleared");
     expect(replayStage(5, strong, fights, [{ t: "fin" }]).rejectedAt).toBe(0);
     expect(replayStage(5, strong, fights, [{ t: "quit" }]).stage.status).toBe("lost");
-    // v14 changes attack/status element ownership and weapon basic profiles;
-    // motor 13 replays must be rejected because their outcomes can differ.
+    // v15 adds Aguante/Quiebre; motor 14 replays must be rejected because outcomes can differ.
     expect(replayStage(5, strong, fights, log, 0, ENGINE_VERSION - 1).error).toBe("engine_version");
+  });
+
+  it("accepts Quebrar Aguante in a server stage replay", async () => {
+    const { replayStage } = await import("./stageReplay");
+    const h = generateCharacter(createRng(3), "caballero");
+    const strong = { ...h, stats: { ...h.stats, hp: h.stats.hp * 20, atk: h.stats.atk * 10 } };
+    const elite = levelFights(levelsOf("f")[0], 0).at(-1)!;
+    const result = replayStage(5, strong, [elite], [{ t: "act", a: "quebrar" }]);
+    expect(result.applied).toBe(1);
+    expect(result.rejectedAt).toBeNull();
   });
 });

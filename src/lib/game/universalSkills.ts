@@ -40,9 +40,8 @@ export const UNIVERSAL_SKILLS: Record<UniversalSkillId, UniversalSkillDefinition
     id: "quebrar",
     name: "Quebrar Aguante",
     cooldown: 1,
-    attack: { name: "Quebrar Aguante", power: 0, accuracy: 1, cooldown: 1, heal: 0 },
-    enabled: false,
-    disabledReason: "Requiere Aguante y Quiebre (etapa 4).",
+    attack: { name: "Quebrar Aguante", power: 0.9, accuracy: 1, cooldown: 1, heal: 0 },
+    enabled: true,
     target: "single",
   },
   interrumpir: {
@@ -65,7 +64,7 @@ export const UNIVERSAL_SKILLS: Record<UniversalSkillId, UniversalSkillDefinition
   },
 };
 
-export const ENABLED_UNIVERSAL_SKILLS: UniversalSkillId[] = ["golpe", "barrido"];
+export const ENABLED_UNIVERSAL_SKILLS: UniversalSkillId[] = ["golpe", "barrido", "quebrar"];
 
 /** Internal timer is fractional; the interface rounds remaining activations up. */
 export const universalCooldownLabel = (remaining: number): number =>

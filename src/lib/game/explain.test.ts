@@ -141,6 +141,14 @@ describe("explain: elements, traits, actions", () => {
     ).toContain("No disponible");
   });
 
+  it("Quebrar shows a read-only reason when the selected enemy has no Aguante", () => {
+    const c = comb(hero("mago", "agua"));
+    expect(attackDisabledReason(c, "quebrar", comb(hero("mago", "fuego")))).toBe(
+      "Este enemigo no tiene Aguante.",
+    );
+    expect(attackDisabledReason(c, "quebrar", { ...comb(hero("mago", "fuego")), aguante: 1 })).toBeNull();
+  });
+
   it("the basic uses the weapon profile without an old special", () => {
     const h = hero("caballero", "agua");
     const plain = text(attackTip(comb(h), "attack1"));

@@ -44,6 +44,8 @@ describe("duel", () => {
     const d = startDuel(hero(), hero());
     expect(sanitize(d.a, null)).toBe("defend");
     expect(canAct(d.a, "attack2" as never)).toBe(false);
+    expect(canAct(d.a, "quebrar")).toBe(false);
+    expect(sanitize(d.a, "quebrar")).toBe("defend");
     expect(sanitize(d.a, "attack3" as never)).toBe("defend");
     const cd = { ...d.a, universalCooldowns: { golpe: 1.7 } };
     expect(sanitize(cd, "golpe")).toBe("defend");
