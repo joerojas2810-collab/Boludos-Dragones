@@ -1,5 +1,6 @@
 // Simulate the approved F–S dungeon staircase reference heroes.
 // Usage: npx tsx scripts/stage-tune.ts [--quick] [--runs=100] [--route=lord_of_flies]
+// Optional numeric overrides: --route-tune=route:value,... --route-asc-tune=route:v0,...,v5;...
 // --quick uses 8 runs per level; the full run defaults to 100. Use --all-routes for
 // a route-variance audit. Output is deterministic for a given seed and run count.
 import { autoPolicy } from "../src/lib/game/auto";
@@ -11,7 +12,7 @@ import { levelCap } from "../src/lib/game/heroLevel";
 import { LEVELS_PER_ROUTE, ROUTE_IDS, levelsOf, type RouteId } from "../src/lib/game/levels";
 import { RARITY_IDS, scaleStats, type Difficulty } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
-import { ASC_TUNE, createStage, finishFight, levelFights, RANK_TUNE, ROUTE_TUNE, startFight } from "../src/lib/game/stage";
+import { ASC_TUNE, createStage, finishFight, levelFights, RANK_TUNE, ROUTE_ASC_TUNE, ROUTE_TUNE, startFight } from "../src/lib/game/stage";
 import { CLASS_WEAPONS, GEAR_TYPES, weaponAtk } from "../src/lib/game/weapons";
 import { cpus } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -38,6 +39,20 @@ for (const assignment of (args.get("rank-tune") ?? "").split(",").filter(Boolean
   const [rank, value] = assignment.split(":");
   if (!RARITY_IDS.includes(rank as Difficulty) || !Number.isFinite(Number(value))) throw new Error(`Invalid --rank-tune entry: ${assignment}`);
   RANK_TUNE[rank as Difficulty] = Number(value);
+}
+for (const assignment of (args.get("route-tune") ?? "").split(",").filter(Boolean)) {
+  const [route, rawValue] = assignment.split(":");
+  const value = Number(rawValue);
+  if (!ROUTE_IDS.includes(route as RouteId) || !Number.isFinite(value) || value <= 0) throw new Error(`Invalid --route-tune entry: ${assignment}`);
+  ROUTE_TUNE[route as RouteId] = value;
+}
+for (const assignment of (args.get("route-asc-tune") ?? "").split(";").filter(Boolean)) {
+  const [route, rawValues] = assignment.split(":");
+  const values = rawValues?.split(",").map(Number);
+  if (!ROUTE_IDS.includes(route as RouteId) || !values || values.length !== 6 || values.some((value) => !Number.isFinite(value) || value <= 0)) {
+    throw new Error("--route-asc-tune requires route:value,value,value,value,value separated by semicolons");
+  }
+  (ROUTE_ASC_TUNE[route as RouteId] as unknown as number[]).splice(0, 6, ...values);
 }
 if (args.has("asc-tune")) {
   const assignments = args.get("asc-tune")!.split(";").filter(Boolean);
@@ -277,12 +292,14 @@ const result = {
   seed: BASE_SEED,
   runsPerLevel: RUNS,
   routes: ROUTES,
-  formula: "DIFFICULTY_MULT × RANK_TUNE × ASC_TUNE[difficulty] × (1 + LEVEL_STEP × levelIndex) × ROUTE_TUNE",
+  formula: "DIFFICULTY_MULT × RANK_TUNE × ASC_TUNE[difficulty] × (1 + LEVEL_STEP × levelIndex) × ROUTE_TUNE × ROUTE_ASC_TUNE[route][asc]",
   rankTune: RANK_TUNE,
   ascTune: ASC_TUNE,
   routeTune: Object.fromEntries(ROUTES.map((route) => [route, ROUTE_TUNE[route]])),
+  routeAscTune: Object.fromEntries(ROUTES.map((route) => [route, ROUTE_ASC_TUNE[route]])),
   monotonicity,
   rows,
+  routeRows,
   referenceClassSummary: aggregateBy(classRows, 4, "reference"),
   referenceElementSummary: aggregateBy(elementRows, 4, "reference"),
   classElementReferenceRows: classRows.filter((row) => row.key.split(":")[4] === "reference"),
