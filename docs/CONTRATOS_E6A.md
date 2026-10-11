@@ -18,6 +18,30 @@
 - Pruebas: desbloqueo (grafo 42 escalones), progreso por ruta, validación de servidor, `pglite`.
 - **No cambia aún** la dificultad numérica ni los pagos (6a-2 y 6a-3): usar tablas puente con los valores actuales.
 
+### 6a-1 dividido en dos trabajos en paralelo (interfaz fija)
+- **6a-1-TS (Agente 1):** todo el TypeScript (`src/`, `scripts/`, tests de `vitest`): tipos, temas, `levelsOf`, progreso y desbloqueo, servicios, validadores, repo local y remoto, interfaz mínima para que compile y funcione. No toca `supabase/`.
+- **6a-1-SQL (Agente 2):** solo `supabase/` (migración 0056, `setup.sql`, `upgrade_from_*.sql`, `reset_progress.sql`, `supabase/tests/pglite/*`). No toca `src/`. Se integran al terminar ambos y se corre toda la suite.
+
+**Interfaz fija (ambos la respetan al pie de la letra; si algo no encaja, pregunta en `CRUCE_IAS.md`):**
+```ts
+type RouteId = "lord_of_flies" | "ash_king" | "eternal_watcher" | "hollow_colossus"
+  | "thunder_king" | "mother_hydra" | "withered_queen" | "faceless_one" | "great_devourer";
+type Difficulty = "f" | "e" | "d" | "c" | "b" | "a" | "s";       // = RarityId, sin ss/ssr
+type Step = { difficulty: Difficulty; asc: 0 | 1 | 2 | 3 | 4 | 5 };
+const LEVELS_PER_ROUTE = 4;                                      // 2, 2, 3 y jefe final de 3 combates
+// Progreso del jugador (JSON del perfil):
+interface DungeonProgress {
+  steps: Record<string, true>;      // clave `${difficulty}:${asc}`: escalón superado por cualquier ruta
+  routes: Record<string, number>;   // clave `${route}:${difficulty}:${asc}`: niveles superados en orden (0..4); 4 = ruta completada en ese escalón
+}
+```
+**SQL (nombres y firmas):**
+- Tablas: `step_clears(player_id uuid, difficulty text, ascension int, cleared_at timestamptz, primary key (player_id, difficulty, ascension))` y `route_progress(player_id uuid, route text, difficulty text, ascension int, levels int, primary key (player_id, route, difficulty, ascension))`. CHECK de valores válidos (9 rutas, `f`–`s`, ascensión 0–5, `levels` 0–4). RLS y `revoke` como en 0026; `dungeon_progress` y toda referencia a `ss`/`ssr` se eliminan.
+- Funciones: `level_count()` → 4; `step_unlocked(p_player, p_difficulty, p_asc)` → boolean (F+0 siempre; R+0 si `(R−1)+0` está en `step_clears`; R+n si `R+(n−1)` está); `route_cleared(p_player, p_route, p_difficulty, p_asc)` → int; `level_lock_reason(p_player, p_route, p_difficulty, p_level, p_asc)` → `'step_locked'`, `'level_locked'` o null.
+- RPC existentes con parámetros nuevos: `start_level(p_player, p_character_id, p_seed, p_hero, p_route, p_difficulty, p_level, p_asc)` y `bank_level(p_player, p_run_id, p_hero_id, p_route, p_difficulty, p_level, p_asc, …resto igual)`. Al superar el último nivel de una ruta en un escalón, `bank_level` inserta (si falta) la fila de `step_clears` de ese escalón.
+- **Pagos y botín, tablas puente (sin cambio de valores):** `level_base_coins`, `level_chest`, `level_escamas` reciben la dificultad (`f`–`s`) donde hoy reciben el rango; el "es repetición" se calcula por `route_progress` de la ruta (la versión compartida entre rutas llega en 6a-3). SS y SSR se eliminan de las tablas.
+- Tests `pglite`: desbloqueo de los 42 escalones, orden de niveles por ruta, que superar un escalón con una ruta habilita ese escalón para las demás, y rechazo de `ss`/`ssr`.
+
 ## 6a-2 — Escalera de dificultad
 - Dificultad = `DIFFICULTY_MULT[difficulty] × RANK_TUNE[difficulty] × ASC_TUNE[asc] × (1 + 0,05 × índice de nivel)` con un pequeño desvío `ROUTE_TUNE` (±) por ruta si las mecánicas de jefe lo exigen. La escalera debe ser **monótona**: R+5 no más difícil que (R+1)+0 para un héroe del rango correspondiente.
 - **Héroe de referencia por escalón R+n (propuesta, pendiente de aprobación del dueño):** rango de ítem R, **n★**, nivel tope de ese ★ (`levelCap`), equipo completo del rango R sin mejoras. **Metas de victorias** de ese héroe: R+n con n★ ≈ **60 %**; con 2★ más ≈ **85 %**; con 2★ menos ≈ **25 %**; R+0 con 0★ ≈ **70 %**; S+5 con 5★ al máximo ≈ **45 %**. Los valores se ajustan al simular.
