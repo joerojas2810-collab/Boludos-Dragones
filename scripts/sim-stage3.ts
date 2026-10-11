@@ -270,6 +270,7 @@ const weaponSummary = WEAPONS.map((weaponType) => ({ weaponType, ...summarize(by
 const baselineByElement = new Map<string, { n: number; wins: number; turns: number }>();
 const baselineByClassElement = new Map<string, { n: number; wins: number; turns: number }>();
 for (const row of baseline.rows) {
+  if (!RANKS.includes(row.rank)) continue; // quick mode covers fewer ranks: compare like with like
   const element = baselineByElement.get(row.element) ?? { n: 0, wins: 0, turns: 0 };
   element.n += row.levelAttempts;
   element.wins += row.clearedLevels;
