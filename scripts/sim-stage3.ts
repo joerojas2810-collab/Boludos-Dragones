@@ -1,7 +1,6 @@
-// Deterministic balance audit for stage 3: class × element × hand weapon × dungeon rank.
-// Usage: npx tsx scripts/sim-stage3.ts [--runs=100] [--seed=33013] [--output=scripts/baseline/stage3.json]
-// Weapon-class mismatches are intentionally included to audit the full requested matrix;
-// those ten-way loadouts are diagnostic and may not be equipable in the live game.
+// Deterministic stage 3 audit: class × element × class-eligible hand weapon × dungeon rank.
+// By default each class uses its two equipable weapons; pass --all-weapons to include all ten.
+// Usage: npx tsx scripts/sim-stage3.ts [--runs=100] [--seed=33013] [--all-weapons] [--output=scripts/baseline/stage3.json]
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { autoPolicy } from "../src/lib/game/auto";
@@ -15,7 +14,7 @@ import { itemRankOf, DUNGEON_IDS, scaleStats, type DungeonId } from "../src/lib/
 import { createRng, hashSeed } from "../src/lib/game/rng";
 import { heroSkill } from "../src/lib/game/skills";
 import { ENGINE_VERSION, createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
-import { HAND_TYPES, weaponAtk, weaponSecondary, type HandType } from "../src/lib/game/weapons";
+import { HAND_TYPES, canUseWeapon, weaponAtk, weaponSecondary, type HandType } from "../src/lib/game/weapons";
 
 const args = new Map(process.argv.slice(2).map((arg) => {
   const [key, ...value] = arg.replace(/^--/, "").split("=");
@@ -33,7 +32,16 @@ const selected = <T extends string>(key: string, all: readonly T[]): readonly T[
 };
 const CLASSES = selected("classes", CLASS_IDS);
 const ELEMENT_SET = selected("elements", ELEMENTS);
-const WEAPONS = selected("weapons", HAND_TYPES);
+const REQUESTED_WEAPONS = selected("weapons", HAND_TYPES);
+const ALL_WEAPONS = args.has("all-weapons");
+const WEAPONS_BY_CLASS = new Map(CLASSES.map((classId) => [
+  classId,
+  REQUESTED_WEAPONS.filter((weaponType) => ALL_WEAPONS || canUseWeapon(classId, weaponType)),
+]));
+if ([...WEAPONS_BY_CLASS.values()].some((weapons) => weapons.length === 0)) {
+  throw new Error("No eligible weapons remain for a selected class; use --all-weapons to include cross-class weapons.");
+}
+const WEAPONS = [...new Set([...WEAPONS_BY_CLASS.values()].flat())];
 const RANKS = selected("ranks", DUNGEON_IDS);
 if (!Number.isInteger(BASE_SEED) || BASE_SEED < 0) throw new Error("--seed must be a nonnegative integer");
 if (!Number.isInteger(RUNS_PER_LEVEL) || RUNS_PER_LEVEL < 1) throw new Error("--runs must be a positive integer");
@@ -134,7 +142,7 @@ const byWeapon = new Map(WEAPONS.map((id) => [id, aggregate()]));
 const rows: Array<Record<string, unknown>> = [];
 for (const classId of CLASSES) {
   for (const element of ELEMENT_SET) {
-    for (const weaponType of WEAPONS) {
+    for (const weaponType of WEAPONS_BY_CLASS.get(classId)!) {
       const cell = aggregate();
       for (const rank of RANKS) {
         const levels = levelsOf(rank);
@@ -170,7 +178,9 @@ const result = {
   durationUnit: "turns per attempted dungeon level",
   dimensions: { classes: CLASSES, elements: ELEMENT_SET, weapons: WEAPONS, ranks: RANKS, levelsPerRank: Object.fromEntries(RANKS.map((rank) => [rank, LEVELS_PER_RANK[rank]])) },
   notes: [
-    "Weapon/class mismatches are included to cover the complete requested matrix; these may not be equipable in live play.",
+    ALL_WEAPONS
+      ? "--all-weapons includes cross-class weapon combinations; these may not be equipable in live play."
+      : "Only weapons permitted by each class are included (two per class in the current rules).",
     "E2 class noise floors are context for later paired comparisons, not a pass/fail result for this standalone run.",
     "Weapon-specific noise floor is estimated with the displayed 95% normal-approximation half-widths over deterministic samples; this is diagnostic, not an approved threshold.",
     "Win-rate and duration half-widths assume independent level attempts; compare weapons with paired seeds for tighter causal estimates.",
