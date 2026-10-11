@@ -162,7 +162,7 @@ await reset();
   const done0 = (await q(`select levels as cleared from public.route_progress where player_id='${P}' and route='${ROUTE}' and difficulty='f' and ascension=0`))[0]?.cleared ?? 0;
   const prevRepeat = REPEAT;
   REPEAT = done0 > 0;
-  const many = Array.from({ length: 12 }, (_, i) => ({ type: "casco", element: ["agua", "fuego", "viento", "tierra", "rayo"][i % 5], rarity: i < 5 ? "f" : "e", name: "Casco", roll: 1 }));
+  const many = Array.from({ length: 12 }, (_, i) => ({ type: "casco", element: ["agua", "fuego", "viento", "tierra", "rayo"][i % 5], rarity: "f", name: "Casco", roll: 1 }));
   const rid = (await startRaw()).run_id;
   const bm2 = await bank(rid, { p_pieces: many });
   ok(bm2.cleared, "12 dropped pieces are banked: " + JSON.stringify(bm2));
@@ -262,6 +262,29 @@ await setCoins(5000);
 const pr = await doPull(deps, P, { banner: "weapon", count: 10, idempotencyKey: crypto.randomUUID() });
 ok(pr.results!.length === 10, "service weapon pull x10");
 ok((await q(`select count(*)::int c from public.weapons where roll is not null`))[0].c > 0, "pulled pieces have rolls in the DB");
+
+// 6a-3: first level coins and the step chest are shared by routes.
+REPEAT = false;
+for (const level of [1, 2, 3]) {
+  const r0 = await startRaw({ p_level: level });
+  const paid = await rpc("bank_level", {
+    ...bankArgs(r0.run_id, { p_level: level, p_repeat: false, p_xp: 0 }),
+  });
+  if (level === 3) ok(paid.chest === 1000, "first route pays the F+0 step chest once");
+}
+const secondRoute = ROUTE_IDS[1];
+const r1 = await startRaw({ p_route: secondRoute, p_level: 0 });
+const sharedRepeat = await rpc("bank_level", {
+  ...bankArgs(r1.run_id, { p_route: secondRoute, p_level: 0, p_repeat: true, p_xp: 0 }),
+});
+ok(sharedRepeat.repeat === true && sharedRepeat.chest === 0,
+  "same difficulty/ascension/level is a shared repeat and cannot pay the chest again");
+ok((await q(`select levels from public.route_progress where player_id='${P}' and route='${secondRoute}' and difficulty='f' and ascension=0`))[0].levels === 1,
+  "a shared repeat still advances a newly selected route");
+ok((await q(`select count(*)::int c from public.step_clears where player_id='${P}' and difficulty='f' and ascension=0`))[0].c === 1,
+  "only one shared F+0 step clear is stored");
+ok((await q(`select count(*)::int c from public.dungeon_reward_days where player_id='${P}'`))[0].c === 1,
+  "shared daily material counter is initialized on a clear");
 
 console.log(`levels: pass ${pass} fail ${fail}`);
 if (fail) process.exit(1);

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { clearedLevels } from "./dungeonProgress";
 import { levelCoins, firstClearChest } from "./levelPay";
 import { levelLoot } from "./levelLoot";
-import { levelsOf, LEVELS_PER_ROUTE } from "./levels";
+import { levelsOf, LEVELS_PER_ROUTE, ROUTE_IDS } from "./levels";
 import {
   bankLevel,
   createProfile,
@@ -57,6 +57,19 @@ describe("bankLevel", () => {
     expect(r.coins).toBe(levelCoins("f", 0, true, 1));
     expect(r.chest).toBe(0);
     expect(r.profile.levelsDay?.n).toBe(1);
+  });
+  it("shares first-clear coins and chest across routes while tracking route progress", () => {
+    let p = withHero();
+    for (let i = 0; i < LEVELS_PER_ROUTE; i++) {
+      const b = bankLevel(p, res(p, { level: i, attemptId: `shared-a${i}`, loot: { escamas: 0, dados: 0, pieces: [] } }));
+      p = b.profile;
+      if (i === LEVELS_PER_ROUTE - 1) expect(b.chest).toBeGreaterThan(0);
+    }
+    const second = bankLevel(p, res(p, { route: ROUTE_IDS[1], attemptId: "shared-b0", loot: { escamas: 0, dados: 0, pieces: [] } }));
+    expect(second.cleared).toBe(true);
+    expect(second.repeat).toBe(true);
+    expect(second.chest).toBe(0);
+    expect(clearedLevels(second.profile.dungeons, ROUTE_IDS[1], "f")).toBe(1);
   });
   it("a locked level never counts as a clear", () => {
     const p = withHero();

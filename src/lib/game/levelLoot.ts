@@ -35,7 +35,7 @@ export const REPEAT_PIECE_MULT = 0.75; // repeat clears (and sweeps) keep most o
 export const ESCAMAS_PER_LEVEL: Partial<Record<Difficulty, number>> = { s: 2 };
 export const ESCAMAS_ASC_STEP = 0.1; // +10% per ascension level
 export const DADO_CHANCE = 0.05; // last level of a dungeon S+, first clear and repeats
-export const DADO_DAILY_MAX = 2;
+export const DADO_DAILY_MAX = 1; // one S+5 full clear's maximum dungeon payout, shared by all routes
 
 export interface LevelLoot {
   escamas: number;

@@ -16,6 +16,7 @@ delete from public.fragments;
 delete from public.part_stock;
 delete from public.route_progress;
 delete from public.step_clears;
+delete from public.dungeon_reward_days;
 delete from public.pulls;
 delete from public.daily_claims;
 delete from public.weekly_scores;

@@ -14,6 +14,11 @@ export const stepCleared = (p: DungeonProgress, difficulty: Difficulty, asc: num
   p.steps[stepKey(difficulty, asc)] === true;
 export const clearedLevels = (p: DungeonProgress, route: RouteId, difficulty: Difficulty, asc = 0) =>
   p.routes[routeKey(route, difficulty, asc)] ?? 0;
+export const levelAlreadyCleared = (p: DungeonProgress, difficulty: Difficulty, asc: number, level: number) =>
+  Object.entries(p.routes).some(([key, levels]) => {
+    const [, rank, step] = key.split(":");
+    return rank === difficulty && Number(step) === asc && levels > level;
+  });
 export const isRouteDone = (p: DungeonProgress, route: RouteId, difficulty: Difficulty, asc = 0) =>
   clearedLevels(p, route, difficulty, asc) >= LEVELS_PER_ROUTE;
 
@@ -57,7 +62,7 @@ export function recordClear(p: DungeonProgress, route: RouteId, difficulty: Diff
       steps: stepFirstClear ? { ...p.steps, [stepKey(difficulty, asc)]: true } : p.steps,
       routes,
     },
-    firstTime: true,
+    firstTime: !levelAlreadyCleared(p, difficulty, asc, level),
     routeFirstClear,
     stepFirstClear,
   };

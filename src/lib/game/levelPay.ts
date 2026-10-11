@@ -7,7 +7,7 @@ export const FIRST_CLEAR_CHEST: Record<Difficulty, number> = {
   f: 1000, e: 1600, d: 2500, c: 1200, b: 1500, a: 2000, s: 2500,
 };
 export const ASC_CHEST_MULT = 0.5;
-export const ASC_COIN_STEP = 0.2;
+export const ASC_COIN_STEP = 0.04;
 export const REPEAT_COIN_MULT = 0.6;
 export const DAY_LEVEL_TIERS = [
   { upTo: 20, mult: 1 }, { upTo: 40, mult: 0.5 }, { upTo: 80, mult: 0.2 },

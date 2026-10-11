@@ -64,6 +64,7 @@ interface RawProfile {
   escamas?: number;
   dados?: number;
   dadosDay?: { day: string; n: number } | null;
+  dungeonRewardsDay?: { day: string; escamas: number; dados: number } | null;
   characters: {
     id: string;
     classId: string;
@@ -103,6 +104,7 @@ export function toMe(raw: RawProfile): Me {
     escamas: raw.escamas,
     dados: raw.dados,
     dadosDay: raw.dadosDay,
+    dungeonRewardsDay: raw.dungeonRewardsDay,
     pitySsr: raw.pitySsr,
     bestFloor: raw.bestFloor,
     equipped: raw.equipped,

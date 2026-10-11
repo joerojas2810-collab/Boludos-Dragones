@@ -16,6 +16,7 @@ import { ELEMENTS, type Element } from "./elements";
 import {
   parseProgress,
   emptyDungeonProgress,
+  levelAlreadyCleared,
   recordClear,
   type DungeonProgress,
 } from "./dungeonProgress";
@@ -147,6 +148,7 @@ export interface Profile {
   escamas: number; // Mejorar material (upgrade.ts); bound to the account
   dados: number; // Dado cargado (upgrade.ts); bound to the account
   dadosDay?: { day: string; n: number }; // dice found on that game day by last-level drops (max 2)
+  dungeonRewardsDay?: { day: string; escamas: number; dados: number };
   tutorial?: number; // step 0..TUTORIAL_DONE; missing = done
 }
 
@@ -166,6 +168,7 @@ export const createProfile = (): Profile => ({
   dungeons: emptyDungeonProgress(),
   escamas: 0,
   dados: 0,
+  dungeonRewardsDay: { day: dayKey(), escamas: 0, dados: 0 },
 });
 
 const UNIT_COST: Record<Banner, number> = {
@@ -509,10 +512,10 @@ export function lootOptions(
   level: number,
   asc: number,
 ): { repeat: boolean; payMult: number; dadoLeft: number } {
-  const repeat = (p.dungeons.routes[`${route}:${difficulty}:${asc}`] ?? 0) > level;
+  const repeat = levelAlreadyCleared(p.dungeons, difficulty, asc, level);
   const today = dayKey();
   const n = (p.levelsDay?.day === today ? p.levelsDay.n : 0) + 1;
-  const found = p.dadosDay?.day === today ? p.dadosDay.n : 0;
+  const found = p.dungeonRewardsDay?.day === today ? p.dungeonRewardsDay.dados : 0;
   return { repeat, payMult: repeat ? levelDecay(n) : 1, dadoLeft: Math.max(0, DADO_DAILY_MAX - found) };
 }
 
@@ -539,17 +542,20 @@ export function bankLevel(p: Profile, r: LevelResult): LevelBank {
       const today = dayKey();
       const n = (p.levelsDay?.day === today ? p.levelsDay.n : 0) + (repeat ? 1 : 0);
       coins = levelCoins(r.difficulty, r.asc, repeat, n);
-      chest = rec.routeFirstClear ? firstClearChest(r.difficulty, r.asc) : 0;
+      chest = rec.stepFirstClear ? firstClearChest(r.difficulty, r.asc) : 0;
+      const rewardDay = p.dungeonRewardsDay?.day === today
+        ? p.dungeonRewardsDay
+        : { day: today, escamas: 0, dados: 0 };
+      const escamas = Math.min(r.loot.escamas, Math.max(0, 12 - rewardDay.escamas));
+      const dados = Math.min(r.loot.dados, Math.max(0, DADO_DAILY_MAX - rewardDay.dados));
       q = {
         ...q,
         dungeons: rec.progress,
         levelsDay: { day: today, n },
         coins: q.coins + coins + chest,
-        escamas: Math.min(MAX_MATERIAL, q.escamas + r.loot.escamas),
-        dados: Math.min(MAX_MATERIAL, q.dados + r.loot.dados),
-        ...(r.loot.dados > 0
-          ? { dadosDay: { day: today, n: (p.dadosDay?.day === today ? p.dadosDay.n : 0) + r.loot.dados } }
-          : {}),
+        escamas: Math.min(MAX_MATERIAL, q.escamas + escamas),
+        dados: Math.min(MAX_MATERIAL, q.dados + dados),
+        dungeonRewardsDay: { day: today, escamas: rewardDay.escamas + escamas, dados: rewardDay.dados + dados },
       };
       q = r.loot.pieces.reduce((acc, piece) => grantPiece(acc, piece, false), q);
     }
@@ -890,6 +896,9 @@ export function migrate(json: unknown): Profile {
     ...(isObj(json.dadosDay) && isDayKey(json.dadosDay.day)
       ? { dadosDay: { day: json.dadosDay.day, n: nat(json.dadosDay.n, 100) } }
       : {}),
+    dungeonRewardsDay: isObj(json.dungeonRewardsDay) && isDayKey(json.dungeonRewardsDay.day)
+      ? { day: json.dungeonRewardsDay.day, escamas: nat(json.dungeonRewardsDay.escamas, 12), dados: nat(json.dungeonRewardsDay.dados, DADO_DAILY_MAX) }
+      : { day: dayKey(), escamas: 0, dados: 0 },
     ...(typeof json.tutorial === "number" && json.tutorial < TUTORIAL_DONE
       ? { tutorial: nat(json.tutorial, TUTORIAL_DONE) }
       : {}),
