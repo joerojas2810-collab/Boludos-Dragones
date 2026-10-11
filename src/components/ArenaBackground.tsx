@@ -9,6 +9,8 @@ import {
 } from "@/sprites/backgrounds";
 import { AmbientFx } from "@/components/fx/AmbientFx";
 import { BG_LAYERS, BG_PARALLAX, bgSrc, combatScene, isPixelBackground, pixelBackgroundSize } from "@/lib/art/backgrounds";
+import { paintedBackground } from "@/lib/art/painted-backgrounds";
+import { isPixel } from "@/lib/art/pixel";
 import "./arena.css";
 import "./bg.css";
 
@@ -45,6 +47,31 @@ export function ArenaBackground({
 }: Props) {
   if (legacy) return <SvgBackground world={world} boss={boss} className={className} />;
   const id = combatScene(world, boss, rank);
+  const painted = isPixel() ? undefined : paintedBackground(id);
+  const paintedMobile = painted && paintedBackground(id, true);
+  if (painted) {
+    return (
+      <div
+        aria-hidden
+        className={`arena-bg pointer-events-none absolute inset-0 overflow-hidden ${className}`}
+      >
+        <picture className="absolute inset-0">
+          <source media="(max-width: 767px)" srcSet={paintedMobile?.src ?? painted.src} />
+          <img src={painted.src} alt="" className="bg-painted-scene" />
+        </picture>
+        <AmbientFx world={world} />
+        {boss && (
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse at 50% 55%, transparent 55%, rgba(0,0,0,0.6) 100%)",
+            }}
+          />
+        )}
+      </div>
+    );
+  }
   const pixel = BG_LAYERS.every((layer) => isPixelBackground(id, layer));
   const nativeHeight = pixelBackgroundSize(id, "sky")?.height ?? 180;
   return (

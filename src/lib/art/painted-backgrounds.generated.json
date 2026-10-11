@@ -1,0 +1,290 @@
+{
+  "menu": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/menu_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/menu_mobile.webp",
+      "width": 941,
+      "height": 1672
+    }
+  },
+  "peaks_normal": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/peaks_normal_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/peaks_normal_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "gacha": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/gacha_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/gacha_mobile.webp",
+      "width": 941,
+      "height": 1672
+    }
+  },
+  "collection": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/collection_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/collection_mobile.webp",
+      "width": 941,
+      "height": 1672
+    }
+  },
+  "forge": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/forge_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/forge_mobile.webp",
+      "width": 941,
+      "height": 1672
+    }
+  },
+  "market": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/market_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/market_mobile.webp",
+      "width": 940,
+      "height": 1672
+    }
+  },
+  "lobby": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/lobby_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/lobby_mobile.webp",
+      "width": 940,
+      "height": 1672
+    }
+  },
+  "swamp_normal": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/swamp_normal_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/swamp_normal_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "canyon_normal": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/canyon_normal_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/canyon_normal_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "caverns_normal": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/caverns_normal_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/caverns_normal_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "storm_normal": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/storm_normal_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/storm_normal_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "dungeon_a_normal": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/dungeon_a_normal_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/dungeon_a_normal_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "dungeon_s_normal": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/dungeon_s_normal_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/dungeon_s_normal_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "dungeon_ss_normal": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/dungeon_ss_normal_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/dungeon_ss_normal_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "dungeon_ssr_normal": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/dungeon_ssr_normal_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/dungeon_ssr_normal_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "swamp_boss": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/swamp_boss_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/swamp_boss_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "peaks_boss": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/peaks_boss_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/peaks_boss_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "canyon_boss": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/canyon_boss_desktop.webp",
+      "width": 1672,
+      "height": 940
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/canyon_boss_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "caverns_boss": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/caverns_boss_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/caverns_boss_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "storm_boss": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/storm_boss_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/storm_boss_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "dungeon_a_boss": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/dungeon_a_boss_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/dungeon_a_boss_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "dungeon_s_boss": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/dungeon_s_boss_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/dungeon_s_boss_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "dungeon_ss_boss": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/dungeon_ss_boss_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/dungeon_ss_boss_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  },
+  "dungeon_ssr_boss": {
+    "desktop": {
+      "src": "/art/backgrounds-painted-v2/dungeon_ssr_boss_desktop.webp",
+      "width": 1672,
+      "height": 941
+    },
+    "mobile": {
+      "src": "/art/backgrounds-painted-v2/dungeon_ssr_boss_mobile.webp",
+      "width": 1254,
+      "height": 1254
+    }
+  }
+}
