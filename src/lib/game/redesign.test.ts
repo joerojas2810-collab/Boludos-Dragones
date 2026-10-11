@@ -4,6 +4,9 @@ import { generateCharacter, type Character, type ClassId } from "./characters";
 import {
   earnGuard,
   estimateDamage,
+  EXPLOIT_BASIC_DAMAGE_FRACTION,
+  EXPLOIT_MAGE_EFFECT_MULT,
+  EXPLOIT_OVERLOAD_DAMAGE_FRACTION,
   furyBonus,
   speedOf,
   startBattle,
@@ -181,7 +184,9 @@ describe("elemental statuses", () => {
     const charged = { ...b, player: { ...b.player, charge: 3 } };
     const common = estimateDamage(charged.player, charged.enemies[0], "attack1");
     const out = step(charged, "explotar", always);
-    expect(charged.enemies[0].hp - out.enemies[0].hp).toBe(Math.round(common * 0.9));
+    expect(charged.enemies[0].hp - out.enemies[0].hp).toBe(
+      Math.round(common * (EXPLOIT_BASIC_DAMAGE_FRACTION + EXPLOIT_OVERLOAD_DAMAGE_FRACTION * EXPLOIT_MAGE_EFFECT_MULT)),
+    );
     expect(out.player.charge).toBe(0);
     expect(out.enemies[0].statuses ?? []).toHaveLength(0);
   });

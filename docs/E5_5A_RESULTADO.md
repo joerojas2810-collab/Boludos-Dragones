@@ -53,3 +53,20 @@ Los pisos E2 aprobados son por clase, no por celda clase × elemento. Rayo perma
 - PGlite (`node supabase/tests/pglite/run.mjs`): 570 pasaron, 0 fallaron. No se ejecutó SQL contra Supabase.
 - La simulación se ejecutó con Node 24 y strip-types, usando un loader temporal local porque `tsx` no está instalado en este checkout; no se añadieron dependencias.
 - Verificación final antes del commit: `npx tsc --noEmit --incremental false` pasó; `npx eslint src scripts` tuvo 0 errores (2 advertencias existentes en `Vfx.tsx`); `npx vitest run` pasó con 57 archivos y 562 tests.
+
+## Q18-A — calibración autorizada de Sobrecarga
+
+Se cambió exclusivamente `EXPLOIT_OVERLOAD_DAMAGE_FRACTION`; el daño común de Explotar se mantiene en 40 %, igual que en Q16-A. El total de Explotar con Sobrecarga es, por tanto, 40 % común más la descarga de esta tabla. Cada iteración usa semilla `13013`, 100 corridas por nivel, las cinco armas canónicas permitidas (Espada, Bastón, Daga, Maza y Mandoble) y la comparación de motor 13. Se simularon todas las clases con elemento Rayo; cada celda clase × Rayo contiene 7.700 intentos.
+
+| Iteración | Descarga adicional | Explotar total | Caballero (límite 2,18 pp) | Mago (2,60) | Pícaro (3,23) | Clérigo (2,31) | Berserker (2,54) | Rayo agregado |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Inicial 5b | +40 % | 0,8× | +0,86 pp | −1,73 pp | −3,70 pp | −0,97 pp | −4,12 pp | −1,93 pp |
+| 1 | +80 % | 1,2× | +7,22 pp | −0,78 pp | −3,66 pp | +0,90 pp | −5,96 pp | −0,46 pp |
+| 2 | +120 % | 1,6× | +9,26 pp | +2,64 pp | −0,75 pp | +2,74 pp | −3,78 pp | +2,02 pp |
+| 3 | +100 % | 1,4× | +8,56 pp | +0,81 pp | −2,18 pp | +1,74 pp | −4,81 pp | +0,82 pp |
+
+Un signo positivo o negativo indica cambio frente a motor 13. La meta era que cada celda de clase × Rayo quedara dentro de su piso E2 más 2 pp. Ninguna cifra individual excedió el rango autorizado de +40 % a +120 %. La iteración 3 es el mejor compromiso observado: 3 de 5 clases quedan dentro de su límite (Mago, Pícaro y Clérigo); Caballero excede su margen por 6,38 pp y Berserker queda 2,27 pp por debajo del margen negativo. **La calibración no pasa el criterio de Rayo.** El resultado muestra que un solo multiplicador global favorece demasiado a Caballero mientras no recupera suficiente rendimiento para Berserker.
+
+El candidato conservado es +100 % de descarga adicional (`EXPLOIT_OVERLOAD_DAMAGE_FRACTION = 1.0`), suma total +140 % contando el daño común. En la corrida completa final, Rayo queda en +0,82 pp agregado y duración −12,26 % frente a motor 13. Los deltas de victoria y duración de Agua, Fuego, Viento y Tierra se mantienen, redondeados a dos decimales, en los valores de 5b: −0,32/−5,79 %, +0,13/−6,66 %, +9,00/−15,72 % y +0,99/−11,11 %, respectivamente. Esas desviaciones de Viento y las demás fuera de margen ya estaban presentes en la medición de 5b; la calibración de Sobrecarga no las corrige ni las empeora. Por tanto, el criterio conjunto de balance tampoco queda satisfecho y requiere decisión del dueño antes de cerrar E5.
+
+Las salidas temporales de las iteraciones están en `/private/tmp/e5-q18-iter1.json`, `e5-q18-iter2.json` y `e5-q18-iter3.json`; la matriz completa final está en `/private/tmp/e5-q18-final.json`. No se versionaron.
