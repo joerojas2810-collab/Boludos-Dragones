@@ -18,8 +18,8 @@ describe("universal skill definitions", () => {
     expect(UNIVERSAL_SKILLS.quebrar.disabledReason).toBeUndefined();
     expect(UNIVERSAL_SKILLS.interrumpir.enabled).toBe(true);
     expect(UNIVERSAL_SKILLS.interrumpir.disabledReason).toBeUndefined();
-    expect(UNIVERSAL_SKILLS.explotar.enabled).toBe(false);
-    expect(UNIVERSAL_SKILLS.explotar.disabledReason).toBeTruthy();
+    expect(UNIVERSAL_SKILLS.explotar.enabled).toBe(true);
+    expect(UNIVERSAL_SKILLS.explotar.disabledReason).toBeUndefined();
   });
 
   it("uses the E2 0.85 conversion and rounds displayed cooldowns up", () => {

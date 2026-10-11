@@ -20,7 +20,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 15; // 15: Aguante and Quiebre for elites and bosses
+export const ENGINE_VERSION = 16; // 16: Explotar consumes Quemadura, Ruptura, and Sobrecarga
 
 export type FightRole = "normal" | "elite" | "final";
 

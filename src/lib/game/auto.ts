@@ -10,6 +10,12 @@ import {
   attackElementMultiplier,
   enemyIntents,
   estimateDamage,
+  EXPLOIT_BERSERKER_BURN_MULT,
+  EXPLOIT_BASIC_DAMAGE_FRACTION,
+  EXPLOIT_MAGE_EFFECT_MULT,
+  EXPLOIT_OVERLOAD_DAMAGE_FRACTION,
+  EXPLOIT_RUPTURE_DEFENSE_PER_STACK,
+  exploitableState,
   hitChance,
   isStrongIntent,
   livingEnemies,
@@ -22,6 +28,7 @@ import {
   type MoveKey,
 } from "./combat";
 import type { Rng } from "./rng";
+import { BURN_CAP, burnDamage } from "./statuses";
 
 // Quick resolve constants (see autoBlockReason).
 export const AUTO_STOP_HP = 0.3; // it gives control back below this hp fraction
@@ -88,6 +95,10 @@ export function autoPolicy(b: Battle, opts: AutoOptions = {}): AutoPick {
   const t1 = bestTarget(b, "attack1");
   const e1 = b.enemies[alive[t1]];
   const a1 = ev(p, e1, "attack1");
+  const clericHealUtility = (fraction: number) =>
+    p.char.classId === "clerigo"
+      ? Math.max(0, classHeal(p, fraction).hp - p.hp)
+      : 0;
   if (useUniversalSkills) {
     const interruptTarget = alive.find((i) =>
       b.enemies[i].channelingState === "announced" &&
@@ -99,14 +110,41 @@ export function autoPolicy(b: Battle, opts: AutoOptions = {}): AutoPick {
     )
       return { action: "interrumpir", target: alive.indexOf(interruptTarget) };
 
+    if ((p.universalCooldowns?.explotar ?? 0) <= 1e-9) {
+      let bestExploit: AutoPick | null = null;
+      let bestExploitValue = -1;
+      const effectMult = p.char.classId === "mago" ? EXPLOIT_MAGE_EFFECT_MULT : 1;
+      alive.forEach((enemyIndex, pos) => {
+        const foe = b.enemies[enemyIndex];
+        const state = exploitableState(p, foe);
+        if (!state) return;
+        let value = ev(p, foe, "attack1") * EXPLOIT_BASIC_DAMAGE_FRACTION;
+        if (state.id === "sobrecarga")
+          value += ev(p, foe, "attack1") * EXPLOIT_OVERLOAD_DAMAGE_FRACTION * effectMult;
+        if (state.id === "quemadura") {
+          let burnMult = effectMult;
+          if (p.char.classId === "berserker" && p.hp < maxHp * BERSERKER_SKILL_FURY_THRESHOLD)
+            burnMult *= EXPLOIT_BERSERKER_BURN_MULT;
+          value += Math.min(burnDamage(foe.statuses) * burnMult, foe.char.stats.hp * BURN_CAP);
+        }
+        if (state.id === "ruptura") {
+          const bypass = Math.min(0.9, state.stacks * EXPLOIT_RUPTURE_DEFENSE_PER_STACK * effectMult);
+          value += ev(p, foe, "attack1") * bypass;
+        }
+        if (p.char.classId === "clerigo") value += clericHealUtility(0.03);
+        if (p.char.classId === "caballero") value += maxHp * 0.03 * 0.2;
+        if (value > bestExploitValue) {
+          bestExploit = { action: "explotar", target: pos };
+          bestExploitValue = value;
+        }
+      });
+      if (bestExploit && bestExploitValue > a1 * 1.05) return bestExploit;
+    }
+
     let bestSkill: AutoPick | null = null;
     let bestSkillValue = -1;
     const golpeTarget = bestTarget(b, "golpe");
     const golpeFoe = b.enemies[alive[golpeTarget]];
-    const clericHealUtility = (fraction: number) =>
-      p.char.classId === "clerigo"
-        ? Math.max(0, classHeal(p, fraction).hp - p.hp)
-        : 0;
     let golpeFactor = 1;
     if (p.char.classId === "caballero" && p.resolution) golpeFactor *= 1.15;
     if (p.char.classId === "mago" && golpeFoe.statuses?.length) golpeFactor *= 1.15;

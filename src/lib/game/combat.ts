@@ -187,6 +187,7 @@ export interface Combatant {
   perks?: Perks;
   statuses?: StatusEffect[]; // elemental effects (statuses.ts)
   charge?: number; // Rayo's Sobrecarga charges, consumed later by Explotar
+  nextAttackDefenseBypass?: number; // Ruptura consumed: next player activation's attack
   missed?: boolean; // Terco: the last hit missed
   guardedLast?: boolean; // Paciente: it spent the last round defending (spent by its next hit)
   opened?: boolean; // Fanfarrón: it has already thrown its first hit
@@ -224,6 +225,19 @@ export interface Battle {
   events: BattleEvent[]; // what happened in the last step, for sfx/animation
   guardEarned?: boolean; // the last step earned a perfect guard (sfx/animation only)
   mods?: EnemyMod[];
+}
+
+export type ExploitableState = { id: "quemadura" | "ruptura"; stacks: number } | { id: "sobrecarga"; stacks: 3 };
+
+/** States available to Explotar in stage 5a; Escarcha and Impulso arrive in 5b. */
+export function exploitableState(player: Combatant, target?: Combatant): ExploitableState | null {
+  const burn = stacksOf(target?.statuses, "quemadura");
+  if (burn > 0) return { id: "quemadura", stacks: burn };
+  const rupture = stacksOf(target?.statuses, "ruptura");
+  if (rupture > 0) return { id: "ruptura", stacks: rupture };
+  return (player.charge ?? 0) >= MAX_ELEMENT_CHARGES
+    ? { id: "sobrecarga", stacks: MAX_ELEMENT_CHARGES }
+    : null;
 }
 
 const clamp = (v: number, min: number, max: number) =>
@@ -296,6 +310,11 @@ export const CLASS_SHIELD_PER_ROUND_CAP = 0.06;
 export const BERSERKER_SKILL_FURY_THRESHOLD = 0.6;
 export const BERSERKER_GOLPE_BONUS = 0.5;
 export const BERSERKER_BARRIDO_BONUS = 0.3;
+export const EXPLOIT_BASIC_DAMAGE_FRACTION = 0.4;
+export const EXPLOIT_OVERLOAD_DAMAGE_FRACTION = 0.4;
+export const EXPLOIT_RUPTURE_DEFENSE_PER_STACK = 0.08;
+export const EXPLOIT_MAGE_EFFECT_MULT = 1.25;
+export const EXPLOIT_BERSERKER_BURN_MULT = 1.25;
 
 export function classHeal(c: Combatant, requested: number): Combatant {
   const maxHp = c.char.stats.hp;
@@ -876,6 +895,7 @@ export function strike(
   asHero = actor === "player", // duels: both sides are heroes (elemental charges and status rules)
   applyOwnElementalStatus = true,
   defenseBypass = 0,
+  applyElementalStatus = true,
 ): Strike {
   const a = attackOf(att, key);
   const who = att.char.name;
@@ -933,7 +953,7 @@ export function strike(
   const stacks = guardBoost;
   // Rayo stores up to three charges; Explotar will consume them in stage 5.
   let charge = att.charge ?? 0;
-  if (element === "rayo" && (asHero || canApply) && applyOwnElementalStatus) {
+  if (applyElementalStatus && element === "rayo" && (asHero || canApply) && applyOwnElementalStatus) {
     charge = Math.min(MAX_ELEMENT_CHARGES, charge + 1);
   }
   const dmg = Math.round(
@@ -970,7 +990,7 @@ export function strike(
   };
   defender = bossOnHit(def, defender, log);
   let ownStatuses = attacker.statuses;
-  const sid = canApply ? STATUS_OF_ELEMENT[element] : undefined;
+  const sid = applyElementalStatus && canApply ? STATUS_OF_ELEMENT[element] : undefined;
   if (sid === "impulso") {
     if (applyOwnElementalStatus) ownStatuses = addStatus(ownStatuses, sid, stacks);
   } else if (sid) {
@@ -1049,6 +1069,8 @@ export function step(
       !b.queue.some((slot) => slot !== "player" && slot.e === tIdx && slot.intent === "channeling"))
   )
     return b;
+  if (action === "explotar" && !exploitableState(b.player, tIdx === undefined ? undefined : b.enemies[tIdx]))
+    return b;
   const log: string[] = [];
   const events: BattleEvent[] = [];
   const resolutionReady = !!b.player.resolution;
@@ -1056,6 +1078,7 @@ export function step(
     ...b.player,
     resolution: undefined,
     nextHitReduction: undefined,
+    nextAttackDefenseBypass: undefined,
     classHealThisActivation: 0,
     classShieldThisActivation: 0,
   };
@@ -1089,6 +1112,8 @@ export function step(
     key: CombatMoveKey,
     factor = 1,
     applyOwnElementalStatus = true,
+    defenseBypass = 0,
+    applyElementalStatus = true,
   ) => {
     const eventCount = events.length;
     if (adapted(i)) {
@@ -1108,6 +1133,8 @@ export function step(
       factor,
       undefined,
       applyOwnElementalStatus,
+      Math.min(0.9, defenseBypass + (b.player.nextAttackDefenseBypass ?? 0)),
+      applyElementalStatus,
     );
     player = r.attacker;
     enemies[i] = r.defender;
@@ -1157,6 +1184,69 @@ export function step(
     if (universal) {
       const cooldownDiscount = player.char.classId === "berserker" && player.riposte ? 1 : 0;
       const targets = universal.target === "all" ? alive : [tIdx];
+      if (universal.id === "explotar") {
+        if (tIdx === undefined) return;
+        const foe = enemies[tIdx];
+        const state = exploitableState(player, foe);
+        if (!state) return;
+        const mageEffect = player.char.classId === "mago" ? EXPLOIT_MAGE_EFFECT_MULT : 1;
+        let factor = EXPLOIT_BASIC_DAMAGE_FRACTION;
+        if (state.id === "sobrecarga")
+          factor += EXPLOIT_OVERLOAD_DAMAGE_FRACTION * mageEffect;
+        const damage = hit(tIdx, "attack1", factor, false, 0, false);
+        if (damage > 0) {
+          player.riposte = false;
+          player.guardedLast = false;
+        }
+        log.push(`${player.char.name} explota ${state.id === "sobrecarga" ? "Sobrecarga" : STATUS_DATA[state.id].label} ×${state.stacks}.`);
+        if (state.id === "quemadura") {
+          const current = enemies[tIdx];
+          const berserkerEffect = player.char.classId === "berserker" && player.hp < player.char.stats.hp * BERSERKER_SKILL_FURY_THRESHOLD
+            ? EXPLOIT_BERSERKER_BURN_MULT
+            : 1;
+          const burn = Math.min(
+            Math.round(burnDamage(current.statuses) * mageEffect * berserkerEffect),
+            Math.round(current.char.stats.hp * BURN_CAP),
+          );
+          if (burn > 0) {
+            enemies[tIdx] = {
+              ...current,
+              hp: Math.max(0, current.hp - burn),
+              statuses: (current.statuses ?? []).filter((item) => item.id !== "quemadura"),
+            };
+            log.push(`${current.char.name} sufre ${burn} de Quemadura adelantada; el efecto termina.`);
+          } else {
+            enemies[tIdx] = {
+              ...current,
+              statuses: (current.statuses ?? []).filter((item) => item.id !== "quemadura"),
+            };
+          }
+        } else if (state.id === "ruptura") {
+          enemies[tIdx] = {
+            ...enemies[tIdx],
+            statuses: (enemies[tIdx].statuses ?? []).filter((item) => item.id !== "ruptura"),
+          };
+          const bypass = Math.min(0.9, state.stacks * EXPLOIT_RUPTURE_DEFENSE_PER_STACK * mageEffect);
+          player.nextAttackDefenseBypass = bypass;
+          log.push(`${player.char.name} prepara el siguiente ataque: ignora ${Math.round(bypass * 100)} % de DEF.`);
+        } else {
+          player.charge = 0;
+          log.push(`La Sobrecarga de ${player.char.name} se descarga.`);
+        }
+        if (player.char.classId === "caballero") {
+          const shieldBefore = player.shield ?? 0;
+          player = classShield(player, 0.03);
+          if ((player.shield ?? 0) > shieldBefore)
+            log.push(`${player.char.name} gana un escudo de ${Math.round((player.shield ?? 0) - shieldBefore)}.`);
+        }
+        if (player.char.classId === "clerigo") healClass(0.03);
+        player.universalCooldowns = {
+          ...player.universalCooldowns,
+          explotar: Math.max(0, universal.cooldown - cooldownDiscount) * UNIVERSAL_COOLDOWN_CONVERSION,
+        };
+        if (cooldownDiscount) player.riposte = false;
+        return;
+      }
       if (universal.id === "interrumpir") {
         if (tIdx === undefined) return;
         const foe = enemies[tIdx];

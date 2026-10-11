@@ -25,6 +25,7 @@ import {
   type Intent,
 } from "./combat";
 import { createRng, type Rng } from "./rng";
+import { addStatus } from "./statuses";
 
 const unit = (
   classId: ClassId,
@@ -626,5 +627,20 @@ describe("auto policy", () => {
       };
       expect(autoPolicy(b)).toEqual({ action: "quebrar", target: 0 });
     }
+  });
+
+  it("autoPolicy exploits a capped Burn tick when its value beats the basic", () => {
+    const hero = unit("caballero", { hp: 5000, atk: 20 });
+    const b0 = withRound(
+      startBattle(hero, unit("mago", { hp: 10000, atk: 1 }), createRng(13)),
+      false,
+      [[]],
+      1,
+    );
+    const b = {
+      ...b0,
+      enemies: [{ ...b0.enemies[0], statuses: addStatus(undefined, "quemadura", 2, 10000) }],
+    };
+    expect(autoPolicy(b, { guard: false })).toEqual({ action: "explotar", target: 0 });
   });
 });

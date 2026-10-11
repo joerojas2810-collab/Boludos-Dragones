@@ -56,14 +56,13 @@ export const UNIVERSAL_SKILLS: Record<UniversalSkillId, UniversalSkillDefinition
     id: "explotar",
     name: "Explotar estado",
     cooldown: 1,
-    attack: { name: "Explotar estado", power: 0, accuracy: 1, cooldown: 1, heal: 0 },
-    enabled: false,
-    disabledReason: "Requiere el sistema de consumo de estados (etapa 5).",
+    attack: { name: "Explotar estado", power: 0.4, accuracy: 1, cooldown: 1, heal: 0 },
+    enabled: true,
     target: "single",
   },
 };
 
-export const ENABLED_UNIVERSAL_SKILLS: UniversalSkillId[] = ["golpe", "barrido", "quebrar", "interrumpir"];
+export const ENABLED_UNIVERSAL_SKILLS: UniversalSkillId[] = ["golpe", "barrido", "quebrar", "interrumpir", "explotar"];
 
 /** Internal timer is fractional; the interface rounds remaining activations up. */
 export const universalCooldownLabel = (remaining: number): number =>

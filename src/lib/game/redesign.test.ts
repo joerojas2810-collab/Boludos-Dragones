@@ -128,10 +128,98 @@ describe("elemental statuses", () => {
     expect(run({}, "attack2").statuses ?? []).toHaveLength(0);
   });
 
-  it("Explotar stays disabled until the state-consumption stage", () => {
-    const hero = withWeapon({ ...unit("mago") }, "agua");
-    const b = fight(hero, [unit("picaro")], [[]]);
+  it("Explotar consumes Quemadura, deals 40% basic damage, advances one capped tick, and applies no new state", () => {
+    const hero = withWeapon({ ...unit("mago"), element: "fuego" }, "agua");
+    const foe = unit("picaro", { hp: 1000, def: 0 });
+    const b = fight(hero, [foe], [[]]);
+    const target = {
+      ...b.enemies[0],
+      statuses: addStatus(undefined, "quemadura", 2, 100),
+    };
+    const prepared = { ...b, enemies: [target] };
+    const common = Math.round(estimateDamage(b.player, target, "attack1") * 0.4);
+    const out = step(prepared, "explotar", always);
+    const cappedBurn = Math.round(foe.stats.hp * BURN_CAP);
+    expect(target.hp - out.enemies[0].hp).toBe(common + cappedBurn);
+    expect(stacksOf(out.enemies[0].statuses, "quemadura")).toBe(0);
+    expect(out.enemies[0].statuses?.some((s) => s.id === "escarcha")).toBe(false);
+    expect(out.log.join(" ")).toContain("Quemadura adelantada");
+  });
+
+  it("Explotar consumes Ruptura and grants a one-activation defense bypass", () => {
+    const hero = withWeapon({ ...unit("caballero"), element: "tierra" }, "agua");
+    const foe = unit("picaro", { hp: 10000, def: 50 });
+    const b = fight(hero, [foe], [[]]);
+    const target = {
+      ...b.enemies[0],
+      char: { ...b.enemies[0].char, stats: { ...b.enemies[0].char.stats, def: 10000 } },
+      statuses: addStatus(undefined, "ruptura", 2),
+    };
+    const out = step({ ...b, enemies: [target] }, "explotar", always);
+    expect(stacksOf(out.enemies[0].statuses, "ruptura")).toBe(0);
+    expect(out.player.nextAttackDefenseBypass).toBeCloseTo(0.16);
+    const def = {
+      ...out.enemies[0],
+      hp: 10000,
+      char: { ...out.enemies[0].char, stats: { ...out.enemies[0].char.stats, def: 100 } },
+    };
+    const strongPlayer = {
+      ...out.player,
+      char: { ...out.player.char, stats: { ...out.player.char.stats, atk: 1000 } },
+    };
+    expect(estimateDamage(strongPlayer, def, "attack1", false, 0.16)).toBeGreaterThan(
+      estimateDamage(strongPlayer, def, "attack1"),
+    );
+    const next = step(withRound({ ...out, enemies: [def] }, false, [[]], 1), "attack1", always);
+    expect(next.player.nextAttackDefenseBypass).toBeUndefined();
+  });
+
+  it("Explotar requires three Sobrecarga charges, consumes them, and adds no charge", () => {
+    const hero = withWeapon({ ...unit("mago"), element: "rayo" }, "agua");
+    const b = fight(hero, [unit("picaro", { hp: 10000 })], [[]]);
     expect(step(b, "explotar", always)).toBe(b);
+    const charged = { ...b, player: { ...b.player, charge: 3 } };
+    const common = estimateDamage(charged.player, charged.enemies[0], "attack1");
+    const out = step(charged, "explotar", always);
+    expect(charged.enemies[0].hp - out.enemies[0].hp).toBe(Math.round(common * 0.9));
+    expect(out.player.charge).toBe(0);
+    expect(out.enemies[0].statuses ?? []).toHaveLength(0);
+  });
+
+  it("Explotar class hooks respect the class healing and shield caps", () => {
+    const foe = unit("picaro", { hp: 10000 });
+    const prepare = (classId: ClassId) => {
+      const hero = withWeapon({ ...unit(classId), element: "fuego" }, "agua");
+      const b = fight(hero, [foe], [[]]);
+      return {
+        ...b,
+        player: { ...b.player, hp: b.player.char.stats.hp - 100 },
+        enemies: [{ ...b.enemies[0], statuses: addStatus(undefined, "quemadura", 1, 1) }],
+      };
+    };
+    const cleric = prepare("clerigo");
+    expect(step(cleric, "explotar", always).player.hp).toBeGreaterThan(cleric.player.hp);
+    const knight = prepare("caballero");
+    const shielded = step(knight, "explotar", always).player;
+    expect(shielded.shield).toBeGreaterThan(0);
+    expect(shielded.shield).toBeLessThanOrEqual(Math.round(shielded.char.stats.hp * 0.03));
+  });
+
+  it("Mago and low-health Berserker amplify Quemadura's immediate tick by 25%", () => {
+    const foe = unit("picaro", { hp: 1000 });
+    const run = (classId: ClassId, hp = 1000) => {
+      const hero = withWeapon({ ...unit(classId), element: "fuego", stats: { ...unit(classId).stats, hp } }, "agua");
+      const initial = fight(hero, [foe], [[]]);
+      const b = classId === "berserker"
+        ? { ...initial, player: { ...initial.player, hp: 250 } }
+        : initial;
+      const target = { ...b.enemies[0], statuses: addStatus(undefined, "quemadura", 1, 40) };
+      const prepared = { ...b, enemies: [target] };
+      const common = Math.round(estimateDamage(b.player, target, "attack1") * 0.4);
+      return target.hp - step(prepared, "explotar", always).enemies[0].hp - common;
+    };
+    expect(run("mago")).toBe(50);
+    expect(run("berserker", 500)).toBe(50);
   });
 });
 

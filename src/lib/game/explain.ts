@@ -42,6 +42,7 @@ import {
   type MoveKey,
   TRAIT_CAPS,
   attackOf,
+  exploitableState,
 } from "./combat";
 import { AUTO_STOP_HP } from "./auto";
 import { WEAPON_TYPE_DATA } from "./weapons";
@@ -526,6 +527,8 @@ export const cooldownOf = (c: Combatant, key: MoveKey): number =>
 export function attackDisabledReason(c: Combatant, key: MoveKey, foe?: Combatant): string | null {
   const universal = UNIVERSAL_SKILLS[key as UniversalSkillId];
   if (universal && !universal.enabled) return universal.disabledReason ?? "Aún no disponible.";
+  if (key === "explotar" && !exploitableState(c, foe))
+    return "Requiere Quemadura, Ruptura o 3 cargas de Sobrecarga.";
   if (key === "quebrar" && foe?.aguante === undefined) return "Este enemigo no tiene Aguante.";
   if (key === "interrumpir" && foe?.channelingState !== "announced")
     return "No hay una Canalización anunciada que puedas interrumpir.";
