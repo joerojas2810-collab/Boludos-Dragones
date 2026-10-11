@@ -27,6 +27,7 @@ export function characterView(
     copies: c.copies?.length || undefined,
     lines: [statLine(stats), ...(c.copies?.length ? [`${c.copies.length} copia${c.copies.length > 1 ? "s" : ""}`] : []), ...(opts.lines ?? [])],
     badge: opts.badge,
+    factors: c.factors,
   };
 }
 
@@ -130,7 +131,12 @@ export function resultView(r: PullResult): ItemView | null {
       : r.status === "copy"
         ? "+1 COPIA"
         : "NUEVO";
-  if (r.character) return characterView(r.character, { badge });
+  if (r.character) {
+    const copy = r.status === "copy" ? r.character.copies?.at(-1) : undefined;
+    const view = characterView(r.character, { badge });
+    if (view.kind !== "character") return view;
+    return { ...view, factors: copy?.factors ?? r.character.factors, traits: copy ? [copy.trait] : r.character.traits };
+  }
   if (r.weapon) return weaponView(r.weapon, { badge });
   return null;
 }

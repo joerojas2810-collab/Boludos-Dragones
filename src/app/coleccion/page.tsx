@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Chip } from "@/components/Chip";
 import { ItemCard } from "@/components/ItemCard";
+import { HeroFactor } from "@/components/HeroFactor";
 import { Panel } from "@/components/Panel";
 import { MatIcon } from "@/app/forja/Upgrade";
 import { TipHover, Tooltip } from "@/components/Tooltip";
@@ -112,6 +113,7 @@ function Detail({
         </div>
       </div>
       <p className="text-sm italic text-[#d9d2ca]">“{c.catchphrase}”</p>
+      <HeroFactor factors={c.factors} />
       <div className="flex flex-wrap gap-x-3 gap-y-1">
         {STAT_ORDER.map((k) => (
           <Tooltip key={k} tip={statTip(k, cmb)}>
