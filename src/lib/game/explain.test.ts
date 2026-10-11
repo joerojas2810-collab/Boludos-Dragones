@@ -149,6 +149,15 @@ describe("explain: elements, traits, actions", () => {
     expect(attackDisabledReason(c, "quebrar", { ...comb(hero("mago", "fuego")), aguante: 1 })).toBeNull();
   });
 
+  it("Interrumpir is available only during an announced channeling", () => {
+    const c = comb(hero("mago", "agua"));
+    const foe = comb(hero("clerigo", "tierra"));
+    expect(attackDisabledReason(c, "interrumpir", foe)).toBe(
+      "No hay una Canalización anunciada que puedas interrumpir.",
+    );
+    expect(attackDisabledReason(c, "interrumpir", { ...foe, channelingState: "announced" })).toBeNull();
+  });
+
   it("the basic uses the weapon profile without an old special", () => {
     const h = hero("caballero", "agua");
     const plain = text(attackTip(comb(h), "attack1"));

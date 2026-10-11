@@ -600,4 +600,31 @@ describe("auto policy", () => {
     expect(autoPolicy(b).action).toBe("defend");
     expect(autoPolicy(b, { guard: false }).action).not.toBe("defend");
   });
+
+  it("uses Interrumpir on the announced ritual for every class", () => {
+    const classes: ClassId[] = ["caballero", "mago", "picaro", "clerigo", "berserker"];
+    for (const classId of classes) {
+      const queen = { ...unit("mago", { hp: 5000, atk: 10 }), bossId: "withered_queen" as const };
+      const b = withRound(
+        startBattle(unit(classId, { hp: 5000 }), queen, createRng(11)),
+        false,
+        [["channeling"]],
+        1,
+      );
+      expect(autoPolicy(b)).toEqual({ action: "interrumpir", target: 0 });
+    }
+  });
+
+  it("uses Quebrar to stop a nearly broken Charge for every class", () => {
+    const classes: ClassId[] = ["caballero", "mago", "picaro", "clerigo", "berserker"];
+    for (const classId of classes) {
+      const golem = { ...unit("caballero", { hp: 5000, atk: 60 }), name: "Gólem Colosal" };
+      const b0 = startBattle(unit(classId, { hp: 5000 }), golem, createRng(12));
+      const b = {
+        ...withRound(b0, false, [["charge"]], 1),
+        enemies: [{ ...b0.enemies[0], aguante: 1, chargePending: true, chargeUsed: true }],
+      };
+      expect(autoPolicy(b)).toEqual({ action: "quebrar", target: 0 });
+    }
+  });
 });

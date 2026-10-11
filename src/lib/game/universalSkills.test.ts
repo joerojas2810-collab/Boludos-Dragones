@@ -6,7 +6,7 @@ import {
 } from "./universalSkills";
 
 describe("universal skill definitions", () => {
-  it("declares all five actions and exposes reasons for the deferred two", () => {
+  it("declares all five actions and enables Interrumpir for its channeling pilot", () => {
     expect(Object.keys(UNIVERSAL_SKILLS).sort()).toEqual([
       "barrido",
       "explotar",
@@ -16,10 +16,10 @@ describe("universal skill definitions", () => {
     ]);
     expect(UNIVERSAL_SKILLS.quebrar.enabled).toBe(true);
     expect(UNIVERSAL_SKILLS.quebrar.disabledReason).toBeUndefined();
-    for (const id of ["interrumpir", "explotar"] as const) {
-      expect(UNIVERSAL_SKILLS[id].enabled).toBe(false);
-      expect(UNIVERSAL_SKILLS[id].disabledReason).toBeTruthy();
-    }
+    expect(UNIVERSAL_SKILLS.interrumpir.enabled).toBe(true);
+    expect(UNIVERSAL_SKILLS.interrumpir.disabledReason).toBeUndefined();
+    expect(UNIVERSAL_SKILLS.explotar.enabled).toBe(false);
+    expect(UNIVERSAL_SKILLS.explotar.disabledReason).toBeTruthy();
   });
 
   it("uses the E2 0.85 conversion and rounds displayed cooldowns up", () => {

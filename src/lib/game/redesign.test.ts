@@ -282,8 +282,29 @@ describe("dungeon boss mechanics", () => {
   it("Reina Marchita: the ritual lands every 3 rounds unless a perfect guard stops it", () => {
     const b = startBattle(hero(), [boss("withered_queen")], createRng(2));
     const after = rounds(b, 3);
-    expect(after.log.some((l) => l.includes("prepara un ritual"))).toBe(true);
+    expect(after.log.some((l) => l.includes("canaliza su ritual"))).toBe(true);
     expect(after.log.some((l) => l.includes("marchita") || l.includes("anula"))).toBe(true);
+  });
+
+  it("Interrumpir cancels the Queen's announced ritual before either effect", () => {
+    const b0 = startBattle(hero(), [boss("withered_queen")], createRng(2));
+    const b = withRound(b0, false, [["channeling"]], 1);
+    const after = step(b, "interrumpir", always);
+    expect(after).not.toBe(b);
+    expect(after.enemies[0].channelingState).not.toBe("resolved");
+    expect(after.player.healCut ?? 0).toBe(0);
+    expect(after.player.statuses ?? []).not.toContainEqual(expect.objectContaining({ id: "ruptura" }));
+    expect(after.log.some((line) => line.includes("canalización interrumpida"))).toBe(true);
+    expect(after.queue.some((slot) => slot !== "player" && slot.intent === "channeling")).toBe(false);
+  });
+
+  it("a perfect guard remains a second answer to the announced ritual", () => {
+    const b0 = startBattle(hero(), [boss("withered_queen")], createRng(2));
+    const b = withRound(b0, false, [["channeling"]], 1);
+    const after = step(b, "defend", always);
+    expect(after.player.healCut ?? 0).toBe(0);
+    expect(after.player.statuses ?? []).not.toContainEqual(expect.objectContaining({ id: "ruptura" }));
+    expect(after.log.some((line) => line.includes("Tu guardia perfecta anula el ritual"))).toBe(true);
   });
 
   it("Vigía Eterno: repeating the same action twice weakens the third", () => {

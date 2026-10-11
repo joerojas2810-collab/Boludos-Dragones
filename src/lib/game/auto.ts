@@ -7,6 +7,7 @@ import {
   BERSERKER_SKILL_FURY_THRESHOLD,
   BERSERKER_GOLPE_BONUS,
   BERSERKER_BARRIDO_BONUS,
+  attackElementMultiplier,
   enemyIntents,
   estimateDamage,
   hitChance,
@@ -36,10 +37,10 @@ export interface AutoPick {
 
 export interface AutoOptions {
   guard?: boolean; // use Defender against announced strong hits (default on)
-  useUniversalSkills?: boolean; // consider Golpe/Barrido (default on)
+  useUniversalSkills?: boolean; // consider enabled universal actions (default on)
 }
 
-const ev = (att: Combatant, def: Combatant, key: MoveKey | "charge") =>
+const ev = (att: Combatant, def: Combatant, key: MoveKey | "charge" | "channeling") =>
   hitChance(att, key) * estimateDamage(att, def, key);
 
 // Expected damage per slot this enemy still has this round.
@@ -88,6 +89,16 @@ export function autoPolicy(b: Battle, opts: AutoOptions = {}): AutoPick {
   const e1 = b.enemies[alive[t1]];
   const a1 = ev(p, e1, "attack1");
   if (useUniversalSkills) {
+    const interruptTarget = alive.find((i) =>
+      b.enemies[i].channelingState === "announced" &&
+      b.queue.some((slot) => slot !== "player" && slot.e === i && slot.intent === "channeling"),
+    );
+    if (
+      interruptTarget !== undefined &&
+      (p.universalCooldowns?.interrumpir ?? 0) <= 1e-9
+    )
+      return { action: "interrumpir", target: alive.indexOf(interruptTarget) };
+
     let bestSkill: AutoPick | null = null;
     let bestSkillValue = -1;
     const golpeTarget = bestTarget(b, "golpe");
@@ -123,6 +134,33 @@ export function autoPolicy(b: Battle, opts: AutoOptions = {}): AutoPick {
     if ((p.universalCooldowns?.barrido ?? 0) <= 1e-9 && barridoUtility > bestSkillValue) {
       bestSkill = { action: "barrido" };
       bestSkillValue = barridoUtility;
+    }
+    const quebrarTarget = bestTarget(b, "quebrar");
+    const quebrarFoe = b.enemies[alive[quebrarTarget]];
+    if (
+      quebrarFoe.aguante !== undefined &&
+      (p.universalCooldowns?.quebrar ?? 0) <= 1e-9
+    ) {
+      let aguanteFactor = 1;
+      if (p.char.classId === "caballero" && p.resolution) aguanteFactor *= 1.25;
+      if (p.char.classId === "mago" && attackElementMultiplier(p, quebrarFoe) > 1) aguanteFactor *= 1.2;
+      if (p.char.classId === "picaro" && quebrarFoe.statuses?.length) aguanteFactor *= 1.2;
+      if (p.char.classId === "berserker" && p.hp < maxHp * BERSERKER_SKILL_FURY_THRESHOLD) aguanteFactor *= 1.25;
+      const quebrarDamage = ev(p, quebrarFoe, "quebrar");
+      const wouldBreak =
+        (quebrarFoe.quiebreResist ?? 0) === 0 &&
+        quebrarFoe.aguante <= Math.max(1, Math.round(quebrarDamage * aguanteFactor));
+      const chargeValue =
+        wouldBreak && quebrarFoe.chargePending
+          ? ev(quebrarFoe, p, "charge") * 1.25
+          : 0;
+      const clericValue = clericHealUtility(0.03);
+      const breakValue = wouldBreak ? Math.max(a1 * 0.8, quebrarDamage * 0.8) : 0;
+      const quebrarValue = quebrarDamage + breakValue + chargeValue + clericValue;
+      if (quebrarValue > bestSkillValue) {
+        bestSkill = { action: "quebrar", target: quebrarTarget };
+        bestSkillValue = quebrarValue;
+      }
     }
     if (bestSkill && bestSkillValue > a1 * 1.05) return bestSkill;
   }

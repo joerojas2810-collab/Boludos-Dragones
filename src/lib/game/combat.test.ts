@@ -4,6 +4,7 @@ import {
   actionCounts,
   actionsLeft,
   buildQueue,
+  intentType,
   type EnemySlot,
   type Slot,
   MAX_ACTIONS_PER_ROUND,
@@ -82,6 +83,13 @@ const sides = (q: Slot[]) =>
   q.map((s) => (s === "player" ? "P" : "E")).join("");
 
 describe("round queue", () => {
+  it("maps the active enemy intention kinds without enabling future patterns", () => {
+    expect(intentType("attack2")).toBe("golpe");
+    expect(intentType("charge")).toBe("carga");
+    expect(intentType("channeling")).toBe("canalizacion");
+    expect(intentType("defend")).toBeNull();
+  });
+
   it("alternates from the opener, then the leftover actions", () => {
     expect(sides(buildQueue(2, slots(1), 0))).toEqual("PEP");
     expect(sides(buildQueue(2, slots(1), 1))).toEqual("EPP");
@@ -89,6 +97,19 @@ describe("round queue", () => {
     expect(sides(buildQueue(1, slots(2), 0))).toEqual("PEE");
     expect(sides(buildQueue(3, slots(1), 0))).toEqual("PEPP");
     expect(sides(buildQueue(1, slots(1), 1))).toEqual("EP");
+  });
+
+  it("lets the player act once before an announced strong hit even when the enemy has initiative", () => {
+    const foe = { ...unit("caballero", { hp: 5000, speed: 20 }), name: "Rey de Ceniza", bossId: "ash_king" as const };
+    const announced = Array.from({ length: 200 }, (_, seed) =>
+      startBattle(unit("mago", { speed: 10 }), foe, createRng(seed + 1)),
+    ).find((battle) =>
+      battle.queue[0] === "player" &&
+      battle.queue[1] !== "player" &&
+      battle.queue[1]?.intent === "attack2",
+    );
+    expect(announced).toBeDefined();
+    expect(announced?.log.some((line) => line.includes("Rey de Ceniza anuncia su golpe fuerte"))).toBe(true);
   });
 });
 

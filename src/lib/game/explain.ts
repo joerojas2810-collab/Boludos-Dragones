@@ -527,6 +527,8 @@ export function attackDisabledReason(c: Combatant, key: MoveKey, foe?: Combatant
   const universal = UNIVERSAL_SKILLS[key as UniversalSkillId];
   if (universal && !universal.enabled) return universal.disabledReason ?? "Aún no disponible.";
   if (key === "quebrar" && foe?.aguante === undefined) return "Este enemigo no tiene Aguante.";
+  if (key === "interrumpir" && foe?.channelingState !== "announced")
+    return "No hay una Canalización anunciada que puedas interrumpir.";
   const cd = cooldownOf(c, key);
   return cd > 0 ? `Recarga: ${cdText(cd)}` : null;
 }
@@ -595,10 +597,7 @@ export function attackTip(
       `Cura ${pct(a.heal)} de tu vida máxima (≈${Math.round(st.hp * a.heal)} PV), aunque falle el golpe.`,
     );
   const why = attackDisabledReason(c, key, foe);
-  if (why)
-    lines.push(
-      `No disponible: faltan ${cdText(cooldownOf(c, key))} de recarga.`,
-    );
+  if (why) lines.push(`No disponible: ${why}`);
   return {
     title: `${a.name} · ${ATTACK_NUMBER[key]}`,
     kind: "damage",
@@ -660,6 +659,17 @@ export function intentTip(intent: Intent, b: Battle, idx?: number): Tip {
         "No te ataca con esa acción.",
       ],
       source: "Intención anunciada por el rival",
+    };
+  if (intent === "channeling")
+    return {
+      title: `${foe} canaliza su ritual`,
+      kind: "danger",
+      lines: [
+        "Interrumpir cancela el ritual antes de que aplique Ruptura y reduzca tus curas.",
+        `Una guardia perfecta también lo anula y activa ${GUARD_BONUS_TEXT[p.char.classId]}.`,
+        "La intención espera tu primera activación antes de resolverse.",
+      ],
+      source: "Canalización anunciada por el rival",
     };
   const a = attackOf(e, intent);
   const lines = [

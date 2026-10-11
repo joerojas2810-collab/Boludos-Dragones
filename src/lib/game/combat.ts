@@ -72,10 +72,18 @@ import {
 export type AttackKey = "attack1" | "attack2";
 export type MoveKey = AttackKey | UniversalSkillId;
 export type CombatMoveKey = MoveKey;
-type TelegraphKey = CombatMoveKey | "charge";
+type TelegraphKey = CombatMoveKey | "charge" | "channeling";
 export type Action = "attack1" | "defend" | UniversalSkillId;
 export type BattleAction = Action;
-export type Intent = AttackKey | "charge" | "defend";
+/** Semantic categories available to enemy patterns; only Carga and Canalización are new active patterns in E4. */
+export type EnemyIntentType =
+  | "golpe"
+  | "carga"
+  | "preparacion"
+  | "represalia"
+  | "canalizacion"
+  | "ataque_multiple";
+export type Intent = AttackKey | "charge" | "channeling" | "defend";
 export type Status = "ongoing" | "won" | "lost";
 
 export const DEFEND_FACTOR = 0.5;
@@ -105,7 +113,7 @@ const CHARGE_DEFENSE_BYPASS = 0.3;
 export const GUARD_CRIT_BONUS = 0.5; // Pícaro: extra crit chance on the next hit
 export const GUARD_HEAL = 0.03; // Clérigo: fraction of max hp healed (class cap)
 export const isStrongIntent = (k: CombatMoveKey | Intent): boolean =>
-  k === "attack2" || k === "golpe" || k === "charge";
+  k === "attack2" || k === "golpe" || k === "charge" || k === "channeling";
 
 // Speed -> actions ("acciones acumuladas"). Per (hero, enemy) pair the slower
 // side acts once per round; the faster side acts floor(carry) times, where
@@ -191,6 +199,7 @@ export interface Combatant {
   quiebreResist?: number;
   chargePending?: boolean;
   chargeUsed?: boolean;
+  channelingState?: "announced" | "resolved" | "cancelled";
   healCut?: number; // rounds left with the heals cut (Reina Marchita ritual)
   applies?: boolean; // enemies: strong hits apply their element's status (elites, bosses)
   universalCooldowns?: Partial<Record<UniversalSkillId, number>>;
@@ -329,6 +338,8 @@ export const furyBonus = (c: Combatant): number =>
     : (CLASS_PASSIVE_FURY.find((t) => c.hp / c.char.stats.hp < t.below)?.bonus ?? 0);
 
 export function attackOf(c: Combatant, intent: TelegraphKey): Attack {
+  if (intent === "channeling")
+    return { name: "Canalización", power: 0, accuracy: 1, cooldown: 0, heal: 0 };
   const key: CombatMoveKey = intent === "charge" ? "attack2" : intent;
   if (key in UNIVERSAL_SKILLS) return UNIVERSAL_SKILLS[key as UniversalSkillId].attack;
   if (key === "attack1" && isWeaponType(c.char.weapon?.type)) {
@@ -368,6 +379,13 @@ export const enemyIntents = (b: Battle, e: number): Intent[] =>
   pendingIntents(b)
     .filter((s) => s.e === e)
     .map((s) => s.intent);
+
+export const intentType = (intent: Intent): EnemyIntentType | null => {
+  if (intent === "charge") return "carga";
+  if (intent === "channeling") return "canalizacion";
+  if (intent === "attack1" || intent === "attack2") return "golpe";
+  return null;
+};
 
 // A strong hit is still coming: Defender now would be a perfect guard.
 export const strongPending = (b: Battle): boolean =>
@@ -434,6 +452,21 @@ export function buildQueue(
   return q;
 }
 
+// A strong intention announced before the hero's first slot waits until just
+// after that slot. It is moved only once, so it resolves at its next enemy turn.
+function grantFirstPlayerResponse(queue: Slot[]): Slot[] {
+  const firstPlayer = queue.indexOf("player");
+  if (firstPlayer <= 0) return queue;
+  const waiting = queue.slice(0, firstPlayer).filter(
+    (slot): slot is EnemySlot => slot !== "player" && isStrongIntent(slot.intent),
+  );
+  if (!waiting.length) return queue;
+  const before = queue.slice(0, firstPlayer).filter(
+    (slot) => slot === "player" || !isStrongIntent(slot.intent),
+  );
+  return [...before, "player", ...waiting, ...queue.slice(firstPlayer + 1)];
+}
+
 // Enemy action slots of a round: pass k lists every enemy with a k-th action,
 // in initiative order.
 function enemySlots(
@@ -491,6 +524,14 @@ function planRound(
       }
     }
   });
+  enemies.forEach((e, i) => {
+    if (ruleOf(e) === "marchitar" && turn % RITUAL_EVERY === 0 && intents[i].length) {
+      intents[i][0] = "channeling";
+      enemies[i] = { ...e, channelingState: "announced" };
+    } else {
+      enemies[i] = { ...e, channelingState: undefined };
+    }
+  });
   const rolls = enemies.map((e) => (e.hp > 0 ? roll(e, rng) : -1));
   const mine = roll(player, rng);
   const order = [...live].sort((a, b) => rolls[b] - rolls[a] || a - b);
@@ -505,10 +546,18 @@ function planRound(
     const e = enemies[i];
     if (ruleOf(e) === "posturas")
       lines.push(`${e.char.name} adopta la postura ${stanceFor(turn)}.`);
-    if (ruleOf(e) === "marchitar" && turn % RITUAL_EVERY === 0)
-      lines.push(`${e.char.name} prepara un ritual: defiende con guardia perfecta para anularlo.`);
+    if (intents[i].includes("channeling"))
+      lines.push(`${e.char.name} canaliza su ritual: Interrumpir lo detiene; una guardia perfecta también lo anula.`);
+    if (intents[i].includes("charge"))
+      lines.push(`${e.char.name} anuncia una Carga: tendrás una activación para responder; Defender la mitiga y Quebrar Aguante puede cancelarla.`);
+    else if (intents[i].includes("attack2"))
+      lines.push(
+        ruleOf(e) === "presion"
+          ? `${e.char.name} anuncia su golpe fuerte: tendrás una activación para responder; la guardia perfecta apaga su Presión.`
+          : `${e.char.name} anuncia un golpe fuerte: tendrás una activación para responder.`,
+      );
     if (preparingCharge[i])
-      lines.push(`${e.char.name} prepara una Carga: Defender la mitiga; Quebrar Aguante puede cancelarla.`);
+      lines.push(`${e.char.name} prepara una Carga cancelable por Quiebre.`);
   }
   for (const i of live)
     if ((counts[i]?.enemy ?? 1) > 1)
@@ -516,7 +565,7 @@ function planRound(
         `${enemies[i].char.name} es más veloz: actúa ${counts[i]?.enemy} veces.`,
       );
   return {
-    queue: buildQueue(playerActions, enemySlots(order, intents), lead),
+    queue: grantFirstPlayerResponse(buildQueue(playerActions, enemySlots(order, intents), lead)),
     playerActions,
     enemies: enemies.map((e, i) => ({
       ...e,
@@ -555,6 +604,7 @@ export function withRound(
     enemies: b.enemies.map((e, i) => ({
       ...e,
       defending: (per[i] ?? []).includes("defend"),
+      channelingState: per[i]?.includes("channeling") ? "announced" : undefined,
     })),
   };
 }
@@ -612,6 +662,7 @@ export function startBattle(
 
 // No dodge in engine v11: only accuracy decides a hit.
 export function hitChance(att: Combatant, intent: TelegraphKey): number {
+  if (intent === "channeling") return 1;
   const key: CombatMoveKey = intent === "charge" ? "attack2" : intent;
   if (key === "attack1") return 1; // the basic attack is the safe one; accuracy is the risk of the others
   const retry = att.missed ? rulesOf(att).retryAccuracy : 0; // Terco insists after a miss
@@ -664,6 +715,7 @@ export function estimateDamage(
   crit = false, // true: skip the non-crit penalty (the crit multiplier is applied by the caller)
   defenseBypass = 0,
 ): number {
+  if (intent === "channeling") return 0;
   const key: CombatMoveKey = intent === "charge" ? "attack2" : intent;
   const a = attackOf(att, key);
   const raw =
@@ -990,6 +1042,13 @@ export function step(
   )
     return b;
   const tIdx = alive[target ?? 0];
+  if (
+    action === "interrumpir" &&
+    (tIdx === undefined ||
+      b.enemies[tIdx].channelingState !== "announced" ||
+      !b.queue.some((slot) => slot !== "player" && slot.e === tIdx && slot.intent === "channeling"))
+  )
+    return b;
   const log: string[] = [];
   const events: BattleEvent[] = [];
   const resolutionReady = !!b.player.resolution;
@@ -1098,6 +1157,24 @@ export function step(
     if (universal) {
       const cooldownDiscount = player.char.classId === "berserker" && player.riposte ? 1 : 0;
       const targets = universal.target === "all" ? alive : [tIdx];
+      if (universal.id === "interrumpir") {
+        if (tIdx === undefined) return;
+        const foe = enemies[tIdx];
+        hit(tIdx, "interrumpir");
+        enemies[tIdx] = { ...enemies[tIdx], channelingState: "cancelled" };
+        for (let q = queue.length - 1; q >= 0; q--) {
+          const queued = queue[q];
+          if (queued !== "player" && queued.e === tIdx && queued.intent === "channeling")
+            queue.splice(q, 1);
+        }
+        log.push(`${foe.char.name}: canalización interrumpida; su ritual queda cancelado.`);
+        player.universalCooldowns = {
+          ...player.universalCooldowns,
+          interrumpir: Math.max(0, universal.cooldown - cooldownDiscount) * UNIVERSAL_COOLDOWN_CONVERSION,
+        };
+        if (cooldownDiscount) player.riposte = false;
+        return;
+      }
       let ownerElementApplied = false;
       let dealt = 0;
       for (const i of targets) {
@@ -1183,6 +1260,13 @@ export function step(
       });
     } else if (enemies[slot.e].hp > 0) {
       let foe = enemies[slot.e];
+      if (slot.intent === "channeling") {
+        if (foe.channelingState === "announced") {
+          enemies[slot.e] = { ...foe, channelingState: "resolved" };
+          log.push(`${foe.char.name} completa su canalización.`);
+        }
+        continue;
+      }
       if (slot.n > 0) log.push(`${foe.char.name} actúa de nuevo.`);
       if (slot.intent === "defend") {
         log.push(`${foe.char.name} se defiende.`);
@@ -1305,7 +1389,7 @@ export function step(
     player = { ...player, hp: Math.max(0, player.hp - loss) };
     log.push(`La plaga te consume ${loss} de vida.`);
   }
-  if (bossRule("marchitar") && b.turn % RITUAL_EVERY === 0) {
+  if (enemies.some((e) => e.hp > 0 && ruleOf(e) === "marchitar" && e.channelingState === "resolved")) {
     if (guarded) log.push("Tu guardia perfecta anula el ritual marchito.");
     else {
       player = {
