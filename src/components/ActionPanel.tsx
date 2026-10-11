@@ -10,6 +10,7 @@ import {
   livingEnemies,
   skillOf,
   strongPending,
+  type EnemySlot,
   type Action,
   type Battle,
   type MoveKey,
@@ -38,6 +39,81 @@ type Props = {
 };
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
+
+function RoundQueue({ b }: { b: Battle }) {
+  const slots = b.queue.filter(
+    (slot): slot is "player" | EnemySlot =>
+      slot === "player" || b.enemies[slot.e].hp > 0,
+  );
+  const firstPlayer = slots.findIndex((slot) => slot === "player");
+  const completedPlayerActions = b.playerActions - actionsLeft(b);
+
+  return (
+    <section
+      aria-label="Cola de acciones de la ronda"
+      className="rounded-md border border-[#b9855a]/30 bg-black/25 px-2 py-1.5"
+    >
+      <div className="mb-1 flex items-center justify-between gap-2 text-[11px] leading-tight text-[#d9d2ca]">
+        <span className="font-semibold uppercase tracking-wide text-[#f1d5a4]">
+          Orden de la ronda
+        </span>
+        <span className="shrink-0">Tú eliges ahora</span>
+      </div>
+      {slots.length === 0 ? (
+        <div className="text-xs text-[#aebccb]">Ronda resuelta</div>
+      ) : (
+        <ol
+          aria-label="Acciones pendientes, en orden de resolución"
+          className="flex min-w-0 gap-1.5 overflow-x-auto pb-1"
+        >
+          {slots.map((slot, i) => {
+            const current = i === firstPlayer;
+            if (slot === "player") {
+              const playerNumber =
+                completedPlayerActions +
+                slots.slice(0, i + 1).filter((queued) => queued === "player").length;
+              const label = `Tú, acción ${playerNumber} de ${b.playerActions}`;
+              return (
+                <li
+                  key={`player-${playerNumber}`}
+                  aria-current={current ? "step" : undefined}
+                  aria-label={label}
+                  className={`flex min-h-10 min-w-[5.5rem] shrink-0 flex-col justify-center rounded border px-2 py-1 text-center ${current ? "border-yellow-300 bg-yellow-300/15 text-yellow-100 shadow-[0_0_0_1px_#fcd34d66]" : "border-emerald-700/60 bg-emerald-950/50 text-emerald-100"}`}
+                >
+                  <span className="text-xs font-bold leading-tight">TÚ</span>
+                  <span className="text-[10px] leading-tight">
+                    {current ? "Tu acción" : "Acción extra"}
+                  </span>
+                </li>
+              );
+            }
+
+            const enemy = b.enemies[slot.e];
+            const intent =
+              slot.intent === "defend"
+                ? "Defender"
+                : attackOf(enemy, slot.intent).name;
+            const strong = slot.intent === "attack2";
+            const label = `${enemy.char.name}: ${strong ? "golpe fuerte, " : ""}${intent}`;
+            return (
+              <li
+                key={`enemy-${slot.e}-${slot.n}-${i}`}
+                aria-label={label}
+                className="flex min-h-10 min-w-[5.5rem] shrink-0 flex-col justify-center rounded border border-red-900/70 bg-red-950/55 px-2 py-1 text-center text-red-100"
+              >
+                <span className="text-xs font-bold leading-tight">R{slot.e + 1}</span>
+                <span className="max-w-28 truncate text-[10px] leading-tight" title={label}>
+                  {strong && <span aria-hidden="true">⚠ </span>}
+                  {intent}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
+  );
+}
 
 function ActionButton({
   tip,
@@ -129,9 +205,6 @@ export function ActionPanel({
   const foe = b.enemies[alive[target] ?? alive[0] ?? 0];
   const skill = skillOf(b.player);
   const perfect = strongPending(b);
-  const order = b.queue
-    .map((s) => (s === "player" ? "Tú" : `R${s.e + 1}`))
-    .join(" › ");
 
   const attack = (k: MoveKey, chip = false) => {
     const a = k === "attack3" ? null : attackOf(b.player, k);
@@ -210,22 +283,14 @@ export function ActionPanel({
               </span>
             </Tooltip>
           </div>
-          <div
-            className={`text-[13px] leading-5 text-[#d9d2ca] ${float ? "action-inset mt-1 !py-0.5 !text-xs !leading-4" : ""}`}
-          >
-            Orden: {order}
-            {alive.length > 1 && (
-              <span
-                className={
-                  float ? "block text-yellow-300" : "ml-2 text-yellow-300"
-                }
-              >
-                Elige un rival (clic o 1-3) · objetivo: {foe.char.name}
-              </span>
-            )}
-          </div>
+          {alive.length > 1 && (
+            <div className="text-[13px] leading-5 text-yellow-300">
+              Elige un rival (clic o 1-3) · objetivo: {foe.char.name}
+            </div>
+          )}
         </div>
       )}
+      {!over && <RoundQueue b={b} />}
       {over && (
         <div className="mb-2 text-center text-base font-semibold text-yellow-300">
           Fin de la pelea
@@ -294,6 +359,9 @@ export function ActionPanel({
                 </div>
               </Tooltip>
               {alive.length > 1 && <div className="text-[11px] text-yellow-300">Objetivo: {foe.char.name}</div>}
+              <div className="mt-1 w-[min(22rem,28vw)]">
+                <RoundQueue b={b} />
+              </div>
             </div>
             <div className="grid min-w-0 flex-1 grid-cols-4 gap-2.5">
               {attack("attack1", true)}
