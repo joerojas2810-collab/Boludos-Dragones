@@ -72,7 +72,7 @@ export const starUpHeroBody = z.strictObject({
   baseId: z.string().min(1).max(100),
   materials: z.array(heroMaterial).min(1).max(9),
 });
-export const swapTraitBody = z.strictObject({
+export const swapCopyBody = z.strictObject({
   heroId: z.string().min(1).max(100),
   index: z.number().int().min(0).max(49),
 });

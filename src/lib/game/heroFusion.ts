@@ -1,15 +1,22 @@
 // Hero growth (Forja > Héroes). A hero is class + element + rank and grows on two axes:
 //  - stars (starUpHero): STAR_UNITS units of material of the hero's own rank = +1 star;
 //  - rank (fuseHeroes): HERO_FUSION[rank].ratio - 1 units of material of that rank + coins = the
-//    hero one rank higher (same class, element, name, trait, skill, level), its stars converted by
+//    hero one rank higher (same class, element, name, profile, skill, level), its stars converted by
 //    STAR_CARRY so stars bought at a cheap rank never skip the price of the higher one.
 // A unit of material is any hero of the rank or any spare copy (profile.copies): a hero with c
-// copies holds c + 1 units, the base hero itself only gives its copies. Copies keep the trait they
-// rolled; swapTrait makes one of them the main trait. Pure over the Profile; the server runs the same code.
-import { characterKey, MAX_COPIES, type OwnedCharacter, type Profile } from "./profile";
+// copies holds c + 1 units, the base hero itself only gives its copies. Each copy keeps its full
+// profile (trait + factors); swapCopy makes one the main profile. Pure over Profile.
+import {
+  characterKey,
+  MAX_COPIES,
+  profileOf,
+  withProfile,
+  type HeroProfile,
+  type OwnedCharacter,
+  type Profile,
+} from "./profile";
 import { levelCap } from "./heroLevel";
 import { MAX_STARS, RARITIES, RARITY_IDS, type RarityId } from "./rarity";
-import type { TraitId } from "./traits";
 import { spendUnits, unitsOf, type Material, type SpendRules } from "./units";
 
 // Tune here. `ratio` counts the base hero too. Lots of common heroes, few rare ones: what you
@@ -76,7 +83,7 @@ const HERO_RULES: SpendRules<OwnedCharacter> = {
     baseCopies: "El héroe base solo puede dar sus copias.",
     tooMany: "Usas más unidades de las que tiene ese héroe.",
   },
-  trim: (c, copies) => withCopies(c, copies as TraitId[]),
+  trim: (c, copies) => withCopies(c, copies as HeroProfile[]),
 };
 const spend = (characters: OwnedCharacter[], base: OwnedCharacter, mats: Material[]) => {
   const r = spendUnits(characters, base, mats, HERO_RULES);
@@ -107,7 +114,7 @@ export function starUpHero(
 }
 
 // Rank-up. If a hero of the next rank (same class + element) is already owned the two merge:
-// `keep` picks which trait stays as the main one (the other becomes a copy), stars are the higher
+// `keep` picks which complete profile stays as the main one (the other becomes a copy), stars are the higher
 // of the two, the owned hero keeps its level and gear.
 export function fuseHeroes(
   p: Profile,
@@ -135,9 +142,11 @@ export function fuseHeroes(
   let characters: OwnedCharacter[];
   if (target) {
     const keepBase = (a.keep ?? "base") === "base";
+    const mainProfile = keepBase ? profileOf(base) : profileOf(target);
+    const spareProfile = keepBase ? profileOf(target) : profileOf(base);
     hero = withCopies(
-      { ...target, stars: Math.max(target.stars, carried), traits: keepBase ? base.traits : target.traits },
-      [...(target.copies ?? []), ...(keepBase ? target.traits : base.traits)].slice(0, MAX_COPIES),
+      withProfile({ ...target, stars: Math.max(target.stars, carried) }, mainProfile),
+      [...(target.copies ?? []), spareProfile].slice(0, MAX_COPIES),
     );
     characters = others.map((c) => (c.id === newId ? hero : c));
   } else {
@@ -156,11 +165,11 @@ export function fuseHeroes(
     );
     characters = [...others, hero];
   }
-  // Unspent copies of the base stay behind as a hero of the old rank (first copy = its trait).
+  // Unspent copies of the base stay behind as a hero of the old rank (first copy becomes its profile).
   let split: OwnedCharacter | undefined;
   if (rest.length) {
     split = withCopies(
-      { ...base, stars: 0, level: 1, xp: 0, legacy: false, traits: [rest[0]] },
+      withProfile({ ...base, stars: 0, level: 1, xp: 0, legacy: false }, rest[0]),
       rest.slice(1),
     );
     characters = [...characters, split];
@@ -184,17 +193,20 @@ export function fuseHeroes(
   };
 }
 
-// The main trait trades places with the trait of spare copy `index`.
-export function swapTrait(p: Profile, a: { id: string; index: number }): HeroGrowthResult {
+// The main profile (trait + factors) trades places with spare copy `index`.
+export function swapCopy(p: Profile, a: { id: string; index: number }): HeroGrowthResult {
   const h = p.characters.find((c) => c.id === a.id);
   const copies = h?.copies ?? [];
   if (!h || !Number.isInteger(a.index) || a.index < 0 || a.index >= copies.length)
     return fail("Esa copia no existe.");
-  const next = copies.map((t, i) => (i === a.index ? h.traits[0] : t));
-  const swapped = { ...withCopies(h, next), traits: [copies[a.index]] };
+  const main = profileOf(h);
+  const next = copies.map((copy, i) => (i === a.index ? main : copy));
+  const swapped = withCopies(withProfile(h, copies[a.index]), next);
   return {
     ok: true,
     profile: { ...p, characters: p.characters.map((c) => (c.id === h.id ? swapped : c)) },
-    text: `${h.name} cambia de rasgo.`,
+    text: `${h.name} cambia de perfil.`,
   };
 }
+
+// Source-compatible alias until the persistence/API layer adopts the new operation in H1b.

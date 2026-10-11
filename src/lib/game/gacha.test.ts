@@ -105,6 +105,8 @@ describe("no pity", () => {
           rarity: "legendario",
           stars: 1,
           stats: CLASSES.mago.stats,
+          traits: [TRAIT_IDS[0]],
+          factors: { hp: 1, atk: 1, def: 1, crit: 1, speed: 1 },
         },
       ],
       weapons: [
@@ -193,13 +195,16 @@ describe("pulls", () => {
     expect(p.characters.every((c) => c.stars === 0)).toBe(true);
     const withCopies = p.characters.filter((c) => c.copies?.length);
     expect(withCopies.length).toBeGreaterThan(0);
-    for (const c of withCopies) for (const t of c.copies!) expect(TRAIT_IDS).toContain(t);
+    for (const c of withCopies) for (const copy of c.copies!) {
+      expect(TRAIT_IDS).toContain(copy.trait);
+      expect(copy.factors).toBeDefined();
+    }
   });
   it("a hero with the maximum of copies refunds 50% instead", () => {
     const seed = pullCharacter(rich(), createRng(5))!.profile;
     const full: Profile = {
       ...seed,
-      characters: seed.characters.map((c) => ({ ...c, copies: Array(MAX_COPIES).fill(c.traits[0]) })),
+      characters: seed.characters.map((c) => ({ ...c, copies: Array(MAX_COPIES).fill({ trait: c.traits[0], factors: c.factors }) })),
     };
     let p: Profile = full;
     const rng = createRng(5); // same first roll: an exact duplicate
@@ -539,6 +544,8 @@ describe("bankRun + migrate", () => {
           rarity: "f",
           stars: 0,
           stats: CLASSES.caballero.stats,
+          traits: [TRAIT_IDS[0]],
+          factors: { hp: 1, atk: 1, def: 1, crit: 1, speed: 1 },
         },
       ],
       weapons: [{ id: "w-fuego-c", element: "fuego", rarity: "c", stars: 2 }],
@@ -587,8 +594,8 @@ describe("bankRun + migrate", () => {
   });
 });
 
-describe("migrate: heroes saved before Run v2", () => {
-  it("keeps a hero whose stats have flee and no critDmg, filling class defaults", () => {
+describe("migrate: hero factor reset contract", () => {
+  it("drops old heroes without factors", () => {
     const old = {
       version: 4,
       coins: 10,
@@ -618,11 +625,6 @@ describe("migrate: heroes saved before Run v2", () => {
       ],
     };
     const p = migrate(old);
-    expect(p.characters).toHaveLength(2);
-    const pic = p.characters.find((c) => c.classId === "picaro")!;
-    expect(pic.stats.critDmg).toBe(2);
-    expect(pic.stats.regen).toBe(0);
-    expect(p.characters.find((c) => c.classId === "mago")!.stats.critDmg).toBe(1.5);
-    expect(pic.legacy).toBe(true);
+    expect(p.characters).toHaveLength(0);
   });
 });

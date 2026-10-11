@@ -299,9 +299,9 @@ function TraitSwap({ hero, busy, onSwap }: { hero: OwnedCharacter | null; busy: 
       <h4 className="text-sm font-semibold text-yellow-300">3. Rasgo de {hero.name}</h4>
       {row(hero.traits[0], <span className="text-xs text-green-300">Principal</span>)}
       {copies.length === 0 && <p className="text-sm opacity-80">Sin copias: tira de nuevo en el gacha para probar otros rasgos.</p>}
-      {copies.map((t, i) =>
+      {copies.map((copy, i) =>
         row(
-          t,
+          copy.trait,
           <button type="button" className="btn !min-h-8 text-center text-xs" disabled={busy} onClick={() => onSwap(hero.id, i)}>
             Usar este
           </button>,

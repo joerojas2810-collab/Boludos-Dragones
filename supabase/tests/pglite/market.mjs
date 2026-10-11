@@ -11,10 +11,12 @@ for (let i = 1; i <= 3; i++) {
   await rpc("create_player", { p_user: U(i), p_name: names[i - 1], p_name_key: names[i - 1], p_is_admin: false });
 }
 const q = async (sql) => (await db.query(sql)).rows;
-const stars = async (u, key) => (await q(`select cardinality(copies) as stars from public.characters where player_id='${U(u)}' and key='${key}'`))[0]?.stars ?? null; // heroes: spare copies since 0050
-const total = async (key) => Number((await q(`select coalesce(sum(cardinality(copies)+1),0) s from public.characters where key='${key}'`))[0].s);
+const neutral = { hp: 1, atk: 1, def: 1, crit: 1, speed: 1 };
+const copyOf = (trait = "terco") => ({ trait, factors: neutral });
+const stars = async (u, key) => (await q(`select jsonb_array_length(copies) as stars from public.characters where player_id='${U(u)}' and key='${key}'`))[0]?.stars ?? null;
+const total = async (key) => Number((await q(`select coalesce(sum(jsonb_array_length(copies)+1),0) s from public.characters where key='${key}'`))[0].s);
 const A = "c-mago-fuego-c", B = "c-picaro-agua-f", W = "w-espada-rayo-a";
-const ins = (u, cls, el, rar, n) => db.exec(`insert into public.characters(player_id,class,element,rarity,copies,data) values ('${U(u)}','${cls}','${el}','${rar}',array_fill('terco'::text, array[${n}]),'{"name":"x","traits":["terco"]}')`);
+const ins = (u, cls, el, rar, n) => db.exec(`insert into public.characters(player_id,class,element,rarity,copies,data) values ('${U(u)}','${cls}','${el}','${rar}','${JSON.stringify(Array(n).fill(copyOf()))}'::jsonb,'{"name":"x","traits":["terco"],"factors":{"hp":1,"atk":1,"def":1,"crit":1,"speed":1}}')`);
 await ins(1, "mago", "fuego", "c", 2);       // ana: 2 spare copies
 await ins(1, "picaro", "agua", "f", 0);     // ana: single copy
 await ins(2, "picaro", "agua", "f", 1);     // beto: spare
@@ -83,12 +85,12 @@ await err(rpc("market_create", { p_player: U(1), p_kind: "character", p_give: A 
 
 // stale offer: seller spent the spare star elsewhere -> accept fails, nothing moves
 const s1 = await rpc("market_create", { p_player: U(2), p_kind: "character", p_give: A , p_coins: 2080 });
-await db.exec(`update public.characters set copies='{}' where player_id='${U(2)}' and key='${A}'`);
+await db.exec(`update public.characters set copies='[]'::jsonb where player_id='${U(2)}' and key='${A}'`);
 await err(rpc("market_accept", { p_player: U(1), p_offer: s1.id }), "not_owned", "seller lost the spare star");
 await rpc("market_cancel", { p_player: U(2), p_offer: s1.id });
 ok((await q(`select status from public.market_offers where id='${s1.id}'`))[0].status === "cancelled", "owner cancels");
 // piece can be offered again after cancel
-await db.exec(`update public.characters set copies='{terco}' where player_id='${U(2)}' and key='${A}'`);
+await db.exec(`update public.characters set copies='${JSON.stringify([copyOf()])}'::jsonb where player_id='${U(2)}' and key='${A}'`);
 const s2 = await rpc("market_create", { p_player: U(2), p_kind: "character", p_give: A , p_coins: 2080 });
 
 // expiry

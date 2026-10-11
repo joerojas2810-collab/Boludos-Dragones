@@ -35,7 +35,7 @@ import { levelFights, type Stage } from "./game/stage";
 import { sweepBlock, sweepStage } from "./game/sweep";
 import { dayPayMult } from "./game/economy";
 import { localWeekSeed, towerHero, type TowerMode } from "./game/tower";
-import { fuseHeroes, starUpHero, swapTrait, type Material, type HeroGrowthResult } from "./game/heroFusion";
+import { fuseHeroes, starUpHero, swapCopy, type Material, type HeroGrowthResult } from "./game/heroFusion";
 import { ascendPiece, starUpPiece, swapPieceRoll, type PieceGrowthResult } from "./game/pieceGrowth";
 import { upgradePiece } from "./game/upgrade";
 import type { Weapon } from "./game/weapons";
@@ -152,7 +152,7 @@ export interface ProfileRepo {
   /** +1 star for 3 units of material of the hero's rank. */
   starUpHero(baseId: string, materials: Material[]): Promise<{ text: string; id: string }>;
   /** Swaps the hero's main trait with the one of its spare copy `index`. */
-  swapTrait(heroId: string, index: number): Promise<{ text: string; id: string }>;
+  swapCopy(heroId: string, index: number): Promise<{ text: string; id: string }>;
   startRun(
     classId: ClassId,
     characterId: string | null,
@@ -337,7 +337,7 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       return { text: r.text, id: r.fusion.hero.id };
     },
     starUpHero: async (baseId, materials) => grew(starUpHero(store.get(), { baseId, materials }), baseId),
-    swapTrait: async (heroId, index) => grew(swapTrait(store.get(), { id: heroId, index }), heroId),
+    swapCopy: async (heroId, index) => grew(swapCopy(store.get(), { id: heroId, index }), heroId),
     startRun: async (
       classId,
       characterId,
@@ -561,9 +561,9 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       store.replace(r.profile);
       return { text: r.text, id: r.id };
     },
-    swapTrait: async (heroId, index) => {
+    swapCopy: async (heroId, index) => {
       const r = await api<{ text: string; id: string; profile: Profile }>(
-        "/api/collection/swap-trait",
+        "/api/collection/swap-copy",
         { heroId, index },
       );
       store.replace(r.profile);

@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { CLASS_IDS, type Character, type ClassId } from "../game/characters";
 import { createStarterHero } from "../game/tutorial";
-import { fuseHeroes, starUpHero, swapTrait, type Material } from "../game/heroFusion";
+import { fuseHeroes, starUpHero, swapCopy, type Material } from "../game/heroFusion";
 import { isLevelUnlocked, isRankUnlocked } from "../game/dungeonProgress";
 import { missionDeltas } from "../game/missions";
 import { levelLoot, rollDado, type LevelLoot } from "../game/levelLoot";
@@ -142,12 +142,12 @@ async function grantStarter(rpc: Rpc, playerId: string, me: Me): Promise<boolean
   const hero = given.characters[0];
   const w = given.weapons[given.weapons.length - 1];
   if (!hero || !w) return false;
-  const { name, stats, traits, catchphrase } = hero;
+  const { name, stats, traits, factors, catchphrase } = hero;
   return call<boolean>(rpc, "grant_starter", {
     p_player: playerId,
     p_class: hero.classId,
     p_element: hero.element,
-    p_data: { name, stats, traits, catchphrase },
+    p_data: { name, stats, traits, factors, catchphrase },
     p_type: w.type,
     p_name: w.name,
     p_roll: w.roll ?? null,
@@ -208,12 +208,12 @@ type Item =
 
 const itemOf = (r: PullResult): Item | null => {
   if (r.character) {
-    const { name, stats, traits, catchphrase, level, xp } = r.character;
+    const { name, stats, traits, factors, catchphrase, level, xp } = r.character;
     return {
       class: r.character.classId,
       element: r.character.element,
       rarity: r.character.rarity,
-      data: { name, stats, traits, catchphrase, level, xp },
+      data: { name, stats, traits, factors, catchphrase, level, xp },
     };
   }
   if (r.weapon)
@@ -973,7 +973,7 @@ function heroChange(before: Profile, after: Profile) {
         skill: c.skill ?? null,
         legacy: !!c.legacy,
         copies: c.copies ?? [],
-        data: { name: c.name, stats: c.stats, traits: c.traits, catchphrase: c.catchphrase },
+        data: { name: c.name, stats: c.stats, traits: c.traits, factors: c.factors, catchphrase: c.catchphrase },
       })),
     remove: before.characters.filter((c) => !now.has(c.id)).map((c) => c.id),
     equip: Object.entries(before.equipped).flatMap(([k, w]) => {
@@ -1071,9 +1071,9 @@ export const doStarUpHero = (d: Deps, playerId: string, baseId: string, material
     return r.ok ? { ...r, id: baseId } : r;
   });
 
-export const doSwapTrait = (d: Deps, playerId: string, id: string, index: number) =>
+export const doSwapCopy = (d: Deps, playerId: string, id: string, index: number) =>
   growHero(d, playerId, "swap_trait", { hero: id, index }, (p) => {
-    const r = swapTrait(p, { id, index });
+    const r = swapCopy(p, { id, index });
     return r.ok ? { ...r, id } : r;
   });
 

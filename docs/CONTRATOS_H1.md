@@ -5,10 +5,10 @@
 
 ## 0. Hechos del código (verificados)
 - `generateCharacter` (`characters.ts`) sortea con `rollStat` (±`STAT_VARIANCE` 0,15) hp, atk, def, crit, accuracy, speed **en ese orden**, pero luego **descarta el accuracy** (`accuracy: 0`) y aplica los rasgos (`applyTraits`). Por eso `Character.stats` guardado **ya incluye el efecto del rasgo**.
-- `OwnedCharacter` (`profile.ts`) = `Character` + `id` (= `characterKey` c-clase-elemento-rango), `rarity`, `stars`, `copies?: TraitId[]`, `legacy?`.
+- `OwnedCharacter` (`profile.ts`) = `Character` + `id` (= `characterKey` c-clase-elemento-rango), `rarity`, `stars`, `factors`, `copies?: HeroProfile[]`, `legacy?`.
 - Rango, ★ y nivel se aplican al leer (`heroFromOwned` → `scaleStats`); lo guardado es la base.
-- Hoy el pull duplicado hace `copies: [...spare, trait]`; `swapTrait` cambia solo el rasgo (los stats guardados no se recalculan); `fuseHeroes` elige solo el rasgo con `keep`.
-- BD: `characters.copies text[]` (máx. 50, migración 0050); `apply_pull`, `apply_hero_change`, `get_profile` y el mercado la tocan. El servidor corre el mismo TS y la BD aplica un write-set atómico.
+- El pull duplicado guarda un `HeroProfile`; `swapCopy` y `fuseHeroes` mueven el perfil completo (rasgo + factores) y recalculan los stats.
+- BD antes de H1b: `characters.copies text[]` (máx. 50, migración 0050); `apply_pull`, `apply_hero_change`, `get_profile` y el mercado la tocan. El servidor corre el mismo TS y la BD aplica un write-set atómico.
 
 ## 1. Tipos (H1a, `src/lib/game/`)
 
@@ -51,8 +51,8 @@ export type OwnedCharacter = Character & {
 6. **Mercado (`market.ts`)**: la copia que viaja lleva su `HeroProfile`; `TRADE_VALUE` no cambia; quien la recibe la guarda como copia con ese perfil.
 7. **`MAX_COPIES = 50`** se mantiene.
 
-## 4. Persistencia (H1b — requiere OK del dueño para ejecutar el SQL)
-- Migración **0054** (sin compatibilidad: puede reemplazar columnas): `characters.copies` pasa de `text[]` a `jsonb` (lista de `{trait, factors}`, máx. 50 con CHECK) y `factors jsonb` en el héroe (o dentro de `data`). Actualizar `get_profile`, `apply_pull`, `apply_hero_change` y las funciones del mercado que mueven copias. `0018_lockdown_functions.sql` siempre se ejecuta última.
+## 4. Persistencia (H1b — acordada con reset de héroes)
+- Migración **0054**: descarta héroes/copias antiguos y ofertas abiertas de héroes, pasa `characters.copies` a `jsonb` (lista de `{trait, factors}`, máx. 50) y guarda los factores principales en `data.factors`. Actualiza `get_profile`, `apply_pull`, `apply_hero_change` y las funciones del mercado que mueven copias. `0018_lockdown_functions.sql` siempre se ejecuta última.
 - Regenerar `supabase/setup.sql` y `upgrade_from_0053.sql` con `npx tsx scripts/build-setup-sql.ts`. Probar con `supabase/tests/pglite/*`.
 - Modo local (`localStorage`): mismo modelo; `PROFILE_VERSION` sube y un perfil antiguo se descarta/reinicia (reset).
 - Revisar el Security Advisor tras el SQL.
@@ -74,6 +74,6 @@ export type OwnedCharacter = Character & {
 `characters.ts`, `profile.ts`, `heroFusion.ts`, `units.ts`, `market.ts`, `server/services.ts`, `server/testkit.ts`, `viewModels.ts`, `app/forja/HeroFusion.tsx`, `app/forja/MaterialPicker.tsx`, `app/forja/page.tsx`, `app/coleccion/page.tsx`, `components/ItemCard.tsx`, gacha (pantalla de resultado), `supabase/migrations/0054_*.sql`, `supabase/setup.sql`, `supabase/upgrade_from_0053.sql`, tests de `heroFusion`, `gacha`, `market`, `server`, `pglite`.
 
 ## 8. Reglas de entrega
-- H1a: solo lógica pura y tests; sin UI ni SQL. Un commit. Auditoría de Claude antes de seguir.
+- Por decisión Q12, cerrar H1a+H1b juntos en un commit, incluida la serialización del servidor y 0054.
 - No tocar `combat.ts` ni el motor. No tocar `main`. Nada de push, SQL contra Supabase ni reset sin confirmación del dueño.
 - Cualquier ambigüedad: pregunta en `CRUCE_IAS.md` (sección *Preguntas para el dueño*), no se decide en silencio.

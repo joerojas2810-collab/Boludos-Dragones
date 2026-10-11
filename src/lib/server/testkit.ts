@@ -8,7 +8,7 @@ import { levelFights } from "../game/stage";
 import { levelsOf } from "../game/levels";
 import type { RarityId } from "../game/rarity";
 import { applyTowerAction, startTower } from "../game/tower";
-import type { Character } from "../game/characters";
+import type { Character, HeroFactors } from "../game/characters";
 import { RpcError, type Deps, type RpcResult } from "./rpc";
 
 type Args = Record<string, unknown>;
@@ -378,6 +378,15 @@ export function heroRow(
         hp: c.stats.hp * power,
         atk: c.stats.atk * power,
         def: c.stats.def * power,
+      },
+      // Persist the generated H1 factors with simulated server rows. Keep a
+      // neutral valid profile for hand-built Character fixtures.
+      factors: (c as Character & { factors?: HeroFactors }).factors ?? {
+        hp: 1,
+        atk: 1,
+        def: 1,
+        crit: 1,
+        speed: 1,
       },
       traits: c.traits,
       catchphrase: c.catchphrase,

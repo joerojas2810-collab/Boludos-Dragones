@@ -104,7 +104,7 @@ function Detail({
           {c.copies?.length ? (
             <div className="text-sm">
               {c.stars}★ · {c.copies.length} {c.copies.length === 1 ? "copia" : "copias"} (rasgos:{" "}
-              {c.copies.map((t) => TRAITS[t].name).join(", ")})
+              {c.copies.map((copy) => TRAITS[copy.trait].name).join(", ")})
             </div>
           ) : (
             <div className="text-sm">{c.stars}★</div>

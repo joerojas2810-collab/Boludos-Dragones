@@ -264,6 +264,11 @@ Tu respuesta a Q2 ("pasa a los héroes como la propuesta") admite dos lecturas, 
 | Q5 | Tu respuesta a Q2 admite dos lecturas. (1) Eliminar el nivelado: salas con héroes tal cual. (2) "Como la propuesta" de ChatGPT (P1): héroes de la colección con su tirada real, pero nivel y equipo llevados al estándar de la sala con bono rango/★ ≤15 % (es decir, parecido al nivelado actual, sin recortar la tirada). | A: lectura 1 (sin normalización). B: lectura 2 (normalizar nivel y equipo, conservar tirada completa). | B (conserva la paridad entre quien juega poco y mucho, y la tirada cuenta) | Claude | Dueño | Dueño: **ni 1 ni 2: salas = los mismos dos modos que la torre** (nivelado y colección), contra otro jugador en vez de enemigos. Mismas definiciones que P9. |
 | Q6 | Torre balanceada: ¿qué preset común de poder (rango/★/nivel) usa la semana? ¿Se aprueba conservar el valor 'nivelado' en la base de datos y cambiar solo la etiqueta? ¿Se aprueba la migración para guardar clase y elemento en el ranking? | A: un preset por semana (p. ej. rango D, 0★, nivel 1), etiqueta "Balanceado", migración de columnas. B: preset que crece por piso. | A (comparable y simple) | Claude | Dueño | Dueño: **A**: preset fijo por semana, **rango D, 0★** para comenzar. Se conserva el nombre actual "nivelado" (valor en base de datos y etiqueta "Torre nivelada"; no se renombra a "Balanceado"). |
 | Q7 | La resonancia de estilo y el autoequipar "estilo" dependen de las habilidades de clase, que desaparecen. | A: eliminar la resonancia y definir autoequipar por poder bruto con botones. B: atarla a la clase. | A | Claude | Dueño | Dueño: **A**. Se elimina la resonancia y el ×1,5 de afinidad de sets. Autoequipar por poder bruto; botones: Poder, un botón por elemento, Desequipar todo; interfaz ordenada. Nada más. |
+| Q8 | `CONTRATOS_H1.md` define 5 factores (vida, ataque, defensa, crítico, velocidad) y excluye precisión porque `generateCharacter` la descarta; `HEROES_V2.md` y esta adenda aún enumeran precisión como factor. | A: contrato H1, sin precisión (recomendado; no cambia el combate). B: agregar precisión al modelo y decidir una base/impacto de juego antes de H1a. | A | Codex | Dueño | Dueño: **A** (sin precisión como factor). |
+| Q9 | El tope aprobado es ±10 % del poder de referencia del mismo héroe. `capFactors` en `CONTRATOS_H1.md` concreta provisionalmente eso como la media de hp/atk/def/speed, escalando también crítico; el diseño admite cambiar esta métrica si auditoría encuentra una mejor. | A: probar la fórmula del contrato H1a y revisarla con simulaciones antes de H1b (recomendado para avanzar sin fijar para siempre la métrica). B: detener H1a hasta definir una métrica canónica de poder de héroe. | A | Codex | Dueño | Dueño: **A** (probar la fórmula de capFactors y revisarla con simulación antes de H1b). |
+| Q10 | `CONTRATOS_H1.md` declara reset/sin compatibilidad; `HEROES_V2.md` y la adenda anterior decían que las copias existentes recibían factores neutrales de 100 %. H1a no hace migraciones ni ejecuta resets. Esa contradicción quedó resuelta: la adenda vigente y H1b aplican el reset aprobado. | A: contrato vigente es reset, sin preservar ni reasignar perfiles antiguos (recomendado para H1a; confirmar política de datos en H1b). B: preservar copias antiguas con factores neutrales al migrar. | A | Codex | Dueño | Dueño: **A** (reset, sin preservar ni reasignar perfiles antiguos). |
+| Q11 | El cambio H1a de `copies: TraitId[]` a `copies: HeroProfile[]` deja dos referencias de presentación con errores de tipos (`coleccion/page.tsx`, `forja/HeroFusion.tsx`). El handoff limita H1a a lógica pura y pruebas, sin interfaz; por eso `tsc` completo no puede quedar verde sin ajustar esas lecturas. | A: respetar el límite; integrar el pequeño ajuste visual/de datos como H1c y aceptar que H1a no pase `tsc` global por esas referencias (recomendado por alcance). B: autorizar ahora únicamente adaptar esas dos lecturas a `copy.trait`, sin rediseño visual, para mantener `tsc` verde en H1a. | A | Codex | Dueño | Dueño: **B ampliada** — en H1a se autorizan solo (a) adaptar las dos lecturas de UI a `copy.trait` y (b) añadir `factors` a los héroes de testkit/fixtures; tsc y suite completa en verde; sin rediseño visual ni SQL. |
+| Q12 | Tras añadir factores válidos a `testkit.ts` y los fixtures, quedan fallos de `server.test.ts`: `itemOf` y `heroChange` en `server/services.ts` omiten los factores al serializar héroes. La persistencia actual además tiene `characters.copies text[]`, que no representa `HeroProfile[]` como objetos; esto corresponde a H1b/0054. | A: ampliar H1a con un puente temporal y sin persistencia. B: cerrar H1a y H1b juntos en un commit, con serialización y migración definitivas. | B | Codex | Dueño | Dueño: **B**, un commit conjunto de H1a+H1b en la rama `v2` (confirmado en esta conversación). |
 
 *(El dueño escribe en "Decide / con quién" quién lo ve y en "Respuesta" lo que resuelve. Punto bloqueado hasta entonces.)*
 
@@ -307,6 +312,24 @@ Esta adenda registra decisiones posteriores a las tablas anteriores y prevalece 
 - Gacha y Forja muestran etiquetas por atributo (p. ej. `ATQ +12 %`, `DEF −6 %`) y un resumen **bajo / estándar / alto**.
 - El Factor no modifica `TRADE_VALUE` en la primera versión.
 - Al intercambiar o fusionar se conserva el perfil completo de un héroe —rasgo y todos sus factores juntos—; no se mezclan por separado.
-- Las copias existentes migran con factores neutrales de 100 % por atributo; no se vuelven a sortear.
+- El cambio de persistencia H1b sigue el reset aprobado en Q10: los héroes y copias antiguos se descartan; no se preservan ni reasignan perfiles.
 - En preparación de un duelo nivelado, cada jugador elige clase y elemento y pulsa **Listo**. Se inicia cuando ambos están listos y hay un límite de 30 segundos. Falta definir técnicamente qué sucede al vencer el plazo sin que ambos estén listos.
 
+
+## Auditoría de H1a (Claude, 2026-10-10)
+
+```
+Modelo: Claude Sonnet 5.5. Revisado: diff sin commit de characters.ts, heroFusion.ts, profile.ts y tests; tsc, vitest completo.
+
+APROBADO
+- capFactors / rollFactors / buildStats / factorLabel / profileOf / withProfile / swapCopy / previewProfileChange cumplen CONTRATOS_H1; sin tiradas extra; se conserva el consumo del sorteo de precisión descartado.
+- fuseHeroes conserva el perfil completo (rasgo + factores) y manda el otro a copia; el split de copias del base usa su perfil.
+- El pull duplicado guarda el perfil de la copia; parseCharacter valida factores en [0,85; 1,15] y el tope.
+
+CIERRE DE H1a + H1b (Q12 B)
+- Las lecturas de UI y fixtures usan perfiles completos; `itemOf`, `heroChange` y el starter serializan factores.
+- `PROFILE_VERSION` pasa a 6 y `localStorage` reinicia el perfil antiguo. 0054 descarta los héroes/copias previos, guarda factores y usa copias JSONB.
+- `swapTrait` y sus llamadas pasan a `swapCopy`; persistencia y mercado trasladan el perfil completo.
+- El validador SQL común comprueba rango individual y media conjunta ±10 % para pulls, starter, cambios de héroe y perfiles de copia.
+- Se conserva como mejora de baja prioridad evitar el sorteo duplicado de `rollFactors` en `generateCharacter`, porque mantiene el orden del RNG.
+```

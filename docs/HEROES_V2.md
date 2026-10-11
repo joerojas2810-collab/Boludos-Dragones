@@ -7,7 +7,7 @@
 ## 1. Decisiones cerradas
 
 1. **Rareza F–S se mantiene** (multiplicadores ×1,0 / 1,15 / 1,3 / 1,5 / 1,75 / 2,0 / 2,6; probabilidades 31 / 22,5 / 16,5 / 12 / 9 / 6 / 3 %; sin pity). El rango da **poder**, no habilidades.
-2. **El Factor de atributo ya existe y se formaliza (Q1-A):** cada factor se sortea de forma independiente entre 85 % y 115 % (`STAT_VARIANCE = 0.15`, `characters.ts`; hp, atk, def, crit, accuracy, speed) y se guarda en el héroe. El efecto conjunto sobre el poder total se limita a ±10 % frente al mismo héroe con todos los factores en 100 %.
+2. **El Factor de atributo ya existe y se formaliza (Q1-A):** cada factor se sortea de forma independiente entre 85 % y 115 % (`STAT_VARIANCE = 0.15`, `characters.ts`; hp, atk, def, crit, speed; la precisión no es un factor) y se guarda en el héroe. El efecto conjunto sobre el poder total se limita a ±10 % frente al mismo héroe con todos los factores en 100 %.
 3. **Sin cambio de Factor pagado.** Para conservar otro Factor se usa una copia: se intercambia la copia completa o se elige qué héroe conservar al fusionar. El rasgo y todos los factores viajan juntos; nunca se seleccionan por separado.
 4. **Copias, ★, subir de rango y fusión** siguen igual (`heroFusion.ts`, `docs/REDISENO_COMBATE.md` §7d); el Factor de atributo viaja con el héroe y cada copia. La fusión conserva íntegro el perfil (rasgo + factores) del héroe elegido.
 5. Un F con Factor de atributo alto **no supera** a una S: el rango sigue multiplicando (F ×1,0 frente a S ×2,6, antes de ★ y nivel).
@@ -17,14 +17,14 @@
 
 - Al sortear un héroe: clase y elemento al azar, `rollStat` por stat (Factor de atributo de 85–115 %), rasgo (`rollTrait`). Con el reset, todos los héroes se re-sortean con las reglas nuevas (tope ±10 %).
 - `OwnedCharacter` guarda `stats` **base con su Factor de atributo** (sin rango, ★ ni nivel); en uso, `heroFromOwned` calcula `scaleStats(c.stats, rarity, stars, level)` y suma equipo, arma y sets. Por eso **subir de rango o ★ conserva el Factor en proporción de forma automática**: el multiplicador se aplica sobre los stats base guardados.
-- Las copias hoy guardan **solo el rasgo** (`copies?: TraitId[]`, `profile.ts`). Las piezas de equipo ya guardan `{roll, lines}` (precedente).
+- Las copias guardan su perfil completo (`copies?: HeroProfile[]`): rasgo y factores. Las piezas de equipo ya guardan `{roll, lines}` (precedente).
 - `characterKey = c-clase-elemento-rango`: un héroe por clave; las repetidas son copias.
 - Fusión (`fuseHeroes`): si el destino ya existe se queda con su nivel y equipo y se elige solo el rasgo (`keep`); si no, el base conserva nivel (con tope), equipo y stats.
 
 ## 3. Lo que cambia
 
 ### 3.1 El Factor de atributo viaja con cada copia
-- `copies` pasa de `TraitId[]` a una lista de `{ trait, stats }` (los factores base sorteados para esa copia), igual que las piezas.
+- `copies` pasa de `TraitId[]` a una lista de `{ trait, factors }` (los factores sorteados para esa copia), igual que las piezas.
 - **Intercambio con una copia:** la pestaña *Héroes* de la Forja intercambia el perfil completo del héroe principal por el de la copia: rasgo y todos los factores juntos. No se pueden mezclar rasgo de una copia y factores de otra.
 - **Fusión** al ascender a un rango donde ya existe el héroe: se elige qué héroe conservar como perfil; rasgo y factores de ese héroe quedan juntos, y el perfil del otro pasa a copia (se extiende `keep`).
 - **Subir ★ / rango sin fusión:** el héroe principal conserva su Factor; las copias usadas como material se consumen con sus propios factores.

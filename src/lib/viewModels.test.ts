@@ -78,6 +78,13 @@ describe("profileStorage", () => {
     expect(saveProfile({ ...createProfile(), coins: 42 }, s)).toBe(true);
     expect(loadProfile(s)).toEqual(migrate({ ...createProfile(), coins: 42 }));
   });
+  it("resets an older local profile after the H1 profile version change", () => {
+    const s = mem(JSON.stringify({ ...createProfile(), version: 5, coins: 42 }));
+    const reset = loadProfile(s);
+    expect(reset.coins).toBe(0);
+    expect(reset.characters).toHaveLength(0);
+    expect(JSON.parse(s.data.get(PROFILE_KEY)!).version).toBe(createProfile().version);
+  });
   it("survives a throwing storage", () => {
     const bad: KV = {
       getItem: () => {

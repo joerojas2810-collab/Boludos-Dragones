@@ -5,8 +5,9 @@ import { statPower } from "./recommended";
 // there; never trust a client-sent profile without migrate()).
 import {
   CLASS_IDS,
-  CLASSES,
+  buildStats,
   generateCharacter,
+  type HeroFactors,
   type Character,
   type ClassId,
   type Stats,
@@ -77,7 +78,7 @@ import {
   type Weapon,
 } from "./weapons";
 
-export const PROFILE_VERSION = 5; // 5: pieces have roll/lines, pre-v5 items are marked legacy (burn rate)
+export const PROFILE_VERSION = 6; // 6: heroes persist their factor profile and copies carry full profiles
 // Raised from 150: at ~11-22 pulls/day of income the old price made SSR pity reachable in
 // ~2 weeks (cheaper than the forge). Keep in sync with game_constants (0017).
 // Day-1 tutorial progress (tutorial.ts). Only brand-new local accounts carry it (see
@@ -96,11 +97,46 @@ export type OwnedCharacter = Character & {
   id: string; // = characterKey
   rarity: RarityId;
   stars: number;
-  // Spare copies from repeated pulls: each keeps the trait it rolled (swapTrait picks the main one).
+  factors: HeroFactors;
+  // Spare copies keep the full profile they rolled.
   // A copy is also one unit of material for starring up and ranking up (heroFusion.ts).
-  copies?: TraitId[];
+  copies?: HeroProfile[];
   legacy?: boolean; // existed before PROFILE_VERSION 5
 };
+export interface HeroProfile {
+  trait: TraitId;
+  factors: HeroFactors;
+}
+
+export function profileOf(hero: OwnedCharacter): HeroProfile {
+  return { trait: hero.traits[0], factors: hero.factors };
+}
+
+export function withProfile(hero: OwnedCharacter, profile: HeroProfile): OwnedCharacter {
+  return {
+    ...hero,
+    traits: [profile.trait],
+    factors: profile.factors,
+    stats: buildStats(hero.classId, profile.factors, [profile.trait]),
+  };
+}
+
+export function previewProfileChange(
+  hero: OwnedCharacter,
+  newProfile: HeroProfile,
+): { before: Stats; after: Stats; diff: Partial<Record<keyof Stats, number>> } {
+  const before = scaleStats(hero.stats, hero.rarity, hero.stars, hero.level);
+  const after = scaleStats(
+    withProfile(hero, newProfile).stats,
+    hero.rarity,
+    hero.stars,
+    hero.level,
+  );
+  const diff: Partial<Record<keyof Stats, number>> = {};
+  for (const key of Object.keys(before) as (keyof Stats)[])
+    if (after[key] !== before[key]) diff[key] = after[key] - before[key];
+  return { before, after, diff };
+}
 export type OwnedWeapon = Weapon;
 
 export type Banner = "character" | "weapon";
@@ -204,7 +240,7 @@ function pull(
         const spare = owned.copies ?? [];
         const trait = c.traits[0];
         if (trait && spare.length < MAX_COPIES) {
-          item = { ...owned, copies: [...spare, trait] };
+          item = { ...owned, copies: [...spare, { trait, factors: c.factors }] };
           status = "copy";
         } else {
           item = owned;
@@ -682,49 +718,46 @@ const str = (v: unknown, fallback: string) =>
   typeof v === "string" && v.length > 0 ? v.slice(0, 200) : fallback;
 
 
-// Stats saved before Run v2 have `flee` and no critDmg/regen/lifesteal: those are filled
-// with the class defaults (the Pícaro already crit x2) instead of dropping the hero.
-const REQUIRED_STATS: (keyof Stats)[] = ["hp", "atk", "def", "crit", "accuracy", "speed"];
+const FACTOR_KEYS: (keyof HeroFactors)[] = ["hp", "atk", "def", "crit", "speed"];
 
-function parseStats(v: unknown, classId: ClassId): Stats | null {
+function parseFactors(v: unknown): HeroFactors | null {
   if (!isObj(v)) return null;
-  const out: Partial<Stats> = {};
-  for (const k of REQUIRED_STATS) {
-    const n = v[k];
-    if (typeof n !== "number" || !Number.isFinite(n)) return null;
-    out[k] = n;
-  }
-  const num = (x: unknown, d: number) =>
-    typeof x === "number" && Number.isFinite(x) ? x : d;
-  out.critDmg = num(v.critDmg, CLASSES[classId].stats.critDmg);
-  out.resist = num(v.resist, 0); // saved before v11: had dodge instead
-  out.regen = num(v.regen, 0);
-  out.lifesteal = num(v.lifesteal, 0);
-  // ponytail: stat magnitudes are not range-checked; server must only store
-  // characters it generated itself. Add per-class ranges if client saves are trusted.
-  return out as Stats;
+  const values = FACTOR_KEYS.map((key) => v[key]);
+  if (values.some((n) => typeof n !== "number" || !Number.isFinite(n) || n < 0.85 || n > 1.15)) return null;
+  const factors = Object.fromEntries(FACTOR_KEYS.map((key) => [key, v[key]])) as unknown as HeroFactors;
+  const mean = (factors.hp + factors.atk + factors.def + factors.speed) / 4;
+  return Math.abs(mean - 1) <= 0.100000001 ? factors : null;
+}
+
+function parseHeroProfile(v: unknown): HeroProfile | null {
+  if (!isObj(v) || !(TRAIT_IDS as readonly unknown[]).includes(v.trait)) return null;
+  const factors = parseFactors(v.factors);
+  return factors ? { trait: v.trait as TraitId, factors } : null;
 }
 
 function parseCharacter(v: unknown, legacyAll: boolean): OwnedCharacter | null {
   if (!isObj(v)) return null;
   const classId = CLASS_IDS.find((c) => c === v.classId);
   const element = ELEMENTS.find((e) => e === v.element);
-  const stats = classId ? parseStats(v.stats, classId) : null;
+  const factors = parseFactors(v.factors);
   const rarity = toRank(v.rarity);
-  if (!classId || !element || !stats || !rarity) return null;
+  if (!classId || !element || !rarity || !factors) return null;
   const traits = (Array.isArray(v.traits) ? v.traits : [])
     .filter((t): t is TraitId => (TRAIT_IDS as readonly unknown[]).includes(t))
     .slice(0, 1); // one trait per hero
+  if (traits.length === 0) return null;
   const copies = (Array.isArray(v.copies) ? v.copies : [])
-    .filter((t): t is TraitId => (TRAIT_IDS as readonly unknown[]).includes(t))
+    .map(parseHeroProfile)
+    .filter((p): p is HeroProfile => p !== null)
     .slice(0, MAX_COPIES);
   return {
     id: characterKey(classId, element, rarity),
     name: str(v.name, "Sin nombre"),
     classId,
     element,
-    stats,
+    stats: buildStats(classId, factors, traits),
     traits,
+    factors,
     catchphrase: str(v.catchphrase, "..."),
     level: Math.max(1, nat(v.level, 999)),
     xp: nat(v.xp),
