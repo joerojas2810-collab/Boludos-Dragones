@@ -24,6 +24,7 @@ import { useTargeting } from "@/components/useTargeting";
 import { iconFor } from "@/lib/art";
 import { autoBlockReason } from "@/lib/game/auto";
 import { type Action } from "@/lib/game/combat";
+import { bossAscensionNotice } from "@/lib/game/bossRules";
 import { elementMultiplier, ELEMENT_LABEL } from "@/lib/game/elements";
 import { MOD_LABEL, modTip } from "@/lib/game/explain";
 import { levelCap, xpToNextLevel } from "@/lib/game/heroLevel";
@@ -87,17 +88,6 @@ const ROLE_LABEL: Record<FightRole, string> = {
 };
 const ROUTE_STEP_STORAGE_KEY = "dungeon-route-steps-v1";
 type SavedRouteStep = { difficulty: Difficulty; asc: 0 | 1 | 2 | 3 | 4 | 5 };
-const ROUTE_ASC_NOTICE: Record<RouteId, string> = {
-  lord_of_flies: "La Plaga del jefe gana intensidad.",
-  ash_king: "El Rey de Ceniza acumula Presión más rápido.",
-  eternal_watcher: "El Vigía Eterno se adapta con menos repeticiones.",
-  hollow_colossus: "La Armadura del Coloso dura más y se recupera antes.",
-  thunder_king: "El Rey del Trueno acelera su ritmo antes.",
-  mother_hydra: "Las cabezas de la Hidra activan sus curas antes.",
-  withered_queen: "La Reina Marchita inicia su ritual con más frecuencia.",
-  faceless_one: "El Sin Rostro cambia de postura con más frecuencia.",
-  great_devourer: "El Gran Devorador activa Hambre con más vida.",
-};
 const ROUTE_COPY: Record<RouteId, { ambience: string; levels: readonly [string, string, string]; bossNode: string; mechanic: string }> = {
   lord_of_flies: { ambience: "La niebla cubre el camino y también nuestras decisiones dudosas.", levels: ["Muelle Hundido", "Charca Umbría", "Nido de la Plaga"], bossNode: "Guarida de las Moscas", mechanic: "Plaga: causa daño constante por ronda." },
   ash_king: { ambience: "La ceniza cae despacio; el calor, en cambio, no espera.", levels: ["Portal de Brasa", "Galería Tiznada", "Forja del Monarca"], bossNode: "Corte de Ceniza", mechanic: "Presión: acumula daño con las rondas." },
@@ -797,7 +787,7 @@ export function ProgressMode() {
           </div>
           <div className="text-center text-sm text-[#d9d2ca]">
             <span className="block">Jefe: {theme.bossName} · Familias: {routeFamilies}</span>
-            <span className="mt-1 block text-xs text-yellow-100">{ROUTE_ASC_NOTICE[route]}{a > 0 ? ` Ascensión +${a}.` : ""}</span>
+            <span className="mt-1 block text-xs text-yellow-100">{bossAscensionNotice(route, a)}{a > 0 ? ` (Ascensión +${a})` : ""}</span>
           </div>
           {routeDone && (
             <div className="dungeon-sign mx-auto max-w-lg px-4 py-3 text-center" aria-label={`${theme.name}: completado`}>

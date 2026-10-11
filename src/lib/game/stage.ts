@@ -21,7 +21,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 22; // 22: ascension difficulty is calibrated per rank
+export const ENGINE_VERSION = 23; // 23: boss mechanics scale with dungeon ascension
 
 export type FightRole = "normal" | "elite" | "final";
 
@@ -269,6 +269,7 @@ export function startFight(st: Stage): { battle: Battle; rng: Rng } {
     mods: f.mods,
     enemyStatus: f.role !== "normal",
     enemyAguante: f.role !== "normal",
+    ascension: st.asc,
   });
   return { battle, rng };
 }

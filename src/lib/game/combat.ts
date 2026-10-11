@@ -33,24 +33,26 @@ import {
   type StatusEffect,
 } from "./statuses";
 import {
-  ADAPT_AFTER,
   ADAPT_FACTOR,
+  adaptAfter,
+  armorBrokenRounds,
   ARMOR_FRACTION,
-  ARMOR_REGROW,
+  armorRegrow,
   ARMOR_TAKEN,
-  BROKEN_ROUNDS,
   BROKEN_TAKEN,
   HEAD_HEAL,
-  HEAD_THRESHOLDS,
-  HUNGER_BELOW,
+  headThresholds,
+  hungerBelow,
   HUNGER_STEAL,
   NEW_BOSS,
-  PLAGUE_LOSS,
+  plagueLoss,
   PRESSURE_MAX,
   PRESSURE_STEP,
+  pressureGain,
   RAMP_MAX,
   RAMP_STEP,
-  RITUAL_EVERY,
+  rampInterval,
+  ritualEvery,
   RITUAL_HEAL_CUT,
   RITUAL_ROUNDS,
   ruleOf,
@@ -153,6 +155,7 @@ export interface BattleOptions {
   mods?: EnemyMod[];
   enemyStatus?: boolean; // enemies apply their element status on strong hits (elites, bosses)
   enemyAguante?: boolean; // elites and bosses receive the secondary defense bar
+  ascension?: number;
 }
 
 export interface BattleEvent {
@@ -551,7 +554,7 @@ function planRound(
   // Bosses: Hidra heads and a starving Devorador add actions on top of the speed ones.
   const extra = (e: Combatant) =>
     (e.boss?.heads ?? 0) +
-    (ruleOf(e) === "hambre" && e.hp < e.char.stats.hp * HUNGER_BELOW ? 1 : 0);
+    (ruleOf(e) === "hambre" && e.hp < e.char.stats.hp * hungerBelow(e.boss?.ascension ?? 0) ? 1 : 0);
   const counts = enemies.map((e) => {
     if (e.hp <= 0) return null;
     const c = actionCounts(speedOf(player), speedOf(e), e.carry ?? 0);
@@ -574,7 +577,7 @@ function planRound(
     }
   });
   enemies.forEach((e, i) => {
-    if (ruleOf(e) === "marchitar" && turn % RITUAL_EVERY === 0 && intents[i].length) {
+    if (ruleOf(e) === "marchitar" && turn % ritualEvery(e.boss?.ascension ?? 0) === 0 && intents[i].length) {
       intents[i][0] = "channeling";
       enemies[i] = { ...e, channelingState: "announced" };
     } else {
@@ -594,7 +597,7 @@ function planRound(
   for (const i of live) {
     const e = enemies[i];
     if (ruleOf(e) === "posturas")
-      lines.push(`${e.char.name} adopta la postura ${stanceFor(turn)}.`);
+      lines.push(`${e.char.name} adopta la postura ${stanceFor(turn, e.boss?.ascension ?? 0)}.`);
     if (intents[i].includes("channeling"))
       lines.push(`${e.char.name} canaliza su ritual: Interrumpir lo detiene; una guardia perfecta también lo anula.`);
     if (intents[i].includes("charge"))
@@ -620,7 +623,7 @@ function planRound(
       ...e,
       carry: counts[i]?.carry ?? e.carry,
       defending: intents[i].includes("defend"),
-      ...(e.boss && ruleOf(e) === "posturas" && { boss: { ...e.boss, stance: stanceFor(turn) } }),
+      ...(e.boss && ruleOf(e) === "posturas" && { boss: { ...e.boss, stance: stanceFor(turn, e.boss.ascension) } }),
       ...(preparingCharge[i] && { chargeUsed: true, chargePending: true }),
     })),
     lines,
@@ -675,7 +678,7 @@ export function startBattle(
       e.aguanteMax = Math.max(1, Math.round(c.stats.hp * AGUANTE_FRACTION));
       e.aguante = e.aguanteMax;
     }
-    if (ruleOf(e)) e.boss = { ...NEW_BOSS };
+    if (ruleOf(e)) e.boss = { ...NEW_BOSS, ascension: Math.max(0, Math.min(5, Math.floor(opts.ascension ?? 0))) };
     if (ruleOf(e) === "armadura") e.shield = Math.round(c.stats.hp * ARMOR_FRACTION);
     if (mods.includes("escudo"))
       e.shield = Math.round(c.stats.hp * SHIELD_FRACTION);
@@ -871,8 +874,8 @@ function bossRoundEnd(c: Combatant, turn: number, log: string[]): Combatant {
   const rule = ruleOf(c);
   const boss = { ...c.boss };
   let out = c;
-  if (rule === "presion") boss.pressure = Math.min(PRESSURE_MAX, boss.pressure + 1);
-  if (rule === "velocidad" && turn % 2 === 0) boss.ramp = Math.min(RAMP_MAX, boss.ramp + 1);
+  if (rule === "presion") boss.pressure = Math.min(PRESSURE_MAX, boss.pressure + pressureGain(boss.ascension));
+  if (rule === "velocidad" && turn % rampInterval(boss.ascension) === 0) boss.ramp = Math.min(RAMP_MAX, boss.ramp + 1);
   if (rule === "armadura") {
     boss.broken = Math.max(0, boss.broken - 1);
     if (boss.regrow > 0 && --boss.regrow === 0) {
@@ -890,11 +893,11 @@ function bossOnHit(before: Combatant, after: Combatant, log: string[]): Combatan
   if (!after.boss || !rule) return after;
   if (rule === "armadura" && (before.shield ?? 0) > 0 && (after.shield ?? 0) <= 0) {
     log.push(`¡La armadura de ${after.char.name} se rompe! Queda Roto.`);
-    return { ...after, boss: { ...after.boss, broken: BROKEN_ROUNDS, regrow: ARMOR_REGROW } };
+    return { ...after, boss: { ...after.boss, broken: armorBrokenRounds(after.boss.ascension), regrow: armorRegrow(after.boss.ascension) } };
   }
   if (rule === "cabezas" && after.hp > 0) {
     const max = after.char.stats.hp;
-    const crossed = HEAD_THRESHOLDS.filter(
+    const crossed = headThresholds(after.boss.ascension).filter(
       (t) => before.hp > t * max && after.hp <= t * max,
     ).length;
     if (crossed > 0) {
@@ -1144,8 +1147,8 @@ export function step(
     const last = enemies[i].boss?.last ?? [];
     return (
       ruleOf(enemies[i]) === "aprende" &&
-      last.length >= ADAPT_AFTER &&
-      last.every((a) => a === action)
+      last.length >= adaptAfter(enemies[i].boss?.ascension ?? 0) &&
+      last.slice(-adaptAfter(enemies[i].boss?.ascension ?? 0)).every((a) => a === action)
     );
   };
   const hit = (
@@ -1422,7 +1425,7 @@ export function step(
         if (e.boss && ruleOf(e) === "aprende")
           enemies[i] = {
             ...e,
-            boss: { ...e.boss, last: [...e.boss.last, action].slice(-ADAPT_AFTER) },
+            boss: { ...e.boss, last: [...e.boss.last, action].slice(-adaptAfter(e.boss.ascension)) },
           };
       });
     } else if (enemies[slot.e].hp > 0) {
@@ -1555,7 +1558,8 @@ export function step(
   const bosses = enemies.filter((e) => e.hp > 0 && e.boss);
   const bossRule = (r: string) => bosses.some((e) => ruleOf(e) === r);
   if (bossRule("plaga")) {
-    const loss = Math.round(player.char.stats.hp * PLAGUE_LOSS);
+    const plagueBoss = bosses.find((e) => ruleOf(e) === "plaga")!;
+    const loss = Math.round(player.char.stats.hp * plagueLoss(plagueBoss.boss!.ascension));
     player = { ...player, hp: Math.max(0, player.hp - loss) };
     log.push(`La plaga te consume ${loss} de vida.`);
   }
