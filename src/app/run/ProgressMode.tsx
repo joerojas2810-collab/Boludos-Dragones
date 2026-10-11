@@ -42,7 +42,6 @@ import {
   type RouteId,
   levelElement,
   levelsOf,
-  type LevelSpec,
 } from "@/lib/game/levels";
 import { levelXp, type LevelLoot } from "@/lib/game/levelLoot";
 import {
@@ -98,6 +97,17 @@ const ROUTE_ASC_NOTICE: Record<RouteId, string> = {
   withered_queen: "La Reina Marchita inicia su ritual con más frecuencia.",
   faceless_one: "El Sin Rostro cambia de postura con más frecuencia.",
   great_devourer: "El Gran Devorador activa Hambre con más vida.",
+};
+const ROUTE_COPY: Record<RouteId, { ambience: string; levels: readonly [string, string, string]; bossNode: string; mechanic: string }> = {
+  lord_of_flies: { ambience: "La niebla cubre el camino y también nuestras decisiones dudosas.", levels: ["Muelle Hundido", "Charca Umbría", "Nido de la Plaga"], bossNode: "Guarida de las Moscas", mechanic: "Plaga: causa daño constante por ronda." },
+  ash_king: { ambience: "La ceniza cae despacio; el calor, en cambio, no espera.", levels: ["Portal de Brasa", "Galería Tiznada", "Forja del Monarca"], bossNode: "Corte de Ceniza", mechanic: "Presión: acumula daño con las rondas." },
+  eternal_watcher: { ambience: "El cañón repite tus pasos; ojalá no también tus errores.", levels: ["Senda de Plumas", "Puente de los Ecos", "Observatorio Ciego"], bossNode: "Torre del Vigía", mechanic: "Aprende: se adapta si repetís la misma acción." },
+  hollow_colossus: { ambience: "La piedra se mueve sola. Seguro que fue el viento.", levels: ["Boca de la Cantera", "Galerías de Basalto", "Cámara Partida"], bossNode: "Sala del Coloso", mechanic: "Armadura: se rompe y vuelve a cubrirlo." },
+  thunder_king: { ambience: "Cada trueno llega antes; ya no queda tiempo para discutir.", levels: ["Escalinata del Rayo", "Aguja Relampagueante", "Plataforma Celeste"], bossNode: "Cima del Trueno", mechanic: "Velocidad: acelera con las rondas." },
+  mother_hydra: { ambience: "El agua parece calma; mejor no contar las cabezas.", levels: ["Bajío de Burbujas", "Paso de las Cabezas", "Umbral Sumergido"], bossNode: "Foso de la Hidra", mechanic: "Cabezas: gana acciones y se cura al cruzar umbrales." },
+  withered_queen: { ambience: "Las brasas respiran despacio; el ritual no tiene apuro.", levels: ["Vereda de Escoria", "Arco de Raíces", "Capilla Marchita"], bossNode: "Santuario de la Reina", mechanic: "Marchitar: anuncia un ritual cada tres rondas." },
+  faceless_one: { ambience: "Nadie muestra el rostro; hasta las máscaras guardan secretos.", levels: ["Puerta Astillada", "Corredor de Máscaras", "Atrio Deshabitado"], bossNode: "Salón del Sin Rostro", mechanic: "Posturas: alterna entre ataque y defensa." },
+  great_devourer: { ambience: "El viento empuja hacia la garganta; los restos llegaron primero.", levels: ["Camino de Restos", "Garganta Hambrienta", "Borde del Vacío"], bossNode: "Fauces del Devorador", mechanic: "Hambre: consigue una acción extra con poca vida." },
 };
 
 function readRouteStep(route: RouteId): SavedRouteStep {
@@ -716,10 +726,6 @@ export function ProgressMode() {
     const a = asc;
     const done = clearedLevels(profile.dungeons, route, difficulty, a);
     const routeDone = isRouteDone(profile.dungeons, route, difficulty, a);
-    const steps = DIFFICULTIES.flatMap((stepDifficulty) =>
-      Array.from({ length: 6 }, (_, stepAsc) => ({ difficulty: stepDifficulty, asc: stepAsc as SavedRouteStep["asc"] })),
-    );
-    const nextLocked = steps.find((step) => !isStepUnlocked(profile.dungeons, step));
     const lockReason = (step: SavedRouteStep) => step.asc > 0
       ? `Completa ${step.difficulty.toUpperCase()}+${step.asc - 1} en cualquier ruta`
       : `Completa ${DIFFICULTIES[DIFFICULTIES.indexOf(step.difficulty) - 1]?.toUpperCase()}+0 en cualquier ruta`;
@@ -731,33 +737,66 @@ export function ProgressMode() {
     };
     const families: Record<string, string> = { limo: "Limos", diablillo: "Diablillos", arpia: "Arpías", golem: "Gólems", espectro: "Espectros" };
     const routeFamilies = [...theme.families, ...(theme.guest ? [theme.guest] : [])].map((family) => families[family]).join(" · ");
+    const routeCopy = ROUTE_COPY[theme.bossId];
+    const currentStep = { difficulty, asc: a as SavedRouteStep["asc"] };
+    const nextLockedStep = DIFFICULTIES.flatMap((stepDifficulty) =>
+      Array.from({ length: 6 }, (_, stepAsc) => ({ difficulty: stepDifficulty, asc: stepAsc as SavedRouteStep["asc"] })),
+    ).find((step) => !isStepUnlocked(profile.dungeons, step));
     return (
       <Shell>
         <Notice />
-        <Panel title={`${theme.name} · ${difficulty.toUpperCase()}+${a}`} className="mx-auto w-full max-w-4xl space-y-3">
-          <div className="pixel-frame p-2 sm:p-3">
-            <div className="grid grid-cols-6 gap-1 sm:grid-cols-7" aria-label="Escalera F a S, ascensión 0 a 5">
-              {steps.map((step) => {
+        <Panel title={theme.name} className="mx-auto w-full max-w-3xl space-y-3">
+          <p className="-mt-2 text-center text-sm italic text-[#d9d2ca]">{routeCopy.ambience}</p>
+          <div className="pixel-frame space-y-2 p-2 sm:p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold uppercase tracking-wide text-[#d9d2ca]">Dificultad</span>
+              <span className="text-xs text-yellow-100">{theme.name} · {difficulty.toUpperCase()}+{a}</span>
+            </div>
+            <div className="grid grid-cols-7 gap-1" aria-label="Dificultad F a S">
+              {DIFFICULTIES.map((rank) => {
+                const step = { difficulty: rank, asc: 0 as const };
                 const unlocked = isStepUnlocked(profile.dungeons, step);
-                const selected = step.difficulty === difficulty && step.asc === a;
-                const label = `${step.difficulty.toUpperCase()}+${step.asc}`;
+                const selected = rank === difficulty;
                 const reason = lockReason(step);
                 return (
-                  <button key={label} type="button" disabled={!unlocked} aria-pressed={selected}
-                    title={unlocked ? label : `${label} bloqueado: ${reason}`}
-                    aria-label={unlocked ? label : `${label} bloqueado. ${reason}`}
-                    onClick={() => selectStep(step)}
-                    className={`pixel-frame min-h-9 px-0.5 py-1 text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-45 sm:text-sm ${selected ? "text-yellow-200 ring-2 ring-yellow-400" : "text-[#d9d2ca]"}`}>
-                    {label}{!unlocked && <span className="block text-[9px] font-normal leading-tight">Bloq.</span>}
+                  <button key={rank} type="button" disabled={!unlocked} aria-pressed={selected}
+                    title={unlocked ? rank.toUpperCase() : `Bloqueado: ${reason}`}
+                    aria-label={unlocked ? rank.toUpperCase() : `${rank.toUpperCase()} bloqueado. ${reason}`}
+                    onClick={() => {
+                      const next = { difficulty: rank, asc: Math.min(a, maxAscension(profile.dungeons, rank)) as SavedRouteStep["asc"] };
+                      selectStep(next);
+                    }}
+                    className={`pixel-frame flex min-h-10 items-center justify-center gap-0.5 px-0.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-45 sm:text-sm ${selected ? "text-yellow-200 ring-2 ring-yellow-400" : "text-[#d9d2ca]"}`}>
+                    {!unlocked && <Icon name="system_locked" className="h-3.5 w-3.5" />}{rank.toUpperCase()}
                   </button>
                 );
               })}
             </div>
-            {nextLocked && <p className="mt-2 text-center text-xs text-[#d9d2ca]">Siguiente desbloqueo: {lockReason(nextLocked)}.</p>}
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <span className="text-xs font-bold uppercase tracking-wide text-[#d9d2ca]">Ascensión</span>
+              <span className="text-xs text-[#d9d2ca]">Desbloqueo compartido entre rutas</span>
+            </div>
+            <div className="grid grid-cols-6 gap-1" aria-label={`Ascensiones de ${difficulty.toUpperCase()}`}>
+              {Array.from({ length: 6 }, (_, ascension) => {
+                const step = { difficulty, asc: ascension as SavedRouteStep["asc"] };
+                const unlocked = isStepUnlocked(profile.dungeons, step);
+                const selected = ascension === a;
+                const reason = lockReason(step);
+                return (
+                  <button key={ascension} type="button" disabled={!unlocked} aria-pressed={selected}
+                    title={unlocked ? `+${ascension}` : `+${ascension} bloqueada: ${reason}`}
+                    aria-label={unlocked ? `Ascensión +${ascension}` : `Ascensión +${ascension} bloqueada. ${reason}`}
+                    onClick={() => selectStep(step)}
+                    className={`pixel-frame min-h-10 px-1 py-1 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-45 sm:text-sm ${selected ? "text-yellow-200 ring-2 ring-yellow-400" : "text-[#d9d2ca]"}`}>
+                    +{ascension}{!unlocked && <Icon name="system_locked" className="ml-0.5 inline h-3 w-3" />}
+                  </button>
+                );
+              })}
+            </div>
+            {nextLockedStep && <p className="text-center text-xs leading-snug text-[#d9d2ca]">Siguiente desbloqueo: {nextLockedStep.difficulty.toUpperCase()}+{nextLockedStep.asc} · {lockReason(nextLockedStep)}.</p>}
           </div>
           <div className="text-center text-sm text-[#d9d2ca]">
-            <span className="block">Jefe: {theme.bossName}</span>
-            <span className="block text-xs">Familias: {routeFamilies}</span>
+            <span className="block">Jefe: {theme.bossName} · Familias: {routeFamilies}</span>
             <span className="mt-1 block text-xs text-yellow-100">{ROUTE_ASC_NOTICE[route]}{a > 0 ? ` Ascensión +${a}.` : ""}</span>
           </div>
           {routeDone && (
@@ -766,18 +805,39 @@ export function ProgressMode() {
               <span className="dungeon-stamp mt-2" role="img" aria-label="Completado">COMPLETADO</span>
             </div>
           )}
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {levelsOf(route, difficulty).map((spec) => (
-              <LevelCard key={spec.index} spec={spec} asc={a}
-                cleared={spec.index < done}
-                unlocked={isLevelUnlocked(profile.dungeons, route, difficulty, spec.index, a)}
-                onPick={() => {
+          <div className="relative space-y-2 pl-1 sm:space-y-3 sm:pl-2" aria-label="Camino de la ruta">
+            <span aria-hidden="true" className="absolute bottom-8 left-[1.55rem] top-8 w-0.5 bg-gradient-to-b from-yellow-600/70 via-yellow-800/50 to-red-700/70 sm:left-[1.8rem]" />
+            {levelsOf(route, difficulty).map((spec) => {
+              const cleared = spec.index < done;
+              const unlocked = isLevelUnlocked(profile.dungeons, route, difficulty, spec.index, a);
+              const current = unlocked && !cleared;
+              const name = spec.final ? routeCopy.bossNode : routeCopy.levels[spec.index] ?? `Nivel ${spec.index + 1}`;
+              return (
+                <button key={spec.index} type="button" disabled={!unlocked} onClick={() => {
                   setAsc(a);
                   rememberRouteStep(route, difficulty, a);
                   setView({ t: "prep", route, difficulty, level: spec.index });
-                }}
-              />
-            ))}
+                }} aria-label={`${unlocked ? "Entrar a" : "Bloqueado:"} ${name}`} className={`relative flex w-full min-w-0 items-stretch gap-2 rounded-lg border p-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-300 disabled:cursor-not-allowed sm:gap-3 sm:p-3 ${current ? "border-yellow-400 bg-yellow-950/35 shadow-[0_0_16px_rgba(231,178,66,0.14)]" : cleared ? "border-green-800/70 bg-green-950/15" : "border-[#655b50]/70 bg-black/25 opacity-75"}`}>
+                  <span className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 bg-[#17191d] font-bold ${current ? "border-yellow-300 text-yellow-200" : cleared ? "border-green-500 text-green-200" : "border-[#665f57] text-[#aaa39b]"}`}>{spec.index + 1}</span>
+                  <div className="min-w-0 flex-1 py-0.5">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                      <h3 className={`min-w-0 break-words font-bold ${spec.final ? "text-red-200" : "text-yellow-100"}`}>{name}</h3>
+                      {spec.final && <span className="rounded border border-red-800/70 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-200">Jefe final</span>}
+                      {current && <span className="text-[10px] font-bold uppercase tracking-wide text-yellow-300">Siguiente</span>}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#d9d2ca]">
+                      <span className="inline-flex items-center gap-1"><ElementIcon element={levelElement(spec, a)} className="h-4" bare />{spec.length} peleas</span>
+                      <span>Poder recomendado {recommendedPower(spec.difficulty, spec.index, a)}</span>
+                    </div>
+                    {spec.final && <p className="mt-1 text-xs leading-snug text-red-100">{routeCopy.mechanic}</p>}
+                    {!unlocked && <p className="mt-1 text-xs text-[#c6beb5]">{!isStepUnlocked(profile.dungeons, currentStep) ? `${lockReason(currentStep)}.` : `Completa el nivel ${done} de esta ruta.`}</p>}
+                  </div>
+                  {cleared ? <span className="dungeon-stamp dungeon-stamp--small relative z-10 self-center" role="img" aria-label={`Nivel ${spec.index + 1}: completado`}>COMPLETADO</span> : unlocked ? (
+                    <span className="relative z-10 self-center text-xl text-yellow-300" aria-hidden="true">›</span>
+                  ) : <Icon name="system_locked" className="relative z-10 h-5 w-5 shrink-0 self-center" />}
+                </button>
+              );
+            })}
           </div>
           <div className="text-center">
             <button className="btn btn-gray" onClick={() => setView({ t: "routes" })}>← Volver a rutas</button>
@@ -879,47 +939,6 @@ function NextStage({
     </div>
   );
 }
-
-function LevelCard({
-  spec,
-  asc,
-  cleared,
-  unlocked,
-  onPick,
-}: {
-  spec: LevelSpec;
-  asc: number;
-  cleared: boolean;
-  unlocked: boolean;
-  onPick: () => void;
-}) {
-  return (
-    <button
-      disabled={!unlocked}
-      onClick={onPick}
-      className="pixel-frame flex items-center gap-3 p-3 text-left enabled:hover:brightness-125 disabled:opacity-50"
-    >
-      <span className="name-title w-8 text-center text-2xl text-yellow-300">
-        {spec.index + 1}
-      </span>
-      <span className="min-w-0 flex-1 text-sm">
-        <span className="flex items-center gap-1.5">
-          <ElementIcon element={levelElement(spec, asc)} className="h-5" bare />
-          {spec.length} peleas{spec.final && " · Jefe final"}
-        </span>
-        <span className="block text-[#d9d2ca]">
-          Poder rec. {recommendedPower(spec.difficulty, spec.index, asc)}
-        </span>
-      </span>
-      {!unlocked ? (
-        <Icon name="system_locked" className="h-5" />
-      ) : cleared ? (
-        <span className="text-green-300">✔</span>
-      ) : null}
-    </button>
-  );
-}
-
 
 // "Barrer" opens its own row of repeat counts (×1, ×5, ×10).
 const SWEEP_TIMES = [1, 5, 10];
