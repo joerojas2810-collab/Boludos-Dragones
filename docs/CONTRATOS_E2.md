@@ -22,13 +22,13 @@ export function nextActivations(runners: Runner[], opts?: { cap?: number }): { o
 // Avanza el tiempo hasta que algún runner llena THRESHOLD; devuelve quién actúa (empates: regla del motor 13)
 // y el estado de progreso resultante. cap = MAX_ACTIONS_PER_ROUND (3) acciones consecutivas del más rápido.
 ```
-- **Fase E2a (orden):** con `Runner`s alimentados por las mismas velocidades que el motor 13, el **orden y el número de activaciones por "ciclo"** deben coincidir con `actionCounts` + `buildQueue` en el rango de velocidades reales (propiedad probada con ≥ 10 000 pares de velocidades y semillas). Cualquier diferencia debe justificarse y cuantificarse.
+- **Fase E2a (conteo):** *criterio revisado y aprobado por el dueño (2026-10-11).* El **número de activaciones por ciclo** debe coincidir al 100 % con `actionCounts` (ya cumplido en 10 000 casos). El **orden exacto no se exige**: el motor 13 desempata con una iniciativa aleatoria (`velocidad × (0,7 + 0,6·rng)`) y las diferencias de orden aparecen solo con velocidades parecidas (razón < 1,5). La iniciativa se modela como **progreso inicial aleatorio** del ciclo, tomado de la misma tirada del motor (`roll`), y se cuantifica el desacuerdo restante. La puerta real es E2b (balance).
 - **Fase E2b (duraciones):** cooldowns, estados (`turns`), `reflect`, `defending` y tics de Quemadura se cuentan en **activaciones del portador** en lugar de rondas, con una **constante de conversión** ajustable por tipo (para calibrar).
 - La IA/política es la misma (`autoPolicy`); no se tocan reglas de daño, armas ni habilidades.
 
 ## 3. Pruebas obligatorias
 - Determinismo: mismas semillas → misma salida.
-- E2a: propiedad de equivalencia de orden (ver arriba) y casos límite: velocidad igual, ×10 más rápido, `cap = 3`, descartes del acumulado.
+- E2a: propiedad de equivalencia del conteo de activaciones (y desacuerdo de orden cuantificado) y casos límite: velocidad igual, ×10 más rápido, `cap = 3`, descartes del acumulado.
 - Un jugador no puede actuar fuera de su ventana; nada avanza mientras espera la decisión (el planificador es puro: no tiene reloj).
 - Sin `Math.random()` ni `Math.pow`/`**` en la lógica (tablas precalculadas, regla del motor).
 
@@ -37,7 +37,7 @@ Usar **≥ 10 corridas por nivel** (la línea base actual usa 2: regenerar con `
 - Winrate **por rango** dentro de ±3 puntos porcentuales y **por clase** dentro de ±3 puntos.
 - Duración media (rondas/activaciones convertidas) dentro de ±10 %.
 - Ninguna celda clase × elemento × rango fuera de ±15 puntos (para detectar rupturas locales, sabiendo que el ruido es mayor).
-- Si falla: ajustar las constantes de conversión de §2 (máximo 3 iteraciones documentadas). Si sigue fuera → **ABORTAR** y reportar al dueño con la tabla de diferencias; no forzar.
+- Si falla: ajustar las constantes de conversión de §2 (máximo 3 iteraciones documentadas). Si sigue fuera tras las 3 → **ABORTAR** y reportar al dueño con la tabla de diferencias; no forzar.
 
 ## 5. Reglas de entrega
 - Un commit en `v2-e2`. `tsc`, `eslint src scripts`, `vitest` completo en verde. Sin push, sin tocar `combat.ts`, `stage.ts` ni SQL.
