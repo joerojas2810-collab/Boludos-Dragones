@@ -16,10 +16,14 @@ describe("weapon special (Ataque 2)", () => {
     const base = generateCharacter(createRng(1), "caballero");
     const armed = { ...base, weapon: { element: base.element, atkBonus: 0, type: "hacha" } };
     const c = (ch: typeof base) => ({ char: ch }) as unknown as Parameters<typeof attackOf>[0];
-    expect(attackOf(c(armed), "attack2").name).toBe("Hachazo");
+    expect(attackOf(c(armed), "attack2").name).toBe("Hachazo pesado");
     expect(attackOf(c(base), "attack2").name).toBe("Estocada");
     expect(attackOf(c(armed), "attack1").name).toBe("Hachazo");
     expect(attackOf(c(base), "attack1").name).toBe("Tajo"); // no weapon: keep the class basic.
+    const staff = { ...base, weapon: { element: base.element, atkBonus: 0, type: "baston" as const } };
+    const hammer = { ...base, weapon: { element: base.element, atkBonus: 0, type: "martillo" as const } };
+    expect(attackOf(c(staff), "attack1").name).toBe("Golpe rúnico");
+    expect(attackOf(c(hammer), "attack1").name).toBe("Impacto de martillo");
   });
   it("all ten weapon basics have neutral power and no extra effects", () => {
     expect(HAND_TYPES).toHaveLength(10);

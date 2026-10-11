@@ -190,6 +190,74 @@ describe("multi-action rounds", () => {
   });
 });
 
+describe("universal skills (3b)", () => {
+  it("Golpe is a 1.8 power, 0.9 accuracy single-target strike", () => {
+    const b0 = startBattle(unit("caballero"), unit("picaro"), createRng(3));
+    const b = withRound(b0, false, ["attack1"], 1);
+    const miss = step(b, "golpe", never);
+    expect(miss.events.find((event) => event.actor === "player")?.kind).toBe("miss");
+    expect(miss.enemies[0].hp).toBe(b.enemies[0].hp);
+    const hit = step(b, "golpe", always);
+    expect(hit.events.filter((event) => event.actor === "player")).toHaveLength(1);
+    expect(hit.events.find((event) => event.actor === "player")?.move).toBe("golpe");
+    expect(hit.enemies[0].hp).toBeLessThan(b.enemies[0].hp);
+    expect(hit.player.universalCooldowns?.golpe).toBe(1.7);
+  });
+
+  it("Barrido hits each living target once and applies one elemental stack per target", () => {
+    const b0 = startBattle(
+      unit("caballero"),
+      [unit("picaro"), unit("mago"), unit("berserker")],
+      createRng(5),
+    );
+    const b = withRound(b0, false, ["attack1"], 1);
+    const swept = step(b, "barrido", always);
+    expect(swept.events.filter((event) => event.move === "barrido")).toHaveLength(3);
+    for (const enemy of swept.enemies) {
+      expect(enemy.hp).toBeLessThan(b.enemies[swept.enemies.indexOf(enemy)].hp);
+      expect(enemy.statuses?.find((status) => status.id === "escarcha")?.stacks).toBe(1);
+    }
+    expect(swept.player.universalCooldowns?.barrido).toBe(1.7);
+  });
+
+  it("Barrido applies player-carried Impulso or Rayo charge only once per use", () => {
+    for (const element of ["viento", "rayo"] as const) {
+      const hero = { ...unit("caballero"), element };
+      const b0 = startBattle(
+        hero,
+        [unit("picaro"), unit("mago"), unit("berserker")],
+        createRng(6),
+      );
+      const b = withRound(b0, false, ["attack1"], 1);
+      const swept = step(b, "barrido", always);
+      if (element === "viento") {
+        expect(swept.player.statuses?.find((status) => status.id === "impulso")?.stacks).toBe(1);
+        expect(swept.enemies.every((enemy) => !enemy.statuses?.some((status) => status.id === "impulso"))).toBe(true);
+      } else expect(swept.player.charge).toBe(1);
+    }
+  });
+
+  it("cooldowns advance by 0.85 per later player activation and disabled moves are inert", () => {
+    const b0 = startBattle(
+      unit("caballero", { speed: 12 }),
+      unit("picaro", { speed: 6 }),
+      createRng(7),
+    );
+    let b = withRound(b0, false, ["attack1"], 2);
+    b = step(b, "golpe", always);
+    expect(b.player.universalCooldowns?.golpe).toBeCloseTo(1.7);
+    expect(step(b, "golpe", always)).toBe(b);
+    b = step(b, "attack1", always);
+    expect(b.player.universalCooldowns?.golpe).toBeCloseTo(0.85);
+    b = step(b, "attack1", always);
+    expect(b.player.universalCooldowns?.golpe).toBe(0);
+    b = step(b, "golpe", always);
+    expect(b.player.universalCooldowns?.golpe).toBeCloseTo(1.7);
+    const disabled = step(b, "quebrar", always);
+    expect(disabled).toBe(b);
+  });
+});
+
 describe("determinism and serialization", () => {
   const play = (seed: number): Battle => {
     const rng = createRng(seed);

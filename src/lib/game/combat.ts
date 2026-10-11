@@ -69,10 +69,17 @@ import {
 } from "./bossRules";
 import { EXECUTE_HP, HIGH_HP, RAGE_MAX, traitTotals } from "./traits";
 import { isWeaponType, WEAPON_TYPE_DATA, weaponSpecial } from "./weapons";
+import {
+  UNIVERSAL_COOLDOWN_CONVERSION,
+  UNIVERSAL_SKILLS,
+  type UniversalSkillId,
+} from "./universalSkills";
 
 export type AttackKey = "attack1" | "attack2";
 export type MoveKey = AttackKey | "attack3"; // attack3 = class skill (skills.ts)
-export type Action = MoveKey | "defend";
+export type CombatMoveKey = MoveKey | UniversalSkillId;
+export type Action = AttackKey | "attack3" | "defend";
+export type BattleAction = Action | UniversalSkillId;
 export type Intent = AttackKey | "defend";
 export type Status = "ongoing" | "won" | "lost";
 
@@ -96,7 +103,7 @@ export const PERFECT_GUARD_FACTOR = 0.25;
 export const GUARD_REFLECT = 0.4; // Caballero: share of the avoided damage sent back
 export const GUARD_CRIT_BONUS = 0.5; // Pícaro: extra crit chance on the next hit
 export const GUARD_HEAL = 0.04; // Clérigo: fraction of max hp healed
-export const isStrongIntent = (k: MoveKey | Intent): boolean => k === "attack2";
+export const isStrongIntent = (k: CombatMoveKey | Intent): boolean => k === "attack2";
 
 // Speed -> actions ("acciones acumuladas"). Per (hero, enemy) pair the slower
 // side acts once per round; the faster side acts floor(carry) times, where
@@ -141,7 +148,7 @@ export interface BattleEvent {
   actor: "player" | "enemy";
   kind: "hit" | "crit" | "miss" | "buff";
   classId: ClassId;
-  move: MoveKey;
+  move: CombatMoveKey;
   weapon?: string; // attacker's weapon type (sfx)
   element?: Element;
   overload?: boolean;
@@ -175,6 +182,7 @@ export interface Combatant {
   boss?: BossState; // dungeon boss mechanic state (bossRules.ts)
   healCut?: number; // rounds left with the heals cut (Reina Marchita ritual)
   applies?: boolean; // enemies: strong hits apply their element's status (elites, bosses)
+  universalCooldowns?: Partial<Record<UniversalSkillId, number>>;
 }
 
 // A round is a queue of action slots (see buildQueue). `step` resolves one
@@ -272,7 +280,8 @@ export const guardFree = (c: Combatant): boolean =>
 export const skillOf = (c: Combatant): Skill | undefined =>
   c.char.skill ? SKILLS[c.char.skill] : undefined;
 
-export function attackOf(c: Combatant, key: MoveKey): Attack {
+export function attackOf(c: Combatant, key: CombatMoveKey): Attack {
+  if (key in UNIVERSAL_SKILLS) return UNIVERSAL_SKILLS[key as UniversalSkillId].attack;
   if (key === "attack3") {
     const s = skillOf(c);
     if (s)
@@ -300,7 +309,7 @@ export function attackOf(c: Combatant, key: MoveKey): Attack {
         ...(basic.heal !== undefined && { heal: basic.heal }),
       };
   }
-  return CLASSES[c.char.classId][key];
+  return CLASSES[c.char.classId][key as AttackKey];
 }
 
 const newCombatant = (char: Character): Combatant => ({
@@ -549,7 +558,7 @@ export function startBattle(
 }
 
 // No dodge in engine v11: only accuracy decides a hit.
-export function hitChance(att: Combatant, key: MoveKey): number {
+export function hitChance(att: Combatant, key: CombatMoveKey): number {
   if (key === "attack1") return 1; // the basic attack is the safe one; accuracy is the risk of the others
   const retry = att.missed ? rulesOf(att).retryAccuracy : 0; // Terco insists after a miss
   return clamp(attackOf(att, key).accuracy + att.char.stats.accuracy + retry, 0.05, 1);
@@ -569,7 +578,7 @@ function traitDealtMult(att: Combatant, def: Combatant): number {
 }
 
 // Damage multiplier of the defender's stance against this move.
-const stanceFactor = (def: Combatant, key: MoveKey): number =>
+const stanceFactor = (def: Combatant, key: CombatMoveKey): number =>
   !def.defending
     ? 1
     : def.guard && isStrongIntent(key)
@@ -577,7 +586,7 @@ const stanceFactor = (def: Combatant, key: MoveKey): number =>
       : DEFEND_FACTOR;
 
 // Skill bonus while the user is hurt (Aniquilación).
-function selfFactor(att: Combatant, key: MoveKey): number {
+function selfFactor(att: Combatant, key: CombatMoveKey): number {
   const s = key === "attack3" ? skillOf(att) : undefined;
   return s?.selfBelow !== undefined &&
     att.hp < att.char.stats.hp * s.selfBelow
@@ -600,13 +609,13 @@ function bossTakenMult(def: Combatant): number {
 }
 
 // Detonar: extra damage per status stack on the target.
-function detonateFactor(att: Combatant, def: Combatant, key: MoveKey): number {
+function detonateFactor(att: Combatant, def: Combatant, key: CombatMoveKey): number {
   const d = key === "attack3" ? skillOf(att)?.detonate : undefined;
   return d ? 1 + d * (def.statuses ?? []).reduce((n, s) => n + s.stacks, 0) : 1;
 }
 
 // Skill bonus vs a weakened target (Ejecutar).
-function executeFactor(att: Combatant, def: Combatant, key: MoveKey): number {
+function executeFactor(att: Combatant, def: Combatant, key: CombatMoveKey): number {
   const s = key === "attack3" ? skillOf(att) : undefined;
   return s?.executeBelow !== undefined &&
     def.hp < def.char.stats.hp * s.executeBelow
@@ -621,7 +630,7 @@ export const DAMAGE_SCALE = 0.8;
 export function estimateDamage(
   att: Combatant,
   def: Combatant,
-  key: MoveKey,
+  key: CombatMoveKey,
   crit = false, // true: skip the non-crit penalty (the crit multiplier is applied by the caller)
 ): number {
   const a = attackOf(att, key);
@@ -785,7 +794,7 @@ export function counterStatuses(hero: Combatant, foe: Combatant): Combatant["sta
 export function strike(
   att: Combatant,
   def: Combatant,
-  key: MoveKey,
+  key: CombatMoveKey,
   rng: Rng,
   log: string[],
   events: BattleEvent[],
@@ -793,6 +802,7 @@ export function strike(
   enemy: number,
   dmgFactor = 1,
   asHero = actor === "player", // duels: both sides are heroes (class special, statuses, overload)
+  applyOwnElementalStatus = true,
 ): Strike {
   const a = attackOf(att, key);
   const skill = key === "attack3" ? skillOf(att) : undefined;
@@ -866,7 +876,7 @@ export function strike(
   // Rayo: any landed hit charges, the overload is spent by the class special.
   let charge = att.charge ?? 0;
   let overload = false;
-  if (element === "rayo" && (asHero || canApply)) {
+  if (element === "rayo" && (asHero || canApply) && applyOwnElementalStatus) {
     charge = Math.min(OVERLOAD_EVERY, charge + guardBoost);
     if (charge >= OVERLOAD_EVERY && (classMove || !asHero)) {
       overload = true;
@@ -915,8 +925,9 @@ export function strike(
   }
   let ownStatuses = attacker.statuses;
   const sid = canApply ? STATUS_OF_ELEMENT[element] : undefined;
-  if (sid === "impulso") ownStatuses = addStatus(ownStatuses, sid, stacks);
-  else if (sid)
+  if (sid === "impulso") {
+    if (applyOwnElementalStatus) ownStatuses = addStatus(ownStatuses, sid, stacks);
+  } else if (sid) {
     defender = {
       ...defender,
       statuses: addStatus(
@@ -927,7 +938,9 @@ export function strike(
         defender.char.stats.resist,
       ),
     };
-  if (sid) log.push(`${sid === "impulso" ? who : def.char.name}: ${STATUS_DATA[sid].label} ×${stacksOf(sid === "impulso" ? ownStatuses : defender.statuses, sid)}.`);
+  }
+  if (sid && (sid !== "impulso" || applyOwnElementalStatus))
+    log.push(`${sid === "impulso" ? who : def.char.name}: ${STATUS_DATA[sid].label} ×${stacksOf(sid === "impulso" ? ownStatuses : defender.statuses, sid)}.`);
   let back = 0;
   if ((def.reflect ?? 0) > 0) {
     // Contraataque: the hit was already reduced; the attacker eats it in full.
@@ -978,11 +991,17 @@ export const ENRAGE_STEP = 0.1;
 // Defender ignores it. An out-of-range target is an illegal action.
 export function step(
   b: Battle,
-  action: Action,
+  action: BattleAction,
   rng: Rng,
   target?: number,
 ): Battle {
   if (b.status !== "ongoing" || !b.queue.includes("player")) return b;
+  const universal = action in UNIVERSAL_SKILLS
+    ? UNIVERSAL_SKILLS[action as UniversalSkillId]
+    : undefined;
+  if (universal && !universal.enabled) return b;
+  if (universal && (b.player.universalCooldowns?.[universal.id] ?? 0) > 1e-9)
+    return b;
   if (action === "attack2" && b.player.cooldown > 0) return b;
   const skill = action === "attack3" ? skillOf(b.player) : undefined;
   if (action === "attack3" && (!skill || (b.player.cooldown3 ?? 0) > 0))
@@ -1022,7 +1041,12 @@ export function step(
       last.every((a) => a === action)
     );
   };
-  const hit = (i: number, key: MoveKey, factor = 1) => {
+  const hit = (
+    i: number,
+    key: CombatMoveKey,
+    factor = 1,
+    applyOwnElementalStatus = true,
+  ) => {
     if (adapted(i)) {
       factor *= ADAPT_FACTOR;
       log.push(`${enemies[i].char.name} te lee: tu golpe repetido le hace menos.`);
@@ -1037,12 +1061,38 @@ export function step(
       "player",
       i,
       factor,
+      undefined,
+      applyOwnElementalStatus,
     );
     player = r.attacker;
     enemies[i] = r.defender;
     return r.dmg;
   };
   const playMove = () => {
+    if (universal) {
+      const targets = universal.target === "all" ? alive : [tIdx];
+      let ownerElementApplied = false;
+      let dealt = 0;
+      for (const i of targets) {
+        if (enemies[i]?.hp > 0) {
+          const damage = hit(i, universal.id, 1, !ownerElementApplied);
+          dealt += damage;
+          if (
+            damage > 0 &&
+            (player.char.element === "viento" || player.char.element === "rayo")
+          ) ownerElementApplied = true;
+        }
+      }
+      if (dealt > 0) {
+        player.riposte = false;
+        player.guardedLast = false;
+      }
+      player.universalCooldowns = {
+        ...player.universalCooldowns,
+        [universal.id]: universal.cooldown * UNIVERSAL_COOLDOWN_CONVERSION,
+      };
+      return;
+    }
     if (action === "attack1" || action === "attack2") {
       const dealt = hit(tIdx, action);
       if (dealt > 0 && !(guardFree(player) && action === "attack1"))
@@ -1124,6 +1174,13 @@ export function step(
     queue.shift();
     if (slot === "player") {
       playerActed = true;
+      const clocks = Object.fromEntries(
+        Object.entries(player.universalCooldowns ?? {}).map(([id, value]) => [
+          id,
+          Math.max(0, (value ?? 0) - UNIVERSAL_COOLDOWN_CONVERSION),
+        ]),
+      ) as Combatant["universalCooldowns"];
+      if (Object.keys(clocks ?? {}).length) player.universalCooldowns = clocks;
       if (playerDone++ > 0) log.push(`${player.char.name} actúa de nuevo.`);
       if (action !== "defend") playMove();
       enemies.forEach((e, i) => {

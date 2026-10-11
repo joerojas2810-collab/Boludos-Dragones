@@ -86,14 +86,14 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   },
   hacha: {
     label: "Hacha",
-    description: "Hachazo: golpe enorme, falla más y tarda en recargarse.",
+    description: "Hachazo pesado: golpe enorme, falla más y tarda en recargarse.",
     atkMult: 1.1,
     accuracy: -0.05,
     crit: 0,
     speedMult: 1,
     noun: "Hacha",
     basic: { name: "Hachazo", power: 1 },
-    special: { name: "Hachazo", power: 3.2, accuracy: 0.65, cooldown: 3, heal: 0 },
+    special: { name: "Hachazo pesado", power: 3.2, accuracy: 0.65, cooldown: 3, heal: 0 },
   },
   arco: {
     label: "Arco",
@@ -114,7 +114,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0,
     speedMult: 1.1,
     noun: "Bastón",
-    basic: { name: "Golpe de bastón", power: 1 },
+    basic: { name: "Golpe rúnico", power: 1 },
     special: { name: "Cataclismo", power: 2.8, accuracy: 0.7, cooldown: 3, heal: 0 },
   },
   daga: {
@@ -180,7 +180,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
     crit: 0,
     speedMult: 0.95,
     noun: "Martillo",
-    basic: { name: "Golpe de martillo", power: 1 },
+    basic: { name: "Impacto de martillo", power: 1 },
     special: { name: "Aplastar", power: 3, accuracy: 0.85, cooldown: 3, heal: 0 },
   },
   casco: {
