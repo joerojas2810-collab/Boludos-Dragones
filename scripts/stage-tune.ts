@@ -40,9 +40,15 @@ for (const assignment of (args.get("rank-tune") ?? "").split(",").filter(Boolean
   RANK_TUNE[rank as Difficulty] = Number(value);
 }
 if (args.has("asc-tune")) {
-  const values = args.get("asc-tune")!.split(",").map(Number);
-  if (values.length !== 6 || values.some((value) => !Number.isFinite(value) || value <= 0)) throw new Error("--asc-tune requires six positive comma-separated values");
-  values.forEach((value, index) => { (ASC_TUNE as unknown as number[])[index] = value; });
+  const assignments = args.get("asc-tune")!.split(";").filter(Boolean);
+  for (const assignment of assignments) {
+    const [rank, rawValues] = assignment.split(":");
+    const values = rawValues?.split(",").map(Number);
+    if (!RARITY_IDS.includes(rank as Difficulty) || !values || values.length !== 6 || values.some((value) => !Number.isFinite(value) || value <= 0)) {
+      throw new Error("--asc-tune requires rank:value,value,value,value,value,value assignments separated by semicolons");
+    }
+    (ASC_TUNE[rank as Difficulty] as unknown as number[]).splice(0, 6, ...values);
+  }
 }
 const FIGHT_STEP_LIMIT = 500;
 if (!Number.isInteger(RUNS) || RUNS < 1 || !Number.isInteger(BASE_SEED) || BASE_SEED < 0) {
@@ -60,7 +66,7 @@ function scenarios(difficulty: Difficulty, asc: number): Scenario[] {
 }
 type Cell = { difficulty: Difficulty; asc: number; stars: number; target: number; label: string };
 const cells: Cell[] = RARITY_IDS.flatMap((difficulty) =>
-  ASC_TUNE.map((_, asc) => scenarios(difficulty, asc).map((scenario) => ({ difficulty, asc, ...scenario }))).flat(),
+  ASC_TUNE[difficulty].map((_, asc) => scenarios(difficulty, asc).map((scenario) => ({ difficulty, asc, ...scenario }))).flat(),
 );
 type Sum = { attempts: number; wins: number; fights: number; turns: number };
 const keyOf = (c: Cell, route: RouteId) => `${route}:${c.difficulty}:${c.asc}:${c.stars}:${c.label}`;
@@ -126,8 +132,8 @@ function simulate(cellIndex: number, route: RouteId, run: number, levelIndex: nu
   return { cleared: stage.status === "cleared", fights, turns, classId, element };
 }
 
-// Quick coordinate search: fit each rank's +0 anchor to 70%, then fit a shared
-// monotonic ascension curve (max ×2) to the approved +n-star 60% / S+5 45% targets.
+// Quick coordinate search: fit only per-rank ascension multipliers to every approved
+// reference and +/-2-star target, preserving each rank's strict +0…+5 monotonicity.
 if (args.has("fit-staircase")) {
   const fitRuns = Number(args.get("fit-runs") ?? (QUICK ? 8 : RUNS));
   const fitRate = (cellIndex: number) => {
@@ -142,36 +148,28 @@ if (args.has("fit-staircase")) {
     return wins / attempts;
   };
   for (const difficulty of RARITY_IDS) {
-    const cellIndex = cells.findIndex((cell) => cell.difficulty === difficulty && cell.asc === 0 && cell.stars === 0 && cell.label === "reference");
-    let best = { value: RANK_TUNE[difficulty], error: Number.POSITIVE_INFINITY };
-    const base = RANK_TUNE[difficulty];
-    for (let candidate = base * 0.70; candidate <= base * 1.50; candidate += base * 0.025) {
-      RANK_TUNE[difficulty] = candidate;
-      const error = Math.abs(fitRate(cellIndex) - 0.70);
-      if (error < best.error) best = { value: candidate, error };
-    }
-    RANK_TUNE[difficulty] = Math.round(best.value * 1000) / 1000;
-  }
-  const asc = (ASC_TUNE as unknown as number[]);
-  asc[0] = 1;
-  for (let index = 1; index < asc.length; index++) {
-    let best = { value: asc[index - 1] + 0.01, error: Number.POSITIVE_INFINITY };
-    for (let candidate = asc[index - 1] + 0.01; candidate <= 2.0001; candidate += 0.025) {
-      asc[index] = Math.min(2, candidate);
-      let error = 0;
-      for (const difficulty of RARITY_IDS) {
-        const cellIndex = cells.findIndex((cell) => cell.difficulty === difficulty && cell.asc === index && cell.stars === index && cell.label === "reference");
-        const target = index === 5 && difficulty === "s" ? 0.45 : 0.60;
-        const delta = fitRate(cellIndex) - target;
-        error += delta * delta / RARITY_IDS.length;
+    const asc = ASC_TUNE[difficulty] as unknown as number[];
+    asc[0] = 1;
+    for (let index = 1; index < asc.length; index++) {
+      const low = asc[index - 1] + 0.01;
+      let best = { value: low, error: Number.POSITIVE_INFINITY };
+      for (let candidate = low; candidate <= 2.0001; candidate += 0.025) {
+        asc[index] = Math.min(2, Math.round(candidate * 1000) / 1000);
+        let error = 0;
+        for (const cellIndex of cells.flatMap((cell, i) => cell.difficulty === difficulty && cell.asc === index ? [i] : [])) {
+          const delta = fitRate(cellIndex) - cells[cellIndex].target;
+          // The approved target is the reference hero at each of the 42 steps;
+          // the +/-2-star probes are secondary diagnostics for the same factor.
+          error += delta * delta * (cells[cellIndex].label === "reference" ? 4 : 1);
+        }
+        if (error < best.error) best = { value: asc[index], error };
       }
-      if (error < best.error) best = { value: asc[index], error };
+      asc[index] = best.value;
     }
-    asc[index] = best.value;
   }
-  console.log(`--fit-staircase: +0 anchors target 70%; +n-star anchors target 60% (S+5 target 45%), ascension cap ×2`);
+  console.log(`--fit-staircase: per-rank ASC_TUNE fitted to all approved scenario targets; cap ×2`);
   for (const difficulty of RARITY_IDS) console.log(`${difficulty}: RANK_TUNE=${RANK_TUNE[difficulty].toFixed(3)}`);
-  console.log(`ASC_TUNE=${asc.map((value) => value.toFixed(3)).join(",")}`);
+  for (const difficulty of RARITY_IDS) console.log(`${difficulty}: ASC_TUNE=${ASC_TUNE[difficulty].map((value) => value.toFixed(3)).join(",")}`);
 }
 
 const runCell = (cellIndex: number) => {
@@ -202,7 +200,7 @@ if (WORKERS > 1) {
   const passthrough = process.argv.slice(2).filter((arg) => !arg.startsWith("--workers") && !arg.startsWith("--output") && !arg.startsWith("--fit-staircase") && !arg.startsWith("--fit-runs"));
   if (args.has("fit-staircase")) {
     passthrough.push(`--rank-tune=${RARITY_IDS.map((rank) => `${rank}:${RANK_TUNE[rank]}`).join(",")}`);
-    passthrough.push(`--asc-tune=${(ASC_TUNE as readonly number[]).join(",")}`);
+    passthrough.push(`--asc-tune=${RARITY_IDS.map((rank) => `${rank}:${ASC_TUNE[rank].join(",")}`).join(";")}`);
   }
   const files = Array.from({ length: WORKERS }, (_, index) => join(dir, `part-${index}.json`));
   const commands = files.map((file, index) => [process.execPath, ...process.execArgv, process.argv[1], ...passthrough, `--shard=${index}/${WORKERS}`, `--partial=${file}`].map(quote).join(" ") + " &");
@@ -271,15 +269,15 @@ const aggregateBy = (items: Array<{ key: string; attempts: number; winRate: numb
     wins: Math.round(sum.wins),
   })]));
 };
-const monotonicity = ASC_TUNE.slice(0, -1).map((value, index) => ({
-  from: `+${index}`, to: `+${index + 1}`, fromEnemyFactor: value,
-  toEnemyFactor: ASC_TUNE[index + 1], passes: value < ASC_TUNE[index + 1],
-}));
+const monotonicity = RARITY_IDS.flatMap((rank) => ASC_TUNE[rank].slice(0, -1).map((value, index) => ({
+  rank, from: `+${index}`, to: `+${index + 1}`, fromEnemyFactor: value,
+  toEnemyFactor: ASC_TUNE[rank][index + 1], passes: value < ASC_TUNE[rank][index + 1],
+})));
 const result = {
   seed: BASE_SEED,
   runsPerLevel: RUNS,
   routes: ROUTES,
-  formula: "DIFFICULTY_MULT × RANK_TUNE × ASC_TUNE × (1 + LEVEL_STEP × levelIndex) × ROUTE_TUNE",
+  formula: "DIFFICULTY_MULT × RANK_TUNE × ASC_TUNE[difficulty] × (1 + LEVEL_STEP × levelIndex) × ROUTE_TUNE",
   rankTune: RANK_TUNE,
   ascTune: ASC_TUNE,
   routeTune: Object.fromEntries(ROUTES.map((route) => [route, ROUTE_TUNE[route]])),
@@ -297,5 +295,5 @@ for (const cell of cells) {
   const row = selected[0];
   console.log(`${cell.difficulty}+${cell.asc} ${cell.stars}★ ${cell.label}: ${(row.winRate * 100).toFixed(1)}% (target ${(cell.target * 100).toFixed(0)}%, ${row.deltaPp >= 0 ? "+" : ""}${row.deltaPp.toFixed(1)} pp), ${row.attempts} attempts, ${row.meanTurnsPerLevel.toFixed(1)} turns; route range ${(row.routeMinWinRate * 100).toFixed(1)}–${(row.routeMaxWinRate * 100).toFixed(1)}%`);
 }
-for (const row of monotonicity) console.log(`Monotonic ${row.from} ≤ ${row.to}: ${row.passes ? "PASS" : "FAIL"} (${row.fromEnemyFactor.toFixed(3)} vs ${row.toEnemyFactor.toFixed(3)})`);
+for (const row of monotonicity) console.log(`Monotonic ${row.rank} ${row.from} < ${row.to}: ${row.passes ? "PASS" : "FAIL"} (${row.fromEnemyFactor.toFixed(3)} vs ${row.toEnemyFactor.toFixed(3)})`);
 console.log(`Wrote ${OUTPUT}`);

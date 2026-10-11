@@ -21,7 +21,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 21; // 21: dungeon difficulty is monotone within each rank; rank transitions are independent
+export const ENGINE_VERSION = 22; // 22: ascension difficulty is calibrated per rank
 
 export type FightRole = "normal" | "elite" | "final";
 
@@ -47,7 +47,15 @@ export const RANK_TUNE: Record<Difficulty, number> = {
 export const LEVEL_STEP = 0.05; // enemy power grows this much per level index
 // Multiplicative difficulty by ascension, applied to enemy HP, ATK and DEF.
 // The non-numeric ascension rules below remain active as separate gameplay pressure.
-export const ASC_TUNE = [1, 1.26, 1.42, 1.63, 1.64, 1.85] as const;
+export const ASC_TUNE: Record<Difficulty, readonly [number, number, number, number, number, number]> = {
+  f: [1, 1.235, 1.370, 1.580, 1.590, 1.700],
+  e: [1, 1.285, 1.470, 1.605, 1.615, 1.800],
+  d: [1, 1.235, 1.420, 1.555, 1.590, 1.775],
+  c: [1, 1.285, 1.445, 1.630, 1.690, 1.775],
+  b: [1, 1.285, 1.445, 1.630, 1.640, 1.800],
+  a: [1, 1.310, 1.445, 1.655, 1.665, 1.850],
+  s: [1, 1.260, 1.370, 1.580, 1.590, 2.000],
+};
 // Optional small route correction when a boss mechanic makes a route consistently harder/easier.
 export const ROUTE_TUNE: Record<RouteId, number> = {
   lord_of_flies: 1, ash_king: 1, eternal_watcher: 1, hollow_colossus: 1,
@@ -143,7 +151,7 @@ function makeFight(
   const size = groupSize(rng, role, difficulty, asc);
   const hasBoss = role !== "normal";
   const levelPower = 1 + LEVEL_STEP * spec.index;
-  const rankMult = DIFFICULTY_MULT[difficulty] * RANK_TUNE[difficulty] * ASC_TUNE[asc] * ROUTE_TUNE[route];
+  const rankMult = DIFFICULTY_MULT[difficulty] * RANK_TUNE[difficulty] * ASC_TUNE[difficulty][asc] * ROUTE_TUNE[route];
   const theme = DUNGEON_THEMES[route];
   const made: Character[] = [];
   const seen = new Map<string, number>();
