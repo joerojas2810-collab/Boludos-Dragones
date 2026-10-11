@@ -15,7 +15,7 @@
 ## 4b — Intenciones tipadas e Interrumpir
 - Tipos de intención en el motor: Golpe, Carga, Preparación, Represalia, Canalización, Ataque múltiple. **En esta etapa solo se implementan Carga (4a) y Canalización**; las demás quedan declaradas.
 - **Canalización:** efecto anunciado que se ejecuta tras un contador (1 activación enemiga, valor de partida); marcada "interrumpible" o "inevitable". **Interrumpir** (daño bajo) la detiene si es interrumpible; Defender no la cancela salvo regla del jefe.
-- **Piloto de Interrumpir: pendiente (ver Q15 en `CRUCE_IAS.md`).** No programar 4b hasta que el dueño elija; mientras tanto Interrumpir sigue deshabilitado con su motivo.
+- **Piloto de Interrumpir: el ritual de la Reina Marchita (Q15-A, propuesto; programar 4b solo tras la confirmación explícita del dueño).** Interrumpir cancela el ritual **antes** de que aplique Ruptura o reduzca las curas, y solo durante su anuncio (la ronda con `turn % RITUAL_EVERY === 0`). La guardia perfecta lo sigue anulando (segunda respuesta válida). Mientras no se confirme, Interrumpir sigue deshabilitado con su motivo.
 - **Jefe piloto: Rey de Ceniza** (`ash_king`, regla `presion`, dungeon E): conserva la presión acumulativa; su golpe fuerte se anuncia; la guardia perfecta lo reduce y reinicia la presión (ya existe: añadir lectura y ventana de decisión, sin cambiar su identidad).
 - **Regla de aviso (`COMBATE_V2.md` §4):** ninguna intención fuerte se resuelve antes de la primera activación del jugador tras anunciarse; la espera se concede una sola vez.
 
