@@ -20,6 +20,7 @@
 - **Regla de aviso (`COMBATE_V2.md` §4):** ninguna intención fuerte se resuelve antes de la primera activación del jugador tras anunciarse; la espera se concede una sola vez.
 
 ## 4c — Interfaz
+- **Pulido heredado de 3d (revisión visual de Claude):** (1) en botones listos mostrar "Listo" en vez de "Activaciones: 0"; (2) subir el tamaño y el contraste del texto secundario en celular y ocultar "Objetivo: 1 rival" cuando hay un solo rival; (3) que Interrumpir y Explotar no queden fuera de vista en celular sin scroll (compactar la cola o la arena si hace falta).
 - Barra de **Aguante** solo en enemigos que la tienen; icono de intención con nombre, efecto, cuenta atrás y etiqueta "interrumpible" / "cancelable por Quiebre" / "inevitable"; aviso cuando el Quiebre está cerca; registro de combate en una línea ("Quiebre cancela Carga").
 - Sin desbordes en celular; el arte manda; respeta `prefers-reduced-motion`.
 
