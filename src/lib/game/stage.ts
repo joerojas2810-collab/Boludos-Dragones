@@ -21,7 +21,7 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 20; // 20: dungeon enemy stats use the calibrated 6a-2 staircase multipliers
+export const ENGINE_VERSION = 21; // 21: dungeon difficulty is monotone within each rank; rank transitions are independent
 
 export type FightRole = "normal" | "elite" | "final";
 
@@ -42,12 +42,12 @@ export const KIND_POWER: Record<FightRole, number> = {
 // Per-rank correction on top of the rarity scale. Calibrate with
 // scripts/stage-tune.ts against the approved reference-hero targets.
 export const RANK_TUNE: Record<Difficulty, number> = {
-  f: 1.411, e: 1.423, d: 1.483, c: 1.6, b: 1.638, a: 1.842, s: 2.622,
+  f: 1.536, e: 1.482, d: 1.526, c: 1.547, b: 1.611, a: 1.762, s: 2.502,
 };
 export const LEVEL_STEP = 0.05; // enemy power grows this much per level index
 // Multiplicative difficulty by ascension, applied to enemy HP, ATK and DEF.
 // The non-numeric ascension rules below remain active as separate gameplay pressure.
-export const ASC_TUNE = [1, 1.03, 1.06, 1.092, 1.124, 1.157] as const;
+export const ASC_TUNE = [1, 1.26, 1.42, 1.63, 1.64, 1.85] as const;
 // Optional small route correction when a boss mechanic makes a route consistently harder/easier.
 export const ROUTE_TUNE: Record<RouteId, number> = {
   lord_of_flies: 1, ash_king: 1, eternal_watcher: 1, hollow_colossus: 1,

@@ -9,7 +9,7 @@ import { ELEMENTS, type Element } from "../src/lib/game/elements";
 import { applyGear, gearBonus, rollGear } from "../src/lib/game/gear";
 import { levelCap } from "../src/lib/game/heroLevel";
 import { LEVELS_PER_ROUTE, ROUTE_IDS, levelsOf, type RouteId } from "../src/lib/game/levels";
-import { DUNGEON_MULT, RARITY_IDS, scaleStats, type Difficulty } from "../src/lib/game/rarity";
+import { RARITY_IDS, scaleStats, type Difficulty } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
 import { ASC_TUNE, createStage, finishFight, levelFights, RANK_TUNE, ROUTE_TUNE, startFight } from "../src/lib/game/stage";
 import { CLASS_WEAPONS, GEAR_TYPES, weaponAtk } from "../src/lib/game/weapons";
@@ -126,44 +126,50 @@ function simulate(cellIndex: number, route: RouteId, run: number, levelIndex: nu
   return { cleared: stage.status === "cleared", fights, turns, classId, element };
 }
 
-// Optional coordinate fit: use the full approved ±5 pp range at the rank anchors
-// (75% at F down to 65% at S) to maximize the common ascension headroom, then use
-// the largest common ascension multiplier that preserves
-// R+5 <= (R+1)+0 for every adjacent pair. All search points use identical seeds.
-if (args.has("fit-base")) {
+// Quick coordinate search: fit each rank's +0 anchor to 70%, then fit a shared
+// monotonic ascension curve (max ×2) to the approved +n-star 60% / S+5 45% targets.
+if (args.has("fit-staircase")) {
   const fitRuns = Number(args.get("fit-runs") ?? (QUICK ? 8 : RUNS));
-  const fitAsc0 = ASC_TUNE as unknown as number[];
-  fitAsc0[0] = 1;
-  for (const [rankIndex, difficulty] of RARITY_IDS.entries()) {
-    const cellIndex = cells.findIndex((cell) => cell.difficulty === difficulty && cell.asc === 0 && cell.stars === 0 && cell.label === "reference");
-    const fitTarget = 0.75 - rankIndex * (0.10 / (RARITY_IDS.length - 1));
-    let low = 0.2;
-    let high = RANK_TUNE[difficulty] * 3;
-    for (let iteration = 0; iteration < 7; iteration++) {
-      const candidate = (low + high) / 2;
-      RANK_TUNE[difficulty] = candidate;
-      let wins = 0;
-      let attempts = 0;
-      for (const route of ROUTES) for (let levelIndex = 0; levelIndex < LEVELS_PER_ROUTE; levelIndex++) {
-        for (let run = 0; run < fitRuns; run++) {
-          if (simulate(cellIndex, route, run, levelIndex).cleared) wins++;
-          attempts++;
-        }
+  const fitRate = (cellIndex: number) => {
+    let wins = 0;
+    let attempts = 0;
+    for (const route of ROUTES) for (let levelIndex = 0; levelIndex < LEVELS_PER_ROUTE; levelIndex++) {
+      for (let run = 0; run < fitRuns; run++) {
+        if (simulate(cellIndex, route, run, levelIndex).cleared) wins++;
+        attempts++;
       }
-      const rate = wins / attempts;
-      if (rate > fitTarget) low = candidate;
-      else high = candidate;
     }
-    RANK_TUNE[difficulty] = Math.round(((low + high) / 2) * 1000) / 1000;
+    return wins / attempts;
+  };
+  for (const difficulty of RARITY_IDS) {
+    const cellIndex = cells.findIndex((cell) => cell.difficulty === difficulty && cell.asc === 0 && cell.stars === 0 && cell.label === "reference");
+    let best = { value: RANK_TUNE[difficulty], error: Number.POSITIVE_INFINITY };
+    const base = RANK_TUNE[difficulty];
+    for (let candidate = base * 0.70; candidate <= base * 1.50; candidate += base * 0.025) {
+      RANK_TUNE[difficulty] = candidate;
+      const error = Math.abs(fitRate(cellIndex) - 0.70);
+      if (error < best.error) best = { value: candidate, error };
+    }
+    RANK_TUNE[difficulty] = Math.round(best.value * 1000) / 1000;
   }
-  const caps = RARITY_IDS.slice(0, -1).map((difficulty, index) => {
-    const next = RARITY_IDS[index + 1];
-    return (DUNGEON_MULT[next] * RANK_TUNE[next]) / (DUNGEON_MULT[difficulty] * RANK_TUNE[difficulty]);
-  });
-  const cap = Math.min(...caps) * 0.998; // small headroom prevents rounding from breaking the boundary
   const asc = (ASC_TUNE as unknown as number[]);
-  for (let index = 1; index < asc.length; index++) asc[index] = Math.pow(cap, index / (asc.length - 1));
-  console.log(`--fit-base: rank 0★ anchors fitted within the 65–75% approved band; max monotonic ASC_TUNE[5]=${cap.toFixed(3)}`);
+  asc[0] = 1;
+  for (let index = 1; index < asc.length; index++) {
+    let best = { value: asc[index - 1] + 0.01, error: Number.POSITIVE_INFINITY };
+    for (let candidate = asc[index - 1] + 0.01; candidate <= 2.0001; candidate += 0.025) {
+      asc[index] = Math.min(2, candidate);
+      let error = 0;
+      for (const difficulty of RARITY_IDS) {
+        const cellIndex = cells.findIndex((cell) => cell.difficulty === difficulty && cell.asc === index && cell.stars === index && cell.label === "reference");
+        const target = index === 5 && difficulty === "s" ? 0.45 : 0.60;
+        const delta = fitRate(cellIndex) - target;
+        error += delta * delta / RARITY_IDS.length;
+      }
+      if (error < best.error) best = { value: asc[index], error };
+    }
+    asc[index] = best.value;
+  }
+  console.log(`--fit-staircase: +0 anchors target 70%; +n-star anchors target 60% (S+5 target 45%), ascension cap ×2`);
   for (const difficulty of RARITY_IDS) console.log(`${difficulty}: RANK_TUNE=${RANK_TUNE[difficulty].toFixed(3)}`);
   console.log(`ASC_TUNE=${asc.map((value) => value.toFixed(3)).join(",")}`);
 }
@@ -193,8 +199,8 @@ if (IS_SHARD) {
 if (WORKERS > 1) {
   const dir = mkdtempSync(join(tmpdir(), "staircase-sim-"));
   const quote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
-  const passthrough = process.argv.slice(2).filter((arg) => !arg.startsWith("--workers") && !arg.startsWith("--output") && !arg.startsWith("--fit-base") && !arg.startsWith("--fit-runs"));
-  if (args.has("fit-base")) {
+  const passthrough = process.argv.slice(2).filter((arg) => !arg.startsWith("--workers") && !arg.startsWith("--output") && !arg.startsWith("--fit-staircase") && !arg.startsWith("--fit-runs"));
+  if (args.has("fit-staircase")) {
     passthrough.push(`--rank-tune=${RARITY_IDS.map((rank) => `${rank}:${RANK_TUNE[rank]}`).join(",")}`);
     passthrough.push(`--asc-tune=${(ASC_TUNE as readonly number[]).join(",")}`);
   }
@@ -265,12 +271,10 @@ const aggregateBy = (items: Array<{ key: string; attempts: number; winRate: numb
     wins: Math.round(sum.wins),
   })]));
 };
-const monotonicity = RARITY_IDS.slice(0, -1).map((difficulty, index) => {
-  const next = RARITY_IDS[index + 1];
-  const from = DUNGEON_MULT[difficulty] * RANK_TUNE[difficulty] * ASC_TUNE[5];
-  const to = DUNGEON_MULT[next] * RANK_TUNE[next] * ASC_TUNE[0];
-  return { from: `${difficulty}+5`, to: `${next}+0`, fromEnemyFactor: from, toEnemyFactor: to, passes: from <= to };
-});
+const monotonicity = ASC_TUNE.slice(0, -1).map((value, index) => ({
+  from: `+${index}`, to: `+${index + 1}`, fromEnemyFactor: value,
+  toEnemyFactor: ASC_TUNE[index + 1], passes: value < ASC_TUNE[index + 1],
+}));
 const result = {
   seed: BASE_SEED,
   runsPerLevel: RUNS,
