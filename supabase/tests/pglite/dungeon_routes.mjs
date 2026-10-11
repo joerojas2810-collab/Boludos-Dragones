@@ -2,6 +2,8 @@
 // Run with: node supabase/tests/pglite/dungeon_routes.mjs
 import { db, setup, rpc } from "./harness.mjs";
 await setup();
+// The SQL Editor can rerun the generated bundle against an already migrated database.
+await setup();
 let pass = 0, fail = 0;
 const ok = (condition, label) => { if (condition) pass++; else { fail++; console.log("FAIL:", label); } };
 const err = async (promise, expected, label) => {

@@ -34,32 +34,32 @@ drop function if exists public.bank_level(uuid, uuid, text, text, int, int, text
 drop function if exists public.level_lock_reason(uuid, text, int, int);
 drop function if exists public.progress_cleared(uuid, text, int);
 drop function if exists public.level_count(text);
+drop function if exists public.level_base_coins(text);
+drop function if exists public.level_chest(text);
+drop function if exists public.level_escamas(text, int, numeric);
+drop function if exists public.level_escamas(text, int, boolean, numeric);
 drop table if exists public.dungeon_progress;
 
 create or replace function public.level_count() returns int
 language sql immutable set search_path = '' as $$ select 4 $$;
 
--- Kept for older non-dungeon reward routines; only F-S are valid now.
-create or replace function public.level_count(p_difficulty text) returns int
+-- Use new helper names: legacy migrations are replayed before 0056 when setup.sql is rerun.
+create or replace function public.difficulty_level_count(p_difficulty text) returns int
 language sql immutable set search_path = '' as $$
   select case when p_difficulty in ('f','e','d','c','b','a','s') then 4 end
 $$;
 
-drop function if exists public.level_base_coins(text);
-create function public.level_base_coins(p_difficulty text) returns int
+create or replace function public.difficulty_level_coins(p_difficulty text) returns int
 language sql immutable set search_path = '' as $$
   select case p_difficulty when 'f' then 60 when 'e' then 75 when 'd' then 95 when 'c' then 120
     when 'b' then 150 when 'a' then 180 when 's' then 210 end
 $$;
-drop function if exists public.level_chest(text);
-create function public.level_chest(p_difficulty text) returns int
+create or replace function public.difficulty_level_chest(p_difficulty text) returns int
 language sql immutable set search_path = '' as $$
   select case p_difficulty when 'f' then 1000 when 'e' then 1600 when 'd' then 2500 when 'c' then 1200
     when 'b' then 1500 when 'a' then 2000 when 's' then 2500 end
 $$;
-drop function if exists public.level_escamas(text, int, numeric);
-drop function if exists public.level_escamas(text, int, boolean, numeric);
-create or replace function public.level_escamas(p_difficulty text, p_asc int, p_repeat boolean, p_mult numeric) returns int
+create or replace function public.difficulty_level_escamas(p_difficulty text, p_asc int, p_repeat boolean, p_mult numeric) returns int
 language sql immutable set search_path = '' as $$
   select case when p_difficulty = 's' then
     case when p_repeat then floor(2 * (1 + 0.1 * p_asc) * 0.6 * p_mult)::int
@@ -90,11 +90,12 @@ language sql stable security definer set search_path = '' as $$
     where player_id = p_player and route = p_route and difficulty = p_difficulty and ascension = p_asc), 0)
 $$;
 
--- Retained as a compatibility helper for weekly reward routines; any completed route counts.
-create or replace function public.progress_cleared(p_player uuid, p_difficulty text, p_asc int) returns int
+-- Keep the public ranking RPC, but calculate its answer from the shared difficulty ladder.
+create or replace function public.best_cleared_rank(p_player uuid) returns text
 language sql stable security definer set search_path = '' as $$
-  select coalesce(max(levels), 0) from public.route_progress
-   where player_id = p_player and difficulty = p_difficulty and ascension = p_asc
+  select coalesce((select difficulty from public.step_clears
+    where player_id = p_player and ascension = 0
+    order by array_position(array['f','e','d','c','b','a','s'], difficulty) desc limit 1), 'f')
 $$;
 
 create or replace function public.level_lock_reason(
@@ -212,7 +213,7 @@ begin
       select jsonb_agg(jsonb_build_object(
         'id', w.key, 'type', w.type, 'element', w.element,
         'rarity', w.rarity, 'stars', w.stars,
-        'data', w.data || jsonb_build_object('legacy', w.legacy, 'plus', w.plus, 'plusStreak', w.plus_streak)
+        'data', w.data || jsonb_build_object('legacy', w.legacy, 'plus', w.plus, 'plusStreak', w.plus_streak, 'copies', w.copies)
                        || case when w.roll is null then '{}'::jsonb else jsonb_build_object('roll', w.roll) end
                        || case when w.lines is null then '{}'::jsonb else jsonb_build_object('lines', w.lines) end
       ) order by w.created_at, w.key)
@@ -317,10 +318,10 @@ begin
     end if;
     v_n := case when v_state.levels_day = public.game_day() then v_state.levels_n else 0 end
          + case when v_repeat then 1 else 0 end;
-    v_base := public.level_base_coins(p_difficulty) * (1 + 0.2 * p_asc);
+    v_base := public.difficulty_level_coins(p_difficulty) * (1 + 0.2 * p_asc);
     v_coins := round(case when v_repeat then v_base * 0.6 * public.level_decay(v_n) else v_base end)::int;
     if not v_repeat and p_level + 1 >= public.level_count() then
-      v_chest := round(public.level_chest(p_difficulty) * case when p_asc = 0 then 1 else 0.5 end)::int;
+      v_chest := round(public.difficulty_level_chest(p_difficulty) * case when p_asc = 0 then 1 else 0.5 end)::int;
       v_dungeon_done := true;
     end if;
     if not v_repeat then
@@ -335,7 +336,7 @@ begin
     end if;
 
     -- Escamas (S+ only) follow the coin rules: +10% per ascension, repeats decay with the day's count.
-    v_escamas := public.level_escamas(p_difficulty, p_asc, v_repeat, case when v_repeat then public.level_decay(v_n) else 1 end);
+    v_escamas := public.difficulty_level_escamas(p_difficulty, p_asc, v_repeat, case when v_repeat then public.level_decay(v_n) else 1 end);
     -- Dado cargado: only the last level of a dungeon S+; the server rolled it, SQL caps it at 2 per day.
     if p_dados > 0 then
       if public.rank_idx(p_difficulty) < public.rank_idx('s') or p_level + 1 < public.level_count() then
@@ -397,18 +398,22 @@ begin
 end $$;
 
 revoke all on function public.level_count() from public, anon, authenticated;
-revoke all on function public.level_count(text) from public, anon, authenticated;
+revoke all on function public.difficulty_level_count(text) from public, anon, authenticated;
+revoke all on function public.difficulty_level_coins(text) from public, anon, authenticated;
+revoke all on function public.difficulty_level_chest(text) from public, anon, authenticated;
+revoke all on function public.difficulty_level_escamas(text, int, boolean, numeric) from public, anon, authenticated;
 revoke all on function public.step_unlocked(uuid, text, int) from public, anon, authenticated;
 revoke all on function public.route_cleared(uuid, text, text, int) from public, anon, authenticated;
-revoke all on function public.progress_cleared(uuid, text, int) from public, anon, authenticated;
 revoke all on function public.level_lock_reason(uuid, text, text, int, int) from public, anon, authenticated;
 revoke all on function public.start_level(uuid, text, bigint, jsonb, text, text, int, int) from public, anon, authenticated;
 revoke all on function public.bank_level(uuid, uuid, text, text, text, int, int, text, int, int, jsonb, boolean, jsonb, text, text) from public, anon, authenticated;
 grant execute on function public.level_count() to service_role;
-grant execute on function public.level_count(text) to service_role;
+grant execute on function public.difficulty_level_count(text) to service_role;
+grant execute on function public.difficulty_level_coins(text) to service_role;
+grant execute on function public.difficulty_level_chest(text) to service_role;
+grant execute on function public.difficulty_level_escamas(text, int, boolean, numeric) to service_role;
 grant execute on function public.step_unlocked(uuid, text, int) to service_role;
 grant execute on function public.route_cleared(uuid, text, text, int) to service_role;
-grant execute on function public.progress_cleared(uuid, text, int) to service_role;
 grant execute on function public.level_lock_reason(uuid, text, text, int, int) to service_role;
 grant execute on function public.start_level(uuid, text, bigint, jsonb, text, text, int, int) to service_role;
 grant execute on function public.bank_level(uuid, uuid, text, text, text, int, int, text, int, int, jsonb, boolean, jsonb, text, text) to service_role;

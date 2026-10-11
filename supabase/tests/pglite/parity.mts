@@ -36,8 +36,8 @@ same(STREAK_BONUS[7], await gc("streak_bonus_7"), "streak_bonus_7");
 
 // dungeon pay
 for (const r of DIFFICULTIES) {
-  same(LEVEL_COINS[r], Number(await one(`select public.level_base_coins('${r}')`)), `level_base_coins ${r}`);
-  same(FIRST_CLEAR_CHEST[r], Number(await one(`select public.level_chest('${r}')`)), `level_chest ${r}`);
+  same(LEVEL_COINS[r], Number(await one(`select public.difficulty_level_coins('${r}')`)), `difficulty_level_coins ${r}`);
+  same(FIRST_CLEAR_CHEST[r], Number(await one(`select public.difficulty_level_chest('${r}')`)), `difficulty_level_chest ${r}`);
 }
 for (const n of [1, 20, 21, 60, 61, 140, 141, 500])
   same(levelDecay(n), Number(await one(`select public.level_decay(${n})`)), `level_decay ${n}`);

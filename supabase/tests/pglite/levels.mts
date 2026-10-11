@@ -241,11 +241,15 @@ await err(startLevelService(deps, P, { characterId: HERO, route: ROUTE, difficul
 const info = await startLevelService(deps, P, { characterId: HERO, route: ROUTE, difficulty: "f", level: 0, ascension: 0 });
 const wins = levelFights(levelsOf(ROUTE, "f")[0], 0).length;
 await db.exec(`update public.runs set started_at = now() - interval '10 minutes' where id='${info.runId}'`);
+const profileBeforeFinish = (await loadMe(deps.rpc, P)).profile;
+const finishOpts = lootOptions(profileBeforeFinish, ROUTE, "f", 0, 0);
+const expectedCoins = finishOpts.repeat ? Math.round(60 * 0.6 * finishOpts.payMult) : 60;
 const coinsBefore = await coins();
 const done = await finishLevelService(deps, P, { runId: info.runId, wins });
-ok(done.status === "cleared" && done.bank.cleared && done.bank.coins === 60, "service finish cleared " + JSON.stringify(done.bank));
-ok((await coins()) >= coinsBefore + 60, "service paid coins");
-const exp = levelLoot(levelsOf(ROUTE, "f")[0], 0, "caballero", info.seed, lootOptions(done.profile, ROUTE, "f", 0, 0));
+ok(done.status === "cleared" && done.bank.cleared && done.bank.repeat === finishOpts.repeat && done.bank.coins === expectedCoins,
+  "service finish matches the prior route progress and repeat coin formula " + JSON.stringify({ expectedCoins, repeat: finishOpts.repeat, bank: done.bank }));
+ok((await coins()) === coinsBefore + expectedCoins, "service credited the expected level coins");
+const exp = levelLoot(levelsOf(ROUTE, "f")[0], 0, "caballero", info.seed, finishOpts);
 ok(JSON.stringify(done.loot.pieces) === JSON.stringify(exp.pieces), "service loot = engine loot for the server seed");
 ok(done.profile.dungeons.routes[`${ROUTE}:f:0`] === 1, "profile shows route progress");
 await err(finishLevelService(deps, P, { runId: info.runId, wins }), "duplicate_run", "service: replay twice");

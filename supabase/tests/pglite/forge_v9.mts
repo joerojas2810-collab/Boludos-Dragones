@@ -29,7 +29,7 @@ await db.exec(`insert into public.part_stock(player_id,key,qty) values
   ('${U}','p-daga-f',2),('${U}','p-maza-a',1),('${U}','p-libro-c',1),
   ('${U}','core-agua',2),('${U}','core-rayo',1)`);
 await db.exec(`delete from public.migration_flags where key='0041_forge_v9'`);
-const reapply = async () => { for (const f of ["0041_forge_v9.sql", "0042_forge_v9_fixes.sql", "0050_hero_copies.sql", "0053_piece_copies.sql"]) await db.exec(fs.readFileSync(new URL("../../migrations/" + f, import.meta.url), "utf8")); };
+const reapply = async () => { for (const f of ["0041_forge_v9.sql", "0042_forge_v9_fixes.sql", "0050_hero_copies.sql", "0053_piece_copies.sql", "0056_dungeon_routes.sql"]) await db.exec(fs.readFileSync(new URL("../../migrations/" + f, import.meta.url), "utf8")); };
 await reapply();
 const s = await st();
 ok(s.escamas === 11 && s.dados === 3 && s.coins === 190, "conversion " + JSON.stringify(s));
@@ -46,12 +46,12 @@ for (const r of ["f", "e", "d", "c", "b", "a", "s"] as const)
     for (const rep of [false, true])
       for (const n of [1, 15, 25, 50, 100]) {
         const m = rep ? levelDecay(n) : 1;
-        const sql = (await q(`select public.level_escamas('${r}', ${asc}, ${rep}, ${m}) v`))[0].v;
+        const sql = (await q(`select public.difficulty_level_escamas('${r}', ${asc}, ${rep}, ${m}) v`))[0].v;
         if (sql !== levelEscamas(r, asc, rep, m)) { bad++; console.log("parity", r, asc, rep, m, sql, levelEscamas(r, asc, rep, m)); }
       }
 ok(bad === 0, "level_escamas parity with levelEscamas");
-ok((await q(`select public.level_count('ss') v`))[0].v === null, "SS is rejected as a difficulty");
-ok((await q(`select public.level_count('ssr') v`))[0].v === null, "SSR is rejected as a difficulty");
+ok((await q(`select public.difficulty_level_count('ss') v`))[0].v === null, "SS is rejected as a difficulty");
+ok((await q(`select public.difficulty_level_count('ssr') v`))[0].v === null, "SSR is rejected as a difficulty");
 
 // 3. bank_level in an S dungeon: Escamas on every clear, Dado only on the last level, 2 per day
 const h0 = generateCharacter(createRng(11), "caballero");
