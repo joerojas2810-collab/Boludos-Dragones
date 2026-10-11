@@ -178,13 +178,13 @@ function ActionButton({
   if (chip)
     return (
       <Tooltip tip={tip} className="block min-w-0">
-        <button className="cmd-chip w-full" data-hot={hot ? "" : undefined} disabled={disabled} onClick={onClick}>
-          {icon && <Icon name={icon} className="h-7 shrink-0" />}
-          <span className="min-w-0">
-            <span className="block truncate text-[15px] font-bold leading-tight">{title}</span>
-            <span className="block truncate text-[11px] leading-tight text-[#aebccb]">{sub}</span>
-            {meta && <span className="block truncate text-[10px] leading-tight text-[#d9d2ca]">{meta}</span>}
-            {disabledReason && <span className="block truncate text-[10px] leading-tight text-amber-200">{disabledReason}</span>}
+        <button className="cmd-chip !h-auto min-h-[6rem] w-full flex-col gap-0.5 px-1 py-1 text-center disabled:!opacity-80" data-hot={hot ? "" : undefined} disabled={disabled} onClick={onClick}>
+          {icon && <Icon name={icon} className="h-5 shrink-0" />}
+          <span className="min-w-0 break-words text-center [overflow-wrap:anywhere]">
+            <span className="block whitespace-normal text-xs font-bold leading-tight">{title}</span>
+            <span className={`block whitespace-normal text-[10px] leading-tight ${disabled ? "text-[#fff1d0]" : "text-[#aebccb]"}`}>{sub}</span>
+            {meta && <span className="block whitespace-normal text-[9px] leading-tight text-[#d9d2ca]">{meta}</span>}
+            {disabledReason && <span className="block whitespace-normal text-[9px] leading-tight text-amber-200">{disabledReason}</span>}
           </span>
         </button>
       </Tooltip>
@@ -196,33 +196,33 @@ function ActionButton({
       placement={left ? "side" : "auto"}
     >
       <button
-        className={`btn h-full w-full min-w-0 motion-safe:transition-transform motion-safe:active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none max-md:![border-width:6px_10px] max-md:![border-image-width:6px_10px] max-md:!px-1 max-md:!py-0.5 ${left ? "min-h-11 !px-2 !py-1" : "min-h-14 max-md:min-h-[4.25rem] md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1"} ${hot ? "!border-yellow-300" : ""}`}
+        className={`btn h-full w-full min-w-0 motion-safe:transition-transform motion-safe:active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none max-md:![border-width:6px_10px] max-md:![border-image-width:6px_10px] max-md:!px-1 max-md:!py-1 ${left ? "min-h-11 !px-2 !py-1" : "min-h-14 max-md:min-h-[5.25rem] md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1"} ${hot ? "!border-yellow-300" : ""}`}
         disabled={disabled}
         onClick={onClick}
         aria-label={`${title}. ${sub}${meta ? `. ${meta}` : ""}${disabledReason ? `. ${disabledReason}` : ""}`}
       >
         <div
-          className={`flex min-w-0 items-center gap-2 ${left ? "justify-start text-left" : "justify-center"}`}
+          className={`flex min-w-0 items-center gap-2 max-md:flex-col max-md:justify-center max-md:gap-0.5 max-md:text-center ${left ? "justify-start text-left" : "justify-center"}`}
         >
           {icon && (
             <Icon
               name={icon}
-              className={`shrink-0 max-md:h-7 ${left ? "h-6" : "h-8"}`}
+              className={`shrink-0 max-md:h-6 ${left ? "h-6" : "h-8"}`}
             />
           )}
           <div className="min-w-0">
             <div
-              className={`font-semibold leading-tight max-md:text-sm ${left ? "text-sm" : "text-base"}`}
+              className={`break-words font-semibold leading-tight [overflow-wrap:anywhere] max-md:text-[13px] ${left ? "text-sm" : "text-base"} ${disabled ? "max-md:!text-[#fff3d6]" : ""}`}
             >
               {title}
             </div>
             <div
-              className={`leading-snug !text-[#24382f] max-md:truncate max-md:text-xs max-md:leading-tight ${left ? "text-xs" : "text-sm"}`}
+              className={`whitespace-normal break-words leading-snug [overflow-wrap:anywhere] max-md:text-[11px] max-md:leading-tight ${disabled ? "!text-[#fff3d6]" : "!text-[#24382f]"} ${left ? "text-xs" : "text-sm"}`}
             >
               {sub}
             </div>
-            {meta && <div className="!text-[11px] leading-tight !text-[#24382f] max-md:truncate">{meta}</div>}
-            {disabledReason && <div className="text-[11px] leading-tight text-amber-100 max-md:truncate" title={disabledReason}>{disabledReason}</div>}
+            {meta && <div className={`whitespace-normal break-words !text-[11px] leading-tight [overflow-wrap:anywhere] ${disabled ? "!text-[#fff3d6]" : "!text-[#24382f]"}`}>{meta}</div>}
+            {disabledReason && <div className="whitespace-normal break-words text-[11px] leading-tight text-amber-100 [overflow-wrap:anywhere]" title={disabledReason}>{disabledReason}</div>}
           </div>
         </div>
       </button>
@@ -342,10 +342,10 @@ export function ActionPanel({
       )}
       {!over && (
         <div
-          className={`grid grid-cols-3 gap-1.5 sm:gap-2 ${side ? (float ? "md:grid-cols-2" : "md:grid-cols-1") : "md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]"}`}
+          className={`grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 ${side ? (float ? "md:grid-cols-2" : "md:grid-cols-1") : "md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]"}`}
         >
           {basicAction()}
-          {universalActions()}
+          {universalActions().slice(0, 4)}
           <ActionButton
             left={float}
             tip={defendTip(b)}
@@ -356,6 +356,7 @@ export function ActionPanel({
             meta="Sin enfriamiento · Objetivo: tú"
             hot={perfect}
           />
+          {universalActions().slice(4)}
           {auto && (
             <ActionButton
               left={float}
@@ -409,7 +410,7 @@ export function ActionPanel({
             </div>
             <div className="grid min-w-0 flex-1 grid-cols-7 gap-1.5">
               {basicAction(true)}
-              {universalActions(true)}
+              {universalActions(true).slice(0, 4)}
               <ActionButton
                 chip
                 tip={defendTip(b)}
@@ -420,6 +421,7 @@ export function ActionPanel({
                 meta="CD — · Tú"
                 hot={perfect}
               />
+              {universalActions(true).slice(4)}
             </div>
             {auto && (
               <Tooltip tip={autoTip(auto.reason)}>
