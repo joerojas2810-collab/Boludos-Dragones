@@ -1,0 +1,137 @@
+[
+  {
+    "id": "sword",
+    "name": "Espada",
+    "oldSrc": "/art/weapons/icon_weapon_sword_fire.webp",
+    "src": "/art/equipment-painted-v2/sword_fire.webp",
+    "note": "Arma de una mano, silueta clara y metal con volumen.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "greatsword",
+    "name": "Mandoble",
+    "oldSrc": "/art/weapons/icon_weapon_sword_fire.webp",
+    "src": "/art/equipment-painted-v2/greatsword_fire.webp",
+    "note": "Diseño propio de dos manos, distinto de la espada.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "hammer",
+    "name": "Martillo",
+    "oldSrc": "/art/weapons/icon_weapon_axe_fire.webp",
+    "src": "/art/equipment-painted-v2/hammer_fire.webp",
+    "note": "Cabeza contundente de martillo, distinta del hacha actual.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "chest",
+    "name": "Armadura",
+    "oldSrc": "/art/equipment/icon_equipment_chest_fire.webp",
+    "src": "/art/equipment-painted-v2/chest_fire.webp",
+    "note": "Peto compatible con el acabado de los héroes.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "axe",
+    "name": "Hacha",
+    "oldSrc": "/art/weapons/icon_weapon_axe_fire.webp",
+    "src": "/art/equipment-painted-v2/axe_fire.webp",
+    "note": "Diseño base de Fuego · Acabado aprobado de EQUIPAMIENTO.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "bow",
+    "name": "Arco",
+    "oldSrc": "/art/weapons/icon_weapon_bow_fire.webp",
+    "src": "/art/equipment-painted-v2/bow_fire.webp",
+    "note": "Diseño base de Fuego · Acabado aprobado de EQUIPAMIENTO.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "staff",
+    "name": "Bastón",
+    "oldSrc": "/art/weapons/icon_weapon_staff_fire.webp",
+    "src": "/art/equipment-painted-v2/staff_fire.webp",
+    "note": "Diseño base de Fuego · Acabado aprobado de EQUIPAMIENTO.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "dagger",
+    "name": "Daga",
+    "oldSrc": "/art/weapons/icon_weapon_dagger_fire.webp",
+    "src": "/art/equipment-painted-v2/dagger_fire.webp",
+    "note": "Diseño base de Fuego · Acabado aprobado de EQUIPAMIENTO.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "mace",
+    "name": "Maza",
+    "oldSrc": "/art/weapons/icon_weapon_mace_fire.webp",
+    "src": "/art/equipment-painted-v2/mace_fire.webp",
+    "note": "Diseño base de Fuego · Acabado aprobado de EQUIPAMIENTO.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "wand",
+    "name": "Varita",
+    "oldSrc": "/art/weapons/icon_weapon_wand_fire.webp",
+    "src": "/art/equipment-painted-v2/wand_fire.webp",
+    "note": "Diseño base de Fuego · Acabado aprobado de EQUIPAMIENTO.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "book",
+    "name": "Libro",
+    "oldSrc": "/art/weapons/icon_weapon_book_fire.webp",
+    "src": "/art/equipment-painted-v2/book_fire.webp",
+    "note": "Diseño base de Fuego · Acabado aprobado de EQUIPAMIENTO.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "helmet",
+    "name": "Casco",
+    "oldSrc": "/art/equipment/icon_equipment_helmet_fire.webp",
+    "src": "/art/equipment-painted-v2/helmet_fire.webp",
+    "note": "Diseño base de Fuego · Acabado aprobado de EQUIPAMIENTO.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "legs",
+    "name": "Piernas",
+    "oldSrc": "/art/equipment/icon_equipment_legs_fire.webp",
+    "src": "/art/equipment-painted-v2/legs_fire.webp",
+    "note": "Diseño base de Fuego · Acabado aprobado de EQUIPAMIENTO.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "boots",
+    "name": "Botas",
+    "oldSrc": "/art/equipment/icon_equipment_boots_fire.webp",
+    "src": "/art/equipment-painted-v2/boots_fire.webp",
+    "note": "Diseño base de Fuego · Acabado aprobado de EQUIPAMIENTO.",
+    "width": 512,
+    "height": 512
+  },
+  {
+    "id": "necklace",
+    "name": "Collar",
+    "oldSrc": "/art/equipment/icon_equipment_necklace_fire.webp",
+    "src": "/art/equipment-painted-v2/necklace_fire.webp",
+    "note": "Diseño base de Fuego · Acabado aprobado de EQUIPAMIENTO.",
+    "width": 512,
+    "height": 512
+  }
+]

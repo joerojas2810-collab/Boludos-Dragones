@@ -1,0 +1,857 @@
+{
+  "espada": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/sword_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 58,
+        "y": 42,
+        "width": 400,
+        "height": 423
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/sword_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 58,
+        "y": 42,
+        "width": 400,
+        "height": 423
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/sword_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 58,
+        "y": 42,
+        "width": 400,
+        "height": 423
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/sword_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 58,
+        "y": 42,
+        "width": 400,
+        "height": 423
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/sword_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 58,
+        "y": 42,
+        "width": 400,
+        "height": 423
+      }
+    }
+  },
+  "mandoble": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/greatsword_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 16,
+        "y": 17,
+        "width": 482,
+        "height": 479
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/greatsword_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 16,
+        "y": 17,
+        "width": 482,
+        "height": 479
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/greatsword_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 16,
+        "y": 17,
+        "width": 482,
+        "height": 479
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/greatsword_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 16,
+        "y": 17,
+        "width": 482,
+        "height": 479
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/greatsword_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 16,
+        "y": 17,
+        "width": 482,
+        "height": 479
+      }
+    }
+  },
+  "martillo": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/hammer_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 21,
+        "y": 18,
+        "width": 472,
+        "height": 471
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/hammer_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 21,
+        "y": 18,
+        "width": 472,
+        "height": 471
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/hammer_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 21,
+        "y": 18,
+        "width": 472,
+        "height": 471
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/hammer_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 21,
+        "y": 18,
+        "width": 472,
+        "height": 471
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/hammer_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 21,
+        "y": 18,
+        "width": 472,
+        "height": 471
+      }
+    }
+  },
+  "peto": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/chest_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 41,
+        "y": 36,
+        "width": 432,
+        "height": 444
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/chest_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 41,
+        "y": 36,
+        "width": 432,
+        "height": 444
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/chest_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 41,
+        "y": 36,
+        "width": 432,
+        "height": 444
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/chest_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 41,
+        "y": 36,
+        "width": 432,
+        "height": 444
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/chest_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 41,
+        "y": 36,
+        "width": 432,
+        "height": 444
+      }
+    }
+  },
+  "hacha": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/axe_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 48,
+        "y": 24,
+        "width": 434,
+        "height": 450
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/axe_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 48,
+        "y": 24,
+        "width": 434,
+        "height": 450
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/axe_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 48,
+        "y": 24,
+        "width": 434,
+        "height": 450
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/axe_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 48,
+        "y": 24,
+        "width": 434,
+        "height": 450
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/axe_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 48,
+        "y": 24,
+        "width": 434,
+        "height": 450
+      }
+    }
+  },
+  "arco": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/bow_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 63,
+        "y": 20,
+        "width": 415,
+        "height": 468
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/bow_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 63,
+        "y": 20,
+        "width": 415,
+        "height": 468
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/bow_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 63,
+        "y": 20,
+        "width": 415,
+        "height": 468
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/bow_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 63,
+        "y": 20,
+        "width": 415,
+        "height": 468
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/bow_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 63,
+        "y": 20,
+        "width": 415,
+        "height": 468
+      }
+    }
+  },
+  "baston": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/staff_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 41,
+        "y": 34,
+        "width": 440,
+        "height": 451
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/staff_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 41,
+        "y": 34,
+        "width": 440,
+        "height": 451
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/staff_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 41,
+        "y": 34,
+        "width": 440,
+        "height": 451
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/staff_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 41,
+        "y": 34,
+        "width": 440,
+        "height": 451
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/staff_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 41,
+        "y": 34,
+        "width": 440,
+        "height": 451
+      }
+    }
+  },
+  "daga": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/dagger_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 51,
+        "y": 48,
+        "width": 411,
+        "height": 424
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/dagger_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 51,
+        "y": 48,
+        "width": 411,
+        "height": 424
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/dagger_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 51,
+        "y": 48,
+        "width": 411,
+        "height": 424
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/dagger_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 51,
+        "y": 48,
+        "width": 411,
+        "height": 424
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/dagger_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 51,
+        "y": 48,
+        "width": 411,
+        "height": 424
+      }
+    }
+  },
+  "maza": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/mace_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 64,
+        "y": 40,
+        "width": 411,
+        "height": 430
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/mace_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 64,
+        "y": 40,
+        "width": 411,
+        "height": 430
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/mace_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 64,
+        "y": 40,
+        "width": 411,
+        "height": 430
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/mace_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 64,
+        "y": 40,
+        "width": 411,
+        "height": 430
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/mace_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 64,
+        "y": 40,
+        "width": 411,
+        "height": 430
+      }
+    }
+  },
+  "varita": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/wand_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 68,
+        "y": 36,
+        "width": 382,
+        "height": 439
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/wand_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 68,
+        "y": 36,
+        "width": 382,
+        "height": 439
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/wand_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 68,
+        "y": 36,
+        "width": 382,
+        "height": 439
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/wand_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 68,
+        "y": 36,
+        "width": 382,
+        "height": 439
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/wand_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 68,
+        "y": 36,
+        "width": 382,
+        "height": 439
+      }
+    }
+  },
+  "libro": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/book_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 40,
+        "y": 33,
+        "width": 438,
+        "height": 446
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/book_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 40,
+        "y": 33,
+        "width": 438,
+        "height": 446
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/book_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 40,
+        "y": 33,
+        "width": 438,
+        "height": 446
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/book_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 40,
+        "y": 33,
+        "width": 438,
+        "height": 446
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/book_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 40,
+        "y": 33,
+        "width": 438,
+        "height": 446
+      }
+    }
+  },
+  "casco": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/helmet_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 47,
+        "y": 21,
+        "width": 393,
+        "height": 466
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/helmet_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 47,
+        "y": 21,
+        "width": 393,
+        "height": 466
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/helmet_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 47,
+        "y": 21,
+        "width": 393,
+        "height": 466
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/helmet_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 47,
+        "y": 21,
+        "width": 393,
+        "height": 466
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/helmet_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 47,
+        "y": 21,
+        "width": 393,
+        "height": 466
+      }
+    }
+  },
+  "piernas": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/legs_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 110,
+        "y": 39,
+        "width": 312,
+        "height": 434
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/legs_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 110,
+        "y": 39,
+        "width": 312,
+        "height": 434
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/legs_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 110,
+        "y": 39,
+        "width": 312,
+        "height": 434
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/legs_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 110,
+        "y": 39,
+        "width": 312,
+        "height": 434
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/legs_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 110,
+        "y": 39,
+        "width": 312,
+        "height": 434
+      }
+    }
+  },
+  "zapatos": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/boots_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 64,
+        "y": 75,
+        "width": 421,
+        "height": 392
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/boots_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 64,
+        "y": 75,
+        "width": 421,
+        "height": 392
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/boots_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 64,
+        "y": 75,
+        "width": 421,
+        "height": 392
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/boots_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 64,
+        "y": 75,
+        "width": 421,
+        "height": 392
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/boots_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 64,
+        "y": 75,
+        "width": 421,
+        "height": 392
+      }
+    }
+  },
+  "collar": {
+    "fuego": {
+      "src": "/art/equipment-painted-v2/necklace_fire.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 88,
+        "y": 37,
+        "width": 374,
+        "height": 441
+      }
+    },
+    "agua": {
+      "src": "/art/equipment-painted-v2/necklace_water.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 88,
+        "y": 37,
+        "width": 374,
+        "height": 441
+      }
+    },
+    "tierra": {
+      "src": "/art/equipment-painted-v2/necklace_earth.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 88,
+        "y": 37,
+        "width": 374,
+        "height": 441
+      }
+    },
+    "rayo": {
+      "src": "/art/equipment-painted-v2/necklace_lightning.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 88,
+        "y": 37,
+        "width": 374,
+        "height": 441
+      }
+    },
+    "viento": {
+      "src": "/art/equipment-painted-v2/necklace_wind.webp",
+      "width": 512,
+      "height": 512,
+      "bounds": {
+        "x": 88,
+        "y": 37,
+        "width": 374,
+        "height": 441
+      }
+    }
+  }
+}

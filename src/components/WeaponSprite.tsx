@@ -5,6 +5,8 @@ import { gearIconSrc, handIconSrc } from "@/lib/art";
 import { isPixel } from "@/lib/art/pixel";
 import { isGearType, type WeaponType } from "@/lib/game/weapons";
 import { WEAPON_SIZE, WEAPON_SPRITES_BY_TYPE } from "@/sprites/weapons";
+import { paintedEquipment } from "@/lib/art/painted-equipment";
+import { PaintedEquipmentImage } from "./PaintedEquipmentImage";
 
 // ponytail: flip to false to render the old code-drawn SVG weapons.
 const PAINTED_HANDS = true;
@@ -22,6 +24,8 @@ export function WeaponSprite({
   rarity = "f",
   className = "",
 }: Props) {
+  const equipment=!isPixel() ? paintedEquipment(type,element) : undefined;
+  if(equipment)return <PaintedEquipmentImage image={equipment} className={`aspect-square ${className}`} />;
   if (isGearType(type)) {
     return (
       // eslint-disable-next-line @next/next/no-img-element

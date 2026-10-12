@@ -10,6 +10,7 @@ import { StarRow } from "./StarRow";
 import { WeaponSprite } from "./WeaponSprite";
 import { specialLine } from "@/lib/viewModels";
 import { isPixel, pixelCardOpening } from "@/lib/art/pixel";
+import { equipmentPortraitInsets } from "./PaintedEquipmentImage";
 
 // Plain display model: pages map their game objects to this.
 type Base = {
@@ -89,12 +90,13 @@ export function ItemCard({
               />
             ) : (
               // Pieces: keep the icon above the info strip so the text never covers it.
-              <div className={`absolute bottom-[34%] ${isPixel() ? "pixel-card-object inset-x-2.5 top-3.5" : "inset-x-0 top-[8%]"} flex items-center justify-center`}>
+              <div className={`absolute ${isPixel() ? "pixel-card-object bottom-[34%] inset-x-2.5 top-3.5" : ""} flex items-center justify-center`}
+                style={isPixel()?undefined:equipmentPortraitInsets(big,!!item.lines?.some(line=>line.length<=22))}>
                 <WeaponSprite
                   type={item.type}
                   element={item.element}
                   rarity={item.rarity}
-                  className={isPixel() ? "h-full w-full object-contain" : "h-full w-auto max-w-[86%]"}
+                  className="h-full w-full object-contain"
                 />
               </div>
             )}

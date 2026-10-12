@@ -1,5 +1,6 @@
 import ids from "./artIds.json";
 import { isPixel, isPixelIcon } from "./art/pixel";
+import { paintedEquipment } from "./art/painted-equipment";
 import type { Element } from "@/lib/game/elements";
 import type { ClassId } from "@/lib/game/characters";
 import type { GearType, HandType } from "@/lib/game/weapons";
@@ -34,7 +35,7 @@ export const elementIconSrc = (e: Element) => icon(`element_${ELEMENT_ART[e]}`);
 export const gearIconSrc = (t: GearType, e: Element) =>
   isPixel()
     ? `/art/equipment-px/icon_equipment_${GEAR_ART[t]}_${ELEMENT_ART[e]}.png`
-    : `/art/equipment/icon_equipment_${GEAR_ART[t]}_${ELEMENT_ART[e]}.webp`;
+    : paintedEquipment(t,e)?.src ?? `/art/equipment/icon_equipment_${GEAR_ART[t]}_${ELEMENT_ART[e]}.webp`;
 
 // Forge materials: painted icon names (Escamas, Dado cargado).
 export const MATERIAL_ICON = { escamas: "material_scales", dado: "material_loaded_die" } as const;
@@ -67,4 +68,4 @@ export const HAND_ART: Record<HandType, string> = {
 export const handIconSrc = (t: HandType, e: Element) =>
   isPixel()
     ? `/art/weapons-px/icon_weapon_${HAND_ART[t]}_${ELEMENT_ART[e]}.png`
-    : `/art/weapons/icon_weapon_${HAND_ART[t]}_${ELEMENT_ART[e]}.webp`;
+    : paintedEquipment(t,e)?.src ?? `/art/weapons/icon_weapon_${HAND_ART[t]}_${ELEMENT_ART[e]}.webp`;
