@@ -1,0 +1,1018 @@
+{
+  "schemaVersion": 1,
+  "engineVersion": 15,
+  "seed": 13013,
+  "runsPerLevel": 100,
+  "ascension": 0,
+  "hero": {
+    "stars": 3,
+    "level": 20,
+    "gearStars": 0,
+    "gearRank": "same-as-hero"
+  },
+  "policy": "autoPolicy",
+  "durationUnit": "turns per attempted dungeon level",
+  "dimensions": {
+    "classes": [
+      "clerigo",
+      "berserker"
+    ],
+    "elements": [
+      "agua",
+      "fuego",
+      "viento",
+      "tierra",
+      "rayo"
+    ],
+    "weapons": [
+      "maza",
+      "libro",
+      "mandoble",
+      "martillo"
+    ],
+    "ranks": [
+      "f",
+      "e",
+      "d",
+      "c",
+      "b",
+      "a",
+      "s",
+      "ss",
+      "ssr"
+    ],
+    "levelsPerRank": {
+      "f": 6,
+      "e": 6,
+      "d": 7,
+      "c": 8,
+      "b": 8,
+      "a": 9,
+      "s": 10,
+      "ss": 11,
+      "ssr": 12
+    }
+  },
+  "notes": [
+    "Only weapons permitted by each class are included (two per class in the current rules).",
+    "Comparison uses the same seed, rank/element fixtures and attempts per level as motor13; the class×rank comparison uses the class's first equipable weapon, matching motor13. The full matrix below also reports both legal weapons.",
+    "Class noise floor from E2_RESULTADO is reported per class; weapon-specific confidence intervals are diagnostic, not approved thresholds.",
+    "Win-rate and duration half-widths assume independent level attempts; compare weapons with paired seeds for tighter causal estimates."
+  ],
+  "runtimeMs": 104614,
+  "runtimeSeconds": 104.614,
+  "classSummary": [
+    {
+      "classId": "clerigo",
+      "approvedE2NoiseFloorPp": 0.31,
+      "attempts": 77000,
+      "winRate": 0.7309610389610389,
+      "meanTurnsPerLevel": 31.303324675324674,
+      "winRate95HalfWidthPp": 0.3132314868169926,
+      "duration95HalfWidthTurns": 0.09590582940251367
+    },
+    {
+      "classId": "berserker",
+      "approvedE2NoiseFloorPp": 0.54,
+      "attempts": 77000,
+      "winRate": 0.6547402597402597,
+      "meanTurnsPerLevel": 22.428064935064935,
+      "winRate95HalfWidthPp": 0.33582900419723305,
+      "duration95HalfWidthTurns": 0.05759372048368497
+    }
+  ],
+  "weaponSummary": [
+    {
+      "weaponType": "maza",
+      "attempts": 38500,
+      "winRate": 0.7152467532467532,
+      "meanTurnsPerLevel": 31.488857142857142,
+      "winRate95HalfWidthPp": 0.4508042444886536,
+      "duration95HalfWidthTurns": 0.13645354268751556
+    },
+    {
+      "weaponType": "libro",
+      "attempts": 38500,
+      "winRate": 0.7466753246753247,
+      "meanTurnsPerLevel": 31.117792207792206,
+      "winRate95HalfWidthPp": 0.4344405488502994,
+      "duration95HalfWidthTurns": 0.13478038192306135
+    },
+    {
+      "weaponType": "mandoble",
+      "attempts": 38500,
+      "winRate": 0.6773506493506494,
+      "meanTurnsPerLevel": 22.127714285714287,
+      "winRate95HalfWidthPp": 0.46697956904808974,
+      "duration95HalfWidthTurns": 0.07997708216219339
+    },
+    {
+      "weaponType": "martillo",
+      "attempts": 38500,
+      "winRate": 0.6321298701298701,
+      "meanTurnsPerLevel": 22.728415584415586,
+      "winRate95HalfWidthPp": 0.48169942258217724,
+      "duration95HalfWidthTurns": 0.08278877942063784
+    }
+  ],
+  "elementComparison": [
+    {
+      "element": "agua",
+      "attempts": 15400,
+      "winRate": 0.7877922077922078,
+      "meanTurnsPerLevel": 25.734935064935065,
+      "baselineWinRate": 0.7305974025974026,
+      "deltaWinRatePp": 5.719480519480524,
+      "baselineMeanTurns": 25.36888311688312,
+      "deltaDurationPercent": 1.4429170821806503
+    },
+    {
+      "element": "fuego",
+      "attempts": 15400,
+      "winRate": 0.7325324675324675,
+      "meanTurnsPerLevel": 25.337662337662337,
+      "baselineWinRate": 0.6988051948051948,
+      "deltaWinRatePp": 3.3727272727272717,
+      "baselineMeanTurns": 25.09064935064935,
+      "deltaDurationPercent": 0.9844822410169929
+    },
+    {
+      "element": "viento",
+      "attempts": 15400,
+      "winRate": 0.7125324675324676,
+      "meanTurnsPerLevel": 26.947012987012986,
+      "baselineWinRate": 0.6601038961038961,
+      "deltaWinRatePp": 5.242857142857149,
+      "baselineMeanTurns": 26.58992207792208,
+      "deltaDurationPercent": 1.3429558313275525
+    },
+    {
+      "element": "tierra",
+      "attempts": 15400,
+      "winRate": 0.6234415584415585,
+      "meanTurnsPerLevel": 27.649350649350648,
+      "baselineWinRate": 0.585948051948052,
+      "deltaWinRatePp": 3.7493506493506468,
+      "baselineMeanTurns": 27.52612987012987,
+      "deltaDurationPercent": 0.44765021382280334
+    },
+    {
+      "element": "rayo",
+      "attempts": 15400,
+      "winRate": 0.6251948051948052,
+      "meanTurnsPerLevel": 28.37246753246753,
+      "baselineWinRate": 0.609012987012987,
+      "deltaWinRatePp": 1.6181818181818186,
+      "baselineMeanTurns": 28.19922077922078,
+      "deltaDurationPercent": 0.6143671649764482
+    }
+  ],
+  "classElementComparison": [
+    {
+      "classId": "clerigo",
+      "element": "agua",
+      "attempts": 7700,
+      "winRate": 0.8154545454545454,
+      "meanTurnsPerLevel": 30.042727272727273,
+      "baselineWinRate": 0.8032467532467532,
+      "deltaWinRatePp": 1.2207792207792223,
+      "baselineMeanTurns": 39.68038961038961,
+      "deltaDurationPercent": -24.288225071103852
+    },
+    {
+      "classId": "clerigo",
+      "element": "fuego",
+      "attempts": 7700,
+      "winRate": 0.7454545454545455,
+      "meanTurnsPerLevel": 29.273896103896103,
+      "baselineWinRate": 0.7538961038961038,
+      "deltaWinRatePp": -0.8441558441558361,
+      "baselineMeanTurns": 40.15844155844156,
+      "deltaDurationPercent": -27.10400362201669
+    },
+    {
+      "classId": "clerigo",
+      "element": "viento",
+      "attempts": 7700,
+      "winRate": 0.7385714285714285,
+      "meanTurnsPerLevel": 31.874155844155844,
+      "baselineWinRate": 0.7314285714285714,
+      "deltaWinRatePp": 0.7142857142857117,
+      "baselineMeanTurns": 43.41298701298701,
+      "deltaDurationPercent": -26.57921502931674
+    },
+    {
+      "classId": "clerigo",
+      "element": "tierra",
+      "attempts": 7700,
+      "winRate": 0.6380519480519481,
+      "meanTurnsPerLevel": 32.60142857142857,
+      "baselineWinRate": 0.6364935064935064,
+      "deltaWinRatePp": 0.15584415584416478,
+      "baselineMeanTurns": 46.726493506493505,
+      "deltaDurationPercent": -30.229242288642943
+    },
+    {
+      "classId": "clerigo",
+      "element": "rayo",
+      "attempts": 7700,
+      "winRate": 0.6387012987012987,
+      "meanTurnsPerLevel": 33.65207792207792,
+      "baselineWinRate": 0.6416883116883116,
+      "deltaWinRatePp": -0.29870129870129825,
+      "baselineMeanTurns": 48.69987012987013,
+      "deltaDurationPercent": -30.899039705164675
+    },
+    {
+      "classId": "berserker",
+      "element": "agua",
+      "attempts": 7700,
+      "winRate": 0.7601298701298701,
+      "meanTurnsPerLevel": 21.427142857142858,
+      "baselineWinRate": 0.7419480519480519,
+      "deltaWinRatePp": 1.8181818181818188,
+      "baselineMeanTurns": 24.28987012987013,
+      "deltaDurationPercent": -11.785683733264896
+    },
+    {
+      "classId": "berserker",
+      "element": "fuego",
+      "attempts": 7700,
+      "winRate": 0.7196103896103896,
+      "meanTurnsPerLevel": 21.40142857142857,
+      "baselineWinRate": 0.707012987012987,
+      "deltaWinRatePp": 1.2597402597402607,
+      "baselineMeanTurns": 23.843376623376624,
+      "deltaDurationPercent": -10.241620096517323
+    },
+    {
+      "classId": "berserker",
+      "element": "viento",
+      "attempts": 7700,
+      "winRate": 0.6864935064935065,
+      "meanTurnsPerLevel": 22.01987012987013,
+      "baselineWinRate": 0.6706493506493506,
+      "deltaWinRatePp": 1.5844155844155883,
+      "baselineMeanTurns": 24.814285714285713,
+      "deltaDurationPercent": -11.261317841628715
+    },
+    {
+      "classId": "berserker",
+      "element": "tierra",
+      "attempts": 7700,
+      "winRate": 0.6088311688311688,
+      "meanTurnsPerLevel": 22.69727272727273,
+      "baselineWinRate": 0.6044155844155844,
+      "deltaWinRatePp": 0.4415584415584428,
+      "baselineMeanTurns": 25.363896103896103,
+      "deltaDurationPercent": -10.513461203674302
+    },
+    {
+      "classId": "berserker",
+      "element": "rayo",
+      "attempts": 7700,
+      "winRate": 0.6116883116883117,
+      "meanTurnsPerLevel": 23.09285714285714,
+      "baselineWinRate": 0.6506493506493507,
+      "deltaWinRatePp": -3.8961038961038974,
+      "baselineMeanTurns": 25.669350649350648,
+      "deltaDurationPercent": -10.037236787517578
+    }
+  ],
+  "allLegalElementSummary": [
+    {
+      "element": "agua",
+      "attempts": 30800,
+      "winRate": 0.7834090909090909,
+      "meanTurnsPerLevel": 25.755844155844155,
+      "winRate95HalfWidthPp": 0.46003950623317846,
+      "duration95HalfWidthTurns": 0.1258703621522842
+    },
+    {
+      "element": "fuego",
+      "attempts": 30800,
+      "winRate": 0.7296753246753247,
+      "meanTurnsPerLevel": 25.42779220779221,
+      "winRate95HalfWidthPp": 0.49600766532091006,
+      "duration95HalfWidthTurns": 0.12029079699267778
+    },
+    {
+      "element": "viento",
+      "attempts": 30800,
+      "winRate": 0.7075324675324676,
+      "meanTurnsPerLevel": 26.972012987012988,
+      "winRate95HalfWidthPp": 0.508033944096869,
+      "duration95HalfWidthTurns": 0.13430370481570694
+    },
+    {
+      "element": "tierra",
+      "attempts": 30800,
+      "winRate": 0.620974025974026,
+      "meanTurnsPerLevel": 27.72077922077922,
+      "winRate95HalfWidthPp": 0.5418161136185498,
+      "duration95HalfWidthTurns": 0.1415660870105059
+    },
+    {
+      "element": "rayo",
+      "attempts": 30800,
+      "winRate": 0.6226623376623377,
+      "meanTurnsPerLevel": 28.452045454545456,
+      "winRate95HalfWidthPp": 0.5413424564418593,
+      "duration95HalfWidthTurns": 0.14591694513090753
+    }
+  ],
+  "allLegalClassElementSummary": [
+    {
+      "classId": "clerigo",
+      "element": "agua",
+      "attempts": 15400,
+      "winRate": 0.8301948051948052,
+      "meanTurnsPerLevel": 29.671948051948053,
+      "winRate95HalfWidthPp": 0.593008888380243,
+      "duration95HalfWidthTurns": 0.20111220680401412
+    },
+    {
+      "classId": "clerigo",
+      "element": "fuego",
+      "attempts": 15400,
+      "winRate": 0.7612337662337663,
+      "meanTurnsPerLevel": 29.20194805194805,
+      "winRate95HalfWidthPp": 0.673350500905637,
+      "duration95HalfWidthTurns": 0.19108220135548226
+    },
+    {
+      "classId": "clerigo",
+      "element": "viento",
+      "attempts": 15400,
+      "winRate": 0.7500649350649351,
+      "meanTurnsPerLevel": 31.55051948051948,
+      "winRate95HalfWidthPp": 0.6838466717571479,
+      "duration95HalfWidthTurns": 0.21281013303369742
+    },
+    {
+      "classId": "clerigo",
+      "element": "tierra",
+      "attempts": 15400,
+      "winRate": 0.6575974025974026,
+      "meanTurnsPerLevel": 32.50675324675325,
+      "winRate95HalfWidthPp": 0.7494527901062525,
+      "duration95HalfWidthTurns": 0.22563596665135305
+    },
+    {
+      "classId": "clerigo",
+      "element": "rayo",
+      "attempts": 15400,
+      "winRate": 0.6557142857142857,
+      "meanTurnsPerLevel": 33.585454545454546,
+      "winRate95HalfWidthPp": 0.7504340562149833,
+      "duration95HalfWidthTurns": 0.23099896395608255
+    },
+    {
+      "classId": "berserker",
+      "element": "agua",
+      "attempts": 15400,
+      "winRate": 0.7366233766233766,
+      "meanTurnsPerLevel": 21.83974025974026,
+      "winRate95HalfWidthPp": 0.6956760820377966,
+      "duration95HalfWidthTurns": 0.12360270455176602
+    },
+    {
+      "classId": "berserker",
+      "element": "fuego",
+      "attempts": 15400,
+      "winRate": 0.6981168831168831,
+      "meanTurnsPerLevel": 21.653636363636362,
+      "winRate95HalfWidthPp": 0.7250687606969026,
+      "duration95HalfWidthTurns": 0.11942330817763509
+    },
+    {
+      "classId": "berserker",
+      "element": "viento",
+      "attempts": 15400,
+      "winRate": 0.665,
+      "meanTurnsPerLevel": 22.393506493506493,
+      "winRate95HalfWidthPp": 0.7454678823640651,
+      "duration95HalfWidthTurns": 0.12808184442337534
+    },
+    {
+      "classId": "berserker",
+      "element": "tierra",
+      "attempts": 15400,
+      "winRate": 0.5843506493506494,
+      "meanTurnsPerLevel": 22.934805194805193,
+      "winRate95HalfWidthPp": 0.7783878164433061,
+      "duration95HalfWidthTurns": 0.133515218154688
+    },
+    {
+      "classId": "berserker",
+      "element": "rayo",
+      "attempts": 15400,
+      "winRate": 0.5896103896103896,
+      "meanTurnsPerLevel": 23.318636363636365,
+      "winRate95HalfWidthPp": 0.7769202719331283,
+      "duration95HalfWidthTurns": 0.13660604963696843
+    }
+  ],
+  "allLegalElementComparison": [
+    {
+      "element": "agua",
+      "attempts": 30800,
+      "winRate": 0.7834090909090909,
+      "meanTurnsPerLevel": 25.755844155844155,
+      "baselineWinRate": 0.7305974025974026,
+      "deltaWinRatePp": 5.281168831168836,
+      "baselineMeanTurns": 25.36888311688312,
+      "deltaDurationPercent": 1.525337308616126
+    },
+    {
+      "element": "fuego",
+      "attempts": 30800,
+      "winRate": 0.7296753246753247,
+      "meanTurnsPerLevel": 25.42779220779221,
+      "baselineWinRate": 0.6988051948051948,
+      "deltaWinRatePp": 3.0870129870129936,
+      "baselineMeanTurns": 25.09064935064935,
+      "deltaDurationPercent": 1.3436992101367506
+    },
+    {
+      "element": "viento",
+      "attempts": 30800,
+      "winRate": 0.7075324675324676,
+      "meanTurnsPerLevel": 26.972012987012988,
+      "baselineWinRate": 0.6601038961038961,
+      "deltaWinRatePp": 4.742857142857149,
+      "baselineMeanTurns": 26.58992207792208,
+      "deltaDurationPercent": 1.4369764152417863
+    },
+    {
+      "element": "tierra",
+      "attempts": 30800,
+      "winRate": 0.620974025974026,
+      "meanTurnsPerLevel": 27.72077922077922,
+      "baselineWinRate": 0.585948051948052,
+      "deltaWinRatePp": 3.502597402597396,
+      "baselineMeanTurns": 27.52612987012987,
+      "deltaDurationPercent": 0.7071439085978293
+    },
+    {
+      "element": "rayo",
+      "attempts": 30800,
+      "winRate": 0.6226623376623377,
+      "meanTurnsPerLevel": 28.452045454545456,
+      "baselineWinRate": 0.609012987012987,
+      "deltaWinRatePp": 1.3649350649350689,
+      "baselineMeanTurns": 28.19922077922078,
+      "deltaDurationPercent": 0.8965661757255772
+    }
+  ],
+  "allLegalClassElementComparison": [
+    {
+      "classId": "clerigo",
+      "element": "agua",
+      "attempts": 15400,
+      "winRate": 0.8301948051948052,
+      "meanTurnsPerLevel": 29.671948051948053,
+      "baselineWinRate": 0.8032467532467532,
+      "deltaWinRatePp": 2.6948051948051943,
+      "baselineMeanTurns": 39.68038961038961,
+      "deltaDurationPercent": -25.22263933573128
+    },
+    {
+      "classId": "clerigo",
+      "element": "fuego",
+      "attempts": 15400,
+      "winRate": 0.7612337662337663,
+      "meanTurnsPerLevel": 29.20194805194805,
+      "baselineWinRate": 0.7538961038961038,
+      "deltaWinRatePp": 0.7337662337662421,
+      "baselineMeanTurns": 40.15844155844156,
+      "deltaDurationPercent": -27.2831640902917
+    },
+    {
+      "classId": "clerigo",
+      "element": "viento",
+      "attempts": 15400,
+      "winRate": 0.7500649350649351,
+      "meanTurnsPerLevel": 31.55051948051948,
+      "baselineWinRate": 0.7314285714285714,
+      "deltaWinRatePp": 1.8636363636363673,
+      "baselineMeanTurns": 43.41298701298701,
+      "deltaDurationPercent": -27.324697858083034
+    },
+    {
+      "classId": "clerigo",
+      "element": "tierra",
+      "attempts": 15400,
+      "winRate": 0.6575974025974026,
+      "meanTurnsPerLevel": 32.50675324675325,
+      "baselineWinRate": 0.6364935064935064,
+      "deltaWinRatePp": 2.110389610389618,
+      "baselineMeanTurns": 46.726493506493505,
+      "deltaDurationPercent": -30.431858229987153
+    },
+    {
+      "classId": "clerigo",
+      "element": "rayo",
+      "attempts": 15400,
+      "winRate": 0.6557142857142857,
+      "meanTurnsPerLevel": 33.585454545454546,
+      "baselineWinRate": 0.6416883116883116,
+      "deltaWinRatePp": 1.4025974025974053,
+      "baselineMeanTurns": 48.69987012987013,
+      "deltaDurationPercent": -31.03584371808239
+    },
+    {
+      "classId": "berserker",
+      "element": "agua",
+      "attempts": 15400,
+      "winRate": 0.7366233766233766,
+      "meanTurnsPerLevel": 21.83974025974026,
+      "baselineWinRate": 0.7419480519480519,
+      "deltaWinRatePp": -0.5324675324675288,
+      "baselineMeanTurns": 24.28987012987013,
+      "deltaDurationPercent": -10.087043928311735
+    },
+    {
+      "classId": "berserker",
+      "element": "fuego",
+      "attempts": 15400,
+      "winRate": 0.6981168831168831,
+      "meanTurnsPerLevel": 21.653636363636362,
+      "baselineWinRate": 0.707012987012987,
+      "deltaWinRatePp": -0.8896103896103846,
+      "baselineMeanTurns": 23.843376623376624,
+      "deltaDurationPercent": -9.183851324117354
+    },
+    {
+      "classId": "berserker",
+      "element": "viento",
+      "attempts": 15400,
+      "winRate": 0.665,
+      "meanTurnsPerLevel": 22.393506493506493,
+      "baselineWinRate": 0.6706493506493506,
+      "deltaWinRatePp": -0.5649350649350571,
+      "baselineMeanTurns": 24.814285714285713,
+      "deltaDurationPercent": -9.75558695765949
+    },
+    {
+      "classId": "berserker",
+      "element": "tierra",
+      "attempts": 15400,
+      "winRate": 0.5843506493506494,
+      "meanTurnsPerLevel": 22.934805194805193,
+      "baselineWinRate": 0.6044155844155844,
+      "deltaWinRatePp": -2.006493506493501,
+      "baselineMeanTurns": 25.363896103896103,
+      "deltaDurationPercent": -9.576962857523219
+    },
+    {
+      "classId": "berserker",
+      "element": "rayo",
+      "attempts": 15400,
+      "winRate": 0.5896103896103896,
+      "meanTurnsPerLevel": 23.318636363636365,
+      "baselineWinRate": 0.6506493506493507,
+      "deltaWinRatePp": -6.103896103896112,
+      "baselineMeanTurns": 25.669350649350648,
+      "deltaDurationPercent": -9.157669462798612
+    }
+  ],
+  "comparison": [
+    {
+      "classId": "clerigo",
+      "rank": "f",
+      "baselineAttempts": 3000,
+      "currentAttempts": 3000,
+      "baselineWinRate": 0.9276666666666666,
+      "currentWinRate": 0.951,
+      "deltaWinRatePp": 2.3333333333333317,
+      "baselineMeanTurns": 27.126666666666665,
+      "currentMeanTurns": 23.065333333333335,
+      "deltaDurationPercent": -14.971737527648054,
+      "approvedClassNoiseFloorPp": 0.31
+    },
+    {
+      "classId": "clerigo",
+      "rank": "e",
+      "baselineAttempts": 3000,
+      "currentAttempts": 3000,
+      "baselineWinRate": 0.881,
+      "currentWinRate": 0.898,
+      "deltaWinRatePp": 1.7000000000000015,
+      "baselineMeanTurns": 40.83833333333333,
+      "currentMeanTurns": 32.52066666666666,
+      "deltaDurationPercent": -20.367301963024943,
+      "approvedClassNoiseFloorPp": 0.31
+    },
+    {
+      "classId": "clerigo",
+      "rank": "d",
+      "baselineAttempts": 3500,
+      "currentAttempts": 3500,
+      "baselineWinRate": 0.8545714285714285,
+      "currentWinRate": 0.8685714285714285,
+      "deltaWinRatePp": 1.4000000000000012,
+      "baselineMeanTurns": 35.80057142857143,
+      "currentMeanTurns": 28.068285714285715,
+      "deltaDurationPercent": -21.598218703612083,
+      "approvedClassNoiseFloorPp": 0.31
+    },
+    {
+      "classId": "clerigo",
+      "rank": "c",
+      "baselineAttempts": 4000,
+      "currentAttempts": 4000,
+      "baselineWinRate": 0.80025,
+      "currentWinRate": 0.817,
+      "deltaWinRatePp": 1.6749999999999932,
+      "baselineMeanTurns": 36.174,
+      "currentMeanTurns": 28.05625,
+      "deltaDurationPercent": -22.440841488361805,
+      "approvedClassNoiseFloorPp": 0.31
+    },
+    {
+      "classId": "clerigo",
+      "rank": "b",
+      "baselineAttempts": 4000,
+      "currentAttempts": 4000,
+      "baselineWinRate": 0.84875,
+      "currentWinRate": 0.832,
+      "deltaWinRatePp": -1.6750000000000043,
+      "baselineMeanTurns": 40.40075,
+      "currentMeanTurns": 30.675,
+      "deltaDurationPercent": -24.073191710549935,
+      "approvedClassNoiseFloorPp": 0.31
+    },
+    {
+      "classId": "clerigo",
+      "rank": "a",
+      "baselineAttempts": 4500,
+      "currentAttempts": 4500,
+      "baselineWinRate": 0.7753333333333333,
+      "currentWinRate": 0.7404444444444445,
+      "deltaWinRatePp": -3.488888888888886,
+      "baselineMeanTurns": 48.14555555555555,
+      "currentMeanTurns": 34.88977777777778,
+      "deltaDurationPercent": -27.53271329994691,
+      "approvedClassNoiseFloorPp": 0.31
+    },
+    {
+      "classId": "clerigo",
+      "rank": "s",
+      "baselineAttempts": 5000,
+      "currentAttempts": 5000,
+      "baselineWinRate": 0.6846,
+      "currentWinRate": 0.6906,
+      "deltaWinRatePp": 0.6000000000000005,
+      "baselineMeanTurns": 49.1044,
+      "currentMeanTurns": 34.2202,
+      "deltaDurationPercent": -30.31133666229503,
+      "approvedClassNoiseFloorPp": 0.31
+    },
+    {
+      "classId": "clerigo",
+      "rank": "ss",
+      "baselineAttempts": 5500,
+      "currentAttempts": 5500,
+      "baselineWinRate": 0.5263636363636364,
+      "currentWinRate": 0.5418181818181819,
+      "deltaWinRatePp": 1.5454545454545499,
+      "baselineMeanTurns": 52.603818181818184,
+      "currentMeanTurns": 34.912727272727274,
+      "deltaDurationPercent": -33.63081145164022,
+      "approvedClassNoiseFloorPp": 0.31
+    },
+    {
+      "classId": "clerigo",
+      "rank": "ssr",
+      "baselineAttempts": 6000,
+      "currentAttempts": 6000,
+      "baselineWinRate": 0.44066666666666665,
+      "currentWinRate": 0.4315,
+      "deltaWinRatePp": -0.9166666666666656,
+      "baselineMeanTurns": 49.471333333333334,
+      "currentMeanTurns": 32.04566666666667,
+      "deltaDurationPercent": -35.223765951999134,
+      "approvedClassNoiseFloorPp": 0.31
+    },
+    {
+      "classId": "berserker",
+      "rank": "f",
+      "baselineAttempts": 3000,
+      "currentAttempts": 3000,
+      "baselineWinRate": 0.9603333333333334,
+      "currentWinRate": 0.9496666666666667,
+      "deltaWinRatePp": -1.0666666666666713,
+      "baselineMeanTurns": 19.754666666666665,
+      "currentMeanTurns": 19.424333333333333,
+      "deltaDurationPercent": -1.6721787257019338,
+      "approvedClassNoiseFloorPp": 0.54
+    },
+    {
+      "classId": "berserker",
+      "rank": "e",
+      "baselineAttempts": 3000,
+      "currentAttempts": 3000,
+      "baselineWinRate": 0.9063333333333333,
+      "currentWinRate": 0.888,
+      "deltaWinRatePp": -1.8333333333333313,
+      "baselineMeanTurns": 26.382,
+      "currentMeanTurns": 24.416,
+      "deltaDurationPercent": -7.452050640588281,
+      "approvedClassNoiseFloorPp": 0.54
+    },
+    {
+      "classId": "berserker",
+      "rank": "d",
+      "baselineAttempts": 3500,
+      "currentAttempts": 3500,
+      "baselineWinRate": 0.8642857142857143,
+      "currentWinRate": 0.8525714285714285,
+      "deltaWinRatePp": -1.1714285714285788,
+      "baselineMeanTurns": 23.12485714285714,
+      "currentMeanTurns": 21.458,
+      "deltaDurationPercent": -7.208075416682114,
+      "approvedClassNoiseFloorPp": 0.54
+    },
+    {
+      "classId": "berserker",
+      "rank": "c",
+      "baselineAttempts": 4000,
+      "currentAttempts": 4000,
+      "baselineWinRate": 0.83125,
+      "currentWinRate": 0.81625,
+      "deltaWinRatePp": -1.5000000000000013,
+      "baselineMeanTurns": 23.1435,
+      "currentMeanTurns": 21.28025,
+      "deltaDurationPercent": -8.050856612007696,
+      "approvedClassNoiseFloorPp": 0.54
+    },
+    {
+      "classId": "berserker",
+      "rank": "b",
+      "baselineAttempts": 4000,
+      "currentAttempts": 4000,
+      "baselineWinRate": 0.80425,
+      "currentWinRate": 0.79325,
+      "deltaWinRatePp": -1.100000000000001,
+      "baselineMeanTurns": 24.934,
+      "currentMeanTurns": 22.539,
+      "deltaDurationPercent": -9.605358145504129,
+      "approvedClassNoiseFloorPp": 0.54
+    },
+    {
+      "classId": "berserker",
+      "rank": "a",
+      "baselineAttempts": 4500,
+      "currentAttempts": 4500,
+      "baselineWinRate": 0.6835555555555556,
+      "currentWinRate": 0.6653333333333333,
+      "deltaWinRatePp": -1.822222222222225,
+      "baselineMeanTurns": 26.996222222222222,
+      "currentMeanTurns": 23.801333333333332,
+      "deltaDurationPercent": -11.83457767753513,
+      "approvedClassNoiseFloorPp": 0.54
+    },
+    {
+      "classId": "berserker",
+      "rank": "s",
+      "baselineAttempts": 5000,
+      "currentAttempts": 5000,
+      "baselineWinRate": 0.6214,
+      "currentWinRate": 0.643,
+      "deltaWinRatePp": 2.1600000000000064,
+      "baselineMeanTurns": 27.077,
+      "currentMeanTurns": 23.4592,
+      "deltaDurationPercent": -13.36115522399085,
+      "approvedClassNoiseFloorPp": 0.54
+    },
+    {
+      "classId": "berserker",
+      "rank": "ss",
+      "baselineAttempts": 5500,
+      "currentAttempts": 5500,
+      "baselineWinRate": 0.4672727272727273,
+      "currentWinRate": 0.49618181818181817,
+      "deltaWinRatePp": 2.8909090909090884,
+      "baselineMeanTurns": 26.157454545454545,
+      "currentMeanTurns": 22.71181818181818,
+      "deltaDurationPercent": -13.172674572171328,
+      "approvedClassNoiseFloorPp": 0.54
+    },
+    {
+      "classId": "berserker",
+      "rank": "ssr",
+      "baselineAttempts": 6000,
+      "currentAttempts": 6000,
+      "baselineWinRate": 0.3441666666666667,
+      "currentWinRate": 0.3675,
+      "deltaWinRatePp": 2.3333333333333317,
+      "baselineMeanTurns": 23.710166666666666,
+      "currentMeanTurns": 20.1165,
+      "deltaDurationPercent": -15.156648695004261,
+      "approvedClassNoiseFloorPp": 0.54
+    }
+  ],
+  "matrix": [
+    {
+      "classId": "clerigo",
+      "element": "agua",
+      "weaponType": "maza",
+      "attempts": 7700,
+      "winRate": 0.8154545454545454,
+      "meanTurnsPerLevel": 30.042727272727273,
+      "winRate95HalfWidthPp": 0.8664874244900493,
+      "duration95HalfWidthTurns": 0.28579670128020873
+    },
+    {
+      "classId": "clerigo",
+      "element": "agua",
+      "weaponType": "libro",
+      "attempts": 7700,
+      "winRate": 0.844935064935065,
+      "meanTurnsPerLevel": 29.30116883116883,
+      "winRate95HalfWidthPp": 0.8084984217495108,
+      "duration95HalfWidthTurns": 0.282803882915452
+    },
+    {
+      "classId": "clerigo",
+      "element": "fuego",
+      "weaponType": "maza",
+      "attempts": 7700,
+      "winRate": 0.7454545454545455,
+      "meanTurnsPerLevel": 29.273896103896103,
+      "winRate95HalfWidthPp": 0.972980116980336,
+      "duration95HalfWidthTurns": 0.27025053186533526
+    },
+    {
+      "classId": "clerigo",
+      "element": "fuego",
+      "weaponType": "libro",
+      "attempts": 7700,
+      "winRate": 0.777012987012987,
+      "meanTurnsPerLevel": 29.13,
+      "winRate95HalfWidthPp": 0.9297466722341241,
+      "duration95HalfWidthTurns": 0.27021954000618614
+    },
+    {
+      "classId": "clerigo",
+      "element": "viento",
+      "weaponType": "maza",
+      "attempts": 7700,
+      "winRate": 0.7385714285714285,
+      "meanTurnsPerLevel": 31.874155844155844,
+      "winRate95HalfWidthPp": 0.9814845897924226,
+      "duration95HalfWidthTurns": 0.3030223428553452
+    },
+    {
+      "classId": "clerigo",
+      "element": "viento",
+      "weaponType": "libro",
+      "attempts": 7700,
+      "winRate": 0.7615584415584415,
+      "meanTurnsPerLevel": 31.226883116883116,
+      "winRate95HalfWidthPp": 0.9518166615346972,
+      "duration95HalfWidthTurns": 0.2987261450832083
+    },
+    {
+      "classId": "clerigo",
+      "element": "tierra",
+      "weaponType": "maza",
+      "attempts": 7700,
+      "winRate": 0.6380519480519481,
+      "meanTurnsPerLevel": 32.60142857142857,
+      "winRate95HalfWidthPp": 1.0734006403182421,
+      "duration95HalfWidthTurns": 0.3222070783898484
+    },
+    {
+      "classId": "clerigo",
+      "element": "tierra",
+      "weaponType": "libro",
+      "attempts": 7700,
+      "winRate": 0.6771428571428572,
+      "meanTurnsPerLevel": 32.41207792207792,
+      "winRate95HalfWidthPp": 1.0443740186873143,
+      "duration95HalfWidthTurns": 0.3159639803950093
+    },
+    {
+      "classId": "clerigo",
+      "element": "rayo",
+      "weaponType": "maza",
+      "attempts": 7700,
+      "winRate": 0.6387012987012987,
+      "meanTurnsPerLevel": 33.65207792207792,
+      "winRate95HalfWidthPp": 1.0729829195307856,
+      "duration95HalfWidthTurns": 0.32964282261416084
+    },
+    {
+      "classId": "clerigo",
+      "element": "rayo",
+      "weaponType": "libro",
+      "attempts": 7700,
+      "winRate": 0.6727272727272727,
+      "meanTurnsPerLevel": 33.51883116883117,
+      "winRate95HalfWidthPp": 1.0480575571625204,
+      "duration95HalfWidthTurns": 0.3237083981066834
+    },
+    {
+      "classId": "berserker",
+      "element": "agua",
+      "weaponType": "mandoble",
+      "attempts": 7700,
+      "winRate": 0.7601298701298701,
+      "meanTurnsPerLevel": 21.427142857142858,
+      "winRate95HalfWidthPp": 0.9537678816415919,
+      "duration95HalfWidthTurns": 0.17088488899718907
+    },
+    {
+      "classId": "berserker",
+      "element": "agua",
+      "weaponType": "martillo",
+      "attempts": 7700,
+      "winRate": 0.7131168831168831,
+      "meanTurnsPerLevel": 22.252337662337663,
+      "winRate95HalfWidthPp": 1.0102842054628307,
+      "duration95HalfWidthTurns": 0.17816551427964838
+    },
+    {
+      "classId": "berserker",
+      "element": "fuego",
+      "weaponType": "mandoble",
+      "attempts": 7700,
+      "winRate": 0.7196103896103896,
+      "meanTurnsPerLevel": 21.40142857142857,
+      "winRate95HalfWidthPp": 1.003322103152662,
+      "duration95HalfWidthTurns": 0.16643374413292653
+    },
+    {
+      "classId": "berserker",
+      "element": "fuego",
+      "weaponType": "martillo",
+      "attempts": 7700,
+      "winRate": 0.6766233766233766,
+      "meanTurnsPerLevel": 21.905844155844157,
+      "winRate95HalfWidthPp": 1.0448128824957132,
+      "duration95HalfWidthTurns": 0.17113661678410141
+    },
+    {
+      "classId": "berserker",
+      "element": "viento",
+      "weaponType": "mandoble",
+      "attempts": 7700,
+      "winRate": 0.6864935064935065,
+      "meanTurnsPerLevel": 22.01987012987013,
+      "winRate95HalfWidthPp": 1.0362205381850784,
+      "duration95HalfWidthTurns": 0.17831734719809914
+    },
+    {
+      "classId": "berserker",
+      "element": "viento",
+      "weaponType": "martillo",
+      "attempts": 7700,
+      "winRate": 0.6435064935064935,
+      "meanTurnsPerLevel": 22.767142857142858,
+      "winRate95HalfWidthPp": 1.0698256035160085,
+      "duration95HalfWidthTurns": 0.18354210176126093
+    },
+    {
+      "classId": "berserker",
+      "element": "tierra",
+      "weaponType": "mandoble",
+      "attempts": 7700,
+      "winRate": 0.6088311688311688,
+      "meanTurnsPerLevel": 22.69727272727273,
+      "winRate95HalfWidthPp": 1.0900370729639257,
+      "duration95HalfWidthTurns": 0.18518983632258126
+    },
+    {
+      "classId": "berserker",
+      "element": "tierra",
+      "weaponType": "martillo",
+      "attempts": 7700,
+      "winRate": 0.5598701298701299,
+      "meanTurnsPerLevel": 23.17233766233766,
+      "winRate95HalfWidthPp": 1.108778457546348,
+      "duration95HalfWidthTurns": 0.1922454248280997
+    },
+    {
+      "classId": "berserker",
+      "element": "rayo",
+      "weaponType": "mandoble",
+      "attempts": 7700,
+      "winRate": 0.6116883116883117,
+      "meanTurnsPerLevel": 23.09285714285714,
+      "winRate95HalfWidthPp": 1.0885942382160052,
+      "duration95HalfWidthTurns": 0.18918299456875
+    },
+    {
+      "classId": "berserker",
+      "element": "rayo",
+      "weaponType": "martillo",
+      "attempts": 7700,
+      "winRate": 0.5675324675324676,
+      "meanTurnsPerLevel": 23.544415584415585,
+      "winRate95HalfWidthPp": 1.1065800055985031,
+      "duration95HalfWidthTurns": 0.19699904012756742
+    }
+  ]
+}

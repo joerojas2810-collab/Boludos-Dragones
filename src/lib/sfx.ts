@@ -192,25 +192,24 @@ function boom(c: AudioContext, t: number, vol: number) {
 }
 
 function elementAccent(c: AudioContext, t: number, k: number, e: BattleEvent) {
-  const force = e.overload ? 1.8 : 1;
   switch (e.element) {
     case "agua":
-      noiseBurst(c, t + 0.06, 2200 * k, 650 * k, 4, 0.2, 0.045 * force);
-      ring(c, t + 0.1, 1500 * k, 0.24, 0.025 * force);
+      noiseBurst(c, t + 0.06, 2200 * k, 650 * k, 4, 0.2, 0.045);
+      ring(c, t + 0.1, 1500 * k, 0.24, 0.025);
       break;
     case "fuego":
-      noiseBurst(c, t + 0.04, 4200 * k, 900 * k, 1.2, 0.22, 0.055 * force);
+      noiseBurst(c, t + 0.04, 4200 * k, 900 * k, 1.2, 0.22, 0.055);
       break;
     case "viento":
-      noiseBurst(c, t - 0.04, 800 * k, 3600 * k, 0.8, 0.22, 0.055 * force);
+      noiseBurst(c, t - 0.04, 800 * k, 3600 * k, 0.8, 0.22, 0.055);
       break;
     case "tierra":
-      ring(c, t + 0.04, 68 * k, 0.2, 0.12 * force);
-      noiseBurst(c, t + 0.02, 700 * k, 180 * k, 1.8, 0.16, 0.06 * force);
+      ring(c, t + 0.04, 68 * k, 0.2, 0.12);
+      noiseBurst(c, t + 0.02, 700 * k, 180 * k, 1.8, 0.16, 0.06);
       break;
     case "rayo":
-      ring(c, t + 0.03, (e.overload ? 1900 : 1300) * k, 0.18, 0.05 * force);
-      noiseBurst(c, t, 5000 * k, 1400 * k, 2.2, 0.11, 0.045 * force);
+      ring(c, t + 0.03, 1300 * k, 0.18, 0.05);
+      noiseBurst(c, t, 5000 * k, 1400 * k, 2.2, 0.11, 0.045);
       break;
   }
 }
@@ -222,7 +221,7 @@ function play(e: BattleEvent, delay: number) {
   const k = e.actor === "player" ? 1 : 0.7;
   if (
     e.classId === "mago" ||
-    (e.classId === "clerigo" && e.move === "attack2" && e.weapon === "libro")
+    (e.classId === "clerigo" && e.weapon === "libro")
   ) {
     magic(ctx, t, k, e);
     if (e.kind !== "miss") elementAccent(ctx, t + (e.kind === "crit" ? 0.08 : 0), k, e);

@@ -47,16 +47,16 @@ describe("characters", () => {
 });
 
 describe("combat", () => {
-  it("ends with a winner and blocks attack2 during cooldown", () => {
+  it("ends with a winner and blocks Golpe during cooldown", () => {
     const rng = createRng(3);
     let b = startBattle(
       generateCharacter(rng, "caballero"),
       generateCharacter(rng, "mago"),
       rng,
     );
-    b = step(b, "attack2", rng);
+    b = step(b, "golpe", rng);
     const turn = b.turn;
-    expect(step(b, "attack2", rng).turn).toBe(turn);
+    expect(step(b, "golpe", rng).turn).toBe(turn);
     for (let i = 0; i < 200 && b.status === "ongoing"; i++)
       b = step(b, "attack1", rng);
     expect(b.status).not.toBe("ongoing");

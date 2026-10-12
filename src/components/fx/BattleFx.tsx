@@ -325,15 +325,10 @@ export function BossIntro({
           <AnimSheet anim={paintedEntrance} className="aspect-square w-[min(65%,24rem,55cqh)] shrink-0" />
           <span className="fx-bossname text-center text-xl font-black uppercase tracking-widest text-red-200 sm:text-3xl md:text-4xl">{name}</span>
         </div>
-      ) : finalRank ? (
-        <Vfx
-          id={`boss_entrance_${finalRank}`}
-          className="w-[min(90%,32rem)]"
-        />
       ) : (
         <Vfx
           id="boss_entrance"
-          className="absolute w-[min(70%,20rem)] opacity-80"
+          className={finalRank ? "w-[min(90%,32rem)]" : "absolute w-[min(70%,20rem)] opacity-80"}
         />
       )}
       {!paintedEntrance && <span className={`fx-bossname relative px-2 text-center text-3xl font-black uppercase tracking-widest text-red-200 md:text-5xl ${finalRank ? "sr-only" : ""}`}>

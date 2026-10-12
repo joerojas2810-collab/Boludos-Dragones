@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { autoPolicy } from "./auto";
 import { generateCharacter } from "./characters";
-import { createProfile } from "./profile";
+import { createProfile, heroFromOwned, pullCharacter } from "./profile";
 import { createRng } from "./rng";
 import type { StageAction } from "./stageReplay";
 import {
@@ -38,18 +38,33 @@ function play(seed: number, maxFloors: number) {
 
 describe("tower", () => {
   const p = createProfile();
-  it("random hero is a function of the week seed and the player", () => {
-    const a = towerHero(p, "nivelado", null, "mago", 5, "u1")!;
-    expect(towerHero(p, "nivelado", null, "mago", 5, "u1")).toEqual(a);
-    expect(towerHero(p, "nivelado", null, "mago", 6, "u1")!.name).not.toBe(
-      a.name,
-    );
-    expect(a.classId).toBe("mago");
+  it("levelled mode uses the same D preset regardless of player, seed, or collection", () => {
+    const a = towerHero(p, "nivelado", "unknown", "mago", "agua")!;
+    expect(towerHero(p, "nivelado", null, "mago", "agua")).toEqual(a);
+    expect(a).toMatchObject({
+      classId: "mago",
+      element: "agua",
+      rarity: "d",
+      stars: 0,
+      level: 1,
+      xp: 0,
+      traits: [],
+    });
+    expect(a.gear).toBeUndefined();
+    expect(a.weapon).toBeUndefined();
   });
   it("an unknown character is refused", () => {
     expect(
-      towerHero(p, "coleccion", "c-mago-fuego-f", "mago", 5, "u1"),
+      towerHero(p, "coleccion", "c-mago-fuego-f", "mago", null),
     ).toBeNull();
+  });
+  it("collection mode requires an owned hero and preserves its power", () => {
+    const pulled = pullCharacter({ ...p, coins: 250 }, createRng(3))!.profile;
+    const owned = pulled.characters[0];
+    expect(towerHero(pulled, "coleccion", owned.id, owned.classId, null))
+      .toEqual(heroFromOwned(pulled, owned.id));
+    expect(towerHero(pulled, "coleccion", null, owned.classId, null))
+      .toBeNull();
   });
   it("the local week seed is stable within a week and changes on Monday", () => {
     const mon = new Date(Date.UTC(2026, 9, 5, 12)); // Monday

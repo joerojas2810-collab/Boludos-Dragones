@@ -1,7 +1,8 @@
 // Weekly tower: everybody climbs the same endless run (the week's seed), in two
 // separate modes with separate rankings and unlimited attempts (best floor counts).
 // No coins or loot from the run itself: only the weekly prizes (SQL tower_settle).
-import { generateCharacter, type Character, type ClassId } from "./characters";
+import { CLASS_IDS, type Character, type ClassId } from "./characters";
+import { ELEMENTS, type Element } from "./elements";
 import {
   advanceClimb,
   floorFight,
@@ -11,10 +12,10 @@ import {
   timeoutClimb,
   type Climb,
 } from "./floorFights";
-import { normalizeHero } from "./nivelado";
+import { niveladoHero } from "./niveladoHero";
 import { heroFromOwned, type Profile } from "./profile";
+import { hashSeed } from "./rng";
 import type { RarityId } from "./rarity";
-import { createRng, hashSeed } from "./rng";
 import {
   applyStageAction,
   type StageAction,
@@ -32,7 +33,7 @@ export const TOWER_LABEL: Record<TowerMode, string> = {
   coleccion: "Torre de colección",
 };
 export const TOWER_BLURB: Record<TowerMode, string> = {
-  nivelado: "Todos con poder base parecido: gana quien juega mejor.",
+  nivelado: "Elige clase y elemento: todos usan el mismo preset D, 0★ y nivel 1.",
   coleccion: "Tu héroe con todo su poder: rango, estrellas y equipo cuentan.",
 };
 
@@ -95,34 +96,28 @@ export const towerXp = (c: Pick<Climb, "wins" | "bossWins">): number =>
       ((c.wins - c.bossWins) * FIGHT_XP.normal + c.bossWins * FIGHT_XP.elite),
   );
 
-const strHash = (s: string) => {
-  let h = 0;
-  for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return h;
-};
-
 /**
- * The hero of a tower attempt: an owned character (levelled in `nivelado`, full power in
- * `coleccion`) or a random one from the week's seed. Null if the character is not owned.
+ * The hero of a tower attempt. Nivelado is independent of the player's collection;
+ * colección requires one of their own heroes and keeps its full power.
  */
 export function towerHero(
   profile: Profile,
   mode: TowerMode,
   characterId: string | null,
   classId: ClassId,
-  seed: number,
-  playerId: string,
+  element: Element | null,
 ): Character | null {
-  let hero: Character | null;
-  if (characterId) {
-    hero = heroFromOwned(profile, characterId);
-    if (!hero) return null;
-  } else
-    hero = generateCharacter(
-      createRng(hashSeed(seed, strHash(playerId))),
-      classId,
-    );
-  return normalizeHero(hero, mode === "nivelado" ? "nivelado" : "completo");
+  if (mode === "nivelado") {
+    if (
+      !(CLASS_IDS as readonly string[]).includes(classId) ||
+      !element ||
+      !(ELEMENTS as readonly string[]).includes(element)
+    )
+      return null;
+    return niveladoHero(classId, element);
+  }
+  if (!characterId) return null;
+  return heroFromOwned(profile, characterId);
 }
 
 /** Week seed for local (offline) play: stable per ISO week, same for every player. */

@@ -6,7 +6,7 @@ const ok = (c, m) => { if (!c) { fail++; console.log("FAIL:", m); } };
 const U = "00000000-0000-0000-0000-000000000001";
 await db.exec(`insert into auth.users(id,email) values ('${U}','p1@players.invalid')`);
 await rpc("create_player", { p_user: U, p_name: "pl1", p_name_key: "pl1", p_is_admin: false });
-const star = { p_player: U, p_class: "mago", p_element: "fuego", p_data: { name: "X", stats: {}, traits: [], catchphrase: "" },
+const star = { p_player: U, p_class: "mago", p_element: "fuego", p_data: { name: "X", stats: {}, traits: ["terco"], factors: { hp: 1, atk: 1, def: 1, crit: 1, speed: 1 }, catchphrase: "" },
   p_type: "baston", p_name: "Inicial", p_roll: 1, p_lines: null };
 ok((await rpc("sync_tutorial", { p_player: U })) === null, "starts null");
 ok((await rpc("grant_starter", star)) === true, "grants to an empty account");

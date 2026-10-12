@@ -179,7 +179,17 @@ export function rollTrait(rng: Rng, classId: string): TraitId {
 }
 
 // Sum of the rule fields of a trait list (additive within each field).
+// Pure in `ids` and hot in combat (called many times per step), so the totals are cached per array
+// instance. Trait arrays are replaced, never mutated in place, and the result is read-only.
+const totalsCache = new WeakMap<readonly TraitId[], Required<TraitRules>>();
 export const traitTotals = (ids: readonly TraitId[]): Required<TraitRules> => {
+  const cached = totalsCache.get(ids);
+  if (cached) return cached;
+  const totals = computeTraitTotals(ids);
+  totalsCache.set(ids, totals);
+  return totals;
+};
+const computeTraitTotals = (ids: readonly TraitId[]): Required<TraitRules> => {
   const sum = (k: keyof TraitRules) =>
     ids.reduce((a, id) => a + ((TRAITS[id] as Trait).rules?.[k] ?? 0), 0);
   return {

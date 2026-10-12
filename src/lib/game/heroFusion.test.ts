@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { CLASS_IDS, generateCharacter, type ClassId } from "./characters";
-import { HERO_FUSION, STAR_CARRY, STAR_UNITS, fuseHeroes, starUpHero, swapTrait, unitsOf } from "./heroFusion";
-import { characterKey, type OwnedCharacter, type Profile } from "./profile";
-import { MAX_STARS, RARITIES, RARITY_IDS, type RarityId } from "./rarity";
+import { HERO_FUSION, STAR_CARRY, STAR_UNITS, fuseHeroes, starUpHero, swapCopy, unitsOf } from "./heroFusion";
+import { characterKey, previewProfileChange, profileOf, withProfile, type HeroProfile, type OwnedCharacter, type Profile } from "./profile";
+import { MAX_STARS, RARITIES, RARITY_IDS, scaleStats, type RarityId } from "./rarity";
 import { TRAIT_IDS, type TraitId } from "./traits";
 import { createRng } from "./rng";
 import { ELEMENTS } from "./elements";
@@ -13,10 +13,11 @@ function hero(
   classId: ClassId = "mago",
   el = ELEMENTS[n % 5],
   stars = 0,
-  copies?: TraitId[],
+  copies?: (TraitId | HeroProfile)[],
 ): OwnedCharacter {
   const c = generateCharacter(createRng(++n), classId);
-  return { ...c, element: el, id: characterKey(classId, el, rank), rarity: rank, stars, ...(copies ? { copies } : {}) };
+  const spare = copies?.map((copy) => typeof copy === "string" ? { trait: copy, factors: { ...c.factors } } : copy);
+  return { ...c, element: el, id: characterKey(classId, el, rank), rarity: rank, stars, ...(spare ? { copies: spare } : {}) };
 }
 const profile = (characters: OwnedCharacter[], coins = 100000, equipped: Record<string, string> = {}) =>
   ({ coins, characters, weapons: [], equipped, runsPlayed: 0 }) as unknown as Profile;
@@ -49,7 +50,7 @@ describe("starUpHero", () => {
     });
     if (!r.ok) throw new Error(r.error);
     const [b, o] = r.profile.characters;
-    expect([b.stars, b.copies]).toEqual([1, [T1]]); // the last copy of the base went
+    expect([b.stars, b.copies?.map((copy) => copy.trait)]).toEqual([1, [T1]]); // the last copy of the base went
     expect([o.stars, o.copies]).toBeDefined();
     expect(o.copies).toBeUndefined(); // both copies spent; the hero and its stars stay
     expect(o.stars).toBe(2);
@@ -119,14 +120,15 @@ describe("fuseHeroes", () => {
     if (!r.ok) throw new Error(r.error);
     const up = r.profile.characters.find((c) => c.rarity === "b")!;
     const left = r.profile.characters.find((c) => c.rarity === "c")!;
-    expect(up).toMatchObject({ stars: STAR_CARRY.c![3], traits: base.traits });
+    expect(up).toMatchObject({ stars: STAR_CARRY.c![3], traits: base.traits, factors: base.factors });
     expect(up.copies).toBeUndefined();
-    expect(left).toMatchObject({ id: base.id, stars: 0, level: 1, traits: [T1], copies: [T2] });
+    expect(left).toMatchObject({ id: base.id, stars: 0, level: 1, traits: [T1], factors: base.copies![0].factors });
+    expect(left.copies?.map((copy) => copy.trait)).toEqual([T2]);
     expect(r.profile.characters).toHaveLength(2);
     expect(r.fusion.split?.id).toBe(base.id);
   });
 
-  it("an owned hero of the result rank merges: the trait you pick stays, the other becomes a copy", () => {
+  it("an owned hero of the result rank merges: the whole profile you pick stays, the other becomes a copy", () => {
     const hs = group("f");
     const owned = { ...hero("e", hs[0].classId, hs[0].element, 2, [T3]), level: 33 };
     const run = (keep?: "base" | "existing") =>
@@ -140,11 +142,13 @@ describe("fuseHeroes", () => {
       stars: 2, // the owned hero's: higher than the converted 0
       level: 33,
       traits: hs[0].traits,
-      copies: [T3, ...owned.traits],
+      factors: hs[0].factors,
     });
+    expect(a.profile.characters[0].copies).toEqual([{ trait: T3, factors: owned.factors }, profileOf(owned)]);
     const b = run("existing");
     if (!b.ok) throw new Error(b.error);
-    expect(b.profile.characters[0]).toMatchObject({ traits: owned.traits, copies: [T3, ...hs[0].traits] });
+    expect(b.profile.characters[0]).toMatchObject({ traits: owned.traits, factors: owned.factors });
+    expect(b.profile.characters[0].copies).toEqual([{ trait: T3, factors: owned.factors }, profileOf(hs[0])]);
   });
 
   it("a merge takes the higher stars of the two", () => {
@@ -184,14 +188,31 @@ describe("fuseHeroes", () => {
   });
 });
 
-describe("swapTrait", () => {
-  it("trades the main trait with a copy's", () => {
-    const h = hero("b", "mago", "fuego", 1, [T2, T3]);
-    const r = swapTrait(profile([h]), { id: h.id, index: 1 });
+describe("swapCopy", () => {
+  it("trades the complete main profile with a copy's, reversibly", () => {
+    const copyFactors = { hp: 0.95, atk: 1.05, def: 1.02, crit: 0.98, speed: 1.01 };
+    const h = hero("b", "mago", "fuego", 1, [T2, { trait: T3, factors: copyFactors }]);
+    const original = profileOf(h);
+    const r = swapCopy(profile([h]), { id: h.id, index: 1 });
     if (!r.ok) throw new Error(r.error);
-    expect(r.profile.characters[0]).toMatchObject({ traits: [T3], copies: [T2, h.traits[0]], stars: 1 });
-    expect(swapTrait(profile([h]), { id: h.id, index: 2 }).ok).toBe(false);
-    expect(swapTrait(profile([hero("b")]), { id: "c-x", index: 0 }).ok).toBe(false);
+    expect(r.profile.characters[0]).toMatchObject({ traits: [T3], factors: copyFactors, stars: 1 });
+    expect(r.profile.characters[0].copies).toEqual([{ trait: T2, factors: h.factors }, original]);
+    const back = swapCopy(r.profile, { id: h.id, index: 1 });
+    if (!back.ok) throw new Error(back.error);
+    expect(profileOf(back.profile.characters[0])).toEqual(original);
+    expect(swapCopy(profile([h]), { id: h.id, index: 2 }).ok).toBe(false);
+    expect(swapCopy(profile([hero("b")]), { id: "c-x", index: 0 }).ok).toBe(false);
+  });
+
+  it("previews scaled stats and reports after-minus-before; an identical profile has zero diff", () => {
+    const h = hero("b", "caballero", "fuego", 2);
+    const other = { trait: h.traits[0], factors: { hp: 0.95, atk: 1.05, def: 1, crit: 1, speed: 1 } };
+    const preview = previewProfileChange(h, other);
+    expect(preview.before).toEqual(scaleStats(h.stats, h.rarity, h.stars, h.level));
+    expect(preview.after).toEqual(scaleStats(withProfile(h, other).stats, h.rarity, h.stars, h.level));
+    for (const [key, delta] of Object.entries(preview.diff))
+      expect(delta).toBeCloseTo(preview.after[key as keyof typeof preview.after] - preview.before[key as keyof typeof preview.before]);
+    expect(previewProfileChange(h, profileOf(h)).diff).toEqual({});
   });
 });
 

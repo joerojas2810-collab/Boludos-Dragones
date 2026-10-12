@@ -52,7 +52,7 @@ export const GUIDE: Record<"ascend" | "heroes" | "upgrade", Guide> = {
       "Costo en Escamas = el nivel al que subes (+5 cuesta 5). Éxito: +1 100%, +2 90%, +3 80%, +4 70%, +5 60%, +6 50%, +7 45%, +8 40%, +9 35%, +10 30%.",
       "Dado cargado: opcional, uno por intento, suma 20 puntos de éxito. Es difícil de conseguir; úsalo en los niveles altos.",
       "Cada fallo seguido en un nivel suma 5 puntos al siguiente intento. Se reinicia al acertar.",
-      "Las Escamas salen de dungeons S, SS y SSR. No se venden ni se intercambian.",
+      "Las Escamas salen de dungeons de dificultad S. No se venden ni se intercambian.",
       "Si ascendes la pieza, vuelve a 0★ y +0: sube de rango primero y mejora al final.",
     ],
   },

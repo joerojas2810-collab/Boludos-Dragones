@@ -27,6 +27,7 @@ export function characterView(
     copies: c.copies?.length || undefined,
     lines: [statLine(stats), ...(c.copies?.length ? [`${c.copies.length} copia${c.copies.length > 1 ? "s" : ""}`] : []), ...(opts.lines ?? [])],
     badge: opts.badge,
+    factors: c.factors,
   };
 }
 
@@ -130,7 +131,12 @@ export function resultView(r: PullResult): ItemView | null {
       : r.status === "copy"
         ? "+1 COPIA"
         : "NUEVO";
-  if (r.character) return characterView(r.character, { badge });
+  if (r.character) {
+    const copy = r.status === "copy" ? r.character.copies?.at(-1) : undefined;
+    const view = characterView(r.character, { badge });
+    if (view.kind !== "character") return view;
+    return { ...view, factors: copy?.factors ?? r.character.factors, traits: copy ? [copy.trait] : r.character.traits };
+  }
   if (r.weapon) return weaponView(r.weapon, { badge });
   return null;
 }
@@ -178,13 +184,10 @@ export function filterSortCharacters(
 }
 
 // Hover/tap card of one piece: what it gives and what sets it apart from the others of its slot.
-// "Es tu Ataque 3: ..." for hand weapons; undefined for armor.
-export const specialLine = (type: WeaponType): string | undefined => {
-  const sp = isGearType(type) ? undefined : WEAPON_TYPE_DATA[type].special;
-  return (
-    sp &&
-    `Es tu Ataque 3: ${sp.name} (poder ×${sp.power}, acierto ${Math.round(sp.accuracy * 100)}%, recarga ${sp.cooldown}${sp.heal ? `, cura ${Math.round(sp.heal * 100)}%` : ""}${sp.selfCost ? `, cuesta ${Math.round(sp.selfCost * 100)}% de tu vida actual` : ""}).`
-  );
+// Weapon-defined basic profile; undefined for armor.
+export const basicLine = (type: WeaponType): string | undefined => {
+  const basic = isGearType(type) ? undefined : WEAPON_TYPE_DATA[type].basic;
+  return basic ? `Ataque básico: ${basic.name} (poder ×${basic.power}).` : undefined;
 };
 
 export function pieceTip(w: OwnedWeapon): Tip {
@@ -198,8 +201,8 @@ export function pieceTip(w: OwnedWeapon): Tip {
   } else {
     lines.push(`Ataque +${w.atkBonus}${factorText(w)}`);
     lines.push(`${info.label}: ${info.description}`);
-    const sp = specialLine(w.type);
-    if (sp) lines.push(sp);
+    const basic = basicLine(w.type);
+    if (basic) lines.push(basic);
     const mods: string[] = [];
     if (info.atkMult !== 1) mods.push(`daño ×${info.atkMult}`);
     if (info.accuracy) mods.push(`${sgn(info.accuracy)} puntos de precisión`);

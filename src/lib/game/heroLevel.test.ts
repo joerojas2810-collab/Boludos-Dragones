@@ -6,7 +6,6 @@ import {
   levelMult,
   xpToNextLevel,
 } from "./heroLevel";
-import { heroSkill } from "./skills";
 
 describe("hero level", () => {
   it("cap is 20 + 10 per star", () => {
@@ -37,13 +36,5 @@ describe("hero level", () => {
       xp: 0,
       gained: 0,
     });
-  });
-});
-
-describe("class skill", () => {
-  it("heroSkill: pick if valid, else class default (any rank)", () => {
-    expect(heroSkill("mago")).toBe("tormenta");
-    expect(heroSkill("mago", "detonar")).toBe("detonar");
-    expect(heroSkill("mago", "castigo")).toBe("tormenta");
   });
 });

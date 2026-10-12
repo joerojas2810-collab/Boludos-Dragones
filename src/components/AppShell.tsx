@@ -133,6 +133,7 @@ const SCREEN_SCENE: Record<string, string> = {
   "/mercado": "market",
   "/forja": "forge",
   "/sala": "lobby",
+  "/torre": "dungeon_s_normal",
 };
 
 export function AppShell({ children }: { children: ReactNode }) {

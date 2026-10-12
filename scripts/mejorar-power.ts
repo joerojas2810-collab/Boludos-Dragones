@@ -1,5 +1,5 @@
 // Clear rate of a synthetic hero (as stage-tune.ts) with its 6 gear pieces scaled by "Mejorar" +0/+5/+10.
-//   RANKS=s,ss,ssr ASC=5 STARS=5 npx tsx scripts/mejorar-power.ts [heroes=100]
+//   RANKS=s ASC=5 STARS=5 npx tsx scripts/mejorar-power.ts [heroes=100]
 // Piece bonuses are scaled before the GEAR_CAP clamp; also prints cap saturation (share of cap reached).
 import { autoPolicy } from "../src/lib/game/auto";
 import { CLASS_IDS, generateCharacter } from "../src/lib/game/characters";
@@ -8,7 +8,6 @@ import { applyGear, gearBonus, GEAR_CAP, NO_GEAR, rollGear, type GearBonus } fro
 import { levelsOf } from "../src/lib/game/levels";
 import { scaleStats, type RarityId } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
-import { heroSkill } from "../src/lib/game/skills";
 import { createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
 import { CLASS_WEAPONS, GEAR_TYPES, weaponAtk } from "../src/lib/game/weapons";
 
@@ -16,7 +15,7 @@ const N = Number(process.argv[2] ?? 100);
 const STARS = Number(process.env.STARS ?? 5);
 const LEVEL = Number(process.env.LEVEL ?? 20);
 const ASC = Number(process.env.ASC ?? 0);
-const RANKS = (process.env.RANKS ?? "s,ss,ssr").split(",") as RarityId[];
+const RANKS = (process.env.RANKS ?? "s").split(",") as RarityId[];
 const KEYS = Object.keys(NO_GEAR) as (keyof GearBonus)[];
 let sat = 0, satN = 0;
 
@@ -31,12 +30,12 @@ function hero(rank: RarityId, seed: number, mult: number) {
   const g = { ...sum };
   for (const k of KEYS) { g[k] = Math.min(sum[k], GEAR_CAP[k]); if (k === "atk" || k === "hp" || k === "def") { sat += g[k] / GEAR_CAP[k]; satN++; } }
   const s = applyGear(scaleStats(c.stats, rank, STARS, LEVEL), g);
-  return { ...c, rarity: rank, stars: STARS, level: LEVEL, skill: heroSkill(c.classId), stats: { ...s, atk: Math.round((s.atk + weaponAtk(rank, STARS, CLASS_WEAPONS[c.classId][0])) * 10) / 10 } };
+  return { ...c, rarity: rank, stars: STARS, level: LEVEL, stats: { ...s, atk: Math.round((s.atk + weaponAtk(rank, STARS, CLASS_WEAPONS[c.classId][0])) * 10) / 10 } };
 }
 
 function rate(rank: RarityId, mult: number): number {
   let total = 0;
-  const levels = levelsOf(rank);
+  const levels = levelsOf("lord_of_flies", rank);
   for (const spec of levels) {
     let ok = 0;
     for (let i = 0; i < N; i++) {

@@ -158,7 +158,7 @@ export const clientMsg = z.discriminatedUnion("type", [
   z.strictObject({
     ...m("duel_move"),
     key: z.string().min(1).max(100),
-    action: z.enum(["attack1", "attack2", "attack3", "defend"]),
+    action: z.enum(["attack1", "golpe", "barrido", "quebrar", "interrumpir", "explotar", "defend"]),
   }),
 ]);
 export type ClientMsg = z.infer<typeof clientMsg>;

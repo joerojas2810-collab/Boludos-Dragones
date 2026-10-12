@@ -15,7 +15,7 @@ const asc = Number(process.env.ASC ?? 0);
 console.log(`asc ${asc}, ${N} seeds. value = TRADE_VALUE (coins); pulls = value / ${GACHA_PULL}`);
 console.log("dungeon  lvls  pieces/level  top-rank%  >=S/level   value/level   pulls/level   coins/level   value:coins");
 for (const rank of RARITY_IDS) {
-  const levels = levelsOf(rank);
+  const levels = levelsOf("lord_of_flies", rank);
   let pieces = 0, top = 0, hi = 0, value = 0, coins = 0;
   const byRank: Record<string, number> = {};
   for (const spec of levels)

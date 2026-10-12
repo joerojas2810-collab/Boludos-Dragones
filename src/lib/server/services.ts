@@ -1,14 +1,15 @@
 import { randomBytes } from "node:crypto";
 import { CLASS_IDS, type Character, type ClassId } from "../game/characters";
+import { ELEMENTS, type Element } from "../game/elements";
 import { createStarterHero } from "../game/tutorial";
-import { fuseHeroes, starUpHero, swapTrait, type Material } from "../game/heroFusion";
-import { isLevelUnlocked, isRankUnlocked } from "../game/dungeonProgress";
+import { fuseHeroes, starUpHero, swapCopy, type Material } from "../game/heroFusion";
+import { isLevelUnlocked, isStepUnlocked } from "../game/dungeonProgress";
 import { missionDeltas } from "../game/missions";
 import { levelLoot, rollDado, type LevelLoot } from "../game/levelLoot";
-import { LEVELS_PER_RANK, levelsOf } from "../game/levels";
+import { LEVELS_PER_ROUTE, isRouteId, levelsOf, type RouteId } from "../game/levels";
 import {
-  chooseHeroSkill,
   heroFromOwned,
+  heroPower,
   lootOptions,
   migrate,
   PROFILE_VERSION,
@@ -29,9 +30,9 @@ import {
 } from "../game/tower";
 import { ascendPiece, starUpPiece, swapPieceRoll } from "../game/pieceGrowth";
 import { upgradePiece } from "../game/upgrade";
-import { DUNGEON_IDS, type DungeonId } from "../game/rarity";
+import { isDifficulty, type Difficulty } from "../game/rarity";
 import { createRng } from "../game/rng";
-import { isSkillId } from "../game/skills";
+import { recommendedPower } from "../game/recommended";
 import { levelFights, resultFromWins } from "../game/stage";
 import { sweepBlock, sweepStage } from "../game/sweep";
 import {
@@ -60,11 +61,12 @@ interface RawProfile {
   coins: number;
   pity: { character: number; weapon: number };
   pitySsr?: { character: number; weapon: number };
-  dungeons?: Record<string, number[]>;
+  dungeonProgress?: import("../game/dungeonProgress").DungeonProgress;
   levelsDay?: { day: string; n: number } | null;
   escamas?: number;
   dados?: number;
   dadosDay?: { day: string; n: number } | null;
+  dungeonRewardsDay?: { day: string; escamas: number; dados: number } | null;
   characters: {
     id: string;
     classId: string;
@@ -99,11 +101,12 @@ export function toMe(raw: RawProfile): Me {
     version: PROFILE_VERSION,
     coins: raw.coins,
     pity: raw.pity,
-    dungeons: raw.dungeons,
+    dungeons: raw.dungeonProgress,
     levelsDay: raw.levelsDay,
     escamas: raw.escamas,
     dados: raw.dados,
     dadosDay: raw.dadosDay,
+    dungeonRewardsDay: raw.dungeonRewardsDay,
     pitySsr: raw.pitySsr,
     bestFloor: raw.bestFloor,
     equipped: raw.equipped,
@@ -142,12 +145,12 @@ async function grantStarter(rpc: Rpc, playerId: string, me: Me): Promise<boolean
   const hero = given.characters[0];
   const w = given.weapons[given.weapons.length - 1];
   if (!hero || !w) return false;
-  const { name, stats, traits, catchphrase } = hero;
+  const { name, stats, traits, factors, catchphrase } = hero;
   return call<boolean>(rpc, "grant_starter", {
     p_player: playerId,
     p_class: hero.classId,
     p_element: hero.element,
-    p_data: { name, stats, traits, catchphrase },
+    p_data: { name, stats, traits, factors, catchphrase },
     p_type: w.type,
     p_name: w.name,
     p_roll: w.roll ?? null,
@@ -208,12 +211,12 @@ type Item =
 
 const itemOf = (r: PullResult): Item | null => {
   if (r.character) {
-    const { name, stats, traits, catchphrase, level, xp } = r.character;
+    const { name, stats, traits, factors, catchphrase, level, xp } = r.character;
     return {
       class: r.character.classId,
       element: r.character.element,
       rarity: r.character.rarity,
-      data: { name, stats, traits, catchphrase, level, xp },
+      data: { name, stats, traits, factors, catchphrase, level, xp },
     };
   }
   if (r.weapon)
@@ -310,6 +313,7 @@ export interface RunStartBody {
   classId: ClassId;
   characterId: string | null;
   tower?: TowerMode; // weekly tower: the week's seed, no payout
+  element?: Element;
 }
 
 // Opens the run row; a stale open run (page reloaded mid-run) is closed unpaid first.
@@ -323,7 +327,7 @@ async function openRunRow(
     return await call(d.rpc, fn, args);
   } catch (e) {
     if (!(e instanceof RpcError && e.message === "run_open")) throw e;
-    const stale = await d.openRunId(playerId);
+    const stale = await d.openRunId(playerId, fn === "start_level");
     if (!stale) throw e;
     await call(d.rpc, "bank_run", {
       p_player: playerId,
@@ -349,6 +353,8 @@ export async function startRunService(
   // Dungeon levels have their own route (startLevelService).
   if (!body.tower)
     throw new ApiError(400, "invalid_input", "Falta el modo de la torre.");
+  if (body.tower === "nivelado" && !ELEMENTS.includes(body.element as Element))
+    throw new ApiError(400, "invalid_input", "Elige un elemento para la torre.");
   const me = await loadMe(d.rpc, playerId);
   // Weekly tower: everybody gets the week's seed (first request of the week fixes it).
   const ws = await call<{ seed: number }>(d.rpc, "get_weekly_seed", {
@@ -360,15 +366,14 @@ export async function startRunService(
     body.tower,
     body.characterId,
     body.classId,
-    seed,
-    playerId,
+    body.element ?? null,
   );
   if (!hero)
     throw new ApiError(404, "character_not_found", "Personaje no encontrado.");
   try {
     const r = await openRunRow(d, playerId, {
       p_player: playerId,
-      p_character_id: body.characterId,
+      p_character_id: body.tower === "coleccion" ? body.characterId : null,
       p_seed: seed,
       // The engine version rides inside the hero json (no schema change): a log
       // is only replayable by the engine that recorded it. heroId: who gets the EXP.
@@ -376,7 +381,9 @@ export async function startRunService(
         ...hero,
         engineVersion: ENGINE_VERSION,
         tower: body.tower,
-        ...(body.characterId ? { heroId: body.characterId } : {}),
+        ...(body.tower === "coleccion" && body.characterId
+          ? { heroId: body.characterId }
+          : {}),
       },
     });
     return {
@@ -394,12 +401,17 @@ export async function startRunService(
 
 // Anti-farming (a script can replay the deterministic engine at CPU speed):
 // a log cannot be faster than a person clicking.
+const TOWER_SQL_MAX_FLOOR = 500; // tower_record rejects more; keep in sync with 0055
 export const MIN_ACTION_MS = 400; // fastest believable pace per logged action
 export const MIN_ACTION_GRACE_MS = 3_000; // clock skew between app and database
 
 // Even quick resolve takes a person about a second per fight (click + "Continuar"). This only
 // stops scripts finishing a level instantly; the real brake is the hourly cap and the daily pay decay.
 export const MIN_FIGHT_MS = 1_000;
+// A full clear from a hero this far under the recommended power is not believable: the client
+// only reports wins, so this is the one plausibility check. Skill clears at ~25-45 % of the
+// recommended power exist, hence the low bar. ponytail: raise if the sim shows safe headroom.
+export const CLAIM_POWER_FACTOR = 0.2;
 const FIGHT_GRACE_MS = 1_000; // clock skew between app and database
 const tooFastFights = (startedAt: number | undefined, wins: number) => {
   const elapsed = startedAt ? Date.now() - startedAt : null;
@@ -492,13 +504,25 @@ export async function submitRunService(
       "La run se jugó con otra versión del juego. Recarga la página y empieza una nueva.",
     );
   const rep = replayTower(row.seed, hero, body.actions, stored);
+  if (rep.error === "too_many_actions") {
+    await call(d.rpc, "bank_run", {
+      p_player: playerId,
+      p_run_id: body.runId,
+      p_coins: 0,
+      p_max_floor: 0,
+      p_log: null,
+      p_verdict: "rejected",
+      p_reason: "too_many_actions",
+    }).catch(() => undefined);
+    throw new ApiError(400, "too_many_actions", "Ese intento fue demasiado largo para verificarse.");
+  }
   if (rep.error)
     throw new ApiError(
       409,
       "engine_outdated",
       "Esta run es de una versión anterior del juego y ya no se puede verificar.",
     );
-  const floors = rep.floors;
+  const floors = Math.min(rep.floors, TOWER_SQL_MAX_FLOOR);
   let verdict: Verdict = "accepted";
   let reason: string | null = null;
   if (rep.rejectedAt !== null) {
@@ -539,6 +563,16 @@ export async function submitRunService(
         p_mode: tower,
         p_floor: floors,
         p_rounds: Math.min(rep.rounds, 1_000_000),
+        p_class: hero.classId,
+        p_element: hero.element,
+      }).catch(async (e) => {
+        // The run is already closed: leave a trail so the score can be restored by hand.
+        await audit(d.rpc, playerId, "tower_record_failed", {
+          runId: body.runId,
+          floors,
+          rounds: rep.rounds,
+        });
+        throw e;
       });
       towerPrize = rec?.prize;
       // A quarter of the dungeon EXP for the hero that climbed (best effort).
@@ -566,7 +600,8 @@ export async function submitRunService(
 
 export interface LevelStartBody {
   characterId: string;
-  rank: DungeonId;
+  route: RouteId;
+  difficulty: Difficulty;
   level: number;
   ascension: number;
 }
@@ -592,11 +627,13 @@ export async function startLevelService(
       "Llegaste al límite de niveles por hora. Descansa un rato y vuelve.",
     ),
   ]);
-  const { rank, level, ascension: asc } = body;
+  const { route, difficulty, level, ascension: asc } = body;
   const me = await loadMe(d.rpc, playerId);
-  if (!isRankUnlocked(me.profile.dungeons, rank))
-    throw new ApiError(409, "dungeon_locked", "Ese dungeon todavía está bloqueado.");
-  if (!isLevelUnlocked(me.profile.dungeons, rank, level, asc))
+  if (!isRouteId(route) || !isDifficulty(difficulty) || !Number.isInteger(asc) || asc < 0 || asc > 5 || !Number.isInteger(level) || level < 0 || level >= LEVELS_PER_ROUTE)
+    throw new ApiError(400, "invalid_input", "Datos inválidos.");
+  if (!isStepUnlocked(me.profile.dungeons, { difficulty, asc: asc as 0 | 1 | 2 | 3 | 4 | 5 }))
+    throw new ApiError(409, "dungeon_locked", "Ese escalón todavía está bloqueado.");
+  if (!isLevelUnlocked(me.profile.dungeons, route, difficulty, level, asc))
     throw new ApiError(409, "level_locked", "Ese nivel todavía está bloqueado.");
   const hero = heroFromOwned(me.profile, body.characterId);
   if (!hero)
@@ -611,7 +648,8 @@ export async function startLevelService(
         p_character_id: body.characterId,
         p_seed: seed,
         p_hero: hero,
-        p_rank: rank,
+        p_route: route,
+        p_difficulty: difficulty,
         p_level: level,
         p_asc: asc,
       },
@@ -621,7 +659,8 @@ export async function startLevelService(
       runId: r.run_id,
       seed,
       hero,
-      rank,
+      route,
+      difficulty,
       level,
       ascension: asc,
     };
@@ -675,21 +714,23 @@ export async function finishLevelService(
     throw new ApiError(409, "duplicate_run", "Este nivel ya fue entregado.");
   const {
     kind,
-    rank,
+    route,
+    difficulty,
     level,
     asc,
     heroId,
     ...hero
   } = row.hero as Character & {
     kind?: string;
-    rank?: string;
+    route?: string;
+    difficulty?: string;
     level?: number;
     asc?: number;
     heroId?: string;
   };
   if (
     kind !== "level" ||
-    !DUNGEON_IDS.includes(rank as DungeonId) ||
+    !isRouteId(route) || !isDifficulty(difficulty) ||
     !Number.isInteger(level) ||
     !Number.isInteger(asc) ||
     !heroId
@@ -699,11 +740,12 @@ export async function finishLevelService(
       "wrong_run_kind",
       "Esa run no es un nivel de dungeon.",
     );
-  const r = rank as DungeonId;
+  const routeId = route as RouteId;
+  const diff = difficulty as Difficulty;
   const lv = level as number;
   const ascension = asc as number;
-  const spec = levelsOf(r)[lv];
-  if (!spec || lv >= LEVELS_PER_RANK[r])
+  const spec = levelsOf(routeId, diff)[lv];
+  if (!spec || lv >= LEVELS_PER_ROUTE)
     throw new ApiError(400, "invalid_input", "Datos inválidos.");
 
   const bank = async (args: Record<string, unknown>) => {
@@ -712,7 +754,8 @@ export async function finishLevelService(
         p_player: playerId,
         p_run_id: body.runId,
         p_hero_id: heroId,
-        p_rank: r,
+        p_route: routeId,
+        p_difficulty: diff,
         p_level: lv,
         p_asc: ascension,
         ...args,
@@ -743,6 +786,24 @@ export async function finishLevelService(
       "Ese intento se jugó demasiado rápido para ser real y no se registró.",
     );
   }
+  if (wins >= fights.length) {
+    const me = me0 ?? (await loadMe(d.rpc, playerId));
+    const need = CLAIM_POWER_FACTOR * recommendedPower(diff, lv, ascension);
+    if (heroPower(me.profile, heroId) < need) {
+      await bank({
+        p_status: "lost",
+        p_xp: 0,
+        p_dados: 0,
+        p_pieces: [],
+        p_repeat: false,
+        p_log: null,
+        p_verdict: "rejected",
+        p_reason: `implausible_clear power<${Math.ceil(need)}`,
+      });
+      await audit(d.rpc, playerId, "level_implausible", { runId: body.runId, need });
+      throw new ApiError(409, "implausible_clear", "Ese resultado no es creíble para el poder de tu héroe y no se registró.");
+    }
+  }
   const stage = resultFromWins(hero as Character, fights, wins);
   const cleared = stage.status === "cleared";
 
@@ -751,7 +812,7 @@ export async function finishLevelService(
   const dadoRng = createRng(d.randomSeed());
   for (let attempt = 0; !out; attempt++) {
     const me = attempt === 0 && me0 ? me0 : await loadMe(d.rpc, playerId);
-    const opts = lootOptions(me.profile, r, lv, ascension);
+    const opts = lootOptions(me.profile, routeId, diff, lv, ascension);
     const loot = cleared
       ? {
           ...levelLoot(spec, ascension, (hero as Character).classId, row.seed, opts),
@@ -763,7 +824,8 @@ export async function finishLevelService(
         p_player: playerId,
         p_run_id: body.runId,
         p_hero_id: heroId,
-        p_rank: r,
+        p_route: routeId,
+        p_difficulty: diff,
         p_level: lv,
         p_asc: ascension,
         p_status: cleared ? "cleared" : "lost",
@@ -834,11 +896,13 @@ export async function sweepLevelService(
       "Llegaste al límite de barridos por hora. Descansa un rato y vuelve.",
     ),
   ]);
-  const { rank, level, ascension: asc, characterId } = body;
+  const { route, difficulty, level, ascension: asc, characterId } = body;
+  if (!isRouteId(route) || !isDifficulty(difficulty) || !Number.isInteger(asc) || asc < 0 || asc > 5 || !Number.isInteger(level) || level < 0 || level >= LEVELS_PER_ROUTE)
+    throw new ApiError(400, "invalid_input", "Datos inválidos.");
   const me = await loadMe(d.rpc, playerId);
-  const spec = levelsOf(rank)[level];
+  const spec = levelsOf(route, difficulty)[level];
   if (!spec) throw new ApiError(400, "invalid_input", "Datos inválidos.");
-  const why = sweepBlock(me.profile, characterId, rank, level, asc);
+  const why = sweepBlock(me.profile, characterId, route, difficulty, level, asc);
   if (why) throw new ApiError(409, "sweep_locked", why);
   const hero = heroFromOwned(me.profile, characterId);
   if (!hero)
@@ -851,7 +915,7 @@ export async function sweepLevelService(
       "sweep_failed",
       "Tu héroe no logró barrer este nivel solo. Pelea tú el nivel.",
     );
-  const opts = lootOptions(me.profile, rank, level, asc);
+  const opts = lootOptions(me.profile, route, difficulty, level, asc);
   const loot = {
     ...levelLoot(spec, asc, hero.classId, seed, opts),
     dados: rollDado(spec, createRng(d.randomSeed()), opts.dadoLeft),
@@ -865,7 +929,8 @@ export async function sweepLevelService(
         p_character_id: characterId,
         p_seed: seed,
         p_hero: { ...hero, sweep: true },
-        p_rank: rank,
+        p_route: route,
+        p_difficulty: difficulty,
         p_level: level,
         p_asc: asc,
       },
@@ -875,7 +940,8 @@ export async function sweepLevelService(
       p_player: playerId,
       p_run_id: r.run_id,
       p_hero_id: characterId,
-      p_rank: rank,
+      p_route: route,
+        p_difficulty: difficulty,
       p_level: level,
       p_asc: asc,
       p_status: "cleared",
@@ -920,37 +986,6 @@ export async function sweepLevelService(
   }
 }
 
-// ---- hero skill ----
-
-export async function doChooseSkill(
-  d: Deps,
-  playerId: string,
-  characterId: string,
-  skill: string,
-) {
-  await limit(d.rpc, `skill:${playerId}`, 30, 60);
-  if (!isSkillId(skill))
-    throw new ApiError(400, "invalid_skill", "Esa habilidad no existe.");
-  const me = await loadMe(d.rpc, playerId);
-  if (!chooseHeroSkill(me.profile, characterId, skill))
-    throw new ApiError(
-      409,
-      "skill_locked",
-      "Esa habilidad no está disponible para este héroe.",
-    );
-  try {
-    await call(d.rpc, "choose_hero_skill", {
-      p_player: playerId,
-      p_character_id: characterId,
-      p_skill: skill,
-    });
-  } catch (e) {
-    return mapRpcError(e);
-  }
-  const fresh = await loadMe(d.rpc, playerId);
-  return { profile: fresh.profile };
-}
-
 // ---- hero fusion ----
 
 // The heroes that differ between two profiles, as the rows apply_hero_change writes: whole hero
@@ -970,10 +1005,9 @@ function heroChange(before: Profile, after: Profile) {
         stars: c.stars,
         level: c.level,
         xp: c.xp,
-        skill: c.skill ?? null,
         legacy: !!c.legacy,
         copies: c.copies ?? [],
-        data: { name: c.name, stats: c.stats, traits: c.traits, catchphrase: c.catchphrase },
+        data: { name: c.name, stats: c.stats, traits: c.traits, factors: c.factors, catchphrase: c.catchphrase },
       })),
     remove: before.characters.filter((c) => !now.has(c.id)).map((c) => c.id),
     equip: Object.entries(before.equipped).flatMap(([k, w]) => {
@@ -1071,9 +1105,9 @@ export const doStarUpHero = (d: Deps, playerId: string, baseId: string, material
     return r.ok ? { ...r, id: baseId } : r;
   });
 
-export const doSwapTrait = (d: Deps, playerId: string, id: string, index: number) =>
+export const doSwapCopy = (d: Deps, playerId: string, id: string, index: number) =>
   growHero(d, playerId, "swap_trait", { hero: id, index }, (p) => {
-    const r = swapTrait(p, { id, index });
+    const r = swapCopy(p, { id, index });
     return r.ok ? { ...r, id } : r;
   });
 

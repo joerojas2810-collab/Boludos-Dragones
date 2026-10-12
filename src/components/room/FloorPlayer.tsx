@@ -187,6 +187,7 @@ export function FloorPlayer({ client, floor, door }: Props) {
         boss={boss}
       />
       <ActionPanel
+        bar
         b={battle}
         target={targeting.target}
         onAct={act}

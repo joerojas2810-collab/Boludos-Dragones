@@ -14,7 +14,8 @@ export interface Deps {
   rpc: Rpc;
   randomSeed(): number; // uint32 from crypto in production
   // Table reads that have no RPC (service role, never exposed to clients).
-  openRunId(playerId: string): Promise<string | null>;
+  /** Open run this player may replace: same kind (level vs tower) or abandoned for 30+ min. */
+  openRunId(playerId: string, level: boolean): Promise<string | null>;
   getRun(
     playerId: string,
     runId: string,

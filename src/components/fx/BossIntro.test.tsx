@@ -20,9 +20,9 @@ it("uses approved combat art and a visible name for all nine painted boss splash
 
 it("preserves the pixel splash and lets the gallery preview painted art independently", () => {
   setPixel(true);
-  const pixel = renderToStaticMarkup(<BossIntro name="Gran Devorador" finalRank="ssr" />);
-  expect(pixel).toContain("effects-px/reduced/boss_entrance_ssr.png");
-  const painted = renderToStaticMarkup(<BossIntro name="Gran Devorador" finalRank="ssr" artStyle="painted" />);
+  const pixel = renderToStaticMarkup(<BossIntro name="Gran Devorador" finalRank="great_devourer" />);
+  expect(pixel).toContain("effects-px/reduced/boss_entrance.png");
+  const painted = renderToStaticMarkup(<BossIntro name="Gran Devorador" finalRank="great_devourer" artStyle="painted" />);
   expect(painted).toContain("painted-enemies");
   expect(isPixel()).toBe(true);
 });

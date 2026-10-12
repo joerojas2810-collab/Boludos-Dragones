@@ -20,6 +20,8 @@ Galería local: /galeria-px/actualizacion-equipamiento. Selección de los 15 tip
 
 ## Estado
 
+Antes del push se integró origin/main (2f35ede), conservando sus cambios de lógica y rutas. Verificación de la versión integrada: 596 pruebas aprobadas en 66 archivos y build de producción correcto. Las dos vistas antiguas de la galería de jefes se adaptaron localmente a los identificadores de ruta nuevos; quedan fuera del commit de EQUIPAMIENTO.
+
 FASE APROBADA por el usuario el 2026-10-12, incluidos tamaño y centrado. Commit y push autorizados. Suite completa: 551 pruebas aprobadas en 61 archivos. La galería de EQUIPAMIENTO se guarda con referencias a recursos de producción, sin depender de bocetos locales sin seguimiento. La ruta de revisión continúa siendo solo para desarrollo.
 
 Producción completa: 15 diseños base y 75 variantes transparentes. Peso total de producción: 3.142.606 bytes (aproximadamente 3 MB). Pruebas dirigidas, suite completa, ESLint y build de producción aprobados. Fase aprobada por el usuario y publicación autorizada.

@@ -24,7 +24,7 @@ import {
 import { claimedToday, dayKey } from "@/lib/game/streak";
 import { WEAPON_TYPES } from "@/lib/game/weapons";
 import { repo, useProfile } from "@/lib/useProfile";
-import { resultView, specialLine, summarizePull } from "@/lib/viewModels";
+import { basicLine, resultView, summarizePull } from "@/lib/viewModels";
 
 // Views of a pull.
 function pullViews(rs: PullResult[]): ItemView[] {
@@ -129,7 +129,7 @@ export default function GachaPage() {
                 />
               ))
             : WEAPON_TYPES.map((t, i) => (
-                <span key={t} title={specialLine(t)}>
+                <span key={t} title={basicLine(t)}>
                   <WeaponSprite
                     type={t}
                     element={ELEMENTS[i % ELEMENTS.length]}

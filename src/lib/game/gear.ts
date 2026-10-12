@@ -10,7 +10,7 @@ import {
 } from "./weapons";
 
 // Bonus from worn gear. hp/def/speed/atk are fractions of the hero's stat; the rest are
-// added points. dmgTaken / dmgDealt come from the style resonance only.
+// added points.
 export interface GearBonus {
   atk: number;
   hp: number;
@@ -22,8 +22,8 @@ export interface GearBonus {
   critDmg: number; // added to the crit multiplier
   regen: number; // fraction of max hp per round
   lifesteal: number; // fraction of damage dealt
-  dmgTaken: number; // fraction of incoming damage ignored (resonance)
-  dmgDealt: number; // extra damage dealt (resonance)
+  dmgTaken: number; // fraction of incoming damage ignored (S capstone)
+  dmgDealt: number; // extra damage dealt (S capstone)
 }
 export const NO_GEAR: GearBonus = {
   atk: 0,
@@ -319,9 +319,7 @@ export function combineGear(a: GearBonus, b: GearBonus): GearBonus {
 
 // ---- Element sets ----
 // Worn pieces (weapon + armour) of the same element: 2 give a small bonus, 4 a bigger one,
-// each with the element's signature stat. If the set matches the HERO's element the bonus
-// is multiplied (SET_AFFINITY). Sums into the gear caps like any piece.
-export const SET_AFFINITY = 1.5;
+// each with the element's signature stat. Set bonuses are the same for every hero element.
 export const SET_TIERS = [2, 4, 6] as const;
 export const SET_BONUS: Record<
   Element,
@@ -350,26 +348,20 @@ export interface ActiveSet {
   element: Element;
   pieces: number;
   tier: 2 | 4 | 6;
-  affinity: boolean;
   bonus: GearBonus;
 }
 
-export function activeSets(
-  elements: readonly Element[],
-  heroElement: Element,
-): ActiveSet[] {
+export function activeSets(elements: readonly Element[]): ActiveSet[] {
   const out: ActiveSet[] = [];
   for (const el of Object.keys(SET_BONUS) as Element[]) {
     const n = elements.filter((e) => e === el).length;
     const tier = n >= 6 ? 6 : n >= 4 ? 4 : n >= 2 ? 2 : null;
     if (!tier) continue;
-    const affinity = el === heroElement;
-    const mult = affinity ? SET_AFFINITY : 1;
     const bonus = { ...NO_GEAR };
     for (const [k, v] of Object.entries(SET_BONUS[el][SET_TIERS.indexOf(tier)]))
       bonus[k as keyof GearBonus] =
-        Math.round((v as number) * mult * 1000) / 1000;
-    out.push({ element: el, pieces: n, tier, affinity, bonus });
+        Math.round((v as number) * 1000) / 1000;
+    out.push({ element: el, pieces: n, tier, bonus });
   }
   return out;
 }
@@ -381,126 +373,6 @@ export const setBonus = (sets: readonly ActiveSet[]): GearBonus =>
 export const setTierText = (el: Element, i: number): string =>
   bonusText({ ...NO_GEAR, ...SET_BONUS[el][i] });
 
-// "Set de Rayo (2): +4.5% crítico (afinidad ×1.5)"
+// "Set de Rayo (2): +3% crítico"
 export const setLine = (s: ActiveSet): string =>
-  `Set de ${s.element[0].toUpperCase()}${s.element.slice(1)} (${s.pieces}): ${bonusText(s.bonus)}${s.affinity ? " (afinidad ×1.5)" : ""}`;
-
-// ---- Style resonance ----
-// Extra lines of the worn gear are grouped into 4 builds. A group holding a large
-// share of the lines gives a bonus (no new pieces or tags needed). x1.5 when the
-// group matches the hero's style (its chosen third skill).
-export type BuildGroup = "tanque" | "dano" | "critico" | "sosten";
-export const BUILD_GROUPS: readonly BuildGroup[] = [
-  "tanque",
-  "dano",
-  "critico",
-  "sosten",
-];
-export const BUILD_LABEL: Record<BuildGroup, string> = {
-  tanque: "Tanque",
-  dano: "Daño",
-  critico: "Crítico y resistencia",
-  sosten: "Sostén",
-};
-export const LINE_GROUP: Record<LineStat, BuildGroup> = {
-  hp: "tanque",
-  def: "tanque",
-  atk: "dano",
-  accuracy: "dano",
-  speed: "dano",
-  crit: "critico",
-  critDmg: "critico",
-  resist: "critico",
-  regen: "sosten",
-  lifesteal: "sosten",
-  dmgTaken: "tanque",
-  dmgDealt: "dano",
-};
-// Share of lines needed for the small / large bonus, and the bonuses.
-export const RESONANCE_SHARE: Record<BuildGroup, [number, number]> = {
-  tanque: [0.4, 0.6],
-  dano: [0.4, 0.6],
-  critico: [0.4, 0.6],
-  sosten: [0.3, 0.5],
-};
-export const RESONANCE_MIN_LINES = 2;
-export const RESONANCE_BONUS: Record<BuildGroup, [Partial<GearBonus>, Partial<GearBonus>]> = {
-  tanque: [{ dmgTaken: 0.04 }, { dmgTaken: 0.08 }],
-  dano: [{ dmgDealt: 0.05 }, { dmgDealt: 0.1 }],
-  critico: [{ critDmg: 0.1 }, { critDmg: 0.2 }],
-  sosten: [{ regen: 0.005 }, { regen: 0.01 }],
-};
-export const RESONANCE_STYLE_MULT = 1.5;
-
-const linesOf = (p: WornPiece): GearLine[] =>
-  !isGearType(p.type)
-    ? []
-    : p.roll !== undefined || p.lines
-      ? (p.lines ?? [])
-      : legacyRoll(p).lines;
-
-export function lineCounts(pieces: readonly WornPiece[]): Record<BuildGroup, number> {
-  const out: Record<BuildGroup, number> = { tanque: 0, dano: 0, critico: 0, sosten: 0 };
-  for (const p of pieces) for (const l of linesOf(p)) out[LINE_GROUP[l.stat]]++;
-  return out;
-}
-
-export interface Resonance {
-  group: BuildGroup;
-  tier: 1 | 2;
-  styled: boolean;
-  bonus: GearBonus;
-}
-
-export function resonances(
-  pieces: readonly WornPiece[],
-  styleGroup?: BuildGroup,
-): Resonance[] {
-  const counts = lineCounts(pieces);
-  const total = BUILD_GROUPS.reduce((s, g) => s + counts[g], 0);
-  const out: Resonance[] = [];
-  for (const g of BUILD_GROUPS) {
-    if (counts[g] < RESONANCE_MIN_LINES || total === 0) continue;
-    const share = counts[g] / total;
-    const [lo, hi] = RESONANCE_SHARE[g];
-    const tier = share >= hi ? 2 : share >= lo ? 1 : 0;
-    if (!tier) continue;
-    const styled = g === styleGroup;
-    const bonus = { ...NO_GEAR };
-    for (const [k, v] of Object.entries(RESONANCE_BONUS[g][tier - 1]))
-      bonus[k as GearKey] = round3((v as number) * (styled ? RESONANCE_STYLE_MULT : 1));
-    out.push({ group: g, tier: tier as 1 | 2, styled, bonus });
-  }
-  return out;
-}
-
-export const resonanceBonus = (rs: readonly Resonance[]): GearBonus =>
-  rs.reduce((acc, r) => combineGear(acc, r.bonus), NO_GEAR);
-
-// Automatic build tag: the group whose stats weigh most in the worn gear (main
-// stats and extra lines both count). null with no gear.
-export function buildLabel(pieces: readonly WornPiece[]): BuildGroup | null {
-  const counts = lineCounts(pieces);
-  for (const p of pieces)
-    if (isGearType(p.type))
-      for (const k of Object.keys(GEAR_BASE[p.type]) as LineStat[])
-        counts[LINE_GROUP[k]]++;
-  const best = BUILD_GROUPS.reduce((a, g) => (counts[g] > counts[a] ? g : a));
-  return counts[best] > 0 ? best : null;
-}
-
-// Hero style (third skill) -> build group it favours.
-export const SKILL_STYLE_GROUP: Record<string, BuildGroup> = {
-  contraataque: "tanque",
-  detonar: "dano",
-  barrido: "dano",
-  tormenta: "dano",
-  golpeDoble: "critico",
-  ejecutar: "critico",
-  santuario: "sosten",
-  castigo: "sosten",
-};
-
-// "Resonancia Tanque II: -8% daño recibido (estilo ×1.5)"
-export const resonanceLine = (r: Resonance): string =>
-  `Resonancia ${BUILD_LABEL[r.group]} ${r.tier === 2 ? "II" : "I"}: ${bonusText(r.bonus)}${r.styled ? ` (estilo ×${RESONANCE_STYLE_MULT})` : ""}`;
+  `Set de ${s.element[0].toUpperCase()}${s.element.slice(1)} (${s.pieces}): ${bonusText(s.bonus)}`;

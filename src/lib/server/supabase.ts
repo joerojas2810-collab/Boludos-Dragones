@@ -62,15 +62,18 @@ export function realDeps(): Deps {
   return {
     rpc: (name, args) => sb.rpc(name, args),
     randomSeed: () => randomBytes(4).readUInt32BE(0),
-    async openRunId(playerId) {
+    async openRunId(playerId, level) {
       const { data } = await sb
         .from("runs")
-        .select("id")
+        .select("id, hero, started_at")
         .eq("player_id", playerId)
         .eq("status", "open")
         .limit(1)
         .maybeSingle();
-      return (data?.id as string | undefined) ?? null;
+      if (!data) return null;
+      const isLevel = (data.hero as { kind?: string } | null)?.kind === "level";
+      const abandoned = Date.now() - Date.parse(String(data.started_at)) > 30 * 60_000;
+      return isLevel === level || abandoned ? (data.id as string) : null;
     },
     async getRun(playerId, runId) {
       const { data } = await sb

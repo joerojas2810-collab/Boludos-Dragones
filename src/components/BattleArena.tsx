@@ -3,22 +3,23 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { ArenaBackground } from "@/components/ArenaBackground";
 import { blockMenuMusic } from "@/lib/menu-music";
-import { Chip } from "@/components/Chip";
 import { BossIntro, FxLayer, useBattleFx } from "@/components/fx/BattleFx";
 import { EnemyCueContext, type EnemyCue } from "@/components/EnemySprite";
 import { StatusIcons } from "@/components/StatusIcons";
 import { HudCard } from "@/components/HudCard";
 import { HeroSprite } from "@/components/HeroSprite";
+import { Icon } from "@/components/Icon";
+import { Tooltip } from "@/components/Tooltip";
 import { HERO_ACTIONS } from "@/lib/art/heroes";
 import { isPixel } from "@/lib/art/pixel";
-import { CLASS_ART, ELEMENT_ART, HERO_ART_V } from "@/lib/art";
+import { CLASS_ART, ELEMENT_ART, HERO_ART_V, iconFor } from "@/lib/art";
 import paintedHeroes from "@/lib/art/hero-integration.generated.json";
 import type { HeroAction } from "@/lib/art/heroes";
 import { Vfx } from "@/components/fx/Vfx";
 import { STAGGER_S } from "@/components/fx/timing";
 import { effectSrc } from "@/lib/art/effects";
 import { preloadImages } from "@/lib/preload";
-import { attackOf, enemyIntents, type Battle, type Combatant } from "@/lib/game/combat";
+import { attackOf, enemyIntents, estimateDamage, type Battle, type Combatant, type Intent } from "@/lib/game/combat";
 import { intentTip, type Tip } from "@/lib/game/explain";
 
 // Animation for who attacked / who got hit in the last step, staggered like the sfx.
@@ -74,7 +75,7 @@ function heroCue(b: Battle): { action: HeroAction; delay: number } {
   if (ownIdx >= 0) {
     const m = b.events[ownIdx].move;
     return {
-      action: m === "attack1" ? "attack_1" : m === "attack2" ? "attack_2" : "attack_3",
+      action: m === "attack1" ? "attack_1" : "attack_2",
       delay: at(ownIdx, 0),
     };
   }
@@ -118,6 +119,59 @@ function bigMomentFx(b: Battle) {
   };
 }
 
+function IntentCard({ b, enemy, intent, index }: { b: Battle; enemy: Combatant; intent: Intent; index: number }) {
+  const name = intent === "defend" ? "Defender" : intent === "charge" ? "Carga" : intent === "channeling" ? "Canalización" : attackOf(enemy, intent).name;
+  const damage = intent === "defend" || intent === "channeling"
+    ? null
+    : Math.round(estimateDamage(enemy, b.player, intent));
+  const effect = intent === "channeling"
+    ? "Aplica Ruptura y reduce las curas a la mitad"
+    : intent === "charge"
+      ? `Golpe fuerte · ignora 30 % DEF · ~${damage} PV`
+      : intent === "defend"
+        ? "Reduce el daño que recibe"
+        : `${intent === "attack2" ? "Golpe fuerte" : "Ataque"} · ~${damage} PV`;
+  const outcome = intent === "channeling"
+    ? "Interrumpible"
+    : intent === "charge"
+      ? "Cancelable por Quiebre"
+      : intent === "defend"
+        ? "Defensiva"
+        : "Inevitable";
+  const iconName = intent === "defend"
+    ? iconFor("skill", "defend")
+    : intent === "attack1"
+      ? iconFor("skill", `${enemy.char.classId}.attack1`)
+      : intent === "attack2"
+        ? iconFor("skill", `${enemy.char.classId}.attack2`)
+        : null;
+  const glyph = intent === "charge" ? "↯" : intent === "channeling" ? "✦" : "⚔";
+  const countdown = `${index + 1} ${index === 0 ? "activación" : "activaciones"}`;
+  const tip = intentTip(intent, b, b.enemies.indexOf(enemy));
+  const tone = intent === "channeling"
+    ? "border-rose-400/70 bg-rose-950/70 text-rose-100"
+    : intent === "charge"
+      ? "border-amber-400/60 bg-amber-950/65 text-amber-100"
+      : "border-red-900/60 bg-black/35 text-[#f2e6d7]";
+  return (
+    <div
+      key={`${intent}-${index}`}
+      aria-label={`${name}. ${effect}. En ${countdown}. ${outcome}.`}
+      className={`flex min-w-0 items-start gap-1.5 rounded border px-1.5 py-1 ${tone}`}
+    >
+      {iconName ? <Icon name={iconName} className="mt-0.5 h-4 shrink-0" /> : <span aria-hidden="true" className="mt-0.5 w-4 shrink-0 text-center font-bold leading-4">{glyph}</span>}
+      <Tooltip tip={tip} className="block min-w-0 flex-1">
+        <span className="flex min-w-0 items-center gap-1 text-[11px] leading-4">
+          <span className="min-w-0 flex-1 truncate font-bold">{name}</span>
+          <span className="shrink-0 tabular-nums text-[#f1d5a4]">{countdown}</span>
+        </span>
+        <span className="block truncate text-[10px] leading-3 text-[#e4d9ca]" title={effect}>{effect}</span>
+        <span className="block truncate text-[9px] font-semibold uppercase tracking-wide leading-3 text-amber-200">{outcome}</span>
+      </Tooltip>
+    </div>
+  );
+}
+
 // Effects every fight can show (hits per element, damage numbers, guard, status marks): without a
 // warm cache they download when first needed and arrive after the blow they belong to.
 const FIGHT_EFFECTS = [
@@ -142,7 +196,7 @@ type Props = {
   playerExtraTip?: Tip;
   inRun?: boolean;
   rank?: string | null; // dungeon rank, for its own scenery
-  finalRank?: string | null; // set on the dungeon's final boss fight (named entrance)
+  finalRank?: string | null; // route id of the dungeon's named final boss
   world?: number; // 0-4 index into WORLDS; omit for the plain test-bench look
   boss?: boolean;
   enemyExtra: (i: number, c: Combatant) => string;
@@ -313,18 +367,9 @@ export function BattleArena({
                   compact={multi}
                   className=""
                   footer={
-                    <div className="mt-1 flex min-h-6 flex-wrap items-center gap-1 text-[13px]">
-                      {intents.length > 0 && (
-                        <span className={`font-semibold text-red-300 ${multi ? "max-md:hidden" : ""}`}>
-                          Anuncia:
-                        </span>
-                      )}
+                    <div className="mt-1 space-y-1">
                       {intents.map((it, k) => (
-                        <Chip key={k} tone="danger" tip={intentTip(it, b, i)}>
-                          {it === "defend"
-                            ? "Defender"
-                            : `${attackOf(c, it).name}${it === "attack2" ? " ⚠" : ""}`}
-                        </Chip>
+                        <IntentCard key={`${it}-${k}`} b={b} enemy={c} intent={it} index={k} />
                       ))}
                     </div>
                   }

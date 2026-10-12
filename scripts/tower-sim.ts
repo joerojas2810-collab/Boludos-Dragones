@@ -7,7 +7,6 @@ import { levelCap } from "../src/lib/game/heroLevel";
 import { normalizeHero } from "../src/lib/game/nivelado";
 import { scaleStats, type RarityId } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
-import { heroSkill } from "../src/lib/game/skills";
 import { applyTowerAction, startTower } from "../src/lib/game/tower";
 
 const n = Number(process.argv[2] ?? 60);
@@ -26,7 +25,6 @@ for (let i = 0; i < n; i++) {
     rarity: rank,
     stars,
     level,
-    skill: heroSkill(c.classId),
     stats: scaleStats(c.stats, rank, stars, level),
   };
   const hero = normalizeHero(owned, mode === "nivelado" ? "nivelado" : "completo");

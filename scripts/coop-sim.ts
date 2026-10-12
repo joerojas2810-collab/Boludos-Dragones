@@ -1,33 +1,43 @@
-// Calibrates the coop boss: npx tsx scripts/coop-sim.ts [rooms] [rank]
-// Each simulated room has N players (2-7) with random nivelado heroes; every
-// player plays the same bot (autoPolicy with guard) against the coop boss and the
-// party wins when the summed damage reaches the pool. Tune COOP_K in lib/game/coop.ts.
+// Calibrates the co-op boss with fixed levelled heroes and the current combat bot.
+// Usage: npx tsx scripts/coop-sim.ts [rooms=200] [rank=f] [--quick] [--workers=N] [--seed=1000]
+// --quick: 20 rooms; workers split room seeds deterministically.
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpus, tmpdir } from "node:os";
+import { join } from "node:path";
 import { autoPolicy } from "../src/lib/game/auto";
-import { generateCharacter } from "../src/lib/game/characters";
+import { CLASS_IDS, type ClassId } from "../src/lib/game/characters";
+import { ELEMENTS, type Element } from "../src/lib/game/elements";
 import {
   bossUnit,
   coopNode,
   damageDealt,
   startCoop,
 } from "../src/lib/game/coop";
-import { normalizeHero } from "../src/lib/game/nivelado";
+import { niveladoHero } from "../src/lib/game/niveladoHero";
 import type { RarityId } from "../src/lib/game/rarity";
-import { createRng, hashSeed } from "../src/lib/game/rng";
 import { step } from "../src/lib/game/combat";
 import { newClimb } from "../src/lib/game/floorFights";
 
-const ROOMS = Number(process.argv[2] ?? 200);
-const RANK = (
-  process.argv[3] === "null" ? null : (process.argv[3] ?? "f")
-) as RarityId | null;
-const POOLS = (process.env.POOLS ?? "0.8,1,1.2,1.4,1.7,2")
-  .split(",")
-  .map(Number);
+const args = new Map(process.argv.slice(2).filter((arg) => arg.startsWith("--")).map((arg) => {
+  const [key, ...value] = arg.replace(/^--/, "").split("=");
+  return [key, value.join("=")];
+}));
+const QUICK = args.has("quick");
+const positional = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
+const ROOMS = Number(args.get("rooms") ?? positional[0] ?? (QUICK ? 20 : 200));
+const RANK = (positional[1] === "null" ? null : positional[1] ?? "f") as RarityId | null;
+const BASE_SEED = Number(args.get("seed") ?? 1000);
+const WORKERS = Math.max(1, Math.min(8, Math.floor(Number(args.get("workers") ?? Math.max(1, cpus().length - 1)))));
+const SHARD = (args.get("shard") ?? "0/1").split("/").map(Number);
+const PARTIAL = args.get("partial") ?? "";
+const POOLS = (process.env.POOLS ?? "0.8,1,1.2,1.4,1.7,2").split(",").map(Number);
+if (!Number.isInteger(ROOMS) || ROOMS < 1 || !Number.isInteger(BASE_SEED) || BASE_SEED < 0) throw new Error("Invalid rooms or seed.");
 
 function fight(seed: number, who: number): number {
-  const hero = normalizeHero(
-    generateCharacter(createRng(hashSeed(seed, who))),
-    "nivelado",
+  const hero = niveladoHero(
+    CLASS_IDS[(who + seed) % CLASS_IDS.length] as ClassId,
+    ELEMENTS[(who * 2 + seed) % ELEMENTS.length] as Element,
   );
   const run = newClimb(seed, hero, RANK);
   const f = startCoop(run, coopNode(seed, RANK));
@@ -38,40 +48,44 @@ function fight(seed: number, who: number): number {
     if (n === b) break;
     b = n;
   }
-  return damageDealt(b);
+  return damageDealt(b) / bossUnit(seed, RANK);
 }
 
-for (let n = 2; n <= 7; n++) {
-  const dmg: number[][] = [];
-  let unit = 0;
-  for (let r = 0; r < ROOMS; r++) {
-    const seed = 1000 + r;
-    unit = bossUnit(seed, RANK);
-    dmg.push(Array.from({ length: n }, (_, i) => fight(seed, i) / unit));
-  }
-  const per = dmg.flat().reduce((a, b) => a + b, 0) / dmg.flat().length;
-  const row = POOLS.map((p) => {
-    const wins = dmg.filter(
-      (d) => d.reduce((a, b) => a + b, 0) >= p * n,
-    ).length;
-    return `${p}:${((100 * wins) / ROOMS).toFixed(0)}%`;
+type Sample = { seed: number; damage: number[][] };
+const samples: Sample[] = [];
+for (let r = 0; r < ROOMS; r++) {
+  if (WORKERS > 1 || r % SHARD[1] !== SHARD[0]) continue;
+  const seed = BASE_SEED + r;
+  const damage = Array.from({ length: 6 }, (_, index) => {
+    const n = index + 2;
+    return Array.from({ length: n }, (_, who) => fight(seed, who));
   });
-  console.log(
-    `N=${n} avg dmg/player=${per.toFixed(2)} units | win by poolPerPlayer ${row.join("  ")}`,
-  );
+  samples.push({ seed, damage });
 }
-
-if (process.env.DIST) {
-  const out: string[] = [];
-  for (let r = 0; r < 24; r++) {
-    const seed = 1000 + r;
-    const u = bossUnit(seed, RANK);
-    out.push(
-      `${seed} ${coopNode(seed, RANK).enemies[0].classId}/${coopNode(seed, RANK).enemies[0].element}: ` +
-        Array.from({ length: 6 }, (_, i) =>
-          (fight(seed, i) / u).toFixed(1),
-        ).join(" "),
-    );
-  }
-  console.log(out.join("\n"));
+if (PARTIAL) {
+  writeFileSync(PARTIAL, JSON.stringify(samples));
+  process.exit(0);
+}
+if (WORKERS > 1) {
+  const dir = mkdtempSync(join(tmpdir(), "coop-sim-"));
+  const files = Array.from({ length: WORKERS }, (_, i) => join(dir, `part-${i}.json`));
+  const quote = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
+  const commands = files.map((file, i) => [process.execPath, ...process.execArgv, process.argv[1], ...process.argv.slice(2).filter((x) => !x.startsWith("--workers") && !x.startsWith("--shard") && !x.startsWith("--partial")), `--workers=1`, `--shard=${i}/${WORKERS}`, `--partial=${file}`].map(quote).join(" ") + " &");
+  const result = spawnSync("sh", ["-c", `${commands.join("\n")}\nwait`], { stdio: "inherit" });
+  if (result.status !== 0) throw new Error("A co-op simulation worker failed.");
+  samples.push(...files.flatMap((file) => {
+    if (!existsSync(file)) throw new Error(`Missing worker result: ${file}`);
+    return JSON.parse(readFileSync(file, "utf8")) as Sample[];
+  }));
+}
+samples.sort((a, b) => a.seed - b.seed);
+console.log(`rank=${RANK ?? "none"} rooms=${ROOMS} seed=${BASE_SEED} preset=D 0★ Lv1 policy=auto workers=${WORKERS}`);
+for (let n = 2; n <= 7; n++) {
+  const dmg = samples.map((sample) => sample.damage[n - 2]);
+  const perPlayer = dmg.flat().reduce((sum, value) => sum + value, 0) / (dmg.length * n);
+  const row = POOLS.map((pool) => {
+    const wins = dmg.filter((party) => party.reduce((sum, value) => sum + value, 0) >= pool * n).length;
+    return `${pool}:${((100 * wins) / ROOMS).toFixed(0)}%`;
+  });
+  console.log(`N=${n} avg dmg/player=${perPlayer.toFixed(2)} boss units | win by poolPerPlayer ${row.join("  ")}`);
 }

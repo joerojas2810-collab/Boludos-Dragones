@@ -4,9 +4,10 @@ import { generateCharacter, type Character, type ClassId } from "./characters";
 import {
   earnGuard,
   estimateDamage,
+  EXPLOIT_BASIC_DAMAGE_FRACTION,
+  EXPLOIT_MAGE_EFFECT_MULT,
+  EXPLOIT_OVERLOAD_DAMAGE_FRACTION,
   furyBonus,
-  GUARD_HEAL,
-  guardFree,
   speedOf,
   startBattle,
   statusTick,
@@ -57,20 +58,22 @@ const withWeapon = (c: Character, element: Character["element"]): Character => (
 
 describe("elemental statuses", () => {
   const mage = (element: Character["element"]) =>
-    withWeapon({ ...unit("mago"), skill: "tormenta" }, element);
+    withWeapon({ ...unit("mago"), element }, "agua");
 
-  it("every hit applies the status of the weapon element: 1 stack, the class special 2", () => {
+  it("basic and universal attacks apply the hero element's state once", () => {
     const b = fight(mage("agua"), [unit("picaro")], [[]]);
     expect(stacksOf(step(b, "attack1", always).enemies[0].statuses, "escarcha")).toBe(1);
-    expect(stacksOf(step(b, "attack2", always).enemies[0].statuses, "escarcha")).toBe(1);
-    const s = step(b, "attack3", always);
-    expect(stacksOf(s.enemies[0].statuses, "escarcha")).toBe(2);
+    expect(stacksOf(step(b, "golpe", always).enemies[0].statuses, "escarcha")).toBe(1);
+    const s = step(b, "golpe", always);
+    expect(stacksOf(s.enemies[0].statuses, "escarcha")).toBe(1);
+    const mismatch = fight(mage("fuego"), [unit("picaro")], [[]]);
+    expect(stacksOf(step(mismatch, "attack1", always).enemies[0].statuses, "quemadura")).toBe(1);
   });
 
   it("each element maps to its own status; Rayo has none", () => {
     const stat = (e: Character["element"]) =>
-      step(fight(mage(e), [unit("picaro")], [[]]), "attack3", always).player.statuses?.[0]?.id ??
-      step(fight(mage(e), [unit("picaro")], [[]]), "attack3", always).enemies[0].statuses?.[0]?.id;
+      step(fight(mage(e), [unit("picaro")], [[]]), "barrido", always).player.statuses?.[0]?.id ??
+      step(fight(mage(e), [unit("picaro")], [[]]), "barrido", always).enemies[0].statuses?.[0]?.id;
     expect(stat("fuego")).toBe("quemadura");
     expect(stat("tierra")).toBe("ruptura");
     expect(stat("viento")).toBe("impulso"); // the user's own buff
@@ -128,11 +131,219 @@ describe("elemental statuses", () => {
     expect(run({}, "attack2").statuses ?? []).toHaveLength(0);
   });
 
-  it("Detonar consumes the statuses and does not apply new ones", () => {
-    const hero = withWeapon({ ...unit("mago"), skill: "detonar" }, "agua");
-    const b = fight(hero, [unit("picaro")], [[]]);
-    const marked = { ...b, enemies: [{ ...b.enemies[0], statuses: addStatus(undefined, "ruptura", 2) }] };
-    expect(step(marked, "attack3", always).enemies[0].statuses ?? []).toHaveLength(0);
+  it("Explotar consumes Quemadura, deals 40% basic damage, advances one capped tick, and applies no new state", () => {
+    const hero = withWeapon({ ...unit("mago"), element: "fuego" }, "agua");
+    const foe = unit("picaro", { hp: 1000, def: 0 });
+    const b = fight(hero, [foe], [[]]);
+    const target = {
+      ...b.enemies[0],
+      statuses: addStatus(undefined, "quemadura", 2, 100),
+    };
+    const prepared = { ...b, enemies: [target] };
+    const common = Math.round(estimateDamage(b.player, target, "attack1") * 0.4);
+    const out = step(prepared, "explotar", always);
+    const cappedBurn = Math.round(foe.stats.hp * BURN_CAP);
+    expect(target.hp - out.enemies[0].hp).toBe(common + cappedBurn);
+    expect(stacksOf(out.enemies[0].statuses, "quemadura")).toBe(0);
+    expect(out.enemies[0].statuses?.some((s) => s.id === "escarcha")).toBe(false);
+    expect(out.log.join(" ")).toContain("Quemadura adelantada");
+  });
+
+  it("Explotar consumes Ruptura and grants a one-activation defense bypass", () => {
+    const hero = withWeapon({ ...unit("caballero"), element: "tierra" }, "agua");
+    const foe = unit("picaro", { hp: 10000, def: 50 });
+    const b = fight(hero, [foe], [[]]);
+    const target = {
+      ...b.enemies[0],
+      char: { ...b.enemies[0].char, stats: { ...b.enemies[0].char.stats, def: 10000 } },
+      statuses: addStatus(undefined, "ruptura", 2),
+    };
+    const out = step({ ...b, enemies: [target] }, "explotar", always);
+    expect(stacksOf(out.enemies[0].statuses, "ruptura")).toBe(0);
+    expect(out.player.nextAttackDefenseBypass).toBeCloseTo(0.16);
+    const def = {
+      ...out.enemies[0],
+      hp: 10000,
+      char: { ...out.enemies[0].char, stats: { ...out.enemies[0].char.stats, def: 100 } },
+    };
+    const strongPlayer = {
+      ...out.player,
+      char: { ...out.player.char, stats: { ...out.player.char.stats, atk: 1000 } },
+    };
+    expect(estimateDamage(strongPlayer, def, "attack1", false, 0.16)).toBeGreaterThan(
+      estimateDamage(strongPlayer, def, "attack1"),
+    );
+    const next = step(withRound({ ...out, enemies: [def] }, false, [[]], 1), "attack1", always);
+    expect(next.player.nextAttackDefenseBypass).toBeUndefined();
+  });
+
+  it("Explotar requires three Sobrecarga charges, consumes them, and adds no charge", () => {
+    const hero = withWeapon({ ...unit("mago"), element: "rayo" }, "agua");
+    const b = fight(hero, [unit("picaro", { hp: 10000 })], [[]]);
+    expect(step(b, "explotar", always)).toBe(b);
+    const charged = { ...b, player: { ...b.player, charge: 3 } };
+    const common = estimateDamage(charged.player, charged.enemies[0], "attack1");
+    const out = step(charged, "explotar", always);
+    expect(charged.enemies[0].hp - out.enemies[0].hp).toBe(
+      Math.round(common * (EXPLOIT_BASIC_DAMAGE_FRACTION + EXPLOIT_OVERLOAD_DAMAGE_FRACTION * EXPLOIT_MAGE_EFFECT_MULT)),
+    );
+    expect(out.player.charge).toBe(0);
+    expect(out.enemies[0].statuses ?? []).toHaveLength(0);
+  });
+
+  it("Explotar class hooks respect the class healing and shield caps", () => {
+    const foe = unit("picaro", { hp: 10000 });
+    const prepare = (classId: ClassId) => {
+      const hero = withWeapon({ ...unit(classId), element: "fuego" }, "agua");
+      const b = fight(hero, [foe], [[]]);
+      return {
+        ...b,
+        player: { ...b.player, hp: b.player.char.stats.hp - 100 },
+        enemies: [{ ...b.enemies[0], statuses: addStatus(undefined, "quemadura", 1, 1) }],
+      };
+    };
+    const cleric = prepare("clerigo");
+    expect(step(cleric, "explotar", always).player.hp).toBeGreaterThan(cleric.player.hp);
+    const knight = prepare("caballero");
+    const shielded = step(knight, "explotar", always).player;
+    expect(shielded.shield).toBeGreaterThan(0);
+    expect(shielded.shield).toBeLessThanOrEqual(Math.round(shielded.char.stats.hp * 0.03));
+  });
+
+  it("Mago and low-health Berserker amplify Quemadura's immediate tick by 25%", () => {
+    const foe = unit("picaro", { hp: 1000 });
+    const run = (classId: ClassId, hp = 1000) => {
+      const hero = withWeapon({ ...unit(classId), element: "fuego", stats: { ...unit(classId).stats, hp } }, "agua");
+      const initial = fight(hero, [foe], [[]]);
+      const b = classId === "berserker"
+        ? { ...initial, player: { ...initial.player, hp: 250 } }
+        : initial;
+      const target = { ...b.enemies[0], statuses: addStatus(undefined, "quemadura", 1, 40) };
+      const prepared = { ...b, enemies: [target] };
+      const common = Math.round(estimateDamage(b.player, target, "attack1") * 0.4);
+      return target.hp - step(prepared, "explotar", always).enemies[0].hp - common;
+    };
+    expect(run("mago")).toBe(50);
+    expect(run("berserker", 500)).toBe(50);
+  });
+});
+
+describe("Explotar Escarcha e Impulso sobre la cola de ronda", () => {
+  const frostTarget = (b: Battle, stacks: number) => ({
+    ...b.enemies[0],
+    statuses: addStatus(undefined, "escarcha", stacks),
+  });
+
+  it("consumes Escarcha and moves the next pending enemy slot after the next player action", () => {
+    const hero = withWeapon(unit("caballero"), "agua");
+    const foe = unit("mago", { hp: 10000 });
+    const base = fight(hero, [foe], [["attack1", "attack1"]]);
+    const prepared = withRound({ ...base, enemies: [frostTarget(base, 1)] }, false, [["attack1", "attack1"]], 2);
+    const out = step(prepared, "explotar", always);
+
+    expect(stacksOf(out.enemies[0].statuses, "escarcha")).toBe(0);
+    expect(out.queue[0]).toBe("player");
+    expect(out.queue[1]).toMatchObject({ e: 0, n: 0 });
+    expect(out.log.join(" ")).toContain("Escarcha retrasa una acción");
+  });
+
+  it("three Escarcha charges move up to two queued slots in one event", () => {
+    const hero = withWeapon(unit("caballero"), "agua");
+    const foe = unit("mago", { hp: 10000 });
+    const base = fight(hero, [foe], [["attack1"]]);
+    const prepared: Battle = {
+      ...base,
+      playerActions: 2,
+      enemies: [frostTarget(base, 3)],
+      queue: [
+        "player",
+        { e: 0, n: 0, intent: "attack1" as const },
+        { e: 0, n: 1, intent: "attack1" as const },
+        "player",
+        { e: 0, n: 2, intent: "attack1" as const },
+      ],
+    };
+    const out = step(prepared, "explotar", always);
+
+    expect(out.queue).toEqual([
+      "player",
+      { e: 0, n: 0, intent: "attack1" },
+      { e: 0, n: 1, intent: "attack1" },
+      { e: 0, n: 2, intent: "attack1" },
+    ]);
+    expect(out.frostDelayedEnemies).toEqual([0]);
+  });
+
+  it("does not delay a strong slot that already received its warning wait", () => {
+    const hero = withWeapon(unit("caballero"), "agua");
+    const foe = unit("mago", { hp: 10000 });
+    const base = fight(hero, [foe], [["attack2"]]);
+    const prepared: Battle = {
+      ...base,
+      playerActions: 2,
+      enemies: [frostTarget(base, 3)],
+      queue: ["player", { e: 0, n: 0, intent: "attack2" as const, warningWaited: true }, "player"],
+    };
+    const out = step(prepared, "explotar", always);
+
+    expect(out.log.join(" ")).not.toContain("Escarcha retrasa");
+    expect(out.frostDelayedEnemies).toEqual([]);
+  });
+
+  it("requires 3 Impulso stacks for one queued action, never exceeding three", () => {
+    const hero = withWeapon({ ...unit("mago"), element: "viento" }, "agua");
+    const foe = unit("mago", { hp: 10000 });
+    const base = fight(hero, [foe], [["attack1"]]);
+    const prepared: Battle = {
+      ...base,
+      player: { ...base.player, statuses: addStatus(undefined, "impulso", 2) },
+      playerActions: 2,
+      queue: ["player", { e: 0, n: 0, intent: "attack1" as const }, "player"],
+    };
+    const out = step(prepared, "explotar", always);
+
+    expect(stacksOf(out.player.statuses, "impulso")).toBe(0);
+    expect(out.playerActions).toBe(2);
+    expect(out.impulseGranted).toBe(false);
+    expect(out.queue).toEqual(["player"]);
+
+    const charged: Battle = {
+      ...prepared,
+      player: { ...prepared.player, statuses: addStatus(undefined, "impulso", 3) },
+    };
+    const granted = step(charged, "explotar", always);
+    expect(granted.playerActions).toBe(3);
+    expect(granted.impulseGranted).toBe(true);
+    expect(granted.queue).toEqual(["player", "player"]);
+  });
+
+  it("keeps the three-action cap and Pícaro consumes Impulso for next-attack critical chance", () => {
+    const rogue = withWeapon({ ...unit("picaro", { crit: 0.2 }), element: "viento" }, "agua");
+    const foe = unit("mago", { hp: 10000 });
+    const base = fight(rogue, [foe], [["attack1", "attack1"]]);
+    const capped: Battle = {
+      ...base,
+      player: { ...base.player, statuses: addStatus(undefined, "impulso", 2) },
+      playerActions: 3,
+      queue: ["player", { e: 0, n: 0, intent: "attack1" as const }, "player", { e: 0, n: 1, intent: "attack1" as const }, "player"],
+    };
+    const cappedOut = step(capped, "explotar", always);
+    expect(cappedOut.playerActions).toBe(3);
+    expect(cappedOut.log.join(" ")).not.toContain("añade una acción");
+
+    const critRng: Rng = { ...createRng(5), chance: (p) => p >= 0.3 };
+    const bonusBase: Battle = {
+      ...base,
+      player: { ...base.player, statuses: addStatus(undefined, "impulso", 1) },
+      queue: ["player", "player"],
+    };
+    const primed = step(bonusBase, "explotar", always);
+    expect(primed.player.nextCritChance).toBe(0.15);
+    const defended = step(primed, "defend", always);
+    expect(defended.player.nextCritChance).toBeUndefined();
+    const next = step(primed, "attack1", critRng);
+    expect(next.events.some((event) => event.kind === "crit")).toBe(true);
+    expect(next.player.nextCritChance).toBeUndefined();
   });
 });
 
@@ -143,29 +354,29 @@ describe("perfect guard class bonuses", () => {
     return earnGuard(hp === undefined ? c : { ...c, hp }, log);
   };
 
-  it("Mago, Pícaro and Berserker keep a bonus for the next hit; Caballero and Clérigo do not", () => {
+  it("Mago and Pícaro keep their guard passive; Caballero gains Resolución", () => {
     expect(earn("mago").riposte).toBe(true);
     expect(earn("picaro").riposte).toBe(true);
     expect(earn("berserker").riposte).toBe(true);
-    expect(earn("caballero").riposte).toBeUndefined();
+    expect(earn("caballero").resolution).toBe(true);
     expect(earn("clerigo", 500).riposte).toBeUndefined();
   });
 
-  it("Clérigo heals GUARD_HEAL and cleanses a negative status", () => {
+  it("Clérigo guard healing respects the 3% activation cap and cleanses a status", () => {
     const c = startBattle(unit("clerigo"), [unit("picaro")], createRng(3)).player;
     const hurt = { ...c, hp: 500, statuses: addStatus(undefined, "escarcha", 2) };
     const out = earnGuard(hurt, log);
-    expect(out.hp).toBe(500 + Math.round(1000 * GUARD_HEAL));
+    expect(out.hp).toBe(500 + 30);
     expect(out.statuses ?? []).toHaveLength(0);
   });
 
-  it("Caballero reflects part of the avoided damage back, no hit roll", () => {
+  it("Caballero gains a one-use Resolución instead of reflecting damage", () => {
     const hero = unit("caballero");
     const foe = unit("picaro", { atk: 40 });
     const b = withRound(startBattle(hero, [foe], createRng(4)), 1, [["attack2"]], 1);
     const s = step(b, "defend", always);
-    expect(s.log.some((l) => l.includes("refleja"))).toBe(true);
-    expect(s.enemies[0].hp).toBeLessThan(s.enemies[0].char.stats.hp);
+    expect(s.player.resolution).toBe(true);
+    expect(s.enemies[0].hp).toBe(s.enemies[0].char.stats.hp);
   });
 });
 
@@ -181,36 +392,6 @@ describe("Berserker", () => {
     expect(at("caballero", 0.2)).toBe(0);
   });
 
-  it("Frenesí costs 8 % of the CURRENT hp and never kills", () => {
-    const hero = { ...unit("berserker"), weapon: { element: "fuego" as const, atkBonus: 0, type: "mandoble" } };
-    const b = fight(hero, [unit("picaro", { hp: 5000 })], [[]]);
-    const s = step(b, "attack2", always);
-    expect(b.player.hp - s.player.hp).toBe(Math.round(1000 * 0.08));
-    const dying = { ...b, player: { ...b.player, hp: 1 } };
-    expect(step(dying, "attack2", always).player.hp).toBeGreaterThanOrEqual(1);
-  });
-
-  it("guard bonus: the next special costs no hp and recharges a round sooner, an Ataque 1 keeps it", () => {
-    const hero = { ...unit("berserker"), weapon: { element: "fuego" as const, atkBonus: 0, type: "mandoble" } };
-    const b = fight(hero, [unit("picaro", { hp: 5000 })], [[]]);
-    const armed = { ...b, player: { ...b.player, riposte: true } };
-    expect(guardFree(armed.player)).toBe(true);
-    const keep = step(armed, "attack1", always);
-    expect(keep.player.riposte).toBe(true); // Ataque 1 does not spend it
-    const free = step(armed, "attack2", always);
-    expect(free.player.hp).toBe(1000); // no Frenesí cost
-    const paid = step(b, "attack2", always);
-    expect(free.player.cooldown).toBe(paid.player.cooldown - 1);
-    expect(free.player.riposte).toBe(false);
-  });
-
-  it("Aniquilación hits much harder below 33 % hp", () => {
-    const hero = { ...unit("berserker"), skill: "aniquilacion" as const };
-    const b = fight(hero, [unit("picaro", { hp: 5000 })], [[]]);
-    const low = { ...b, player: { ...b.player, hp: 200 } };
-    const dmg = (x: Battle) => x.enemies[0].hp - step(x, "attack3", always).enemies[0].hp;
-    expect(dmg(low)).toBeGreaterThan(dmg(b) * 1.4);
-  });
 });
 
 describe("dungeon boss mechanics", () => {
@@ -313,8 +494,29 @@ describe("dungeon boss mechanics", () => {
   it("Reina Marchita: the ritual lands every 3 rounds unless a perfect guard stops it", () => {
     const b = startBattle(hero(), [boss("withered_queen")], createRng(2));
     const after = rounds(b, 3);
-    expect(after.log.some((l) => l.includes("prepara un ritual"))).toBe(true);
+    expect(after.log.some((l) => l.includes("canaliza su ritual"))).toBe(true);
     expect(after.log.some((l) => l.includes("marchita") || l.includes("anula"))).toBe(true);
+  });
+
+  it("Interrumpir cancels the Queen's announced ritual before either effect", () => {
+    const b0 = startBattle(hero(), [boss("withered_queen")], createRng(2));
+    const b = withRound(b0, false, [["channeling"]], 1);
+    const after = step(b, "interrumpir", always);
+    expect(after).not.toBe(b);
+    expect(after.enemies[0].channelingState).not.toBe("resolved");
+    expect(after.player.healCut ?? 0).toBe(0);
+    expect(after.player.statuses ?? []).not.toContainEqual(expect.objectContaining({ id: "ruptura" }));
+    expect(after.log.some((line) => line.includes("canalización interrumpida"))).toBe(true);
+    expect(after.queue.some((slot) => slot !== "player" && slot.intent === "channeling")).toBe(false);
+  });
+
+  it("a perfect guard remains a second answer to the announced ritual", () => {
+    const b0 = startBattle(hero(), [boss("withered_queen")], createRng(2));
+    const b = withRound(b0, false, [["channeling"]], 1);
+    const after = step(b, "defend", always);
+    expect(after.player.healCut ?? 0).toBe(0);
+    expect(after.player.statuses ?? []).not.toContainEqual(expect.objectContaining({ id: "ruptura" }));
+    expect(after.log.some((line) => line.includes("Tu guardia perfecta anula el ritual"))).toBe(true);
   });
 
   it("Vigía Eterno: repeating the same action twice weakens the third", () => {
@@ -334,18 +536,4 @@ describe("dungeon boss mechanics", () => {
     expect(third).toBeLessThan(second);
     expect(x.log.some((l) => l.includes("te lee"))).toBe(true);
   });
-});
-
-describe("Contraataque resolves within the round", () => {
-  const caballero = { ...generateCharacter(createRng(3), "caballero"), skill: "contraataque" as const };
-  const foe = generateCharacter(createRng(9), "mago");
-  // seed 1 and 3: the hero acts first; seed 2: the enemy opens the round
-  for (const seed of [1, 2, 3])
-    it(`returns the hit of the round either way (seed ${seed})`, () => {
-      const rng = createRng(seed);
-      const b = step(startBattle(caballero, [foe], rng), "attack3", rng);
-      expect(b.log.some((l) => /devuelve \d+ a/.test(l))).toBe(true);
-      expect(b.enemies[0].hp).toBeLessThan(foe.stats.hp);
-      expect(b.player.reflect ?? 0).toBe(0); // nothing is left charged for the next round
-    });
 });

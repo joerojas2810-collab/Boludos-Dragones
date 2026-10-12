@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { isFairTrade, isPieceKey } from "../game/market";
-import { DUNGEON_IDS } from "../game/rarity";
+import { RARITY_IDS } from "../game/rarity";
+import { ROUTE_IDS } from "../game/levels";
 import { SLOTS } from "../game/weapons";
+import { ELEMENTS } from "../game/elements";
 
 // ---- name / PIN ----
 export const NAME_MIN = 3;
@@ -55,11 +57,13 @@ export const runStartBody = z.strictObject({
   classId: z.enum(["caballero", "mago", "picaro", "clerigo", "berserker"]),
   characterId: z.string().min(1).max(100).nullable(),
   tower: z.enum(["nivelado", "coleccion"]),
+  element: z.enum(ELEMENTS).optional(),
 });
 export const levelStartBody = z.strictObject({
   characterId: z.string().min(1).max(100),
-  rank: z.enum(DUNGEON_IDS),
-  level: z.number().int().min(0).max(11),
+  route: z.enum(ROUTE_IDS),
+  difficulty: z.enum(RARITY_IDS),
+  level: z.number().int().min(0).max(3),
   ascension: z.number().int().min(0).max(5),
 });
 const heroMaterial = z.strictObject({ id: z.string().min(1).max(100), n: z.number().int().min(1).max(51) });
@@ -72,20 +76,15 @@ export const starUpHeroBody = z.strictObject({
   baseId: z.string().min(1).max(100),
   materials: z.array(heroMaterial).min(1).max(9),
 });
-export const swapTraitBody = z.strictObject({
+export const swapCopyBody = z.strictObject({
   heroId: z.string().min(1).max(100),
   index: z.number().int().min(0).max(49),
 });
 export const tutorialBody = z.strictObject({ step: z.number().int().min(0).max(7) });
-export const skillBody = z.strictObject({
-  characterId: z.string().min(1).max(100),
-  skillId: z.string().min(1).max(30),
-});
-
 export const runActionSchema = z.discriminatedUnion("t", [
   z.strictObject({
     t: z.literal("act"),
-    a: z.enum(["attack1", "attack2", "attack3", "defend"]),
+    a: z.enum(["attack1", "golpe", "barrido", "quebrar", "interrumpir", "explotar", "defend"]),
     target: z.number().int().min(0).max(2).optional(),
   }),
   z.strictObject({ t: z.literal("auto") }),
