@@ -333,8 +333,8 @@ export class RemoteRoomClient implements RoomClient {
   duelPick = (pick: DuelPick) => this.act("duel_pick", { pick });
   duelBet = (key: string, prediction: BetPrediction, stake: number) =>
     this.act("duel_bet", { key, prediction, stake });
-  duelMove = (key: string, action: DuelAction) =>
-    this.act("duel_move", { key, action });
+  duelMove = (key: string, action: DuelAction, n?: number) =>
+    this.act("duel_move", n === undefined ? { key, action } : { key, action, n });
   close = () => this.act("close");
   leave = () => this.act("leave");
 

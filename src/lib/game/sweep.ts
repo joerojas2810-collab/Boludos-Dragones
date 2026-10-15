@@ -5,6 +5,7 @@
 import { autoPolicy } from "./auto";
 import { step } from "./combat";
 import type { Character } from "./characters";
+import type { Loadout } from "./skills";
 import { clearedLevels, isLevelUnlocked } from "./dungeonProgress";
 import type { RouteId } from "./levels";
 import { heroPower, type Profile } from "./profile";
@@ -21,15 +22,16 @@ import {
 
 export const SWEEP_POWER_FACTOR = 1; // hero power / recommended power needed
 
-const MAX_STEPS_PER_FIGHT = 400;
+const MAX_STEPS_PER_FIGHT = 400; // human actions; a fight ends by itself at TURN_CAP (draw)
 
 export function sweepStage(
   seed: number,
   hero: Character,
   fights: FightSpec[],
   asc = 0,
+  loadout?: Loadout,
 ): Stage {
-  let st = createStage(seed, hero, fights, asc);
+  let st = createStage(seed, hero, fights, asc, loadout);
   while (st.status === "playing") {
     const f = startFight(st);
     let b = f.battle;
@@ -37,7 +39,7 @@ export function sweepStage(
       const p = autoPolicy(b);
       b = step(b, p.action, f.rng, p.target);
     }
-    st = b.status === "ongoing" ? abandonStage(st) : finishFight(st, b);
+    st = b.status === "ongoing" ? abandonStage(st) : finishFight(st, b); // draw counts as lost
   }
   return st;
 }

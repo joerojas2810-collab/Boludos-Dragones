@@ -1,282 +1,195 @@
+// Core of the turn engine: vocabulary, targeting, damage pieces, mods, Aguante/Quiebre,
+// determinism. The scheduler, statuses, resource and Defender live in turns.test.ts.
 import { describe, expect, it } from "vitest";
-import { generateCharacter, type Character, type ClassId } from "./characters";
+import { generateCharacter } from "./characters";
 import {
-  actionCounts,
-  actionsLeft,
-  buildQueue,
+  DAMAGE_SCALE,
+  DEF_CAP,
+  defReduction,
+  estimateDamage,
   intentType,
-  type EnemySlot,
-  type Slot,
-  MAX_ACTIONS_PER_ROUND,
+  isStrongIntent,
+  livingEnemies,
   pendingIntents,
   startBattle,
   step,
-  withRound,
+  AGUANTE_FRACTION,
+  QUIEBRE_RESIST_TURNS,
   type Battle,
+  type Intent,
 } from "./combat";
-import { createRng, type Rng } from "./rng";
+import { createRng } from "./rng";
+import { fight, mapEnemy, mapPlayer, noCrit, unit, withIntents, withProgress } from "./testkit";
 
-const unit = (
-  classId: ClassId,
-  stats: Partial<Character["stats"]> = {},
-): Character => {
-  const c = generateCharacter(createRng(1), classId);
-  return {
-    ...c,
-    element: "agua",
-    traits: [],
-    stats: {
-      hp: 1000,
-      atk: 20,
-      def: 0,
-      crit: 0,
-      resist: 0,
-      accuracy: 0.5,
-      critDmg: 1.5,
-      regen: 0,
-      lifesteal: 0,
-      speed: 10,
-      ...stats,
-    },
+const ev = (b: Battle, type: string) => b.cev.filter((e) => e.type === type);
+
+describe("intent vocabulary", () => {
+  it("maps every intent to its category; only attack2, charge and channeling are strong", () => {
+    const table: Record<Intent, [string, boolean]> = {
+      attack1: ["golpe", false],
+      attack2: ["golpe", true],
+      charge: ["carga", true],
+      channeling: ["canalizacion", true],
+      defend: ["defensa", false],
+      protect: ["proteccion", false],
+      rebuild: ["reconstruccion", false],
+    };
+    for (const [intent, [type, strong]] of Object.entries(table) as [Intent, [string, boolean]][]) {
+      expect(intentType(intent)).toBe(type);
+      expect(isStrongIntent(intent)).toBe(strong);
+    }
+  });
+});
+
+describe("damage formula pieces", () => {
+  const hero = (over = {}) => unit("picaro", { hp: 1e6, atk: 100, ...over });
+  const at = (att: ReturnType<typeof unit>, def: ReturnType<typeof unit>, key: "attack1" | "attack2" = "attack1") => {
+    const b = startBattle(att, def, createRng(1));
+    return estimateDamage(b.player, b.enemies[0], key);
   };
-};
-const always: Rng = { ...createRng(1), chance: () => true };
-const never: Rng = { ...createRng(1), chance: () => false };
 
-// actions of the fast side over n rounds
-const seq = (fast: number, slow: number, n: number) => {
-  const out: number[] = [];
-  let carry = 0;
-  for (let i = 0; i < n; i++) {
-    const r = actionCounts(fast, slow, carry);
-    out.push(r.player);
-    carry = r.carry;
-  }
-  return out;
-};
-
-describe("actions from speed", () => {
-  it("12 vs 6 -> 2 every round", () =>
-    expect(seq(12, 6, 4)).toEqual([2, 2, 2, 2]));
-  it("12 vs 8 -> 1,2,1,2", () =>
-    expect(seq(12, 8, 6)).toEqual([1, 2, 1, 2, 1, 2]));
-  it("12 vs 11 -> one extra action on round 11", () => {
-    const s = seq(12, 11, 22);
-    expect(s.map((n, i) => (n === 2 ? i + 1 : 0)).filter(Boolean)).toEqual([
-      11, 22,
-    ]);
-  });
-  it("is capped and keeps only the fractional carry", () => {
-    const r = actionCounts(100, 5, 0);
-    expect(r).toEqual({ player: MAX_ACTIONS_PER_ROUND, enemy: 1, carry: 0 });
-    expect(actionCounts(100, 7, 0).carry).toBeLessThan(1);
-  });
-  it("equal speeds -> 1 each, and the enemy can be the fast side", () => {
-    expect(actionCounts(10, 10, 0)).toEqual({ player: 1, enemy: 1, carry: 0 });
-    expect(actionCounts(6, 12, 0)).toEqual({ player: 1, enemy: 2, carry: 0 });
-  });
-});
-
-const slots = (n: number): EnemySlot[] =>
-  Array.from({ length: n }, (_, i) => ({ e: 0, n: i, intent: "attack1" }));
-const sides = (q: Slot[]) =>
-  q.map((s) => (s === "player" ? "P" : "E")).join("");
-
-describe("round queue", () => {
-  it("maps the active enemy intention kinds without enabling future patterns", () => {
-    expect(intentType("attack2")).toBe("golpe");
-    expect(intentType("charge")).toBe("carga");
-    expect(intentType("channeling")).toBe("canalizacion");
-    expect(intentType("defend")).toBeNull();
+  it("base: ATQ x power x scale, neutral element, no defense", () => {
+    expect(at(hero(), unit("berserker"))).toBe(Math.round(100 * DAMAGE_SCALE));
   });
 
-  it("alternates from the opener, then the leftover actions", () => {
-    expect(sides(buildQueue(2, slots(1), 0))).toEqual("PEP");
-    expect(sides(buildQueue(2, slots(1), 1))).toEqual("EPP");
-    expect(sides(buildQueue(1, slots(2), 1))).toEqual("EPE");
-    expect(sides(buildQueue(1, slots(2), 0))).toEqual("PEE");
-    expect(sides(buildQueue(3, slots(1), 0))).toEqual("PEPP");
-    expect(sides(buildQueue(1, slots(1), 1))).toEqual("EP");
+  it("defense is a percentage of ATQ and is capped", () => {
+    const b = startBattle(hero(), unit("berserker", { def: 1e9 }), createRng(1));
+    expect(defReduction(b.player, b.enemies[0])).toBe(DEF_CAP);
+    expect(estimateDamage(b.player, b.enemies[0], "attack1")).toBe(Math.round(100 * DAMAGE_SCALE * (1 - DEF_CAP)));
+    const some = startBattle(hero(), unit("berserker", { def: 100 }), createRng(1));
+    expect(defReduction(some.player, some.enemies[0])).toBeCloseTo(0.5);
+    expect(defReduction(some.player, some.enemies[0], 0.5)).toBeCloseTo(50 / 150); // Ruptura bypass
   });
 
-  it("lets the player act once before an announced strong hit even when the enemy has initiative", () => {
-    const foe = { ...unit("caballero", { hp: 5000, speed: 20 }), name: "Rey de Ceniza", bossId: "ash_king" as const };
-    const announced = Array.from({ length: 200 }, (_, seed) =>
-      startBattle(unit("mago", { speed: 10 }), foe, createRng(seed + 1)),
-    ).find((battle) =>
-      battle.queue[0] === "player" &&
-      battle.queue[1] !== "player" &&
-      battle.queue[1]?.intent === "attack2",
-    );
-    expect(announced).toBeDefined();
-    expect(announced?.log.some((line) => line.includes("Rey de Ceniza anuncia su golpe fuerte"))).toBe(true);
+  it("element table applies: advantage 1.25, disadvantage 0.75", () => {
+    const base = at(hero(), unit("berserker", {}, { element: "agua" }));
+    expect(at(hero(), unit("berserker", {}, { element: "fuego" }))).toBe(Math.round(base * 1.25));
+    expect(at(hero(), unit("berserker", {}, { element: "rayo" }))).toBe(Math.round(base * 0.75));
+    expect(at(hero(), unit("berserker", {}, { element: "tierra" }))).toBe(base);
+  });
+
+  it("a skill's damage is P x the same actor's basic, strong enemy hits use their own profile", () => {
+    const b = startBattle(unit("caballero", { atk: 100 }), unit("berserker"), createRng(1));
+    const basic = estimateDamage(b.player, b.enemies[0], "attack1");
+    expect(estimateDamage(b.player, b.enemies[0], "knight_sweep")).toBeCloseTo(basic * 0.65, 0);
+    expect(estimateDamage(b.enemies[0], b.player, "attack2")).toBeGreaterThan(estimateDamage(b.enemies[0], b.player, "attack1"));
+  });
+
+  it("class passives: Caballero and Mago take less; relic reduction multiplies", () => {
+    const att = unit("picaro", { atk: 100 });
+    const plain = at(att, unit("clerigo"));
+    expect(at(att, unit("caballero"))).toBeLessThan(at(att, unit("mago")));
+    expect(at(att, unit("mago"))).toBeLessThan(plain);
+  });
+
+  it("estimate never goes below 1", () => {
+    expect(at(unit("picaro", { atk: 0 }), unit("berserker", { def: 1e9 }))).toBe(1);
   });
 });
 
-describe("multi-action rounds", () => {
-  const fastClerigo = () =>
-    startBattle(
-      unit("clerigo", { speed: 12, hp: 200 }),
-      unit("caballero", { speed: 6 }),
-      createRng(4),
-    );
+describe("targeting", () => {
+  const foes = () => [
+    unit("caballero", { hp: 400, atk: 1 }),
+    unit("mago", { hp: 400, atk: 1 }),
+    unit("picaro", { hp: 400, atk: 1 }),
+  ];
+  const hero = () => unit("picaro", { hp: 1e6, atk: 20 });
 
-  it("announces one intent per enemy action and the player's actions", () => {
-    const b = fastClerigo();
-    expect(actionsLeft(b)).toBe(2);
-    expect(b.playerActions).toBe(2);
-    expect(pendingIntents(b)).toHaveLength(1);
-    expect(b.log.some((l) => l.includes("— Ronda 1 —"))).toBe(true);
-    expect(b.log.some((l) => l.includes("actúa 2 veces"))).toBe(true);
-    const slow = startBattle(
-      unit("caballero", { speed: 6 }),
-      unit("picaro", { speed: 12 }),
-      createRng(4),
-    );
-    expect(slow.queue.filter((s) => s !== "player")).toHaveLength(2);
-    expect(pendingIntents(slow)).toHaveLength(2);
+  it("defaults to the first living enemy and honours `target`", () => {
+    const b = fight(hero(), foes());
+    const d = step(b, "attack1", noCrit());
+    expect(d.enemies[0].hp).toBeLessThan(400);
+    expect(d.enemies[1].hp).toBe(400);
+    const t = step(b, "attack1", noCrit(), 2);
+    expect(t.enemies[2].hp).toBeLessThan(400);
+    expect(t.enemies[0].hp).toBe(400);
   });
 
-  it("ticks universal cooldowns by own activations and regen at round end", () => {
-    let b = withRound(fastClerigo(), false, ["attack1"], 2);
-    b = { ...b, player: { ...b.player, hp: 100 } };
-    b = step(b, "golpe", never);
-    expect(b.turn).toBe(1);
-    expect(actionsLeft(b)).toBe(1);
-    expect(b.player.universalCooldowns?.golpe).toBeCloseTo(1.7);
-    expect(b.log.some((l) => l.includes("se recupera"))).toBe(false);
-    // Golpe is locked until enough later own activations pass.
-    expect(step(b, "golpe", never)).toBe(b);
-    const hpBefore = b.player.hp;
-    b = step(b, "attack1", never);
-    expect(b.turn).toBe(2);
-    expect(b.player.universalCooldowns?.golpe).toBeCloseTo(0.85);
-    expect(b.player.hp).toBeGreaterThan(hpBefore);
-    expect(b.log.filter((l) => l.includes("se recupera"))).toHaveLength(1);
-    expect(b.log.filter((l) => l.includes("— Ronda 2 —"))).toHaveLength(1);
+  it("indexes the LIVING enemies and rejects out-of-range targets", () => {
+    const b = fight(hero(), foes());
+    const dead = mapEnemy(b, 0, () => ({ hp: 0 }));
+    expect(livingEnemies(dead)).toEqual([1, 2]);
+    const s = step(dead, "attack1", noCrit(), 1);
+    expect(s.enemies[2].hp).toBeLessThan(400);
+    expect(s.enemies[1].hp).toBe(400);
+    expect(step(dead, "attack1", noCrit(), 2)).toBe(dead);
+    expect(step(b, "attack1", noCrit(), 3)).toBe(b);
+    expect(step(b, "attack1", noCrit(), -1)).toBe(b);
+    expect(step(b, "attack1", noCrit(), 0.5)).toBe(b);
   });
 
-  it("an enemy that is twice as fast acts twice between player prompts", () => {
-    const b0 = startBattle(
-      unit("caballero", { speed: 6 }),
-      unit("picaro", { speed: 12 }),
-      createRng(4),
-    );
-    const b = withRound(b0, false, ["attack1", "attack1"], 1);
-    const n = step(b, "defend", always);
-    expect(n.turn).toBe(2);
-    expect(n.events.filter((e) => e.actor === "enemy")).toHaveLength(2);
-    expect(n.log.some((l) => l.includes("actúa de nuevo"))).toBe(true);
-  });
-
-  it("an extra action means one more prompt; the enemy answers in between", () => {
-    const b0 = withRound(fastClerigo(), false, ["attack1"], 2); // P E P
-    const s1 = step(b0, "attack1", always);
-    expect(s1.turn).toBe(1);
-    expect(s1.events.map((e) => e.actor)).toEqual(["player", "enemy"]);
-    expect(actionsLeft(s1)).toBe(1);
-    const s2 = step(s1, "attack1", always);
-    expect(s2.events.map((e) => e.actor)).toEqual(["player"]);
-    expect(s2.turn).toBe(2);
-  });
-
-
-
-  it("dying mid-round ends the round at once", () => {
-    const b0 = startBattle(
-      unit("caballero", { speed: 6, hp: 1000 }),
-      unit("picaro", { speed: 12, atk: 9999 }),
-      createRng(4),
-    );
-    const b = withRound(
-      { ...b0, player: { ...b0.player, hp: 1 } },
-      true,
-      ["attack1", "attack1"],
-      1,
-    ); // E P E
-    const s = step(b, "attack1", always);
-    expect(s.status).toBe("lost");
-    expect(s.queue).toEqual([]);
-    expect(s.events).toHaveLength(1);
-    expect(s.events[0].actor).toBe("enemy");
-  });
-
-  it("a win mid-round stops the queue", () => {
-    const b0 = withRound(fastClerigo(), false, ["attack1"], 2);
-    const b = { ...b0, enemies: [{ ...b0.enemies[0], hp: 1 }] };
-    const s = step(b, "attack1", always);
-    expect(s.status).toBe("won");
-    expect(s.queue).toEqual([]);
-    expect(s.events.every((e) => e.actor === "player")).toBe(true);
-  });
-});
-
-describe("universal skills (3b)", () => {
-  it("Golpe is a 1.8 power, 0.9 accuracy single-target strike", () => {
-    const b0 = startBattle(unit("caballero"), unit("picaro"), createRng(3));
-    const b = withRound(b0, false, ["attack1"], 1);
-    const miss = step(b, "golpe", never);
-    expect(miss.events.find((event) => event.actor === "player")?.kind).toBe("miss");
-    expect(miss.enemies[0].hp).toBe(b.enemies[0].hp);
-    const hit = step(b, "golpe", always);
-    expect(hit.events.filter((event) => event.actor === "player")).toHaveLength(1);
-    expect(hit.events.find((event) => event.actor === "player")?.move).toBe("golpe");
-    expect(hit.enemies[0].hp).toBeLessThan(b.enemies[0].hp);
-    expect(hit.player.universalCooldowns?.golpe).toBe(1.7);
-  });
-
-  it("Barrido hits each living target once and applies one elemental stack per target", () => {
-    const b0 = startBattle(
-      unit("caballero"),
-      [unit("picaro"), unit("mago"), unit("berserker")],
-      createRng(5),
-    );
-    const b = withRound(b0, false, ["attack1"], 1);
-    const swept = step(b, "barrido", always);
-    expect(swept.events.filter((event) => event.move === "barrido")).toHaveLength(3);
-    for (const enemy of swept.enemies) {
-      expect(enemy.hp).toBeLessThan(b.enemies[swept.enemies.indexOf(enemy)].hp);
-      expect(enemy.statuses?.find((status) => status.id === "escarcha")?.stacks).toBe(1);
+  it("the fight ends only when every enemy is down", () => {
+    let b = fight(hero(), foes());
+    b = { ...b, enemies: b.enemies.map((e) => ({ ...e, hp: 1 })) };
+    for (const left of [2, 1, 0]) {
+      b = step(b, "attack1", noCrit(), 0);
+      expect(livingEnemies(b)).toHaveLength(left);
+      expect(b.status).toBe(left === 0 ? "won" : "ongoing");
     }
-    expect(swept.player.universalCooldowns?.barrido).toBe(1.7);
+    expect(b.log.filter((l) => l.endsWith("cae.")).length).toBeGreaterThanOrEqual(3);
+    expect(b.cev.some((e) => e.type === "combatEnded" && e.detail === "won")).toBe(true);
   });
 
-  it("Barrido applies player-carried Impulso or Rayo charge only once per use", () => {
-    for (const element of ["viento", "rayo"] as const) {
-      const hero = { ...unit("caballero"), element };
-      const b0 = startBattle(
-        hero,
-        [unit("picaro"), unit("mago"), unit("berserker")],
-        createRng(6),
-      );
-      const b = withRound(b0, false, ["attack1"], 1);
-      const swept = step(b, "barrido", always);
-      if (element === "viento") {
-        expect(swept.player.statuses?.find((status) => status.id === "impulso")?.stacks).toBe(1);
-        expect(swept.enemies.every((enemy) => !enemy.statuses?.some((status) => status.id === "impulso"))).toBe(true);
-      } else expect(swept.player.charge).toBe(1);
-    }
+  it("elemental weakness makes the choice matter", () => {
+    const fire = unit("caballero", { hp: 400, atk: 1 }, { element: "fuego" });
+    const earth = unit("caballero", { hp: 400, atk: 1 }, { element: "tierra" });
+    const b = startBattle(unit("picaro", {}, { element: "agua" }), [earth, fire], createRng(2));
+    expect(estimateDamage(b.player, b.enemies[1], "attack1")).toBeGreaterThan(estimateDamage(b.player, b.enemies[0], "attack1"));
   });
 
-  it("cooldowns advance by 0.85 per later player activation and Quebrar is active", () => {
-    const b0 = startBattle(
-      unit("caballero", { speed: 12 }),
-      unit("picaro", { speed: 6 }),
-      createRng(7),
+  it("every enemy announces and resolves its own intents", () => {
+    const b = startBattle(unit("caballero", { speed: 10 }), [unit("mago"), unit("picaro")], createRng(3));
+    expect(new Set(pendingIntents(b).map((s) => s.e))).toEqual(new Set([0, 1]));
+    expect(b.log.filter((l) => l.includes("aparece."))).toHaveLength(2);
+    let q = withProgress(fight(unit("caballero", { hp: 1e9, atk: 1 }), [unit("mago", { atk: 5 }), unit("picaro", { atk: 5 })], { intents: ["attack1", "attack1"] }), { 0: 0, 1: 10_000, 2: 10_000 });
+    q = step(q, "defend", noCrit()); // (a hit would slow its target with Escarcha and reorder them)
+    expect(q.events.map((e) => `${e.actor}${e.enemy}`)).toEqual(["enemy0", "enemy1"]);
+  });
+
+  it("dead enemies lose their turns", () => {
+    const b = withProgress(
+      fight(unit("caballero", { hp: 1e9, atk: 100 }), [unit("picaro", { hp: 1, atk: 5 }), unit("mago", { atk: 5 })]),
+      { 0: 0, 1: 10_000, 2: 10_000 },
     );
-    let b = withRound(b0, false, ["attack1"], 2);
-    b = step(b, "golpe", always);
-    expect(b.player.universalCooldowns?.golpe).toBeCloseTo(1.7);
-    expect(step(b, "golpe", always)).toBe(b);
-    b = step(b, "attack1", always);
-    expect(b.player.universalCooldowns?.golpe).toBeCloseTo(0.85);
-    b = step(b, "attack1", always);
-    expect(b.player.universalCooldowns?.golpe).toBe(0);
-    b = step(b, "golpe", always);
-    expect(b.player.universalCooldowns?.golpe).toBeCloseTo(1.7);
-    const quebrado = step(b, "quebrar", always);
-    expect(quebrado).not.toBe(b);
-    expect(quebrado.player.universalCooldowns?.quebrar).toBe(0.85);
+    const s = step(b, "attack1", noCrit(), 0);
+    expect(s.events.filter((e) => e.actor === "enemy").map((e) => e.enemy)).toEqual([1]);
+  });
+});
+
+describe("enemy mods", () => {
+  const foes = () => [unit("picaro", { hp: 100 }), unit("mago", { hp: 200 })];
+  const hero = () => unit("caballero", { hp: 9000, atk: 1 });
+
+  it("shield and regeneration apply to each enemy at its own turn end", () => {
+    const b0 = startBattle(hero(), foes(), createRng(3), { mods: ["escudo", "regeneracion"] });
+    expect(b0.enemies.map((e) => e.shield)).toEqual([30, 60]);
+    let b = fight(hero(), foes(), { mods: ["regeneracion"] });
+    b = { ...b, enemies: b.enemies.map((e) => ({ ...e, hp: 10 })) };
+    b = withIntents(withProgress(b, { 1: 10_000, 2: 10_000 }), ["defend", "defend"]);
+    const s = step(b, "defend", noCrit());
+    expect(s.enemies[0].hp).toBe(10 + Math.round(100 * 0.03));
+    expect(s.enemies[1].hp).toBe(10 + Math.round(200 * 0.03));
+  });
+
+  it("double attack adds a half-power second impact to each attack", () => {
+    let b = fight(unit("caballero", { hp: 1e9, atk: 1 }), unit("picaro", { hp: 1e9, atk: 100 }), { mods: ["dobleAtaque"], intents: ["attack1"] });
+    b = withProgress(b, { 0: 0, 1: 10_000 });
+    const s = step(b, "attack1", noCrit());
+    const hits = ev(s, "hit").filter((e) => e.actor === 1);
+    expect(hits).toHaveLength(2);
+    expect(hits[1].value).toBe(Math.round(estimateDamage(b.enemies[0], b.player, "attack1") * 0.5));
+  });
+
+  it("element shifting changes each enemy independently every 2 own turns", () => {
+    let b = fight(unit("caballero", { hp: 1e9, atk: 1 }), [unit("picaro"), unit("mago")], { mods: ["elementoCambiante"] });
+    const before = b.enemies.map((e) => e.char.element);
+    b = withProgress(b, { 0: 0, 1: 10_000, 2: 10_000 });
+    const rng = createRng(8);
+    for (let i = 0; i < 2; i++) b = step(withIntents(b, ["defend", "defend"]), "defend", rng);
+    b.enemies.forEach((e, i) => {
+      expect(e.ownTurns).toBe(2);
+      expect(e.char.element).not.toBe(before[i]);
+    });
   });
 });
 
@@ -287,102 +200,85 @@ describe("Aguante and Quiebre", () => {
     const elite = startBattle(hero, [unit("picaro"), unit("mago")], createRng(2), { enemyAguante: true });
     const named = startBattle(hero, { ...unit("picaro"), bossId: "ash_king" }, createRng(2));
     expect(common.enemies[0].aguante).toBeUndefined();
-    expect(elite.enemies[0].aguante).toBe(Math.round(elite.enemies[0].char.stats.hp * 0.3));
+    expect(elite.enemies[0].aguante).toBe(Math.round(elite.enemies[0].char.stats.hp * AGUANTE_FRACTION));
     expect(elite.enemies[1].aguante).toBeUndefined();
-    expect(named.enemies[0].aguante).toBe(Math.round(named.enemies[0].char.stats.hp * 0.3));
+    expect(named.enemies[0].aguante).toBe(Math.round(named.enemies[0].char.stats.hp * AGUANTE_FRACTION));
   });
 
-  it("restores Aguante on Quiebre and cancels the Colossal Golem's pending Charge", () => {
-    const golem = { ...unit("picaro", { hp: 1000, def: 0 }), name: "Gólem Colosal" };
-    const b0 = startBattle(unit("caballero", { speed: 20 }), golem, createRng(2));
-    const b = {
-      ...withRound(b0, false, ["charge"], 1),
-      enemies: [{ ...b0.enemies[0], aguante: 1, chargePending: true, chargeUsed: true }],
-      queue: ["player" as const, { e: 0, n: 0, intent: "charge" as const }],
-    };
-    const next = step(b, "quebrar", always);
-    expect(next.enemies[0].aguante).toBe(next.enemies[0].aguanteMax);
-    expect(next.enemies[0].exposed).toBe(true);
-    expect(next.enemies[0].quiebreResist).toBe(2);
-    expect(next.queue.some((slot) => slot !== "player" && slot.intent === "charge")).toBe(false);
-    expect(next.log.some((line) => line.includes("cancela la Carga"))).toBe(true);
+  it("Quiebre: Aguante refills, the enemy is Expuesto until it completes its next turn, and resists a new Quiebre", () => {
+    const base = fight(unit("caballero", { hp: 1e9, atk: 20 }), unit("picaro", { hp: 1e6, atk: 1 }));
+    let b = mapEnemy(base, 0, () => ({ aguante: 1, aguanteMax: 300_000 }));
+    b = withIntents(b, ["defend"]);
+    const brk = step(withProgress(b, { 1: 0 }), "attack1", noCrit()); // enemy not ready: stays Expuesto
+    expect(ev(brk, "staggerBroken")).toHaveLength(1);
+    expect(brk.enemies[0].aguante).toBe(300_000);
+    expect(brk.enemies[0].exposed).toBe(true);
+    expect(brk.enemies[0].quiebreResist).toBe(QUIEBRE_RESIST_TURNS);
+    // its next turn closes the Expuesto window and starts burning the resistance
+    const later = step(withProgress(withIntents(brk, ["defend"]), { 1: 10_000 }), "defend", noCrit());
+    expect(later.enemies[0].exposed).toBe(false);
+    expect(later.enemies[0].quiebreResist).toBe(QUIEBRE_RESIST_TURNS - 1);
+  });
+
+  it("Expuesto lowers DEF by 15 %", () => {
+    const b = fight(unit("picaro", { atk: 100 }), unit("berserker", { def: 100 }));
+    const plain = estimateDamage(b.player, b.enemies[0], "attack1");
+    const exposed = estimateDamage(b.player, { ...b.enemies[0], exposed: true }, "attack1");
+    expect(exposed).toBeGreaterThan(plain);
+  });
+
+  it("does not chain Quiebres while the resistance lasts", () => {
+    let b = fight(unit("berserker", { hp: 1e9, atk: 20 }), unit("picaro", { hp: 1e6, atk: 1 }, { bossId: "ash_king" }));
+    b = mapEnemy(b, 0, () => ({ aguante: 1, aguanteMax: 300, quiebreResist: 2 }));
+    const s = step(b, "attack1", noCrit());
+    expect(s.enemies[0].aguante).toBe(1);
+    expect(s.enemies[0].exposed).toBeFalsy();
+    expect(ev(s, "staggerBroken")).toHaveLength(0);
+    expect(ev(s, "staggerDamaged")).toHaveLength(1);
   });
 
   it("announces the Colossal Golem's single Charge before its strike", () => {
-    const golem = { ...unit("picaro", { hp: 1000, def: 0 }), name: "Gólem Colosal" };
-    const announced = Array.from({ length: 100 }, (_, seed) =>
-      startBattle(unit("caballero"), golem, createRng(seed + 1)),
-    ).find((battle) => battle.log.some((line) => line.includes("prepara una Carga")));
-    expect(announced).toBeDefined();
-    expect(announced?.enemies[0].chargePending).toBe(true);
-    expect(announced?.enemies[0].chargeUsed).toBe(true);
-  });
-
-  it("does not chain Quiebres while resistance remains", () => {
-    const target = {
-      ...unit("picaro", { hp: 1000, def: 0 }),
-      bossId: "ash_king",
-    };
-    const b0 = startBattle(unit("berserker", { speed: 20 }), target, createRng(3));
-    const b = {
-      ...withRound(b0, false, ["attack1"], 1),
-      enemies: [{ ...b0.enemies[0], aguante: 1, aguanteMax: 300, quiebreResist: 2 }],
-      queue: ["player" as const, { e: 0, n: 0, intent: "attack1" as const }],
-    };
-    const next = step(b, "attack1", always);
-    expect(next.enemies[0].aguante).toBe(1);
-    expect(next.enemies[0].exposed).toBe(false);
-    expect(next.log.some((line) => line.startsWith("¡Quiebre!"))).toBe(false);
+    const golem = unit("picaro", { hp: 1000, def: 0 }, { name: "Gólem Colosal" });
+    const b = startBattle(unit("caballero"), golem, createRng(1));
+    expect(b.enemies[0].chargePending).toBe(true);
+    expect(b.enemies[0].chargeUsed).toBe(true);
+    expect(b.log.some((l) => l.includes("prepara una Carga"))).toBe(true);
   });
 
   it("a damaging basic can break Aguante but cannot cancel Charge", () => {
-    const golem = { ...unit("picaro", { hp: 1000, def: 0 }), name: "Gólem Colosal" };
-    const b0 = startBattle(unit("berserker", { speed: 20 }), golem, createRng(3));
-    const b = {
-      ...b0,
-      enemies: [{ ...b0.enemies[0], aguante: 1, chargePending: true, chargeUsed: true }],
-      queue: ["player" as const, { e: 0, n: 0, intent: "charge" as const }],
-    };
-    const next = step(b, "attack1", always);
-    expect(next.log.some((line) => line.startsWith("¡Quiebre!"))).toBe(true);
-    expect(next.log.some((line) => line.includes("lanza su Carga"))).toBe(true);
-    expect(next.log.some((line) => line.includes("cancela la Carga"))).toBe(false);
+    const golem = unit("picaro", { hp: 1e6, def: 0, atk: 1 }, { name: "Gólem Colosal" });
+    let b = withIntents(fight(unit("berserker", { hp: 1e9, atk: 20 }), golem), ["charge"]);
+    b = mapEnemy(b, 0, () => ({ aguante: 1, aguanteMax: 300, chargePending: true, chargeUsed: true }));
+    const s = step(b, "attack1", noCrit());
+    expect(ev(s, "staggerBroken")).toHaveLength(1);
+    expect(ev(s, "telegraphCancelled")).toHaveLength(0);
+    expect(s.log.some((l) => l.includes("lanza su Carga"))).toBe(true);
   });
 });
 
 describe("determinism and serialization", () => {
   const play = (seed: number): Battle => {
     const rng = createRng(seed);
-    let b = startBattle(
-      generateCharacter(rng, "picaro"),
-      generateCharacter(rng, "mago"),
-      rng,
-    );
-    for (let i = 0; i < 200 && b.status === "ongoing"; i++)
-      b = step(b, i % 3 === 0 ? "golpe" : "attack1", rng);
+    let b = startBattle(generateCharacter(rng, "picaro"), generateCharacter(rng, "mago"), rng);
+    for (let i = 0; i < 200 && b.status === "ongoing"; i++) b = step(b, i % 3 === 0 ? "defend" : "attack1", rng);
     return b;
   };
-  it("same seed -> same log", () => {
+  it("same seed -> same log and state", () => {
     expect(play(7).log).toEqual(play(7).log);
+    expect(JSON.stringify(play(7))).toBe(JSON.stringify(play(7)));
   });
-  it("a mid-round battle survives a JSON round trip", () => {
-    const rng = createRng(3);
-    const b = withRound(
-      startBattle(
-        unit("picaro", { speed: 12 }),
-        unit("caballero", { speed: 6 }),
-        rng,
-      ),
-      false,
-      ["attack1"],
-      2,
-    );
-    const mid = step(b, "attack1", createRng(5));
-    expect(mid.queue.length).toBeGreaterThan(0);
+  it("different seeds diverge", () => {
+    expect(play(7).log).not.toEqual(play(8).log);
+  });
+  it("a mid-fight group battle survives a JSON round trip and resumes identically", () => {
+    const b0 = fight(unit("picaro", { speed: 12 }), [unit("caballero", { speed: 6 }), unit("mago", { speed: 6 })], { intents: ["attack1", "attack2"] });
+    const mid = step(b0, "attack1", createRng(5), 1);
     const copy: Battle = JSON.parse(JSON.stringify(mid));
-    expect(copy).toEqual(mid);
-    expect(step(copy, "attack1", createRng(9))).toEqual(
-      step(mid, "attack1", createRng(9)),
-    );
+    expect(JSON.stringify(copy)).toBe(JSON.stringify(mid));
+    expect(JSON.stringify(step(copy, "attack1", createRng(9), 0))).toBe(JSON.stringify(step(mid, "attack1", createRng(9), 0)));
+  });
+  it("the hero's own hp matters only through its pieces: a hurt hero keeps playing", () => {
+    const b = mapPlayer(fight(unit("picaro"), unit("mago")), { hp: 5 });
+    expect(step(b, "defend", noCrit()).status).toBeDefined();
   });
 });

@@ -1,3 +1,5 @@
+> **Reemplazado por el motor de turnos (`docs/ideal/`). Se conserva como historial.**
+
 # COMBATE_V2 — Línea de progreso, habilidades universales, Quiebre
 
 **Estado:** APROBADO por el dueño (2026-10-10) tras el cruce Claude ↔ ChatGPT (`docs/CRUCE_IAS.md`, P1–P9, Q1–Q6). Se programa por etapas (§9) con confirmación del dueño en cada una; los valores numéricos son **de partida** y se ajustan con simulación.

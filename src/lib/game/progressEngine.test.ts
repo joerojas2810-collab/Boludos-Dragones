@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { CLASSES, CLASS_IDS } from "./characters";
-import {
-  actionCounts,
-  buildQueue,
-  type EnemySlot,
-  type Slot,
-} from "./combat";
 import { createRng, hashSeed } from "./rng";
 import {
   activationTicks,
@@ -15,6 +9,43 @@ import {
   THRESHOLD,
   type Runner,
 } from "./progressEngine";
+
+// Frozen copy of the retired round-based engine (pre turn-based rewrite). The E2a gate below
+// compares the isolated prototype against that old contract, which no longer lives in combat.ts.
+const MAX_ACTIONS_PER_ROUND = 3;
+const CARRY_EPS = 1e-9;
+type EnemySlot = { e: number; n: number; intent: string };
+type Slot = "player" | EnemySlot;
+
+function actionCounts(playerSpeed: number, enemySpeed: number, carry: number) {
+  const playerFast = playerSpeed >= enemySpeed;
+  const slow = Math.max(0.1, playerFast ? enemySpeed : playerSpeed);
+  const total = carry + (playerFast ? playerSpeed : enemySpeed) / slow;
+  const n = Math.floor(total + CARRY_EPS);
+  const fast = Math.min(MAX_ACTIONS_PER_ROUND, n);
+  return {
+    player: playerFast ? fast : 1,
+    enemy: playerFast ? 1 : fast,
+    carry: Math.max(0, total - n),
+  };
+}
+
+function buildQueue(playerN: number, enemyActs: readonly EnemySlot[], lead: number): Slot[] {
+  const es = [...enemyActs];
+  const q: Slot[] = es.splice(0, Math.max(0, lead));
+  let p = playerN;
+  let next: "player" | "enemy" = "player";
+  while (p + es.length > 0) {
+    if (next === "player" && p === 0) next = "enemy";
+    else if (next === "enemy" && es.length === 0) next = "player";
+    if (next === "player") {
+      q.push("player");
+      p--;
+    } else q.push(es.shift() as EnemySlot);
+    next = next === "player" ? "enemy" : "player";
+  }
+  return q;
+}
 
 const labels = (slots: Slot[]) =>
   slots.map((slot) => (slot === "player" ? "player" : "enemy"));

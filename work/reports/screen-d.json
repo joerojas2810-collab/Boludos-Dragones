@@ -1,0 +1,362 @@
+{
+ "rank": "d",
+ "stars": 3,
+ "asc": 0,
+ "runs": 2,
+ "policy": "contextual",
+ "seed": 7,
+ "classSpreadPp": 17.4,
+ "byClass": {
+  "caballero": {
+   "n": 540,
+   "win": 0.933,
+   "turns": 61.5
+  },
+  "mago": {
+   "n": 540,
+   "win": 0.833,
+   "turns": 36.7
+  },
+  "picaro": {
+   "n": 540,
+   "win": 0.787,
+   "turns": 38.2
+  },
+  "clerigo": {
+   "n": 540,
+   "win": 0.759,
+   "turns": 64.6
+  },
+  "berserker": {
+   "n": 540,
+   "win": 0.846,
+   "turns": 49.7
+  }
+ },
+ "byPair": {
+  "caballero:knight_advance+knight_breaker": {
+   "n": 90,
+   "win": 0.944,
+   "turns": 57.3
+  },
+  "caballero:knight_advance+knight_bastion": {
+   "n": 90,
+   "win": 0.944,
+   "turns": 66.4
+  },
+  "caballero:knight_advance+knight_sweep": {
+   "n": 90,
+   "win": 0.9,
+   "turns": 63.9
+  },
+  "caballero:knight_breaker+knight_bastion": {
+   "n": 90,
+   "win": 0.944,
+   "turns": 57.9
+  },
+  "caballero:knight_breaker+knight_sweep": {
+   "n": 90,
+   "win": 0.944,
+   "turns": 57.5
+  },
+  "caballero:knight_bastion+knight_sweep": {
+   "n": 90,
+   "win": 0.922,
+   "turns": 65.8
+  },
+  "mago:mage_inscribe+mage_detonate": {
+   "n": 90,
+   "win": 0.844,
+   "turns": 36.1
+  },
+  "mago:mage_inscribe+mage_barrier": {
+   "n": 90,
+   "win": 0.822,
+   "turns": 36.9
+  },
+  "mago:mage_inscribe+mage_seal": {
+   "n": 90,
+   "win": 0.822,
+   "turns": 37.3
+  },
+  "mago:mage_detonate+mage_barrier": {
+   "n": 90,
+   "win": 0.844,
+   "turns": 36.1
+  },
+  "mago:mage_detonate+mage_seal": {
+   "n": 90,
+   "win": 0.844,
+   "turns": 36.3
+  },
+  "mago:mage_barrier+mage_seal": {
+   "n": 90,
+   "win": 0.822,
+   "turns": 37.2
+  },
+  "picaro:rogue_feint+rogue_finish": {
+   "n": 90,
+   "win": 0.789,
+   "turns": 34.8
+  },
+  "picaro:rogue_feint+rogue_step": {
+   "n": 90,
+   "win": 0.789,
+   "turns": 41.3
+  },
+  "picaro:rogue_feint+rogue_sabotage": {
+   "n": 90,
+   "win": 0.789,
+   "turns": 41.5
+  },
+  "picaro:rogue_finish+rogue_step": {
+   "n": 90,
+   "win": 0.789,
+   "turns": 34.8
+  },
+  "picaro:rogue_finish+rogue_sabotage": {
+   "n": 90,
+   "win": 0.778,
+   "turns": 35.2
+  },
+  "picaro:rogue_step+rogue_sabotage": {
+   "n": 90,
+   "win": 0.789,
+   "turns": 41.5
+  },
+  "clerigo:cleric_judgment+cleric_consecrate": {
+   "n": 90,
+   "win": 0.8,
+   "turns": 59.6
+  },
+  "clerigo:cleric_judgment+cleric_restore": {
+   "n": 90,
+   "win": 0.744,
+   "turns": 70
+  },
+  "clerigo:cleric_judgment+cleric_cleanse": {
+   "n": 90,
+   "win": 0.678,
+   "turns": 65.8
+  },
+  "clerigo:cleric_consecrate+cleric_restore": {
+   "n": 90,
+   "win": 0.822,
+   "turns": 62
+  },
+  "clerigo:cleric_consecrate+cleric_cleanse": {
+   "n": 90,
+   "win": 0.778,
+   "turns": 60.3
+  },
+  "clerigo:cleric_restore+cleric_cleanse": {
+   "n": 90,
+   "win": 0.733,
+   "turns": 70
+  },
+  "berserker:berserker_charge+berserker_release": {
+   "n": 90,
+   "win": 0.833,
+   "turns": 44.9
+  },
+  "berserker:berserker_charge+berserker_recover": {
+   "n": 90,
+   "win": 0.867,
+   "turns": 56
+  },
+  "berserker:berserker_charge+berserker_shatter": {
+   "n": 90,
+   "win": 0.844,
+   "turns": 53.1
+  },
+  "berserker:berserker_release+berserker_recover": {
+   "n": 90,
+   "win": 0.833,
+   "turns": 45.1
+  },
+  "berserker:berserker_release+berserker_shatter": {
+   "n": 90,
+   "win": 0.833,
+   "turns": 45.5
+  },
+  "berserker:berserker_recover+berserker_shatter": {
+   "n": 90,
+   "win": 0.867,
+   "turns": 53.8
+  }
+ },
+ "byBoss": {
+  "lord_of_flies": {
+   "n": 300,
+   "win": 0.683,
+   "turns": 36.1
+  },
+  "ash_king": {
+   "n": 300,
+   "win": 0.76,
+   "turns": 36.4
+  },
+  "eternal_watcher": {
+   "n": 300,
+   "win": 0.94,
+   "turns": 52.3
+  },
+  "hollow_colossus": {
+   "n": 300,
+   "win": 0.767,
+   "turns": 52
+  },
+  "thunder_king": {
+   "n": 300,
+   "win": 0.67,
+   "turns": 45.8
+  },
+  "mother_hydra": {
+   "n": 300,
+   "win": 0.99,
+   "turns": 48.7
+  },
+  "withered_queen": {
+   "n": 300,
+   "win": 0.913,
+   "turns": 53.2
+  },
+  "faceless_one": {
+   "n": 300,
+   "win": 0.767,
+   "turns": 62
+  },
+  "great_devourer": {
+   "n": 300,
+   "win": 0.997,
+   "turns": 64.7
+  }
+ },
+ "byClassElement": {
+  "caballero:agua": {
+   "n": 108,
+   "win": 0.917,
+   "turns": 61
+  },
+  "caballero:fuego": {
+   "n": 108,
+   "win": 0.954,
+   "turns": 51
+  },
+  "caballero:viento": {
+   "n": 108,
+   "win": 0.917,
+   "turns": 65.6
+  },
+  "caballero:tierra": {
+   "n": 108,
+   "win": 1,
+   "turns": 67.2
+  },
+  "caballero:rayo": {
+   "n": 108,
+   "win": 0.88,
+   "turns": 62.5
+  },
+  "mago:agua": {
+   "n": 108,
+   "win": 0.889,
+   "turns": 35.5
+  },
+  "mago:fuego": {
+   "n": 108,
+   "win": 0.889,
+   "turns": 33.1
+  },
+  "mago:viento": {
+   "n": 108,
+   "win": 0.722,
+   "turns": 35.6
+  },
+  "mago:tierra": {
+   "n": 108,
+   "win": 0.833,
+   "turns": 41.7
+  },
+  "mago:rayo": {
+   "n": 108,
+   "win": 0.833,
+   "turns": 37.5
+  },
+  "picaro:agua": {
+   "n": 108,
+   "win": 0.861,
+   "turns": 37.4
+  },
+  "picaro:fuego": {
+   "n": 108,
+   "win": 0.833,
+   "turns": 34.5
+  },
+  "picaro:viento": {
+   "n": 108,
+   "win": 0.667,
+   "turns": 37.3
+  },
+  "picaro:tierra": {
+   "n": 108,
+   "win": 0.806,
+   "turns": 41.7
+  },
+  "picaro:rayo": {
+   "n": 108,
+   "win": 0.769,
+   "turns": 40.1
+  },
+  "clerigo:agua": {
+   "n": 108,
+   "win": 0.815,
+   "turns": 65.4
+  },
+  "clerigo:fuego": {
+   "n": 108,
+   "win": 0.852,
+   "turns": 54.2
+  },
+  "clerigo:viento": {
+   "n": 108,
+   "win": 0.731,
+   "turns": 66.6
+  },
+  "clerigo:tierra": {
+   "n": 108,
+   "win": 0.759,
+   "turns": 72.7
+  },
+  "clerigo:rayo": {
+   "n": 108,
+   "win": 0.639,
+   "turns": 64.1
+  },
+  "berserker:agua": {
+   "n": 108,
+   "win": 0.889,
+   "turns": 50.2
+  },
+  "berserker:fuego": {
+   "n": 108,
+   "win": 0.861,
+   "turns": 43.3
+  },
+  "berserker:viento": {
+   "n": 108,
+   "win": 0.759,
+   "turns": 51.5
+  },
+  "berserker:tierra": {
+   "n": 108,
+   "win": 0.917,
+   "turns": 54.1
+  },
+  "berserker:rayo": {
+   "n": 108,
+   "win": 0.806,
+   "turns": 49.6
+  }
+ }
+}

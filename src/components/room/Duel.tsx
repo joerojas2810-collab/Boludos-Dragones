@@ -2,16 +2,19 @@
 
 // 1v1 duels in a room: host panel, pick, bets, the secret-pick fight and the
 // result. Pure view code: rules live in lib/game/{duel,room}.ts and the server.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ClassElementPicker } from "@/components/room/ClassElementPicker";
+import { SkillPicker } from "@/components/SkillPicker";
 import { HealthBar } from "@/components/HealthBar";
 import { HeroSprite } from "@/components/HeroSprite";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
 import type { HeroAction } from "@/lib/art/heroes";
-import { CLASSES, type ClassId } from "@/lib/game/characters";
-import type { Action } from "@/lib/game/combat";
+import type { ClassId } from "@/lib/game/characters";
+import { skillBlockReason, type Action, type Combatant } from "@/lib/game/combat";
 import type { Element } from "@/lib/game/elements";
+import { equipLoadout, heroKey, masteryOf } from "@/lib/game/loadout";
+import { RESOURCE_MAX, RESOURCE_NAME, SKILLS, isSkillId, sanitizeLoadout, type Loadout } from "@/lib/game/skills";
 import {
   DEFAULT_HERO,
   ROOM_K,
@@ -23,7 +26,7 @@ import type { DuelView } from "@/lib/rooms/api";
 import type { RoomClient, RoomView } from "@/lib/roomui/types";
 import { errorText, formatCountdown, msLeft } from "@/lib/roomui/viewModels";
 import { useNow } from "@/lib/useRoom";
-import { useProfile } from "@/lib/useProfile";
+import { updateProfile, useProfile } from "@/lib/useProfile";
 import { characterView, filterSortCharacters } from "@/lib/viewModels";
 
 type Match = DuelView["matches"][number];
@@ -45,8 +48,8 @@ const END_TEXT: Record<DuelEnd, string> = {
   no_fight: "no se jugó",
 };
 const MODE_TEXT: Record<DuelMode, string> = {
-  balanceado: "Balanceado: eliges solo clase y elemento",
-  real: "Héroes reales: tu héroe, a poder completo",
+  balanceado: "Balanceado: eliges clase, elemento y 2 de 4 habilidades",
+  real: "Héroes reales: tu héroe, a poder completo, con sus habilidades",
 };
 const STAKES = [10, 25, 50, 100];
 
@@ -172,11 +175,37 @@ function RealPicker({ onPick, mine }: { onPick: (id: string) => void; mine: stri
 export function DuelSetup({ view, client, onError }: Props) {
   const duel = view.duel;
   const mine = mineOf(view);
+  const { profile } = useProfile();
   const [heroPicked, setHeroPicked] = useState<string | null>(null);
+  const [bal, setBal] = useState<{ classId: ClassId; element: Element } | null>(null);
+  const real = duel?.mode === "real";
+  const owned = real && heroPicked && profile ? profile.characters.find((c) => c.id === heroPicked) : undefined;
+  // the two skills that go with the pick: nivelado list (balanced) or the hero's own (collection)
+  const loadout: Loadout | null =
+    !real && bal && profile
+      ? sanitizeLoadout(bal.classId, profile.levelLoadouts?.[bal.classId], null)
+      : owned && profile
+        ? sanitizeLoadout(owned.classId, profile.loadouts?.[heroKey(owned)], masteryOf(profile, owned.classId))
+        : null;
+  // (re)send the pick whenever class, element, hero or skills change; the server keeps the last one
+  const pick = !mine
+    ? null
+    : real
+      ? heroPicked
+        ? { heroId: heroPicked, ...(loadout && { loadout: [loadout[0], loadout[1]] as [string, string] }) }
+        : null
+      : bal && loadout
+        ? { ...bal, loadout: [loadout[0], loadout[1]] as [string, string] }
+        : null;
+  const sig = JSON.stringify(pick);
+  useEffect(() => {
+    if (pick)
+      void client.duelPick(pick).then((r) => onError(r.ok ? null : errorText(String(r.error))));
+    // `sig` is the content of `pick`; client/onError are stable for the screen's lifetime
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig]);
   if (!duel) return null;
   const picked = new Set(duel.picked);
-  const send = (p: Parameters<RoomClient["duelPick"]>[0]) =>
-    void client.duelPick(p).then((r) => onError(r.ok ? null : errorText(String(r.error))));
   return (
     <>
       <Panel title="Duelos 1v1">
@@ -196,22 +225,32 @@ export function DuelSetup({ view, client, onError }: Props) {
           {duel.mode === "balanceado" ? (
             <ClassElementPicker
               value={null}
-              onPick={(classId, element) => send({ classId, element })}
+              onPick={(classId, element) => setBal({ classId, element })}
             />
           ) : (
-            <RealPicker
-              mine={heroPicked}
-              onPick={(id) => {
-                setHeroPicked(id);
-                send({ heroId: id });
-              }}
-            />
+            <>
+              <RealPicker mine={heroPicked} onPick={setHeroPicked} />
+              {owned && profile && loadout && (
+                <div className="mt-3">
+                  <SkillPicker
+                    classId={owned.classId}
+                    mastery={masteryOf(profile, owned.classId)}
+                    value={loadout}
+                    onChange={(l) =>
+                      updateProfile(
+                        (p) => equipLoadout(p, { key: heroKey(owned), classId: owned.classId }, l) ?? p,
+                      )
+                    }
+                  />
+                </div>
+              )}
+            </>
           )}
           <p className="mt-2 text-center text-sm">
             {picked.has(view.me)
               ? "Enviado ✓ Puedes cambiarlo hasta que acabe el tiempo."
               : duel.mode === "balanceado"
-                ? "Si no eliges, entras de Caballero de Fuego."
+                ? "Si no eliges, entras de Caballero de Fuego con sus habilidades iniciales."
                 : "Sin elegir, el servidor te da un duelista por defecto."}
           </p>
         </Panel>
@@ -286,15 +325,43 @@ export function DuelBets({ view, client, onError }: Props) {
 }
 
 // ------------------------------------------------------------ the fight
-const ACTION_ART: Record<Action, HeroAction> = {
-  attack1: "attack_1",
-  golpe: "attack_2",
-  barrido: "attack_2",
-  quebrar: "attack_2",
-  interrumpir: "attack_2",
-  explotar: "attack_2",
-  defend: "defend",
-};
+type Fight = NonNullable<Match["fight"]>;
+type Side = "a" | "b";
+const FOE: Record<Side, Side> = { a: "b", b: "a" };
+
+/** Sprite pose of a move: attacks and skills with a target strike, self skills guard. */
+const poseOf = (a: Action): HeroAction =>
+  a === "attack1" ? "attack_1" : a === "defend" ? "defend" : isSkillId(a) && SKILLS[a].target === "self" ? "defend" : "attack_2";
+
+/** The engine's own block reason for `id`, rebuilt from the public view (res, cooldowns, loadout). */
+function blockReason(f: Fight, side: Side, id: Parameters<typeof skillBlockReason>[1]): string | null {
+  const c = {
+    char: { classId: f.heroes[side].classId },
+    loadout: f.loadouts[side],
+    cds: f.cds[side],
+    res: f.res[side],
+  } as unknown as Combatant;
+  return skillBlockReason(c, id);
+}
+
+const actionName = (f: Fight, side: Side, a: Action) =>
+  a === "defend" ? "Defender" : a === "attack1" ? "Básico" : SKILLS[a].name;
+
+function ResourceMeter({ classId, value }: { classId: string; value: number }) {
+  const name = RESOURCE_NAME[classId as ClassId];
+  return (
+    <div className="flex items-center justify-center gap-1 text-xs" role="img" aria-label={`${name}: ${value} de ${RESOURCE_MAX}`}>
+      <span className="truncate opacity-80">{name}</span>
+      {Array.from({ length: RESOURCE_MAX }, (_, i) => (
+        <span
+          key={i}
+          aria-hidden
+          className={`inline-block h-3 w-3 rotate-45 border border-yellow-300 ${i < value ? "bg-yellow-300" : "bg-transparent"}`}
+        />
+      ))}
+    </div>
+  );
+}
 
 function MatchFight({
   view,
@@ -310,60 +377,88 @@ function MatchFight({
   onError: (e: string | null) => void;
 }) {
   const now = useNow();
-  const [sent, setSent] = useState<string | null>(null); // `${key}:${turn}:${action}`
+  const [sent, setSent] = useState<string | null>(null); // `${key}:${n}`: one click per decision
   const f = m.fight;
   if (!f) return null;
-  const side = m.a === view.me ? "a" : m.b === view.me ? "b" : null;
-  const foe = side === "a" ? "b" : "a";
+  const side: Side | null = m.a === view.me ? "a" : m.b === view.me ? "b" : null;
   const over = m.reported || m.status === "settled";
-  const turnTag = `${m.key}:${f.turn}:`;
-  const chosen = sent?.startsWith(turnTag) ? (sent.slice(turnTag.length) as Action) : null;
+  const tag = `${m.key}:${f.n}`;
+  const myTurn = !!side && !over && f.toMove === side;
   const act = (a: Action) => {
-    setSent(turnTag + a);
-    void client.duelMove(m.key, a).then((r) => {
+    setSent(tag);
+    void client.duelMove(m.key, a, f.n).then((r) => {
       onError(r.ok ? null : errorText(String(r.error)));
       if (!r.ok) setSent(null);
     });
   };
-  const me = side ? f.heroes[side] : null;
-  const cls = me ? CLASSES[me.classId as ClassId] : null;
-  const label = (a: Action) =>
-    a === "defend"
-      ? "Defender"
-      : a === "attack1"
-        ? cls?.attack1.name
-        : a === "golpe" ? "Golpe" : a === "barrido" ? "Barrido" : a === "quebrar" ? "Quebrar" : a === "interrumpir" ? "Interrumpir" : "Explotar";
-  const hero = (s: "a" | "b") => {
+  const idOf = (s: Side) => (s === "a" ? m.a : m.b);
+  const hits = (s: Side) =>
+    f.events.filter((e) => e.type === "hit" && e.target === s && (e.value ?? 0) > 0).reduce((t, e) => t + (e.value ?? 0), 0);
+  const heals = (s: Side) =>
+    f.events.filter((e) => e.type === "healed" && e.target === s).reduce((t, e) => t + (e.value ?? 0), 0);
+  const hero = (s: Side) => {
     const h = f.heroes[s];
-    const lastPick = f.last?.[s] ?? null;
+    const moved = f.last?.side === s ? f.last : null;
+    const dmg = hits(s);
+    const heal = heals(s);
     return (
       <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
         <HeroSprite
-          key={`${s}${f.turn}`}
+          key={`${s}${f.n}`}
           classId={h.classId as ClassId}
           element={h.element as Element}
           flip={s === "b"}
           animated
-          action={lastPick ? ACTION_ART[lastPick] : "idle"}
-          className={big ? "w-40 sm:w-56" : "w-24"}
+          action={dmg > 0 ? "hit" : moved ? poseOf(moved.action) : "idle"}
+          className={big ? "w-32 sm:w-56" : "w-20 sm:w-24"}
         />
-        <div className="truncate text-sm font-semibold">{nameOf(view, s === "a" ? m.a : m.b)}</div>
+        <div className="max-w-full truncate text-sm font-semibold">
+          {f.toMove === s && !over ? "▶ " : ""}
+          {nameOf(view, idOf(s))}
+        </div>
         <div className="w-full max-w-60">
           <HealthBar hp={f.hp[s]} max={f.maxHp[s]} />
         </div>
-        <div className="text-xs opacity-70">
-          {f.picked[s] && !over ? "ya eligió ✓" : ""}
+        <div className="flex min-h-5 flex-wrap items-center justify-center gap-x-2 text-xs">
+          {f.shield[s] > 0 && <span>🛡 {f.shield[s]}</span>}
+          {f.defending[s] && <span>Defiende</span>}
+          {f.statuses[s].map((st) => (
+            <span key={st.id} className="capitalize">
+              {st.id} ×{st.stacks}
+            </span>
+          ))}
+          {dmg > 0 && <span className="font-bold text-red-400 motion-safe:animate-bounce">−{dmg}</span>}
+          {heal > 0 && <span className="font-bold text-green-300 motion-safe:animate-bounce">+{heal}</span>}
         </div>
+        <ResourceMeter classId={h.classId} value={f.res[s]} />
       </div>
     );
   };
+  const buttons: { id: Action; name: string; sub: string; reason: string | null }[] = side
+    ? [
+        { id: "attack1", name: "Básico", sub: "Siempre disponible · +1 recurso", reason: null },
+        ...f.loadouts[side].map((id) => {
+          const k = id as Parameters<typeof skillBlockReason>[1];
+          const d = SKILLS[k];
+          const res = RESOURCE_NAME[f.heroes[side].classId as ClassId];
+          return {
+            id: k as Action,
+            name: d.name,
+            sub: `${d.cost ? `Cuesta ${d.cost} ${res}` : "Sin costo"}${d.gen ? ` · da ${d.gen}` : ""}`,
+            reason: blockReason(f, side, k),
+          };
+        }),
+        { id: "defend", name: "Defender", sub: "Menos daño hasta tu próximo turno", reason: null },
+      ]
+    : [];
+  const left = Math.max(0, f.turnCap - f.turn);
   return (
     <Panel title={`${nameOf(view, m.a)} vs ${nameOf(view, m.b)}`}>
-      <div className="flex items-end gap-2">
+      <div className="flex items-start gap-1">
         {hero("a")}
-        <div className="shrink-0 pb-10 text-center">
+        <div className="w-14 shrink-0 pt-6 text-center sm:w-20">
           <div className="text-xs opacity-70">Turno {f.turn}</div>
-          {!over && (
+          {!over && f.toMove && (
             <div className="text-xl tabular-nums text-yellow-300">
               {formatCountdown(msLeft(f.deadlineMs, now))}
             </div>
@@ -371,59 +466,65 @@ function MatchFight({
         </div>
         {hero("b")}
       </div>
+      {!over && f.queue.length > 0 && (
+        <ol className="mt-2 flex flex-wrap items-center justify-center gap-1 text-xs" aria-label="Próximos turnos">
+          {f.queue.map((q, i) => (
+            <li
+              key={i}
+              className={`max-w-20 truncate rounded border px-1.5 py-0.5 ${q.certain ? "border-yellow-300" : "border-white/20 opacity-80"}`}
+            >
+              {q.side === "a" ? "◆" : "●"} {side ? (q.side === side ? "Tú" : nameOf(view, idOf(q.side))) : nameOf(view, idOf(q.side))}
+              {q.certain ? "" : "?"}
+            </li>
+          ))}
+        </ol>
+      )}
+      {f.warn && !over && (
+        <p className="mt-1 text-center text-xs text-yellow-300">
+          Quedan {left} turnos: luego gana quien tenga más vida.
+        </p>
+      )}
       {f.last && (
         <p className="mt-2 text-center text-sm">
-          {nameOf(view, m.a)}: {label2(f.heroes.a, f.last.a)} · {nameOf(view, m.b)}: {label2(f.heroes.b, f.last.b)}
+          {nameOf(view, idOf(f.last.side))}:{" "}
+          {f.last.auto ? "sin respuesta, se defiende" : actionName(f, f.last.side, f.last.action)}
         </p>
       )}
       {side && !over && (
         <>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {(["attack1", "golpe", "barrido", "defend"] as Action[])
-              .map((a) => {
-                const cd = a === "golpe" || a === "barrido" ? f.universalCooldowns[side][a] ?? 0 : 0;
-                return (
-                  <button
-                    key={a}
-                    className={`btn ${chosen === a ? "" : "btn-gray"}`}
-                    disabled={cd > 0 || chosen !== null}
-                    onClick={() => act(a)}
-                  >
-                    {label(a)}
-                    {cd > 0 && <span className="block text-xs opacity-70">enfría {cd}</span>}
-                  </button>
-                );
-              })}
-          </div>
+          {myTurn ? (
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {buttons.map((bt) => (
+                <button
+                  key={bt.id}
+                  className="btn min-w-0 !whitespace-normal break-words"
+                  disabled={bt.reason !== null || sent === tag}
+                  onClick={() => act(bt.id)}
+                >
+                  {bt.name}
+                  <span className="block text-xs font-normal opacity-80">{bt.reason ?? bt.sub}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-center text-sm">
+              Esperando a <b>{nameOf(view, idOf(FOE[side]))}</b>…
+            </p>
+          )}
           <p className="mt-2 text-center text-xs opacity-80">
-            {chosen
-              ? f.picked[foe]
-                ? "Resolviendo…"
-                : "Elegiste en secreto. Esperando al rival…"
-              : "Defender justo cuando el rival lanza su golpe fuerte es guardia perfecta."}
+            {myTurn
+              ? "Tu turno: si el tiempo se acaba te defiendes solo; dos turnos sin responder cuentan como huida."
+              : "Aún no te toca. Mira la cola de turnos arriba."}
           </p>
         </>
       )}
       <ul className="mt-2 space-y-0.5 text-xs opacity-80">
         {f.log.slice(-4).map((l, i) => (
-          <li key={i}>{l}</li>
+          <li key={i} className="break-words">{l}</li>
         ))}
       </ul>
     </Panel>
   );
-}
-
-function label2(h: { classId: string; element: string }, a: Action | null) {
-  if (a === null) return "sin respuesta";
-  if (a === "defend") return "Defender";
-  const cls = CLASSES[h.classId as ClassId];
-  if (a === "attack1") return cls.attack1.name;
-  if (a === "golpe") return "Golpe";
-  if (a === "barrido") return "Barrido";
-  if (a === "quebrar") return "Quebrar Aguante";
-  if (a === "interrumpir") return "Interrumpir";
-  if (a === "explotar") return "Explotar estado";
-  return cls.attack1.name;
 }
 
 export function DuelFight({ view, client, onError }: Props) {

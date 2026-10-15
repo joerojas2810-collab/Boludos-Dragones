@@ -409,7 +409,7 @@ function Over({
           {TOWER_LABEL[mode]}: superaste {floors} {floors === 1 ? "piso" : "pisos"}
         </div>
         <div className="mt-1 text-sm opacity-80">
-          {name} · {rounds} rondas de combate (desempata quien use menos)
+          {name} · {rounds} turnos de combate (desempata quien use menos)
         </div>
         <div className="mt-2 text-sm text-green-300">
           Cuenta tu mejor piso de la semana. Intentos ilimitados.

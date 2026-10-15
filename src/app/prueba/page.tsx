@@ -12,6 +12,8 @@ import { isPixel } from "@/lib/art/pixel";
 import { generateCharacter, type Character } from "@/lib/game/characters";
 import { useTargeting } from "@/components/useTargeting";
 import { startBattle, step, type Action, type Battle } from "@/lib/game/combat";
+import { loadoutFor } from "@/lib/game/loadout";
+import { createProfile } from "@/lib/game/profile";
 import { GROUP_HP_MULT, GROUP_STAT_MULT } from "@/lib/game/stage";
 import { createRng, type Rng } from "@/lib/game/rng";
 import { playEvents } from "@/lib/sfx";
@@ -46,9 +48,12 @@ function nextEnemies(rng: Rng, wins: number): Character[] {
   });
 }
 
+// Bench hero: leveled-mode loadout (all four skills of its class available).
+const benchLoadout = (hero: Character) => loadoutFor(createProfile(), hero, "nivelado");
+
 function newGame(rng: Rng): Game {
   const hero = generateCharacter(rng);
-  return { rng, hero, b: startBattle(hero, nextEnemies(rng, 0), rng), wins: 0 };
+  return { rng, hero, b: startBattle(hero, nextEnemies(rng, 0), rng, { loadout: benchLoadout(hero) }), wins: 0 };
 }
 
 export default function Prueba() {
@@ -71,7 +76,7 @@ export default function Prueba() {
     });
   };
   const nextFight = () =>
-    setGame({ ...game, b: startBattle(hero, nextEnemies(rng, game.wins), rng) });
+    setGame({ ...game, b: startBattle(hero, nextEnemies(rng, game.wins), rng, { loadout: benchLoadout(hero) }) });
   const restart = () => setGame(newGame(rng));
   return (
     <main className="p-4 pt-8 text-base md:h-screen md:overflow-hidden">

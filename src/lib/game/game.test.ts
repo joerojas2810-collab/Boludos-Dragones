@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { createRng } from "./rng";
 import { ELEMENTS, elementMultiplier } from "./elements";
 import { generateCharacter, CLASSES } from "./characters";
-import { ENRAGE_AFTER_TURN, startBattle, step, withRound } from "./combat";
+import { startBattle, step } from "./combat";
+import { ENRAGE_AFTER_OWN_TURN } from "./bossRules";
+import { fight, noCrit, unit, withIntents, withProgress } from "./testkit";
 import { TRAIT_IDS, TRAITS } from "./traits";
 
 describe("rng", () => {
@@ -47,18 +49,20 @@ describe("characters", () => {
 });
 
 describe("combat", () => {
-  it("ends with a winner and blocks Golpe during cooldown", () => {
+  it("ends with a winner by basic attacks and blocks a skill during its cooldown", () => {
     const rng = createRng(3);
     let b = startBattle(
       generateCharacter(rng, "caballero"),
       generateCharacter(rng, "mago"),
       rng,
+      { loadout: ["knight_advance", "knight_bastion"] },
     );
-    b = step(b, "golpe", rng);
-    const turn = b.turn;
-    expect(step(b, "golpe", rng).turn).toBe(turn);
-    for (let i = 0; i < 200 && b.status === "ongoing"; i++)
-      b = step(b, "attack1", rng);
+    b = { ...b, player: { ...b.player, res: 3 } };
+    b = step(b, "knight_bastion", rng);
+    const turns = b.turn;
+    expect(step(b, "knight_bastion", rng)).toBe(b); // C=1: blocked on the next own turn
+    expect(b.turn).toBe(turns);
+    for (let i = 0; i < 300 && b.status === "ongoing"; i++) b = step(b, "attack1", rng);
     expect(b.status).not.toBe("ongoing");
   });
 });
@@ -81,19 +85,16 @@ describe("traits", () => {
 });
 
 describe("combat edge cases", () => {
-  it("enrages the enemy in long fights so they cannot stall forever", () => {
-    const rng = createRng(11);
-    const b0 = startBattle(
-      generateCharacter(rng, "clerigo"),
-      generateCharacter(rng, "clerigo"),
-      rng,
+  it("enrages the enemy by its own turns in long fights so they cannot stall forever", () => {
+    const base = withProgress(
+      fight(unit("clerigo", { hp: 1e9, atk: 1 }), unit("clerigo", { hp: 1e9, atk: 10 })),
+      { 0: 0, 1: 10_000 },
     );
-    const before = b0.enemies[0].char.stats.atk;
-    const next = step(
-      withRound({ ...b0, turn: ENRAGE_AFTER_TURN }, false, ["defend"]),
-      "defend",
-      rng,
-    );
+    const before = base.enemies[0].char.stats.atk;
+    const late = { ...base, enemies: [{ ...base.enemies[0], ownTurns: ENRAGE_AFTER_OWN_TURN }] };
+    const next = step(withIntents(late, ["defend"]), "defend", noCrit());
     expect(next.enemies[0].char.stats.atk).toBeGreaterThan(before);
+    const early = step(withIntents(base, ["defend"]), "defend", noCrit());
+    expect(early.enemies[0].char.stats.atk).toBe(before);
   });
 });

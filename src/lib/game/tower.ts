@@ -15,6 +15,7 @@ import {
 import { niveladoHero } from "./niveladoHero";
 import { heroFromOwned, type Profile } from "./profile";
 import { hashSeed } from "./rng";
+import type { Loadout } from "./skills";
 import type { RarityId } from "./rarity";
 import {
   applyStageAction,
@@ -129,7 +130,7 @@ export function localWeekSeed(d: Date = new Date()): number {
 
 // ---- the climb on the stage engine: ONE life, hp carried with a small heal ----
 // Every floor is one fight (floorFights.ts). Score = floors cleared; tiebreak =
-// fewer total battle rounds. The client plays with applyTowerAction and the server
+// fewer resolved battle turns. The client plays with applyTowerAction and the server
 // repeats exactly the same fold (replayTower).
 export interface TowerState {
   climb: Climb;
@@ -147,8 +148,9 @@ export const startTower = (
   seed: number,
   hero: Character,
   rank: RarityId | null = null,
+  loadout?: Loadout,
 ): TowerState => {
-  const climb = newClimb(seed, hero, rank);
+  const climb = newClimb(seed, hero, rank, loadout);
   return { climb, rs: beginFloor(climb), folded: false };
 };
 
@@ -187,7 +189,7 @@ export function applyTowerAction(
 export interface TowerReplay {
   climb: Climb;
   floors: number; // floors cleared
-  rounds: number;
+  rounds: number; // resolved battle turns (tiebreak)
   applied: number;
   rejectedAt: number | null;
   error?: "engine_version" | "too_many_actions";
@@ -198,8 +200,9 @@ export function replayTower(
   hero: Character,
   actions: readonly StageAction[],
   engineVersion: number = ENGINE_VERSION,
+  loadout?: Loadout,
 ): TowerReplay {
-  let s = startTower(seed, hero);
+  let s = startTower(seed, hero, null, loadout);
   const out = (applied: number, rejectedAt: number | null, error?: TowerReplay["error"]) => ({
     climb: s.climb,
     floors: climbScore(s.climb),

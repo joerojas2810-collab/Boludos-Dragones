@@ -4,6 +4,8 @@ import { RARITY_IDS } from "../game/rarity";
 import { ROUTE_IDS } from "../game/levels";
 import { SLOTS } from "../game/weapons";
 import { ELEMENTS } from "../game/elements";
+import { CLASS_IDS } from "../game/characters";
+import { SKILL_IDS } from "../game/skills";
 
 // ---- name / PIN ----
 export const NAME_MIN = 3;
@@ -52,12 +54,16 @@ export const equipBody = z.strictObject({
   weaponId: z.string().min(1).max(100).nullable(),
   slot: z.enum(SLOTS).optional(), // only for unequip (equip derives it from the piece)
 });
+// Two equipped skills. Shape only: unknown ids, other-class, duplicate and locked skills are
+// rejected by the services with loadoutError (a useful Spanish message), against server-side mastery.
+export const loadoutSchema = z.tuple([z.string().max(40), z.string().max(40)]);
 // Weekly tower only (dungeon levels use levelStartBody).
 export const runStartBody = z.strictObject({
   classId: z.enum(["caballero", "mago", "picaro", "clerigo", "berserker"]),
   characterId: z.string().min(1).max(100).nullable(),
   tower: z.enum(["nivelado", "coleccion"]),
   element: z.enum(ELEMENTS).optional(),
+  loadout: loadoutSchema.optional(), // omitted: the server uses the saved selection
 });
 export const levelStartBody = z.strictObject({
   characterId: z.string().min(1).max(100),
@@ -65,7 +71,13 @@ export const levelStartBody = z.strictObject({
   difficulty: z.enum(RARITY_IDS),
   level: z.number().int().min(0).max(3),
   ascension: z.number().int().min(0).max(5),
+  loadout: loadoutSchema.optional(),
 });
+// Saves a skill selection: per owned hero (collection) or per class (nivelado).
+export const loadoutSaveBody = z.discriminatedUnion("mode", [
+  z.strictObject({ mode: z.literal("coleccion"), key: z.string().min(1).max(60), loadout: loadoutSchema }),
+  z.strictObject({ mode: z.literal("nivelado"), classId: z.enum(CLASS_IDS), loadout: loadoutSchema }),
+]);
 const heroMaterial = z.strictObject({ id: z.string().min(1).max(100), n: z.number().int().min(1).max(51) });
 export const fuseHeroesBody = z.strictObject({
   baseId: z.string().min(1).max(100),
@@ -84,7 +96,7 @@ export const tutorialBody = z.strictObject({ step: z.number().int().min(0).max(7
 export const runActionSchema = z.discriminatedUnion("t", [
   z.strictObject({
     t: z.literal("act"),
-    a: z.enum(["attack1", "golpe", "barrido", "quebrar", "interrumpir", "explotar", "defend"]),
+    a: z.enum(["attack1", "defend", ...SKILL_IDS]),
     target: z.number().int().min(0).max(2).optional(),
   }),
   z.strictObject({ t: z.literal("auto") }),

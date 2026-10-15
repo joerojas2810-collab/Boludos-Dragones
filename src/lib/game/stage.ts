@@ -20,9 +20,10 @@ import { TRAITS, type Trait } from "./traits";
 import { createRng, hashSeed, type Rng } from "./rng";
 import type { EnemyFamily } from "./worlds";
 import { ROUTE_FIT } from "./routeFit.generated";
+import { defaultLoadout, type Loadout } from "./skills";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 25; // 25: rank- and ascension-specific route fit factors
+export const ENGINE_VERSION = 26; // 26: turn-based engine (20 skills, loadouts, enemy brains); 25: rank- and ascension-specific route fit factors
 
 export type FightRole = "normal" | "elite" | "final";
 
@@ -225,6 +226,7 @@ export interface Stage {
   seed: number; // per attempt: battle rolls vary, enemies do not
   asc: number;
   hero: Character;
+  loadout: Loadout; // the two equipped skills (validated by the server before a run starts)
   fights: FightSpec[];
   index: number; // current fight
   hp: number; // hero hp carried between fights
@@ -238,11 +240,13 @@ export function createStage(
   hero: Character,
   fights: FightSpec[],
   asc = 0,
+  loadout: Loadout = defaultLoadout(hero.classId),
 ): Stage {
   return {
     seed,
     asc,
     hero,
+    loadout,
     fights,
     index: 0,
     hp: hero.stats.hp,
@@ -261,6 +265,7 @@ export function startFight(st: Stage): { battle: Battle; rng: Rng } {
   const rng = createRng(hashSeed(st.seed, st.index, f.battleSeed));
   const battle = startBattle(st.hero, f.enemies, rng, {
     playerHp: st.hp,
+    loadout: st.loadout ?? defaultLoadout(st.hero.classId),
     mods: f.mods,
     enemyStatus: f.role !== "normal",
     enemyAguante: f.role !== "normal",
@@ -299,7 +304,8 @@ export const abandonStage = (st: Stage): Stage =>
 export function finishFight(st: Stage, battle: Battle): Stage {
   if (st.status !== "playing" || battle.status === "ongoing") return st;
   const f = st.fights[st.index];
-  if (battle.status === "lost")
+  // "draw" (turn cap) is not a win: only "won" moves on.
+  if (battle.status !== "won")
     return {
       ...st,
       status: "lost",

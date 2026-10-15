@@ -35,6 +35,7 @@ const ERRORS: Record<string, string> = {
   seed_required: "Falta la semilla de la ronda.",
   coop_disabled: "El jefe cooperativo todavía no está disponible.",
   max_rounds: "La noche ya llegó a su límite de rondas.",
+  engine_outdated: "Versión del juego distinta. Recarga la página.",
   network: "Sin conexión con el servidor. Reintenta.",
 };
 export const errorText = (code: string) =>
@@ -124,7 +125,7 @@ export function phaseBanner(
     case "duel_betting":
       return { title: "Duelos 1v1: apuestas", hint: "Apuesta por tu favorito.", tone: "gold" };
     case "duel_fight":
-      return { title: "¡Duelos en curso!", hint: "Elige en secreto cada turno.", tone: "boss" };
+      return { title: "¡Duelos en curso!", hint: "Se juega por turnos: actúa cuando te toque.", tone: "boss" };
     case "duel_reveal":
       return { title: "Resultado de los duelos", hint: "Gana quien tumbe al rival.", tone: "gold" };
     case "night_summary":

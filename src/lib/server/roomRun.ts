@@ -10,9 +10,11 @@ import {
 } from "../game/floorFights";
 import { niveladoHero } from "../game/niveladoHero";
 import { normalizeHero } from "../game/nivelado";
+import { loadoutFor } from "../game/loadout";
 import { heroFromOwned, type Profile } from "../game/profile";
 import type { RarityId } from "../game/rarity";
 import { createRng, hashSeed } from "../game/rng";
+import { ENGINE_VERSION } from "../game/stage";
 import {
   isFightDoor,
   DEFAULT_HERO,
@@ -54,11 +56,22 @@ export function heroForRound(
   return normalizeHero(hero, mode);
 }
 
+/**
+ * Fresh climb of a room round. The loadout comes from the server-side profile (nivelado: the
+ * per-class selection with all four skills; completo: the hero's selection limited by mastery),
+ * never from the client.
+ */
 export const newRoomRun = (
   roundSeed: number,
   hero: Character,
-  rank: RarityId = "f",
-): Climb => newClimb(roundSeed, hero, rank);
+  rank: RarityId,
+  profile: Profile,
+  mode: RoomMode,
+): Climb =>
+  newClimb(roundSeed, hero, rank, loadoutFor(profile, hero, mode === "nivelado" ? "nivelado" : "coleccion"));
+
+/** A stored climb from another engine version cannot continue (the room is told to restart). */
+export const isStaleRun = (c: Climb): boolean => c.engineVersion !== ENGINE_VERSION;
 
 /** Brings a run to the START of room floor `floor` (a late joiner skips ahead). */
 export const alignRun = alignClimb;

@@ -1,7 +1,8 @@
 // Deterministic stage 3 audit: class × element × class-eligible hand weapon × dungeon rank.
 // By default each class uses its two equipable weapons; pass --all-weapons to include all ten.
 // Usage: npx tsx scripts/sim-stage3.ts [--runs=100] [--seed=33013] [--all-weapons] [--output=scripts/baseline/stage3.json]
-//        [--quick] [--workers=N]
+//        [--quick] [--workers=N] [--loadout=skill_a,skill_b]
+// --loadout: two skill ids (src/lib/game/skills.ts) used by every selected hero of that skill's class; other classes keep their default pair.
 // --quick: fast iteration mode (20 runs/level, canonical weapon per class, difficulties f,d,b,s).
 //          Good for tuning; use the full run (default) for the final measurement of each stage.
 // --workers=N: split the cells across N processes (default: CPU cores - 1, max 8). The result is
@@ -19,6 +20,7 @@ import { levelCap } from "../src/lib/game/heroLevel";
 import { LEVELS_PER_ROUTE, levelsOf } from "../src/lib/game/levels";
 import { itemRankOf, RARITY_IDS, scaleStats, type Difficulty } from "../src/lib/game/rarity";
 import { createRng, hashSeed } from "../src/lib/game/rng";
+import { defaultLoadout, loadoutError, type Loadout } from "../src/lib/game/skills";
 import { ENGINE_VERSION, createStage, finishFight, levelFights, startFight } from "../src/lib/game/stage";
 import { CLASS_WEAPONS, HAND_TYPES, canUseWeapon, weaponAtk, weaponSecondary, type HandType } from "../src/lib/game/weapons";
 
@@ -62,6 +64,12 @@ const ASCENSION = 0;
 const STARS = 3;
 const LEVEL = 20;
 const FIGHT_STEP_LIMIT = 400;
+const LOADOUT_ARG = args.get("loadout")?.split(",");
+const loadoutFor = (classId: ClassId): Loadout => {
+  if (!LOADOUT_ARG) return defaultLoadout(classId);
+  const err = loadoutError(classId, LOADOUT_ARG, null);
+  return err === null ? [LOADOUT_ARG[0], LOADOUT_ARG[1]] as unknown as Loadout : defaultLoadout(classId);
+};
 const RUN_STARTED = Date.now();
 
 type Sample = { cleared: boolean; turns: number; fights: number };
@@ -130,7 +138,7 @@ function makeHero(classId: ClassId, element: Element, rank: Difficulty, weaponTy
 function runLevel(classId: ClassId, element: Element, rank: Difficulty, weaponType: HandType, run: number, levelIndex: number): Sample {
   const spec = levelsOf("lord_of_flies", rank)[levelIndex];
   const hero = makeHero(classId, element, rank, weaponType, run);
-  let stage = createStage(hashSeed(BASE_SEED, 23, RARITY_IDS.indexOf(rank), levelIndex, run), hero, levelFights(spec, ASCENSION), ASCENSION);
+  let stage = createStage(hashSeed(BASE_SEED, 23, RARITY_IDS.indexOf(rank), levelIndex, run), hero, levelFights(spec, ASCENSION), ASCENSION, loadoutFor(classId));
   let turns = 0;
   let fights = 0;
   while (stage.status === "playing") {
@@ -328,6 +336,7 @@ const result = {
   ascension: ASCENSION,
   hero: { stars: STARS, level: LEVEL, gearStars: 0, gearRank: "same-as-hero" },
   policy: "autoPolicy",
+  loadout: LOADOUT_ARG ?? "default",
   durationUnit: "turns per attempted dungeon level",
   dimensions: { classes: CLASSES, elements: ELEMENT_SET, weapons: WEAPONS, ranks: RANKS, levelsPerRank: Object.fromEntries(RANKS.map((rank) => [rank, LEVELS_PER_ROUTE])) },
   notes: [

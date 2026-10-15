@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   CLASS_PASSIVE_DMG_REDUCTION,
+  CLASS_PASSIVE_FURY,
   CLASS_PASSIVE_REGEN,
+  CLASSES,
   generateCharacter,
   type Character,
   type ClassId,
@@ -10,13 +12,13 @@ import {
   DAMAGE_SCALE,
   critMultiplier,
   estimateDamage,
-  startBattle,
-  withRound,
+  furyBonus,
   step,
   type Combatant,
 } from "./combat";
 import type { Element } from "./elements";
 import { createRng } from "./rng";
+import { fight, mapEnemy, mapPlayer, noCrit, unit, withIntents, withProgress } from "./testkit";
 
 // Test heroes hit for 20 after the global DAMAGE_SCALE, so the numbers in the comments stay readable.
 const ATK = 20 / DAMAGE_SCALE;
@@ -51,6 +53,8 @@ const comb = (char: Character, hp = char.stats.hp): Combatant => ({
   hp,
   cooldown: 0,
   defending: false,
+  progress: 0,
+  ownTurns: 0,
 });
 
 describe("class passives", () => {
@@ -105,51 +109,63 @@ describe("class passives", () => {
   });
 
   it("Filo mortal: a guaranteed crit deals x2.0 in battle", () => {
-    const p = hero("picaro", "agua", { crit: 1, atk: ATK, speed: 99 });
-    const e = hero("mago", "agua", { hp: 1000, speed: 1 });
-    let b = startBattle(p, e, createRng(3));
-    b = withRound(b, false, ["defend"]);
-    // defending enemy halves: 20 * .5 = 10, crit x2 = 20
+    const p = unit("picaro", { crit: 1, atk: ATK, speed: 10, hp: 1e6, critDmg: CLASSES.picaro.stats.critDmg });
+    let b = fight(p, unit("clerigo", { hp: 1e6, atk: 1 }));
+    b = mapEnemy(b, 0, () => ({ defending: true })); // halves: 20 * .5 = 10, crit x2 = 20
     const after = step(b, "attack1", createRng(3));
-    expect(after.log.some((l) => l.includes("20 de daño (¡crítico!)"))).toBe(
-      true,
-    );
+    expect(after.log.some((l) => l.includes("20 de daño (¡crítico!)"))).toBe(true);
   });
 
-  it("Bendición: heals 0.5% per turn (rounded) and logs it", () => {
-    const c = hero("clerigo", "agua", { hp: 200, speed: 99 });
-    const e = hero("caballero", "agua", { hp: 1000, speed: 1 });
-    let b = startBattle(c, e, createRng(5));
-    b = withRound({ ...b, player: comb(c, 100) }, false, ["defend"]);
-    b = step(b, "defend", createRng(5));
-    expect(b.player.hp).toBe(100 + Math.round(200 * CLASS_PASSIVE_REGEN));
-    expect(b.log.some((l) => l.includes("se recupera 1"))).toBe(true);
+  // Bendición: +0.5 % / turn is a class passive at the close of the Cleric's own turn
+  const cleric = (hpNow: number) =>
+    withIntents(mapPlayer(fight(hero("clerigo", "agua", { hp: 200 }), hero("caballero", "agua", { hp: 1000, atk: 1 })), { hp: hpNow }), ["defend"]);
+
+  it("Bendición: heals its share of max hp when the Cleric's own turn closes, and logs it", () => {
+    const b = step(cleric(100), "defend", createRng(5));
+    const heal = Math.round(200 * CLASS_PASSIVE_REGEN);
+    expect(b.player.hp).toBe(100 + heal);
+    expect(b.log.some((l) => l.includes(`se recupera ${heal}`))).toBe(true);
   });
 
   it("Bendición never exceeds max hp", () => {
-    const c = hero("clerigo", "agua", { hp: 200, speed: 99 });
-    const e = hero("caballero", "agua", { hp: 1000, speed: 1 });
-    let b = startBattle(c, e, createRng(5));
-    b = withRound({ ...b, player: comb(c, 199) }, false, ["defend"]);
-    b = step(b, "defend", createRng(5));
+    let b = step(cleric(199), "defend", createRng(5));
     expect(b.player.hp).toBe(200);
-    b = step(withRound(b, false, ["defend"]), "defend", createRng(5));
+    b = step(withIntents(b, ["defend"]), "defend", createRng(5));
     expect(b.player.hp).toBe(200);
     expect(b.log.filter((l) => l.includes("se recupera")).length).toBe(1);
   });
 
-  it("Bendición does not trigger when the clérigo dies or the fight ends", () => {
-    const c = hero("clerigo", "agua", { hp: 200, def: 0, speed: 1 });
-    const killer = hero("mago", "agua", { atk: 9999, speed: 99, hp: 1000 });
-    const dying = comb(c, 1);
-    let b = startBattle(c, killer, createRng(9));
-    b = withRound({ ...b, player: dying }, true, ["attack1"]);
-    // force the hit to land
-    const rng = { ...createRng(9), chance: () => true };
-    b = step(b, "defend", rng);
-    expect(b.status).toBe("lost");
-    expect(b.player.hp).toBe(0);
-    expect(b.log.some((l) => l.includes("se recupera"))).toBe(false);
+  it("Bendición never revives: a burn that kills the Cleric at its next turn start leaves it at 0", () => {
+    let b = withIntents(fight(hero("clerigo", "agua", { hp: 200 }), hero("caballero", "agua", { hp: 1000, atk: 1 })), ["defend"]);
+    b = mapPlayer(b, { hp: 5, statuses: [{ id: "quemadura", stacks: 1, turns: 3, amount: 50 }] });
+    const s = step(withProgress(b, { 1: 0 }), "defend", createRng(5));
+    expect(s.status).toBe("lost");
+    expect(s.player.hp).toBe(0);
+    // it healed once while alive (end of the turn it just played) and never after dying
+    expect(s.log.filter((l) => l.includes("se recupera"))).toHaveLength(1);
+    expect(s.cev.at(-1)?.type).toBe("combatEnded");
+  });
+
+  it("Bendición acts at its own close, before the enemy answers", () => {
+    const b = withIntents(
+      withProgress(mapPlayer(fight(hero("clerigo", "agua", { hp: 200 }), hero("mago", "agua", { hp: 1000, atk: 9999 })), { hp: 1 }), { 0: 0, 1: 10_000 }),
+      ["attack1"],
+    );
+    const s = step(b, "attack1", noCrit());
+    expect(s.status).toBe("lost");
+    expect(s.player.hp).toBe(0);
+    expect(s.log.filter((l) => l.includes("se recupera"))).toHaveLength(1); // once, while still alive
+  });
+
+  it("Furia: Berserker damage grows at 66 % and 33 % hp, highest threshold wins", () => {
+    const b = comb(hero("berserker", "agua"));
+    const at = (frac: number) => furyBonus({ ...b, hp: Math.round(100 * frac) });
+    expect(at(1)).toBe(0);
+    expect(at(0.5)).toBe(CLASS_PASSIVE_FURY.find((t) => t.below === 0.66)!.bonus);
+    expect(at(0.2)).toBe(CLASS_PASSIVE_FURY.find((t) => t.below === 0.33)!.bonus);
+    expect(furyBonus(comb(hero("caballero", "agua"), 10))).toBe(0);
+    const target = comb(hero("picaro", "agua"));
+    expect(estimateDamage({ ...b, hp: 20 }, target, "attack1")).toBeGreaterThan(estimateDamage(b, target, "attack1"));
   });
 
   it("no passive-relevant situation: other classes are unchanged", () => {

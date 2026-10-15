@@ -13,7 +13,6 @@ import {
   type Stats,
 } from "./characters";
 import {
-  actionsLeft,
   attackElementMultiplier,
   critMultiplier,
   DEF_K,
@@ -22,15 +21,20 @@ import {
   DEFEND_FACTOR,
   DOUBLE_ATTACK_FACTOR,
   ELEMENT_SHIFT_EVERY,
-  ENRAGE_AFTER_TURN,
-  ENRAGE_STEP,
   estimateDamage,
-  hitChance,
-  MAX_ACTIONS_PER_ROUND,
+  FROST_DELAY,
+  intentType,
+  MAGE_CONSUME_MULT,
+  isStrongIntent,
+  RATE_MAX,
+  RATE_MIN,
+  RUPTURE_BYPASS_PER_CHARGE,
+  skillBlockReason,
+  TURN_CAP,
+  TURN_WARN,
+  WIND_ADVANCE,
   REGEN_FRACTION,
   SHIELD_FRACTION,
-  GUARD_CRIT_BONUS,
-  GUARD_HEAL,
   livingEnemies,
   pendingIntents,
   PERFECT_GUARD_FACTOR,
@@ -42,8 +46,8 @@ import {
   type MoveKey,
   TRAIT_CAPS,
   attackOf,
-  exploitableState,
 } from "./combat";
+import { isSkillId, RESOURCE_NAME, SKILL_IDS, SKILLS, type SkillDef, type SkillId } from "./skills";
 import { AUTO_STOP_HP } from "./auto";
 import { WEAPON_TYPE_DATA } from "./weapons";
 import {
@@ -60,7 +64,6 @@ import {
   levelCap,
   xpToNextLevel,
 } from "./heroLevel";
-import { UNIVERSAL_SKILLS, universalCooldownLabel, type UniversalSkillId } from "./universalSkills";
 import {
   ADVANTAGE_BONUS,
   ELEMENTS,
@@ -76,6 +79,8 @@ import {
   ADAPT_FACTOR,
   ARMOR_FRACTION,
   ARMOR_TAKEN,
+  ENRAGE_AFTER_OWN_TURN,
+  ENRAGE_STEP,
   BROKEN_TAKEN,
   HEAD_THRESHOLDS,
   HUNGER_BELOW,
@@ -129,15 +134,11 @@ export const STAT_NAME: Record<keyof Stats, string> = {
 };
 const FRACTION_STATS: readonly (keyof Stats)[] = ["hp", "atk", "def", "speed"];
 
-export const ATTACK_NUMBER: Record<MoveKey, string> = {
+export const ATTACK_NUMBER = {
   attack1: "Básico",
   attack2: "Golpe fuerte enemigo",
-  golpe: "Golpe",
-  barrido: "Barrido",
-  quebrar: "Quebrar Aguante",
-  interrumpir: "Interrumpir",
-  explotar: "Explotar estado",
-};
+  ...Object.fromEntries(SKILL_IDS.map((id) => [id, SKILLS[id].name])),
+} as Record<MoveKey, string>;
 
 export const MOD_LABEL: Record<EnemyMod, string> = {
   regeneracion: "Regeneración",
@@ -160,7 +161,7 @@ export function previewCombatant(classId: ClassId): Combatant {
     level: 1,
     xp: 0,
   };
-  return { char, hp: char.stats.hp, cooldown: 0, defending: false };
+  return { char, hp: char.stats.hp, cooldown: 0, defending: false, progress: 0, ownTurns: 0 };
 }
 
 const attackEl = (c: Combatant): Element =>
@@ -271,7 +272,7 @@ export function passiveTip(c: Combatant, foe?: Combatant, you = true): Tip {
     case "bendicion": {
       const heal = Math.round(hp * CLASS_PASSIVE_REGEN);
       lines.push(
-        `Recupera ${pct(CLASS_PASSIVE_REGEN)} de ${s("tu", "su")} vida máxima (${heal > 0 ? `≈${heal} PV` : "menos de 1 PV, no llega a curar"} con ${n1(hp)} de vida) al final de cada ronda.`,
+        `Recupera ${pct(CLASS_PASSIVE_REGEN)} de ${s("tu", "su")} vida máxima (${heal > 0 ? `≈${heal} PV` : "menos de 1 PV, no llega a curar"} con ${n1(hp)} de vida) al final de cada turno propio.`,
         `No cura si ${s("caes", "cae")} ni si la pelea terminó, y nunca pasa de la vida máxima.`,
       );
       break;
@@ -311,7 +312,7 @@ const PERSONALITY_TEXT: Partial<Record<keyof TraitRules, (v: number) => string>>
   retryAccuracy: (v) => `Si falla un golpe, el siguiente tiene +${Math.round(v * 100)} de precisión.`,
   pride: (v) => `+${pct(v)} de ATQ con más de la mitad de tu vida y −${pct(v)} con menos.`,
   executeBonus: (v) => `+${pct(v)} de daño contra enemigos con menos del ${pct(EXECUTE_HP)} de vida.`,
-  guardedBonus: (v) => `Si defendiste la ronda anterior, tu siguiente golpe hace +${pct(v)}.`,
+  guardedBonus: (v) => `Si defendiste en tu turno anterior, tu siguiente golpe hace +${pct(v)}.`,
   killHeal: (v) => `Al derrotar a un enemigo recuperas ${pct(v)} de tu vida máxima.`,
   openingBonus: (v) => `El primer golpe de cada pelea hace +${pct(v)}.`,
   statusBonus: (v) => `+${pct(v)} de daño contra rivales con algún estado elemental.`,
@@ -452,35 +453,20 @@ export function statTip(
     }
     case "speed": {
       lines.push(
-        "VEL decide cuántas veces actúa cada uno por ronda: el más lento actúa 1 vez; el más rápido actúa (su VEL ÷ la del lento) veces, guardando el resto para otras rondas.",
+        `VEL decide cada cuánto te toca: cada tic sumas VEL × 100 al progreso del turno y actúas al llegar a 10 000 (ritmo limitado entre ${RATE_MIN} y ${RATE_MAX}).`,
       );
       if (foe) {
         const me = st.speed;
         const him = foe.char.stats.speed;
-        const fast = Math.max(me, him);
-        const slow = Math.max(0.1, Math.min(me, him));
-        const ratio = Math.min(MAX_ACTIONS_PER_ROUND, fast / slow);
-        const lo = Math.floor(ratio + 1e-9);
-        const exact = Math.abs(ratio - lo) < 1e-6;
-        const times = exact
-          ? plural(lo, "vez", "veces")
-          : `${lo} o ${lo + 1} veces según la ronda (promedio ${+ratio.toFixed(2)})`;
-        if (Math.abs(me - him) < 1e-9 || (exact && lo === 1))
-          lines.push(
-            `Con VEL ${n1(me)} contra ${n1(him)} (${foeName}) actúan 1 vez cada uno por ronda.`,
-          );
-        else if (me > him)
-          lines.push(
-            `Con VEL ${n1(me)} contra ${n1(him)} (${foeName}) ${s("actúas", `${c.char.name} actúa`)} ${times} por ronda; el rival, 1.`,
-          );
-        else
-          lines.push(
-            `Con VEL ${n1(me)} contra ${n1(him)} (${foeName}) ${s("actúas", `${c.char.name} actúa`)} 1 vez por ronda; el rival, ${times}.`,
-          );
+        lines.push(
+          me === him
+            ? `Con VEL ${n1(me)} contra ${n1(him)} (${foeName}) se alternan los turnos.`
+            : me > him
+              ? `Con VEL ${n1(me)} contra ${n1(him)} (${foeName}) ${s("juegas", `${c.char.name} juega`)} más seguido.`
+              : `Con VEL ${n1(me)} contra ${n1(him)} (${foeName}) el rival juega más seguido.`,
+        );
       }
-      lines.push(
-        `Máximo ${MAX_ACTIONS_PER_ROUND} acciones por ronda. Quién abre la ronda depende de la VEL, con algo de azar.`,
-      );
+      lines.push("La cola muestra los próximos 6 turnos: solo el primero es seguro, el resto es una estimación.");
       break;
     }
     case "crit": {
@@ -500,7 +486,7 @@ export function statTip(
     }
     case "resist": {
       lines.push(
-        `Acorta la duración de Escarcha, Quemadura y Ruptura que te apliquen: ${pct(st.resist)} menos (mín. 1 ronda).`,
+        `Acorta la duración de Escarcha, Quemadura y Ruptura que te apliquen: ${pct(st.resist)} menos (mín. 1 turno).`,
       );
       break;
     }
@@ -517,23 +503,11 @@ export function statTip(
 
 // ---------- actions ----------
 
-const cdText = (n: number) => plural(n, "activación", "activaciones");
-
 export const cooldownOf = (c: Combatant, key: MoveKey): number =>
-  key in UNIVERSAL_SKILLS
-    ? universalCooldownLabel(c.universalCooldowns?.[key as UniversalSkillId] ?? 0)
-    : 0;
+  isSkillId(key) ? (c.cds?.[key] ?? 0) : 0;
 
-export function attackDisabledReason(c: Combatant, key: MoveKey, foe?: Combatant): string | null {
-  const universal = UNIVERSAL_SKILLS[key as UniversalSkillId];
-  if (universal && !universal.enabled) return universal.disabledReason ?? "Aún no disponible.";
-  if (key === "explotar" && !exploitableState(c, foe))
-    return "Requiere Escarcha, Impulso, Quemadura, Ruptura o 3 cargas de Sobrecarga.";
-  if (key === "quebrar" && foe?.aguante === undefined) return "Este enemigo no tiene Aguante.";
-  if (key === "interrumpir" && foe?.channelingState !== "announced")
-    return "No hay una Canalización anunciada que puedas interrumpir.";
-  const cd = cooldownOf(c, key);
-  return cd > 0 ? `Recarga: ${cdText(cd)}` : null;
+export function attackDisabledReason(c: Combatant, key: MoveKey): string | null {
+  return isSkillId(key) ? skillBlockReason(c, key) : null;
 }
 
 const damageLine = (c: Combatant, foe: Combatant, key: MoveKey) => {
@@ -541,174 +515,214 @@ const damageLine = (c: Combatant, foe: Combatant, key: MoveKey) => {
   return `Daño: ~${d} si acierta (sin crítico). Con crítico (${pct(c.char.stats.crit)} de probabilidad): ~${Math.round(d * critMultiplier(c))}.`;
 };
 
-// Class bonus of a perfect guard (combat.ts earnGuard).
-const GUARD_BONUS_TEXT: Record<ClassId, string> = {
-  caballero: "ganas 1 Resolución para potenciar tu siguiente Golpe",
-  mago: "tu próximo golpe aplica 2 acumulaciones del efecto elemental",
-  picaro: `tu próximo golpe tiene +${pct(GUARD_CRIT_BONUS)} de probabilidad de crítico`,
-  clerigo: `curas el ${pct(GUARD_HEAL)} de tu vida máxima`,
-  berserker: "tu siguiente Golpe o Barrido recarga una activación antes",
-};
+// Class benefit of a perfect guard (combat.ts earnGuard).
+const guardBonusText = (classId: ClassId): string =>
+  `ganas 1 de ${RESOURCE_NAME[classId]}${classId === "clerigo" ? " y purificas un estado negativo" : ""}`;
 
-const riposteLine = (c: Combatant) =>
-  c.riposte
-    ? `Guardia perfecta: ${GUARD_BONUS_TEXT[c.char.classId]}.`
-    : null;
+/** Short consequences of a skill (no formulas): shown under its button. */
+export function skillEffects(def: SkillDef): string[] {
+  const out: string[] = [];
+  if (def.shield) out.push(`Escudo ${pct(def.shield)} de PV máx.`);
+  if (def.heal) out.push(`Cura ${pct(def.heal)} de PV máx.`);
+  if (def.healIfDamage) out.push(`Si hace daño, curas ${pct(def.healIfDamage)}`);
+  if (def.cleanse) out.push("Purifica un estado negativo");
+  if (def.reduceNextHit) out.push(`Próximo golpe recibido −${pct(def.reduceNextHit)}`);
+  if (def.cancels === "interruptible") out.push("Interrumpe rituales");
+  if (def.cancels === "break") out.push("Si causa Quiebre, cancela una Carga");
+  if (def.aguante >= 1) out.push("Castiga el Aguante");
+  if (def.extraCharge) out.push("+1 carga elemental extra");
+  if (def.consume) out.push("Consume el estado elemental");
+  if (def.exposedPower) out.push("Más daño a Expuestos");
+  if (def.selfDamage) out.push(`Te cuesta ${pct(def.selfDamage)} de PV`);
+  return out;
+}
 
-export function attackTip(
-  c: Combatant,
-  key: "attack1" | UniversalSkillId,
-  foe?: Combatant,
-): Tip {
+/** What consuming would do right now, or why it would not (null when the skill does not consume). */
+export function consumeHint(c: Combatant, foe: Combatant | undefined, def: SkillDef): string | null {
+  if (!def.consume) return null;
+  const el = c.char.element;
+  const mage = c.char.classId === "mago" ? MAGE_CONSUME_MULT : 1;
+  const st = (who: Combatant | undefined, id: StatusId) => who?.statuses?.find((x) => x.id === id)?.stacks ?? 0;
+  if (el === "fuego") {
+    const n = st(foe, "quemadura");
+    return n ? `Consume Quemadura ×${n}: adelanta 1,5 tics de daño` : "Sin Quemadura en el objetivo: no consume";
+  }
+  if (el === "agua") {
+    const n = st(foe, "escarcha");
+    if (!n) return "Sin Escarcha en el objetivo: no consume";
+    return foe?.frostDelayed ? "Ya retrasado por Escarcha: no vuelve a retrasar" : `Consume Escarcha ×${n}: retrasa su turno ${pct(FROST_DELAY[Math.min(3, n)] * mage)}`;
+  }
+  if (el === "tierra") {
+    const n = st(foe, "ruptura");
+    return n ? `Consume Ruptura ×${n}: tu siguiente ataque ignora ${pct(Math.min(0.9, n * RUPTURE_BYPASS_PER_CHARGE * mage))} de DEF` : "Sin Ruptura en el objetivo: no consume";
+  }
+  if (el === "viento") {
+    const n = st(c, "impulso");
+    return n ? `Consume Impulso ×${n}: adelantas tu turno ${pct(WIND_ADVANCE[Math.min(3, n)] * mage)}` : "Sin Impulso propio: no consume";
+  }
+  return (c.charge ?? 0) >= 3 ? "Descarga Sobrecarga: daño extra" : `Sobrecarga ${c.charge ?? 0}/3: necesita 3 cargas para descargar`;
+}
+
+export function attackTip(c: Combatant, key: "attack1" | SkillId, foe?: Combatant): Tip {
   const a = attackOf(c, key);
+  const def = key === "attack1" ? null : SKILLS[key];
   const st = c.char.stats;
-  const universal = key === "attack1" ? undefined : UNIVERSAL_SKILLS[key];
-  const lines: string[] = [
-    key === "attack1"
-      ? "Ataque básico del arma: nunca falla."
-      : universal?.disabledReason ?? `Habilidad universal; recarga ${universal?.cooldown ?? 0} activaciones.`,
-    `Poder x${n1(a.power)}: usa ${pct(a.power)} de tu ATQ (${n1(st.atk)}).`,
-  ];
-  if (foe) {
-    const hit = hitChance(c, key);
-    const em = attackElementMultiplier(c, foe);
-    const accBonus = st.accuracy
-      ? ` ${st.accuracy > 0 ? "+" : "−"} ${pct(Math.abs(st.accuracy))} de tu stat de precisión`
-      : "";
+  const lines: string[] = [];
+  if (!def) {
+    lines.push("Ataque básico del arma: nunca falla, no cuesta nada y genera 1 de recurso si hace daño.");
+  } else {
+    lines.push(def.description);
     lines.push(
-      key === "attack1"
-        ? "El ataque básico nunca falla."
-        : `Acierto ${pct(hit)} = precisión ${pct(a.accuracy)}${accBonus}.`,
-      damageLine(c, foe, key),
+      `Cuesta ${def.cost} de ${RESOURCE_NAME[def.classId]}${def.gen ? ` · genera ${def.gen}` : ""} · ${def.cooldown ? `espera ${def.cooldown} turno propio` : "sin espera"}.`,
     );
-    if (em !== 1)
-      lines.push(
-        `Elemento: x${em.toFixed(2)} (${em > 1 ? "ventaja" : "desventaja"}).`,
-      );
-    if (foe.defending)
-      lines.push(
-        `${foe.char.name} se defiende esta ronda: ya está contada la mitad de daño.`,
-      );
-    const rl = riposteLine(c);
-    if (rl) lines.push(rl);
-  } else
-    lines.push(
-      `Precisión base ${pct(a.accuracy)}. Daño base ≈ ${n1(st.atk * a.power)} antes de la DEF del rival.`,
-    );
-  if (a.heal > 0)
-    lines.push(
-      `Cura ${pct(a.heal)} de tu vida máxima (≈${Math.round(st.hp * a.heal)} PV), aunque falle el golpe.`,
-    );
-  const why = attackDisabledReason(c, key, foe);
+  }
+  if (!def || def.power > 0) {
+    lines.push(`Poder x${n1(a.power)} del arma (ATQ ${n1(st.atk)}).`);
+    if (foe) {
+      lines.push(damageLine(c, foe, key));
+      const em = attackElementMultiplier(c, foe);
+      if (em !== 1) lines.push(`Elemento: x${em.toFixed(2)} (${em > 1 ? "ventaja" : "desventaja"}).`);
+      if (foe.defending) lines.push(`${foe.char.name} se defiende: ya está contada la mitad de daño.`);
+      if (def && def.target === "all") lines.push("Golpea a todos los enemigos vivos.");
+    } else lines.push(`Daño base ≈ ${n1(st.atk * a.power)} antes de la DEF del rival.`);
+  }
+  if (def) {
+    const hint = consumeHint(c, foe, def);
+    if (hint) lines.push(hint + ".");
+  }
+  if (a.heal > 0) lines.push(`Cura ${pct(a.heal)} de tu vida máxima (≈${Math.round(st.hp * a.heal)} PV).`);
+  const why = def ? skillBlockReason(c, def.id) : null;
   if (why) lines.push(`No disponible: ${why}`);
   return {
-    title: `${a.name} · ${ATTACK_NUMBER[key]}`,
+    title: `${a.name} · ${def ? "Habilidad" : "Básico"}`,
     kind: "damage",
     lines,
-    source: key === "attack1" ? `Básico de ${WEAPON_TYPE_DATA[c.char.weapon?.type as keyof typeof WEAPON_TYPE_DATA]?.label ?? "tu arma"}` : `Habilidad universal · ${CLASSES[c.char.classId].name}`,
+    source: def
+      ? `Habilidad de ${CLASSES[c.char.classId].name}`
+      : `Básico de ${WEAPON_TYPE_DATA[c.char.weapon?.type as keyof typeof WEAPON_TYPE_DATA]?.label ?? "tu arma"}`,
   };
 }
 
 export const guardRule = (classId?: ClassId): string =>
-  `Guardia perfecta: si el rival anuncia un golpe fuerte y defiendes, ese golpe hace ${pct(1 - PERFECT_GUARD_FACTOR)} menos (en vez de ${pct(1 - DEFEND_FACTOR)})${classId ? ` y ${GUARD_BONUS_TEXT[classId]}` : " y tu clase gana un bono"}.`;
+  `Guardia perfecta: si hay una amenaza fuerte anunciada y eliges Defender, el primer golpe fuerte compatible hace ${pct(1 - PERFECT_GUARD_FACTOR)} menos (en vez de ${pct(1 - DEFEND_FACTOR)}) y ${classId ? guardBonusText(classId) : "tu clase gana un bono"}.`;
 
 export function defendTip(b: Battle): Tip {
   const perfect = strongPending(b);
   const lines = [
-    `Hasta el final de la ronda recibes la mitad del daño (x${DEFEND_FACTOR}) de todos los golpes.`,
-    "Gasta una de tus acciones: no atacas.",
-    guardRule(),
+    `Hasta el inicio de tu próximo turno recibes la mitad del daño (x${DEFEND_FACTOR}).`,
+    "Gasta tu turno: no atacas.",
+    guardRule(b.player.char.classId),
     perfect
-      ? "¡Ahora mismo se anuncia un golpe fuerte: defender es guardia perfecta!"
-      : "Ahora no se anuncia ningún golpe fuerte: sería una defensa normal.",
+      ? "¡Ahora mismo hay una amenaza fuerte anunciada: defender es guardia perfecta!"
+      : "Ahora no hay amenaza fuerte anunciada: sería una defensa normal.",
   ];
   for (const slot of pendingIntents(b)) {
-    if (slot.intent === "defend") continue;
+    if (slot.intent === "defend" || slot.intent === "protect" || slot.intent === "rebuild" || slot.intent === "channeling") continue;
     const e = b.enemies[slot.e];
-    const base = estimateDamage(
-      e,
-      { ...b.player, defending: false, guard: false },
-      slot.intent,
-    );
-    const def = estimateDamage(
-      e,
-      { ...b.player, defending: true, guard: perfect },
-      slot.intent,
-    );
-    lines.push(
-      `${attackOf(e, slot.intent).name} de ${e.char.name} te haría ~${def} en vez de ~${base}.`,
-    );
+    const base = estimateDamage(e, { ...b.player, defending: false, guard: false }, slot.intent);
+    const def = estimateDamage(e, { ...b.player, defending: true, guard: perfect }, slot.intent);
+    lines.push(`${intentInfo(slot.intent, b, slot.e).name} de ${e.char.name} te haría ~${def} en vez de ~${base}.`);
   }
-  return {
-    title: perfect ? "Defender · guardia perfecta" : "Defender",
-    kind: "info",
-    lines,
-    source: "Acción de combate",
-  };
+  return { title: perfect ? "Defender · guardia perfecta" : "Defender", kind: "info", lines, source: "Acción de combate" };
+}
+
+// ---------- enemy intents ----------
+
+export interface IntentInfo {
+  name: string;
+  glyph: string; // shape cue besides colour
+  effect: string; // what it does to you
+  counter: string; // how to answer it
+  cancel: "interrumpir" | "quiebre" | null;
+  cancelLabel: string; // always says whether it can be interrupted
+  strong: boolean;
+  damage: number | null;
+}
+
+/** Everything the UI says about an enemy's committed intent (docs/ideal/01 §9). */
+export function intentInfo(intent: Intent, b: Battle, idx: number): IntentInfo {
+  const e = b.enemies[idx];
+  const strong = isStrongIntent(intent);
+  const damage = intent === "attack1" || intent === "attack2" || intent === "charge"
+    ? Math.round(estimateDamage(e, b.player, intent))
+    : null;
+  const NOT = "No se puede interrumpir";
+  switch (intentType(intent)) {
+    case "carga":
+      return {
+        name: "Carga", glyph: "↯", strong, damage, cancel: "quiebre", cancelLabel: "Cancelable por Quiebre",
+        effect: `Golpe fuerte · ignora 30 % de DEF · ~${damage} PV`,
+        counter: "Defender la mitiga; Quiebre la cancela (agota su Aguante con Rompeguardia o Rompemuro). No es interrumpible.",
+      };
+    case "canalizacion":
+      return {
+        name: "Ritual", glyph: "✦", strong, damage, cancel: "interrumpir", cancelLabel: "Interrumpible",
+        effect: "Te aplica Ruptura y reduce tus curas a la mitad",
+        counter: "Sello o Sabotaje lo interrumpen; Defender no lo detiene.",
+      };
+    case "defensa":
+      return {
+        name: "Defender", glyph: "◧", strong, damage, cancel: null, cancelLabel: NOT,
+        effect: "No ataca · recibe la mitad de daño hasta su próximo turno",
+        counter: "Usa el turno para generar recurso, escudarte o golpear otro objetivo. No es interrumpible.",
+      };
+    case "proteccion": {
+      const ally = b.enemies[b.enemies[idx].intentAlly ?? -1];
+      return {
+        name: "Proteger", glyph: "◈", strong, damage, cancel: null, cancelLabel: NOT,
+        effect: `No ataca · da un escudo${ally ? ` a ${ally.char.name}` : " a un aliado"}`,
+        counter: "El escudo absorbe daño antes que la vida. No es interrumpible.",
+      };
+    }
+    case "reconstruccion":
+      return {
+        name: "Reconstruir", glyph: "▣", strong, damage, cancel: null, cancelLabel: NOT,
+        effect: "No ataca · recompone su armadura y sale de Roto",
+        counter: "Aprovecha el turno para golpear; ya no te ataca esta vez. No es interrumpible.",
+      };
+    default:
+      return intent === "attack2"
+        ? {
+            name: attackOf(e, "attack2").name, glyph: "⚠", strong, damage, cancel: null, cancelLabel: NOT,
+            effect: `Golpe fuerte · ~${damage} PV`,
+            counter: "Defender ahora es guardia perfecta (−75 %). No se puede interrumpir.",
+          }
+        : {
+            name: attackOf(e, "attack1").name, glyph: "⚔", strong, damage, cancel: null, cancelLabel: NOT,
+            effect: `Ataque · ~${damage} PV`,
+            counter: "Defender lo reduce a la mitad. No se puede interrumpir.",
+          };
+  }
 }
 
 // Tip for an announced action of enemy `idx` (an index into Battle.enemies).
 export function intentTip(intent: Intent, b: Battle, idx?: number): Tip {
-  const e = b.enemies[idx ?? livingEnemies(b)[0] ?? 0];
-  const p = b.player;
-  const foe = e.char.name;
-  if (intent === "defend")
-    return {
-      title: `${foe} se defiende`,
-      kind: "info",
-      lines: [
-        `Durante toda la ronda ${foe} recibe la mitad de daño (x${DEFEND_FACTOR}).`,
-        `Tu ${CLASSES[p.char.classId].attack1.name} hace ~${estimateDamage(p, e, "attack1")} en vez de ~${estimateDamage(p, { ...e, defending: false }, "attack1")}.`,
-        "No te ataca con esa acción.",
-      ],
-      source: "Intención anunciada por el rival",
-    };
-  if (intent === "channeling")
-    return {
-      title: `${foe} canaliza su ritual`,
-      kind: "danger",
-      lines: [
-        "Interrumpir cancela el ritual antes de que aplique Ruptura y reduzca tus curas.",
-        `Una guardia perfecta también lo anula y activa ${GUARD_BONUS_TEXT[p.char.classId]}.`,
-        "La intención espera tu primera activación antes de resolverse.",
-      ],
-      source: "Canalización anunciada por el rival",
-    };
-  const a = attackOf(e, intent);
-  const lines = [
-    intent === "attack1" ? "Su ataque básico nunca falla." : `Acierta ${pct(hitChance(e, intent))} de las veces contra ti.`,
-    `Daño: ~${estimateDamage(e, p, intent)} si acierta (sin crítico; ${pct(e.char.stats.crit)} de crítico).`,
-    `Es su ${intent === "attack2" ? "golpe fuerte: arriesgado, con recarga" : "Ataque 1: el ataque seguro"}.`,
-  ];
-  if (intent === "attack2")
-    lines.push(
-      `Golpe fuerte: si eliges Defender esta ronda, haces guardia perfecta (~${estimateDamage(e, { ...p, defending: true, guard: true }, intent)} en vez de ~${estimateDamage(e, { ...p, defending: false }, intent)}) y ${GUARD_BONUS_TEXT[p.char.classId]}.`,
-    );
+  const i = idx ?? livingEnemies(b)[0] ?? 0;
+  const info = intentInfo(intent, b, i);
+  const foe = b.enemies[i].char.name;
   return {
-    title: `${foe} usará ${a.name}`,
-    kind: "danger",
-    lines,
+    title: `${foe}: ${info.name}`,
+    kind: info.strong ? "danger" : "info",
+    lines: [info.effect + ".", info.counter, `${info.cancelLabel}.`, "Su intención ya está decidida: no cambia por lo que elijas."],
     source: "Intención anunciada por el rival",
   };
 }
 
-// Tip for choosing an enemy as the target.
-
-export const riposteTip = (c: Combatant): Tip => ({
+export const guardTip = (c: Combatant): Tip => ({
   title: "Guardia perfecta lista",
   kind: "damage",
   lines: [
-    `Resististe un golpe fuerte: ${GUARD_BONUS_TEXT[c.char.classId]}.`,
-    "El efecto depende de tu clase y se usa en tu siguiente ataque o habilidad.",
+    `Defendiste ante una amenaza fuerte: ${guardBonusText(c.char.classId)}.`,
+    "Reduce 75 % el primer golpe fuerte compatible.",
   ],
   source: "Guardia perfecta",
 });
 
 const STATUS_RULE: Record<StatusId, string> = {
-  escarcha: `Cada acumulación quita ${pct(STATUS_DATA.escarcha.per)} de velocidad. Explotarla retrasa una acción pendiente del enemigo; con 3 cargas puede retrasar dos.`,
-  quemadura: `Cada ronda sufre ${pct(STATUS_DATA.quemadura.per)} del golpe que la causó por acumulación (máx. ${STATUS_DATA.quemadura.max}), con tope de ${pct(BURN_CAP)} de la vida máxima.`,
-  impulso: `Cada acumulación da +${pct(STATUS_DATA.impulso.per)} de velocidad propia. Explotarlo con 2+ cargas añade una acción a esta ronda; el Pícaro gana además +15 % de crítico en su siguiente ataque.`,
-  ruptura: `Cada acumulación quita ${pct(STATUS_DATA.ruptura.per)} de DEF (máx. ${STATUS_DATA.ruptura.max}).`,
+  escarcha: `Cada carga quita ${pct(STATUS_DATA.escarcha.per)} de velocidad. Consumirla retrasa su próximo turno (5, 10 o 15 % según las cargas).`,
+  quemadura: `Al inicio de su turno sufre ${pct(STATUS_DATA.quemadura.per)} del golpe que la causó por carga (máx. ${STATUS_DATA.quemadura.max}), con tope de ${pct(BURN_CAP)} de la vida máxima. Consumirla adelanta 1,5 tics.`,
+  impulso: `Cada carga da +${pct(STATUS_DATA.impulso.per)} de velocidad propia. Consumirlo adelanta tu siguiente turno (10, 20 o 30 %).`,
+  ruptura: `Cada carga quita ${pct(STATUS_DATA.ruptura.per)} de DEF (máx. ${STATUS_DATA.ruptura.max}). Consumirla hace que tu siguiente ataque ignore parte de la DEF.`,
 };
 
 export const statusTip = (s: StatusEffect): Tip => ({
@@ -716,21 +730,21 @@ export const statusTip = (s: StatusEffect): Tip => ({
   kind: "info",
   lines: [
     STATUS_RULE[s.id],
-    `Dura ${plural(s.turns, "ronda más", "rondas más")}; cada golpe del mismo elemento la renueva.`,
+    `Dura ${plural(s.turns, "turno más", "turnos más")} del portador; cada golpe del mismo elemento la renueva.`,
   ],
   source: "Efecto elemental",
 });
 
 // Boss mechanic shown as a HUD chip (label + tooltip); null when it has nothing to show.
 const BOSS_TEXT: Record<BossRule, { title: string; line: string }> = {
-  plaga: { title: "Plaga", line: `Al final de cada ronda pierdes ${pct(PLAGUE_LOSS)} de tu vida máxima.` },
-  presion: { title: "Presión", line: `Cada ronda hace +${pct(PRESSURE_STEP)} de daño. Una guardia perfecta contra su golpe fuerte la reinicia.` },
+  plaga: { title: "Plaga", line: `Al final de cada turno del jefe pierdes ${pct(PLAGUE_LOSS)} de tu vida máxima.` },
+  presion: { title: "Presión", line: `Cada turno suyo suma +${pct(PRESSURE_STEP)} de daño por nivel (máx. 5). Una guardia perfecta contra su golpe fuerte la reinicia.` },
   aprende: { title: "Te lee", line: `Si repites la misma acción ${ADAPT_AFTER} veces seguidas, la siguiente hace ${pct(1 - ADAPT_FACTOR)} menos.` },
   armadura: { title: "Armadura", line: `Barra del ${pct(ARMOR_FRACTION)} de su vida: recibe ${pct(1 - ARMOR_TAKEN)} menos de daño. Al romperla queda Roto (+${pct(BROKEN_TAKEN - 1)} de daño recibido) y la recompone después.` },
-  velocidad: { title: "Aceleración", line: `Cada 2 rondas gana +${pct(RAMP_STEP)} de velocidad. La Escarcha lo frena.` },
-  cabezas: { title: "Cabezas", line: `Al bajar del ${HEAD_THRESHOLDS.map((t) => pct(t)).join(", ")} de vida se cura y gana una acción por ronda.` },
-  marchitar: { title: "Ritual", line: `Cada ${RITUAL_EVERY} rondas te aplica Ruptura y reduce tus curas a la mitad. Una guardia perfecta lo anula.` },
-  posturas: { title: "Postura", line: `Alterna cada 2 rondas: ofensiva (+${pct(STANCES.ofensiva.dmg - 1)} daño, −${pct(1 - STANCES.ofensiva.def)} DEF) y defensiva (−${pct(1 - STANCES.defensiva.dmg)} daño, +${pct(STANCES.defensiva.def - 1)} DEF).` },
+  velocidad: { title: "Aceleración", line: `Cada 2 turnos propios gana +${pct(RAMP_STEP)} de velocidad. La Escarcha lo frena.` },
+  cabezas: { title: "Cabezas", line: `Al bajar del ${HEAD_THRESHOLDS.map((t) => pct(t)).join(", ")} de vida se cura y gana una cabeza: su próxima acción suma impactos extra.` },
+  marchitar: { title: "Ritual", line: `Cada ${RITUAL_EVERY} turnos propios prepara un ritual que te aplica Ruptura y reduce tus curas a la mitad. Solo Sello o Sabotaje lo interrumpen; Defender no.` },
+  posturas: { title: "Postura", line: `Alterna cada 2 turnos propios: ofensiva (+${pct(STANCES.ofensiva.dmg - 1)} daño, −${pct(1 - STANCES.ofensiva.def)} DEF) y defensiva (−${pct(1 - STANCES.defensiva.dmg)} daño, +${pct(STANCES.defensiva.def - 1)} DEF).` },
   hambre: { title: "Hambre", line: `Se cura ${pct(HUNGER_STEAL)} del daño que hace y con menos del ${pct(HUNGER_BELOW)} de vida actúa una vez más.` },
 };
 
@@ -748,32 +762,18 @@ export function bossBadge(c: Combatant): { label: string; tip: Tip } | null {
   return { label, tip: { title: t.title, kind: "info", lines: [t.line], source: "Mecánica de jefe" } };
 }
 
-export const resolutionTip = (c: Combatant): Tip => ({
-  title: "Resolución",
-  kind: "info",
-  lines: [
-    c.resolution
-      ? "Tu siguiente Golpe obtiene +15 % de daño; se consume al actuar o expira en tu próxima activación."
-      : "Se obtiene al hacer una guardia perfecta.",
-  ],
-  source: "Guardia perfecta del Caballero",
-});
-
-export function announceTip(b: Battle): Tip {
-  const mine = b.playerActions;
+export function queueTip(b: Battle): Tip {
   const foes = livingEnemies(b).length;
   return {
-    title: foes > 1 ? "Rivales anuncian" : "Rival anuncia",
+    title: "Orden de turnos",
     kind: "info",
     lines: [
+      "Muestra los próximos 6 turnos según la velocidad actual. Solo el primero es seguro: el resto es una estimación y cambia con Escarcha, Impulso y tus acciones.",
       foes > 1
-        ? "Cada rival muestra qué hará antes de que elijas. Pasa el cursor o toca cada acción para ver su explicación."
-        : "El rival muestra qué hará antes de que elijas. Cada acción anunciada tiene su explicación: pasa el cursor o toca.",
-      mine > 1
-        ? `Esta ronda actúas ${mine} veces porque tu VEL es mayor.`
-        : "Cada ronda actúas al menos una vez.",
-      `Acciones que te quedan en la ronda ${b.turn}: ${actionsLeft(b)} de ${mine}.`,
-      guardRule(),
+        ? "Cada rival muestra qué hará antes de que elijas; esa intención ya está decidida."
+        : "El rival muestra qué hará antes de que elijas; esa intención ya está decidida.",
+      `Turnos resueltos: ${b.turn}. A los ${TURN_WARN} se avisa y a los ${TURN_CAP} la pelea termina sin ganador.`,
+      guardRule(b.player.char.classId),
     ],
   };
 }
@@ -801,7 +801,7 @@ export function modTip(mod: EnemyMod, enemy?: Combatant): Tip {
   switch (mod) {
     case "regeneracion":
       lines.push(
-        `Al final de cada ronda recupera ${pct(REGEN_FRACTION)} de su vida máxima${st ? ` (≈${Math.round(st.hp * REGEN_FRACTION)} PV)` : ""}.`,
+        `Al final de cada turno propio recupera ${pct(REGEN_FRACTION)} de su vida máxima${st ? ` (≈${Math.round(st.hp * REGEN_FRACTION)} PV)` : ""}.`,
         "Los golpes flojos pueden no ser suficientes: pega fuerte.",
       );
       break;
@@ -821,7 +821,7 @@ export function modTip(mod: EnemyMod, enemy?: Combatant): Tip {
       break;
     case "elementoCambiante":
       lines.push(
-        `Cada ${ELEMENT_SHIFT_EVERY} rondas cambia a otro elemento al azar.`,
+        `Cada ${ELEMENT_SHIFT_EVERY} turnos propios cambia a otro elemento al azar.`,
         "Mira su icono antes de elegir: la ventaja y la desventaja cambian.",
       );
       break;
@@ -842,8 +842,8 @@ export function enrageTip(): Tip {
     title: "Enfurecido",
     kind: "danger",
     lines: [
-      `Pasada la ronda ${ENRAGE_AFTER_TURN}, el rival sube ${pct(ENRAGE_STEP)} su ATQ al final de cada ronda.`,
-      "Evita los duelos eternos: termina la pelea.",
+      `Pasado su turno ${ENRAGE_AFTER_OWN_TURN}, el rival sube ${pct(ENRAGE_STEP)} su ATQ en cada turno propio.`,
+      "Evita los duelos eternos: termina la pelea antes de que escale.",
     ],
     source: "Regla anti-empate",
   };

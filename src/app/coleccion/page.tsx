@@ -37,7 +37,9 @@ import {
   RARITY_IDS,
 } from "@/lib/game/rarity";
 import { TRAITS } from "@/lib/game/traits";
-import { repo, useProfile } from "@/lib/useProfile";
+import { SkillPicker } from "@/components/SkillPicker";
+import { equipLoadout, heroKey, loadoutFor, masteryOf } from "@/lib/game/loadout";
+import { repo, updateProfile, useProfile } from "@/lib/useProfile";
 import {
   characterView,
   filterSortCharacters,
@@ -126,6 +128,15 @@ function Detail({
           </Tooltip>
         ))}
       </div>
+
+      <SkillPicker
+        classId={c.classId}
+        mastery={masteryOf(profile, c.classId)}
+        value={loadoutFor(profile, hero, "coleccion")}
+        onChange={(l) =>
+          updateProfile((p) => equipLoadout(p, { key: heroKey(hero), classId: c.classId }, l) ?? p)
+        }
+      />
 
       <EquipmentEditor c={c} profile={profile} act={act} />
 

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { CLASS_IDS } from "../game/characters";
 import { ELEMENTS } from "../game/elements";
 import { RARITY_IDS } from "../game/rarity";
+import { SKILL_IDS, type SkillId } from "../game/skills";
 
 export const MSG_VERSION = 1;
 export const REALTIME_MAX_BYTES = 200;
@@ -19,6 +20,12 @@ export const EMOTE_IDS = [
 
 const uuid = z.uuid();
 const v = z.literal(MSG_VERSION);
+/** Duel actions: the basic attack, Defender or one of the 20 skill ids (never an effect). */
+export const duelAction = z.enum(["attack1", "defend", ...(SKILL_IDS as [SkillId, ...SkillId[]])]);
+/** Two distinct equipped skills; class and unlocks are checked by the server (loadoutError). */
+const loadoutPair = z
+  .tuple([z.enum(SKILL_IDS as [SkillId, ...SkillId[]]), z.enum(SKILL_IDS as [SkillId, ...SkillId[]])])
+  .refine(([a, b]) => a !== b);
 const base = { v, room: uuid };
 const floor = z.number().int().min(1).max(10);
 const seq = z.number().int().min(0).max(1e9);
@@ -144,8 +151,8 @@ export const clientMsg = z.discriminatedUnion("type", [
   z.strictObject({
     ...m("duel_pick"),
     pick: z.union([
-      z.strictObject({ classId: z.enum(CLASS_IDS), element: z.enum(ELEMENTS) }),
-      z.strictObject({ heroId: z.string().min(1).max(100) }),
+      z.strictObject({ classId: z.enum(CLASS_IDS), element: z.enum(ELEMENTS), loadout: loadoutPair.optional() }),
+      z.strictObject({ heroId: z.string().min(1).max(100), loadout: loadoutPair.optional() }),
     ]),
   }),
   z.strictObject({
@@ -154,11 +161,12 @@ export const clientMsg = z.discriminatedUnion("type", [
     prediction: predictionEnum,
     stake: z.number().int().min(10).max(1_000_000),
   }),
-  // the secret pick of the open turn; the server resolves when both answered
+  // the decision of the duelist whose turn it is; `n` = decisions the client has seen (stale clicks are ignored)
   z.strictObject({
     ...m("duel_move"),
     key: z.string().min(1).max(100),
-    action: z.enum(["attack1", "golpe", "barrido", "quebrar", "interrumpir", "explotar", "defend"]),
+    action: duelAction,
+    n: z.number().int().min(0).max(1_000).optional(),
   }),
 ]);
 export type ClientMsg = z.infer<typeof clientMsg>;

@@ -1,11 +1,21 @@
 // Server-side bookkeeping of room duels (pure): the persisted shape (DuelDb), how
-// it overlays a RoomState, chip deltas, and the secret-pick turn loop on top of
-// duel.ts. The room reducer (room.ts) owns phases/bets/payouts; this file owns
-// what the reducer cannot know: the heroes, the picks and the replay log.
+// it overlays a RoomState, chip deltas, and the alternating-turn loop on top of
+// duel.ts (shared engine). The room reducer (room.ts) owns phases/bets/payouts; this
+// file owns what the reducer cannot know: heroes, loadouts and the action log.
 import type { Character } from "./characters";
-import type { Action } from "./combat";
-import { DUEL_MAX_TURN, duelRound, startDuel, type Duel, type DuelSide } from "./duel";
-import { createRng, type Rng } from "./rng";
+import { actionError, step, type Action, type Battle } from "./combat";
+import {
+  duelStatus,
+  FALLBACK_ACTION,
+  replayDuel,
+  sanitize,
+  sideToMove,
+  type DuelSetup,
+  type DuelSide,
+} from "./duel";
+import type { Rng } from "./rng";
+import type { Loadout } from "./skills";
+import { ENGINE_VERSION } from "./stage";
 import {
   ROOM_K,
   settlePool,
@@ -16,14 +26,26 @@ import {
   type RoomState,
 } from "./room";
 
-/** One running duel: everything needed to replay it from the seed. */
+/** One resolved decision: the side is whoever was awaiting; `auto` = timeout/absence fallback. */
+export interface DuelMove {
+  side: DuelSide;
+  act: Action;
+  auto?: true;
+}
+
+/**
+ * One running duel: everything needed to replay it from the seed. Progress, resource,
+ * cooldowns and the rest of the battle state are derived by replaying `history` with the
+ * engine of version `v`; a stale `v` is never replayed (rejected, see `liveIsStale`).
+ */
 export interface DuelLive {
+  v: number; // ENGINE_VERSION at creation
   seed: number;
   heroes: { a: Character; b: Character };
-  history: [Action | null, Action | null][]; // resolved rounds (null = no answer)
-  pending: { a?: Action; b?: Action }; // secret picks of the open turn
-  deadline: number; // ms epoch of the open turn
-  missed: { a: number; b: number }; // consecutive turns without an answer
+  loadouts: { a: Loadout; b: Loadout };
+  history: DuelMove[]; // resolved decisions, in order
+  deadline: number; // ms epoch of the open turn (30 s per decision)
+  missed: { a: number; b: number }; // consecutive own turns without an answer
 }
 
 /** What `room_duel.state` holds. */
@@ -114,24 +136,32 @@ export function duelMissions(
 export const sideOf = (m: DuelMatch, id: string): DuelSide | null =>
   m.a === id ? "a" : m.b === id ? "b" : null;
 
-/** Rebuilds the duel (and the rng at that point) from the log. */
-export function replayLive(live: DuelLive): { duel: Duel; rng: Rng } {
-  const rng = createRng(live.seed);
-  let duel = startDuel(live.heroes.a, live.heroes.b);
-  for (const [pa, pb] of live.history) duel = duelRound(duel, pa, pb, rng);
-  return { duel, rng };
+export const liveIsStale = (live: DuelLive): boolean => live.v !== ENGINE_VERSION;
+
+const setupOf = (live: DuelLive): DuelSetup => ({
+  seed: live.seed,
+  heroes: live.heroes,
+  loadouts: live.loadouts,
+});
+
+/** Rebuilds the battle (and the rng at that point) from the log. Throws on a stale engine. */
+export function replayLive(live: DuelLive): { battle: Battle; rng: Rng } {
+  if (liveIsStale(live)) throw new Error("engine_outdated");
+  return replayDuel(setupOf(live), live.history.map((m) => m.act));
 }
 
 export const newLive = (
   seed: number,
   heroes: DuelLive["heroes"],
+  loadouts: DuelLive["loadouts"],
   now: number,
   turnMs: number,
 ): DuelLive => ({
+  v: ENGINE_VERSION,
   seed,
   heroes,
+  loadouts,
   history: [],
-  pending: {},
   deadline: now + turnMs,
   missed: { a: 0, b: 0 },
 });
@@ -141,53 +171,83 @@ export interface TurnEnd {
   end: DuelEnd;
 }
 
-/** Higher hp fraction wins; equal = draw. Used when the duel hits the room cap. */
-export function decideByHp(d: Duel): TurnEnd {
-  const fa = d.a.hp / d.a.char.stats.hp;
-  const fb = d.b.hp / d.b.char.stats.hp;
+/** Higher hp fraction wins; equal = draw. Used when the duel hits the cap (turn cap or room clock). */
+export function decideByHp(b: Battle): TurnEnd {
+  const fa = Math.max(0, b.player.hp) / b.player.char.stats.hp;
+  const fb = Math.max(0, b.enemies[0].hp) / b.enemies[0].char.stats.hp;
   return { winner: fa === fb ? null : fa > fb ? "a" : "b", end: fa === fb ? "draw" : "time" };
 }
 
+/** Verdict of a battle that is not ongoing, or of a side that fled (2 missed turns in a row). */
+function verdict(b: Battle, missed: { a: number; b: number }): TurnEnd | null {
+  const st = duelStatus(b);
+  if (st === "a" || st === "b") return { winner: st, end: "ko" };
+  if (st === "draw")
+    return b.player.hp <= 0 && b.enemies[0].hp <= 0 ? { winner: null, end: "draw" } : decideByHp(b);
+  const fa = missed.a >= ROOM_K.missedTurnsToFlee;
+  const fb = missed.b >= ROOM_K.missedTurnsToFlee;
+  if (fa || fb) return { winner: fa && fb ? null : fa ? "b" : "a", end: fa && fb ? "draw" : "forfeit" };
+  return null;
+}
+
+export interface TurnResult {
+  live: DuelLive;
+  battle: Battle;
+  over: TurnEnd | null;
+}
+
 /**
- * Resolves the open turn when both sides answered or time is up; an absent
- * player never holds the turn. A side with `missedTurnsToFlee` unanswered turns
- * in a row forfeits. Returns null while the turn is still waiting.
+ * Plays one decision for the side to move: `act` when legal, otherwise the Defender fallback
+ * (timeout, absence or an illegal action). A real answer clears that side's missed counter;
+ * a fallback adds one. Opens the next 30 s turn.
+ */
+function play(
+  live: DuelLive,
+  { battle, rng }: { battle: Battle; rng: Rng },
+  act: Action | null,
+  now: number,
+  turnMs: number,
+): TurnResult {
+  const side = sideToMove(battle)!;
+  const legal = act !== null && sanitize(battle, act) === act;
+  const move: DuelMove = legal ? { side, act } : { side, act: FALLBACK_ACTION, auto: true };
+  const after = step(battle, move.act, rng);
+  const missed = { ...live.missed, [side]: legal ? 0 : live.missed[side] + 1 };
+  const next: DuelLive = {
+    ...live,
+    history: [...live.history, move],
+    deadline: now + turnMs,
+    missed,
+  };
+  return { live: next, battle: after, over: verdict(after, missed) };
+}
+
+/** A real answer from `side`; "not_turn" / "illegal" leave the duel untouched. */
+export function applyMove(
+  live: DuelLive,
+  side: DuelSide,
+  act: Action,
+  now: number,
+  turnMs: number,
+): TurnResult | "not_turn" | "illegal" {
+  const rep = replayLive(live);
+  if (sideToMove(rep.battle) !== side) return "not_turn";
+  if (actionError(rep.battle, act) !== null) return "illegal";
+  return play(live, rep, act, now, turnMs);
+}
+
+/**
+ * Timeout/absence: when the side to move is absent or the 30 s are up, Defender is played for
+ * them (same validation as any move) and the turn passes. Null while the turn still waits.
  */
 export function resolveTurn(
   live: DuelLive,
   now: number,
   turnMs: number,
   here: { a: boolean; b: boolean },
-): { live: DuelLive; duel: Duel; over: TurnEnd | null } | null {
-  const ready = (x: DuelSide) => live.pending[x] !== undefined || !here[x];
-  if (!(ready("a") && ready("b")) && now < live.deadline) return null;
-  const { duel: before, rng } = replayLive(live);
-  if (before.status !== "ongoing") return null;
-  const pa = live.pending.a ?? null;
-  const pb = live.pending.b ?? null;
-  const duel = duelRound(before, pa, pb, rng);
-  const missed = {
-    a: pa === null ? live.missed.a + 1 : 0,
-    b: pb === null ? live.missed.b + 1 : 0,
-  };
-  const next: DuelLive = {
-    ...live,
-    history: [...live.history, [pa, pb]],
-    pending: {},
-    deadline: now + turnMs,
-    missed,
-  };
-  let over: TurnEnd | null = null;
-  if (duel.status !== "ongoing")
-    over = {
-      winner: duel.status === "draw" ? null : duel.status,
-      end: duel.status === "draw" ? "draw" : duel.turn > DUEL_MAX_TURN ? "time" : "ko",
-    };
-  else {
-    const fa = missed.a >= ROOM_K.missedTurnsToFlee;
-    const fb = missed.b >= ROOM_K.missedTurnsToFlee;
-    if (fa || fb)
-      over = { winner: fa && fb ? null : fa ? "b" : "a", end: fa && fb ? "draw" : "forfeit" };
-  }
-  return { live: next, duel, over };
+): TurnResult | null {
+  const rep = replayLive(live);
+  const side = sideToMove(rep.battle);
+  if (!side || (here[side] && now < live.deadline)) return null;
+  return play(live, rep, null, now, turnMs);
 }
