@@ -147,6 +147,11 @@ export interface FloorOpts {
   kind?: FloorKind; // default: kindOfFloor(floor)
   tower?: boolean; // weekly tower: gentler depth curve (TOWER_SCALE)
   power?: number; // overall multiplier; default ROOM_POWER in rooms (rank set), 1 otherwise
+  // Torre expedition adapter: depth/role/theme decoupled from the floor number (rooms never set these).
+  role?: FightRole; // forces the role ('final' = named boss of `route`)
+  route?: RouteId; // named boss route when role === 'final'
+  worldFloor?: number; // picks the scenery/family world instead of `floor`
+  mods?: EnemyMod[]; // replaces the depth-based modifiers
 }
 
 /** The named boss of a boss room: by room rank in rooms, cycling through the nine in the tower. */
@@ -173,10 +178,10 @@ export function floorFight(
   const kind = opts.kind ?? kindOfFloor(floor);
   const depth = depthOf(floor, opts.rank);
   const size = groupSize(seed, floor, kind, depth);
-  const room = kind === "boss" && isBossRoom(floor);
-  const role: FightRole = room ? "final" : kind === "boss" ? "elite" : "normal";
-  const world = worldOf(floor);
-  const theme = room ? bossTheme(floor, opts.rank) : null;
+  const room = opts.role ? opts.role === "final" : kind === "boss" && isBossRoom(floor);
+  const role: FightRole = opts.role ?? (room ? "final" : kind === "boss" ? "elite" : "normal");
+  const world = worldOf(opts.worldFloor ?? floor);
+  const theme = room ? (opts.route ? DUNGEON_THEMES[opts.route] : bossTheme(floor, opts.rank)) : null;
   const ease = earlyEase(depth);
   const step = stepPow(Math.floor(depth / STEP_EVERY));
   const scale = (opts.tower ? towerPow : floorPow)(depth) * ease * step * (opts.power ?? (opts.rank ? ROOM_POWER : 1));
@@ -234,7 +239,7 @@ export function floorFight(
   return {
     role,
     enemies: made,
-    mods: modsAtDepth(depth),
+    mods: opts.mods ?? modsAtDepth(depth),
     battleSeed: hashSeed(seed, floor, 20 + SALT[kind]),
   };
 }

@@ -1,5 +1,7 @@
 export interface Rng {
   next(): number;
+  /** Serializable cursor: createRng(state) resumes the exact same stream (absent on test doubles). */
+  state?(): number;
   int(min: number, max: number): number;
   chance(p: number): boolean;
   pick<T>(items: readonly T[]): T;
@@ -17,6 +19,7 @@ export function createRng(seed: number): Rng {
   };
   return {
     next,
+    state: () => a >>> 0,
     int: (min, max) => min + Math.floor(next() * (max - min + 1)),
     chance: (p) => next() < p,
     pick: (items) => items[Math.floor(next() * items.length)],

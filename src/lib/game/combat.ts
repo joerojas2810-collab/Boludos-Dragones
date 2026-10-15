@@ -147,7 +147,32 @@ export interface Perks {
   dmgMult?: number;
 }
 
+/** Temporary per-expedition modifiers of the hero (Torre): already capped by the expedition. */
+export interface RelicMods {
+  basicDmg?: number; // +x damage of the basic attack
+  skillDmg?: number; // +x damage of damaging skills
+  hitReduction?: number; // -x damage of every hit the hero takes
+  hitExtra?: number; // +x damage of every hit the hero takes (risk relics)
+  critPts?: number; // +x crit chance (absolute)
+  startProgress?: number; // fraction of TURN_THRESHOLD at the start of the fight
+  startRes?: number; // class resource at the start of the fight
+  inscribeDmg?: number; // Inscribir +x
+  exposedFirst?: number; // first own hit per turn against an Expuesto target +x
+  chaliceShield?: number; // first active heal of the fight adds a shield of x of max hp
+  recklessCut?: number; // fraction of Embestida self damage removed
+  burnDmg?: number; // +x damage of the hero's Quemadura
+  frostBonus?: number; // + points (fraction of threshold) to the Escarcha delay, total cap FROST_CAP
+  windBonus?: number; // + points to the Impulso advance, total cap WIND_CAP
+  pierceBonus?: number; // attack that spends a prepared penetration +x
+  dischargeBonus?: number; // Sobrecarga discharge +x
+  phoenix?: number; // revive once with this fraction of max hp
+}
+export const FROST_CAP = 0.25;
+export const WIND_CAP = 0.4;
+
 export interface BattleOptions {
+  relic?: RelicMods; // Torre: expedition relics of the hero
+  phoenixSpent?: boolean; // Torre: the Corazón fénix was already used this expedition
   perks?: Perks;
   playerHp?: number;
   playerShield?: number;
@@ -234,6 +259,10 @@ export interface Combatant {
   chargeUsed?: boolean;
   healCut?: number; // own turns left with heals cut (Reina Marchita ritual)
   applies?: boolean; // enemies: strong hits apply their element's status
+  relic?: RelicMods; // hero only (Torre)
+  phoenixUsed?: boolean;
+  firstHitDone?: boolean; // Guante: the first hit of this turn was already thrown
+  chaliceUsed?: boolean;
 }
 
 export interface Battle {
@@ -459,6 +488,20 @@ export function hitChance(att: Combatant, intent: HitKey | "channeling"): number
   return clamp(attackOf(att, key).accuracy + att.char.stats.accuracy + retry, 0.05, 1);
 }
 
+function relicDealtMult(att: Combatant, def: Combatant, key: MoveKey): number {
+  const r = att.relic;
+  if (!r) return 1;
+  let m = 1;
+  if (key === "attack1") m += r.basicDmg ?? 0;
+  else if (isSkillId(key) && SKILLS[key].power > 0) {
+    m += r.skillDmg ?? 0;
+    if (key === "mage_inscribe") m += r.inscribeDmg ?? 0;
+  }
+  if ((att.nextAttackDefenseBypass ?? 0) > 0) m += r.pierceBonus ?? 0;
+  if (def.exposed && !att.firstHitDone) m += r.exposedFirst ?? 0;
+  return m;
+}
+
 /** Expected damage of a non-critical hit (one impact). */
 export function estimateDamage(
   att: Combatant,
@@ -489,6 +532,9 @@ export function estimateDamage(
         traitDealtMult(att, def) *
         bossTakenMult(def) *
         (1 + furyBonus(att)) *
+        relicDealtMult(att, def, key) *
+        (1 - (def.relic?.hitReduction ?? 0)) *
+        (1 + (def.relic?.hitExtra ?? 0)) *
         ((att.charge ?? 0) >= MAX_ELEMENT_CHARGES && att.char.element === "rayo" ? 1 + SOBRECARGA_DAMAGE_BONUS : 1),
     ),
   );
@@ -604,6 +650,10 @@ function healActive(w: Work, c: Combatant, fraction: number, receiver = c) {
   receiver.activeHeal = (receiver.activeHeal ?? 0) + allowed;
   if (gained > 0) {
     receiver.hp = hp;
+    if (receiver.relic?.chaliceShield && !receiver.chaliceUsed) {
+      receiver.chaliceUsed = true;
+      addShield(w, receiver, receiver.relic.chaliceShield);
+    }
     w.log.push(`${receiver.char.name} recupera ${gained} de vida.`);
     emit(w, "healed", idOf(w, c), { target: idOf(w, receiver), value: gained });
   }
@@ -671,7 +721,7 @@ function strike(w: Work, att: Combatant, def: Combatant, key: HitKey, o: StrikeO
     return 0;
   }
   const crit = w.rng.chance(
-    att.char.stats.crit + (a.crit ?? 0) + (att.char.classId === "mago" ? CLASS_PASSIVE_MAGE_CRIT : 0),
+    att.char.stats.crit + (a.crit ?? 0) + (att.char.classId === "mago" ? CLASS_PASSIVE_MAGE_CRIT : 0) + (att.relic?.critPts ?? 0),
   );
   const spread = rulesOf(att).spread;
   const gamble = spread > 0 ? 1 + spread * (2 * w.rng.next() - 1) : 1;
@@ -733,6 +783,7 @@ function strike(w: Work, att: Combatant, def: Combatant, key: HitKey, o: StrikeO
   }
   att.missed = false;
   att.opened = true;
+  if (att.relic) att.firstHitDone = true;
   return dmg;
 }
 
@@ -804,7 +855,7 @@ function consumeElement(w: Work, att: Combatant, tgt: Combatant | null, skillId:
   if (el === "fuego" && tgt) {
     const stacks = stacksOf(tgt.statuses, "quemadura");
     if (!stacks) return;
-    const burn = Math.min(Math.round(burnDamage(tgt.statuses) * BURN_CONSUME_TICKS * mage), Math.round(tgt.char.stats.hp * BURN_CAP));
+    const burn = Math.min(Math.round(burnDamage(tgt.statuses) * BURN_CONSUME_TICKS * mage * (1 + (att.relic?.burnDmg ?? 0))), Math.round(tgt.char.stats.hp * BURN_CAP));
     tgt.hp = Math.max(0, tgt.hp - burn);
     tgt.statuses = (tgt.statuses ?? []).filter((s) => s.id !== "quemadura");
     w.log.push(`${tgt.char.name} sufre ${burn} de Quemadura adelantada; el efecto termina.`);
@@ -814,7 +865,7 @@ function consumeElement(w: Work, att: Combatant, tgt: Combatant | null, skillId:
     if (!stacks) return;
     tgt.statuses = (tgt.statuses ?? []).filter((s) => s.id !== "escarcha");
     if (!tgt.frostDelayed) {
-      const pct = FROST_DELAY[stacks] * mage;
+      const pct = Math.min(FROST_CAP, FROST_DELAY[stacks] * mage + (att.relic?.frostBonus ?? 0));
       const lost = Math.min(tgt.progress, Math.round(TURN_THRESHOLD * pct));
       tgt.progress -= lost;
       tgt.frostDelayed = true;
@@ -835,7 +886,7 @@ function consumeElement(w: Work, att: Combatant, tgt: Combatant | null, skillId:
     const stacks = stacksOf(att.statuses, "impulso");
     if (!stacks) return;
     att.statuses = (att.statuses ?? []).filter((s) => s.id !== "impulso");
-    const add = Math.round(TURN_THRESHOLD * WIND_ADVANCE[stacks] * mage);
+    const add = Math.round(TURN_THRESHOLD * Math.min(WIND_CAP, WIND_ADVANCE[stacks] * mage + (att.relic?.windBonus ?? 0)));
     att.progress += add;
     w.log.push(`${att.char.name} consume Impulso y adelanta su próximo turno.`);
     emit(w, "progressChanged", idOf(w, att), { value: add });
@@ -844,7 +895,7 @@ function consumeElement(w: Work, att: Combatant, tgt: Combatant | null, skillId:
     if ((att.charge ?? 0) < MAX_ELEMENT_CHARGES) return;
     att.charge = 0;
     if (tgt && tgt.hp > 0) {
-      const extra = Math.round(estimateDamage(att, tgt, "attack1", true) * SOBRECARGA_DISCHARGE * mage);
+      const extra = Math.round(estimateDamage(att, tgt, "attack1", true) * SOBRECARGA_DISCHARGE * mage * (1 + (att.relic?.dischargeBonus ?? 0)));
       const absorbed = Math.min(tgt.shield ?? 0, extra);
       tgt.hp = Math.max(0, tgt.hp - (extra - absorbed));
       if (tgt.shield !== undefined) tgt.shield -= absorbed;
@@ -957,7 +1008,7 @@ function heroAction(w: Work, action: Action, tIdx: number | undefined) {
       w.log.push(`${p.char.name} se cubre: el próximo impacto recibido hace ${Math.round(def.reduceNextHit * 100)} % menos.`);
     }
     if (def.selfDamage) {
-      const cost = Math.round(p.char.stats.hp * def.selfDamage);
+      const cost = Math.round(p.char.stats.hp * def.selfDamage * (1 - (p.relic?.recklessCut ?? 0)));
       const lost = p.hp - Math.max(1, p.hp - cost);
       p.hp -= lost;
       w.log.push(`${p.char.name} se desgarra: pierde ${cost} de vida.`);
@@ -978,6 +1029,14 @@ function heroAction(w: Work, action: Action, tIdx: number | undefined) {
 function checkEnd(w: Work): boolean {
   if (w.status !== "ongoing") return true;
   const foesDead = w.es.every((e) => e.hp <= 0);
+  if (w.p.hp <= 0 && !foesDead && w.p.relic?.phoenix && !w.p.phoenixUsed) {
+    // Corazón fénix (Torre): one recovery per expedition, a visible exception to the single life.
+    w.p.phoenixUsed = true;
+    w.p.hp = Math.max(1, Math.round(w.p.char.stats.hp * w.p.relic.phoenix));
+    w.log.push(`¡El Corazón fénix te devuelve a la vida con ${w.p.hp} de vida!`);
+    emit(w, "healed", 0, { target: 0, value: w.p.hp, detail: "phoenix" });
+    return false;
+  }
   if (foesDead && w.p.hp <= 0 && w.humanFoe) w.status = "draw";
   else if (foesDead) w.status = "won";
   else if (w.p.hp <= 0) w.status = "lost";
@@ -1011,8 +1070,10 @@ function beginTurn(w: Work, c: Combatant): boolean {
   c.guard = false;
   c.nextHitReduction = undefined;
   c.activeHeal = 0;
+  c.firstHitDone = false;
   emit(w, "turnStarted", id);
-  const burn = Math.min(burnDamage(c.statuses), Math.round(c.char.stats.hp * BURN_CAP));
+  const burnBonus = c === w.p ? 0 : (w.p.relic?.burnDmg ?? 0);
+  const burn = Math.min(Math.round(burnDamage(c.statuses) * (1 + burnBonus)), Math.round(c.char.stats.hp * BURN_CAP));
   if (burn > 0) {
     c.hp = Math.max(0, c.hp - burn);
     w.log.push(`${c.char.name} se quema: ${burn} de daño.`);
@@ -1316,6 +1377,12 @@ export function startBattle(
   const p = newCombatant(player);
   p.res = 0;
   p.loadout = opts.loadout ?? defaultLoadout(player.classId);
+  if (opts.relic) {
+    p.relic = opts.relic;
+    if (opts.phoenixSpent) p.phoenixUsed = true;
+    p.progress = Math.round(TURN_THRESHOLD * (opts.relic.startProgress ?? 0));
+    p.res = Math.min(RESOURCE_MAX, opts.relic.startRes ?? 0);
+  }
   if (opts.playerHp !== undefined) p.hp = opts.playerHp;
   if (opts.playerShield) p.shield = opts.playerShield;
   if (opts.perks) p.perks = opts.perks;
