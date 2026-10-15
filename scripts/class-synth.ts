@@ -1,5 +1,5 @@
 // Class × weapon synthetic dungeon audit using the universal combat actions.
-// `auto` follows the shared policy; `eager` uses ready skills whenever possible.
+// `auto` follows the contextual policy; `eager` is the naive policy (strongest affordable equipped skill, default loadout).
 import { autoPolicy, type AutoPick } from "../src/lib/game/auto";
 import { CLASS_IDS, generateCharacter, type ClassId } from "../src/lib/game/characters";
 import { step, type Battle } from "../src/lib/game/combat";
@@ -32,9 +32,7 @@ function hero(classId: ClassId, seed: number, wt: HandType) {
 }
 
 function eager(b: Battle): AutoPick {
-  if ((b.player.universalCooldowns?.barrido ?? 0) <= 0 && b.enemies.filter((e) => e.hp > 0).length > 1) return { action: "barrido" };
-  if ((b.player.universalCooldowns?.golpe ?? 0) <= 0) return { action: "golpe", target: 0 };
-  return autoPolicy(b, { useUniversalSkills: false });
+  return autoPolicy(b, { policy: "naive" });
 }
 
 function clearRate(classId: ClassId, wt: HandType, pick: (b: Battle) => AutoPick): number {

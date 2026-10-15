@@ -64,5 +64,5 @@ for (const c of CLASS_IDS) {
   console.log(`${c.padEnd(10)}${(avg * 100).toFixed(1)}%`);
 }
 console.log(
-  `\navg rounds: ${(turnsTotal / (N * 16)).toFixed(1)} · prompts: ${(promptsTotal / (N * 16)).toFixed(1)}`,
+  `\navg turns: ${(turnsTotal / (N * 16)).toFixed(1)} · prompts: ${(promptsTotal / (N * 16)).toFixed(1)}`,
 );

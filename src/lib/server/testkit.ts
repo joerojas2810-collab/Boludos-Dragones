@@ -51,6 +51,9 @@ export class FakeDb {
   dungeons: { steps: Record<string, true>; routes: Record<string, number> } = { steps: {}, routes: {} };
   equipped: Record<string, string> = {};
   runsToday = 0;
+  classMastery: Record<string, number> = {};
+  loadouts: Record<string, string[]> = {};
+  levelLoadouts: Record<string, string[]> = {};
   towerRecords: Args[] = [];
   missionProgress: Record<string, number> = {};
   bestRank = "f";
@@ -113,7 +116,16 @@ export class FakeDb {
           dungeonProgress: this.dungeons,
           equipped: this.equipped,
           bestFloor: 0,
+          classMastery: this.classMastery,
+          loadouts: this.loadouts,
+          levelLoadouts: this.levelLoadouts,
         });
+      case "set_loadout": {
+        const skills = a.p_skills as string[];
+        if (a.p_scope === "level") this.levelLoadouts[String(a.p_key)] = skills;
+        else this.loadouts[String(a.p_key)] = skills;
+        return this.okv({ scope: a.p_scope, key: a.p_key, skills });
+      }
       case "start_level": {
         const h = a.p_hero as Args;
         this.run = {
