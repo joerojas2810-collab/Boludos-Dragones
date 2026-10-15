@@ -7,6 +7,8 @@ import { CLASSES, type ClassId } from "@/lib/game/characters";
 import { withSkill } from "@/lib/game/loadout";
 import {
   isSkillUnlocked,
+  loadoutHints,
+  skillRoles,
   newlyUnlocked,
   RESOURCE_NAME,
   skillsOfClass,
@@ -57,6 +59,8 @@ export function SkillPicker({
       <h3 className="font-bold">
         Habilidades de {CLASSES[classId].name} · elige 2 ({res})
       </h3>
+      <p className="text-xs text-[#b9c7d4]">{mastery === null ? "Nivelado: las cuatro alternativas están disponibles." : `Maestría de clase ${mastery}: desbloqueos a nivel 5 y 12, compartidos por todos tus héroes de esta clase.`} Las nuevas habilidades son alternativas; no reemplazan automáticamente las anteriores.</p>
+      {loadoutHints(value).map((hint) => <p key={hint} className="rounded border border-sky-400/30 bg-sky-950/30 p-2 text-xs" role="note">{hint}</p>)}
       {fresh.length > 0 && (
         <div role="status" className="rounded border border-amber-300 bg-amber-300/10 p-2 text-sm">
           <b>¡Desbloqueaste {fresh.map((s) => s.name).join(" y ")}!</b>{" "}
@@ -80,6 +84,7 @@ export function SkillPicker({
                 {slot > 0 && <span className="text-green-300">Equipada ({slot})</span>}
               </div>
               <div className="text-xs opacity-80">{brief(s, res)}</div>
+              <div className="mt-1 text-xs font-semibold text-sky-200">{skillRoles(s).join(" · ")}</div>
               <p className="my-1">{s.description}</p>
               {open ? (
                 <div className="flex gap-1">
@@ -95,7 +100,7 @@ export function SkillPicker({
                   ))}
                 </div>
               ) : (
-                <div className="text-yellow-300">🔒 Requiere subir un {CLASSES[classId].name} al nivel {s.unlock}.</div>
+                <div className="text-yellow-300">🔒 Requiere maestría {s.unlock}: alcanza ese nivel con cualquier {CLASSES[classId].name}.</div>
               )}
             </div>
           );

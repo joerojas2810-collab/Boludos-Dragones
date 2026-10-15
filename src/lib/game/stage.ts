@@ -23,7 +23,7 @@ import { ROUTE_FIT } from "./routeFit.generated";
 import { defaultLoadout, type Loadout } from "./skills";
 
 // Replay engine version: bump on any change that alters a fight's outcome.
-export const ENGINE_VERSION = 26; // 26: turn-based engine (20 skills, loadouts, enemy brains); 25: rank- and ascension-specific route fit factors
+export const ENGINE_VERSION = 27; // 27: distinct skill roles and Cleric starter kit; 26: turn-based engine
 
 export type FightRole = "normal" | "elite" | "final";
 

@@ -33,22 +33,28 @@ const before = await rpc("get_profile", { p_player: U });
 console.log("before: heroes", before.characters.length, "pieces", before.weapons.length);
 await db.exec(fs.readFileSync(root + "upgrade_from_0044.sql", "utf8"));
 console.log("upgrade applied OK");
-const after = await rpc("get_profile", { p_player: U });
-console.log("raw rows after:", after.characters.map((c: any) => `${c.id}(${c.stars}★)`).join(", "));
-console.log("post-upgrade heroes:", after.characters.map((c: any) => c.id));
-console.log("post-upgrade pieces:", after.weapons.map((w: any) => w.id));
+type UpgradedProfile = {
+  characters: { id: string; stars: number }[];
+  weapons: { id: string; stars: number; data: { lines?: { stat: string }[]; copies?: unknown[] } }[];
+  equipped: Record<string, unknown>;
+  coins: number;
+};
+const after = await rpc("get_profile", { p_player: U }) as UpgradedProfile;
+console.log("raw rows after:", after.characters.map((c) => `${c.id}(${c.stars}★)`).join(", "));
+console.log("post-upgrade heroes:", after.characters.map((c) => c.id));
+console.log("post-upgrade pieces:", after.weapons.map((w) => w.id));
 // Legacy upgrade preserves existing heroes; fixture heroes include valid H1 factors. A new pull can add a copy.
 const v = (await db.query(`select version from public.player_state where player_id='${U}'`)).rows[0] as { version: number };
 const pr = await rpc("apply_pull", { p_player: U, p_version: v.version, p_idem: "probe-0001", p_banner: "character", p_cost: 250, p_pity: 0, p_pity_ssr: 0, p_seed: 1, p_daily: false, p_items: [{ class: "clerigo", element: "rayo", rarity: "f", data: { name: "x", traits: ["terco"], factors: { hp: 1, atk: 1, def: 1, crit: 1, speed: 1 } } }] });
 console.log("new pull after migration:", JSON.stringify(pr).slice(0, 200));
 
-const ids = after.characters.map((c: any) => c.id).sort().join();
+const ids = after.characters.map((c) => c.id).sort().join();
 ok(ids === "c-caballero-tierra-c,c-clerigo-rayo-f,c-clerigo-viento-s,c-mago-fuego-s,c-picaro-agua-s", "upgrade preserves and normalizes heroes: " + ids);
-const weapon = (id: string) => after.weapons.find((w: any) => w.id === id);
+const weapon = (id: string) => after.weapons.find((w) => w.id === id);
 ok(weapon("w-espada-fuego-s")?.stars === 2, "piece twin got +1 star");
 ok(Object.keys(after.equipped).length === 3, "equipment remains linked to migrated heroes");
 ok(weapon("w-casco-agua-s")?.data.lines?.[0]?.stat === "resist", "dodge line became resist");
-ok(weapon("w-baston-agua-c")?.stars === 1 && !after.weapons.some((w: any) => w.data.copies?.length), "old stars on pieces stay, no copies appear");
+ok(weapon("w-baston-agua-c")?.stars === 1 && !after.weapons.some((w) => w.data.copies?.length), "old stars on pieces stay, no copies appear");
 ok(after.coins === 12345, "coins untouched");
 ok(((await db.query(`select count(*)::int n from public.market_offers where status='open'`)).rows[0] as { n: number }).n === 0, "stale hero offers cancelled");
 ok(JSON.stringify(pr).includes('"status":"copy"'), "a pull after migration creates a factor-bearing copy");

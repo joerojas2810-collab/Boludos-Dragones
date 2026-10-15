@@ -75,6 +75,7 @@ export const CLASS_PASSIVE_DMG_REDUCTION = 0.1; // Caballero: incoming damage
 export const CLASS_PASSIVE_ADVANTAGE_BONUS = 0.55; // Mago: replaces ADVANTAGE_BONUS
 export const CLASS_PASSIVE_CRIT_MULT = 2; // Pícaro: base crit damage multiplier
 export const CLASS_PASSIVE_MAGE_CRIT = 0.1; // Mago: extra crit chance
+export const CLASS_PASSIVE_MAGE_CONSUME_MULT = 1.25;
 export const CLASS_PASSIVE_MAGE_REDUCTION = 0.05; // Mago: incoming damage
 // Berserker Furia: damage bonus by thresholds of missing hp (highest threshold met wins).
 export const CLASS_PASSIVE_FURY: readonly { below: number; bonus: number }[] = [
@@ -202,7 +203,7 @@ export const CLASSES: Record<ClassId, ClassTemplate> = {
     passive: {
       id: "focoArcano",
       name: "Foco arcano",
-      description: `Con ventaja elemental su daño sube ${pct(CLASS_PASSIVE_ADVANTAGE_BONUS)} en vez de 25%, tiene +${pct(CLASS_PASSIVE_MAGE_CRIT)} de crítico y recibe ${pct(CLASS_PASSIVE_MAGE_REDUCTION)} menos daño.`,
+      description: `Con ventaja elemental su daño sube ${pct(CLASS_PASSIVE_ADVANTAGE_BONUS)} en vez de 25%, tiene +${pct(CLASS_PASSIVE_MAGE_CRIT)} de crítico y recibe ${pct(CLASS_PASSIVE_MAGE_REDUCTION)} menos daño. Sus consumos elementales son un ${pct(CLASS_PASSIVE_MAGE_CONSUME_MULT - 1)} más potentes.`,
     },
     stats: {
       hp: 85,

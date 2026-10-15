@@ -2,6 +2,8 @@
 
 Versión 1.0 propuesta · 15 de octubre de 2026
 
+> Revisión implementada posterior: [Habilidades motor27](../HABILIDADES_V27.md). Sus valores y el kit inicial del Clérigo sustituyen los de esta propuesta histórica; `skills.ts` es el catálogo ejecutable.
+
 ## 0. Lectura, autoridad y alcance
 
 Este documento convierte la conversación en un destino de producto y una especificación inicial de implementación. No declara que las propuestas ya estén probadas ni aprobadas individualmente. El dueño solicitó un documento para que Claude Code pueda ejecutar el cambio; todavía no se modificó el proyecto.

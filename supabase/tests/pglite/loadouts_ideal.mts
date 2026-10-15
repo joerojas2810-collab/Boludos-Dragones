@@ -7,14 +7,14 @@ import { SKILLS, SKILL_IDS } from "../../../src/lib/game/skills";
 const root = decodeURIComponent(new URL("../../", import.meta.url).pathname);
 let pass = 0, fail = 0;
 const ok = (c: unknown, label: string) => { if (c) pass++; else { fail++; console.log("FAIL:", label); } };
-const q = async (sql: string) => (await db.query(sql)).rows as Record<string, any>[];
+const q = async (sql: string) => (await db.query(sql)).rows as Record<string, unknown>[];
 const throws = (p: Promise<unknown>, code: string) => p.then(() => false, (e: Error) => e.message.includes(code));
 
 // ---- a database at 0057 (every migration but 0058, lockdown last) ----
 const dir = root + "migrations/";
 const all = fs.readdirSync(dir).filter((f) => /^\d{4}_.+\.sql$/.test(f)).sort();
 const LAST = "0018_lockdown_functions.sql";
-const old = [...all.filter((f) => f !== LAST && !f.startsWith("0058") && !f.startsWith("0059")), LAST];
+const old = [...all.filter((f) => f !== LAST && Number(f.slice(0, 4)) < 58), LAST];
 await db.exec(old.map((f) => fs.readFileSync(dir + f, "utf8")).join("\n"));
 ok(!(await q(`select 1 from pg_tables where tablename='class_mastery'`)).length, "0057 database has no class_mastery");
 
@@ -33,9 +33,12 @@ await hero(A, "caballero", "tierra", 1);
 // ---- upgrade_from_0057 over that database (twice: re-runnable) ----
 await db.exec(fs.readFileSync(root + "upgrade_from_0057.sql", "utf8"));
 await db.exec(fs.readFileSync(root + "upgrade_from_0057.sql", "utf8"));
+// Apply the new catalogue upgrade twice without rewriting historical upgrade bundles.
+await db.exec(fs.readFileSync(root + "upgrade_from_0060.sql", "utf8"));
+await db.exec(fs.readFileSync(root + "upgrade_from_0060.sql", "utf8"));
 const mast = async (id: string) =>
   Object.fromEntries((await q(`select class, level from public.class_mastery where player_id='${id}'`)).map((r) => [r.class, r.level]));
-let m = await mast(A);
+const m = await mast(A);
 ok(m.mago === 6 && m.caballero === 1 && !("picaro" in m), "backfill takes the highest hero level per class");
 
 // ---- trigger: monotonic, follows level updates and inserts ----
@@ -66,6 +69,14 @@ ok((await set(A, "level", "mago", ["mage_seal", "mage_barrier"])).key === "mago"
 ok(await throws(set(A, "level", "mago", ["knight_advance", "knight_sweep"]), "invalid_skill"), "nivelado selection must match the class key");
 await set(A, "hero", mageKey, ["mage_detonate", "mage_inscribe"]); // overwrite
 
+// Cleric identity: early healing, offense is the mastery-5 alternative.
+await hero(A, "clerigo", "agua", 1);
+const clericKey = "c-clerigo-agua-f";
+ok((await set(A, "hero", clericKey, ["cleric_judgment", "cleric_restore"])).skills[1] === "cleric_restore", "Cleric can equip healing from level 1");
+ok(await throws(set(A, "hero", clericKey, ["cleric_judgment", "cleric_consecrate"]), "skill_locked"), "Consagrar is locked before mastery 5");
+await db.exec(`update public.characters set level=5 where player_id='${A}' and class='clerigo'`);
+ok((await set(A, "hero", clericKey, ["cleric_judgment", "cleric_consecrate"])).skills[1] === "cleric_consecrate", "Consagrar unlocks at mastery 5");
+
 // ---- get_profile ----
 const prof = await rpc("get_profile", { p_player: A });
 ok(prof.classMastery.mago === 9 && prof.classMastery.caballero === 1, "get_profile exposes classMastery");
@@ -73,7 +84,7 @@ ok(JSON.stringify(prof.loadouts[mageKey]) === JSON.stringify(["mage_detonate", "
 ok(JSON.stringify(prof.levelLoadouts.mago) === JSON.stringify(["mage_seal", "mage_barrier"]), "get_profile exposes levelLoadouts");
 const profB = await rpc("get_profile", { p_player: B });
 ok(Object.keys(profB.loadouts).length === 0 && Object.keys(profB.levelLoadouts).length === 0, "loadouts are per player");
-ok(prof.characters.length === 3 && prof.coins !== undefined, "rest of get_profile intact");
+ok(prof.characters.length === 4 && prof.coins !== undefined, "rest of get_profile intact");
 
 // ---- SQL catalogue mirrors skills.ts ----
 let sync = true;
@@ -119,7 +130,7 @@ const before = {
   consts: JSON.stringify(await q(`select * from public.game_constants order by key`)),
 };
 await db.exec(fs.readFileSync(root + "reset_progress_ideal.sql", "utf8"));
-const count = async (t: string) => (await q(`select count(*)::int n from public.${t}`))[0].n;
+const count = async (t: string) => Number((await q(`select count(*)::int n from public.${t}`))[0].n);
 for (const t of ["characters", "weapons", "equipment", "fragments", "part_stock", "route_progress", "step_clears", "tower_scores", "tower_runs", "tower_node_paid", "tower_codex",
   "class_mastery", "skill_loadouts", "rooms", "room_players", "chip_ledger", "runs", "pulls", "mission_state", "market_offers"])
   ok((await count(t)) === 0, `reset wiped ${t}`);

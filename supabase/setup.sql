@@ -11443,6 +11443,19 @@ grant execute on function public.game_week_of(timestamptz), public.game_week_end
   public.tower_run_commit(uuid, uuid, int, jsonb, jsonb, int, jsonb),
   public.tower_codex_get(uuid, text) to service_role;
 
+-- ===== 0060_skill_identity.sql =====
+-- 0060: Cleric starts with Juicio + Restaurar; Consagrar is the mastery-5 alternative.
+-- Only the SQL catalogue changes. Do not erase existing profiles or selections;
+-- loadoutFor sanitizes old locked pairs and the server validates new selections.
+create or replace function public.skill_unlock(p_skill text) returns int
+language sql immutable set search_path = '' as $$
+  select case
+    when public.skill_class(p_skill) is null then null
+    when p_skill = any(array['knight_bastion','mage_barrier','rogue_step','cleric_consecrate','berserker_recover']) then 5
+    when p_skill = any(array['knight_sweep','mage_seal','rogue_sabotage','cleric_cleanse','berserker_shatter']) then 12
+    else 0 end
+$$;
+
 -- ===== 0018_lockdown_functions.sql =====
 -- 0018_lockdown_functions: re-apply the function lockdown to EVERY function in public.
 -- Why: a new signature (apply_pull with p_pity_ssr, bank_run with p_clear/p_parts,

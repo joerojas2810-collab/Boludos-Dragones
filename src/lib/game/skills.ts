@@ -25,7 +25,7 @@ export interface SkillDef {
   power: number; // P: multiple of the actor's basic damage against the same target (0 = no attack)
   aguante: number; // A: damage to Aguante as a fraction of the effective life damage
   consume: boolean; // consume the hero's elemental state after the normal impact
-  extraCharge?: boolean; // Inscribir: one extra elemental charge (max 2 per use)
+  extraCharge?: boolean; // Inscribir / Sello: one extra elemental charge (max 2 per target)
   exposedPower?: number; // Remate: P against an Expuesto target
   shield?: number; // fraction of max hp, capped at SHIELD_CAP
   heal?: number; // fraction of the receiver's max hp
@@ -52,12 +52,12 @@ export const SKILLS: Record<SkillId, SkillDef> = {
   knight_breaker: S({
     id: "knight_breaker", classId: "caballero", name: "Rompeguardia", unlock: 0, cost: 2, gen: 0, cooldown: 0,
     target: "single", power: 1.25, aguante: 1.25, consume: true, cancels: "break",
-    description: "Golpe pesado que castiga el Aguante; si provoca Quiebre cancela una Carga. Consume el estado elemental.",
+    description: "Daño del 125 % del básico; daña Aguante por el 125 % del daño de vida causado. Si provoca Quiebre, cancela una Carga. Consume el estado elemental.",
   }),
   knight_bastion: S({
     id: "knight_bastion", classId: "caballero", name: "Bastión", unlock: 5, cost: 2, gen: 0, cooldown: 1,
-    target: "self", power: 0, aguante: 0, consume: false, shield: 0.08,
-    description: "Escudo del 8 % de tu vida máxima. Conserva los estados elementales.",
+    target: "self", power: 0, aguante: 0, consume: false, shield: 0.10,
+    description: "Protección pura: escudo del 10 % de tu vida máxima (tope). No ataca ni consume estados.",
   }),
   knight_sweep: S({
     id: "knight_sweep", classId: "caballero", name: "Corte amplio", unlock: 12, cost: 2, gen: 0, cooldown: 1,
@@ -75,14 +75,14 @@ export const SKILLS: Record<SkillId, SkillDef> = {
     description: "Golpe del 100 % que detona el estado elemental (efecto +25 % por tu clase).",
   }),
   mage_barrier: S({
-    id: "mage_barrier", classId: "mago", name: "Barrera", unlock: 5, cost: 2, gen: 0, cooldown: 1,
-    target: "self", power: 0, aguante: 0, consume: false, shield: 0.08,
-    description: "Escudo del 8 % de tu vida máxima. Conserva las cargas elementales.",
+    id: "mage_barrier", classId: "mago", name: "Barrera", unlock: 5, cost: 1, gen: 0, cooldown: 1,
+    target: "single", power: 0.5, aguante: 0.25, consume: false, shield: 0.06,
+    description: "Golpe del 50 % que aplica una carga elemental y te da un escudo del 6 % de tu vida máxima. No consume estados.",
   }),
   mage_seal: S({
     id: "mage_seal", classId: "mago", name: "Sello", unlock: 12, cost: 1, gen: 0, cooldown: 1,
-    target: "single", power: 0.5, aguante: 0.25, consume: false, cancels: "interruptible",
-    description: "Golpe del 50 % que cancela una amenaza interrumpible ya anunciada.",
+    target: "single", power: 0.5, aguante: 0.25, consume: false, extraCharge: true, cancels: "interruptible",
+    description: "Golpe del 50 % que aplica hasta 2 cargas elementales e interrumpe un ritual anunciado si hace daño. No consume estados.",
   }),
   rogue_feint: S({
     id: "rogue_feint", classId: "picaro", name: "Finta", unlock: 0, cost: 0, gen: 2, cooldown: 0,
@@ -96,28 +96,28 @@ export const SKILLS: Record<SkillId, SkillDef> = {
   }),
   rogue_step: S({
     id: "rogue_step", classId: "picaro", name: "Paso evasivo", unlock: 5, cost: 1, gen: 0, cooldown: 1,
-    target: "self", power: 0, aguante: 0, consume: false, reduceNextHit: 0.4,
-    description: "El próximo impacto que recibas hace 40 % menos hasta tu siguiente turno.",
+    target: "single", power: 0.65, aguante: 0.25, consume: false, reduceNextHit: 0.4,
+    description: "Golpe del 65 % sin consumir estados. El próximo impacto recibido hace un 40 % menos hasta tu siguiente turno. No es una esquiva garantizada.",
   }),
   rogue_sabotage: S({
     id: "rogue_sabotage", classId: "picaro", name: "Sabotaje", unlock: 12, cost: 1, gen: 0, cooldown: 1,
-    target: "single", power: 0.5, aguante: 0.25, consume: false, cancels: "interruptible",
-    description: "Golpe del 50 % que cancela una amenaza interrumpible ya anunciada.",
+    target: "single", power: 0.75, aguante: 1.0, consume: false, cancels: "interruptible",
+    description: "Golpe del 75 %; daña Aguante por el 100 % del daño de vida causado. Interrumpe un ritual anunciado si hace daño. No cancela Cargas ni consume estados.",
   }),
   cleric_judgment: S({
     id: "cleric_judgment", classId: "clerigo", name: "Juicio", unlock: 0, cost: 0, gen: 2, cooldown: 0,
-    target: "single", power: 1.05, aguante: 0.25, consume: false,
-    description: "Golpe del 105 %. Genera 2 de Bendición.",
-  }),
-  cleric_consecrate: S({
-    id: "cleric_consecrate", classId: "clerigo", name: "Consagrar", unlock: 0, cost: 2, gen: 0, cooldown: 0,
-    target: "single", power: 1.65, aguante: 0.25, consume: true,
-    description: "Golpe del 165 %. Consume el estado elemental. No cura.",
+    target: "single", power: 0.75, aguante: 0.25, consume: false,
+    description: "Golpe del 75 %. Sacrifica daño inmediato para generar 2 de Bendición.",
   }),
   cleric_restore: S({
-    id: "cleric_restore", classId: "clerigo", name: "Restaurar", unlock: 5, cost: 2, gen: 0, cooldown: 1,
+    id: "cleric_restore", classId: "clerigo", name: "Restaurar", unlock: 0, cost: 2, gen: 0, cooldown: 1,
     target: "self", power: 0, aguante: 0, consume: false, heal: 0.06,
     description: "Cura el 6 % de la vida máxima del receptor.",
+  }),
+  cleric_consecrate: S({
+    id: "cleric_consecrate", classId: "clerigo", name: "Consagrar", unlock: 5, cost: 2, gen: 0, cooldown: 0,
+    target: "single", power: 1.65, aguante: 0.25, consume: true,
+    description: "Golpe del 165 %. Consume el estado elemental. No cura.",
   }),
   cleric_cleanse: S({
     id: "cleric_cleanse", classId: "clerigo", name: "Purificar", unlock: 12, cost: 1, gen: 0, cooldown: 1,
@@ -142,7 +142,7 @@ export const SKILLS: Record<SkillId, SkillDef> = {
   berserker_shatter: S({
     id: "berserker_shatter", classId: "berserker", name: "Rompemuro", unlock: 12, cost: 2, gen: 0, cooldown: 1,
     target: "single", power: 1.0, aguante: 1.5, consume: true, cancels: "break",
-    description: "Golpe del 100 % contra el Aguante; si provoca Quiebre cancela una Carga. Consume el estado elemental.",
+    description: "Daño del 100 % del básico; daña Aguante por el 150 % del daño de vida causado. Si provoca Quiebre, cancela una Carga. Consume el estado elemental.",
   }),
 };
 
@@ -209,3 +209,27 @@ export function sanitizeLoadout(
 /** Skills whose unlock was just crossed by going from `from` to `to` mastery. */
 export const newlyUnlocked = (classId: ClassId, from: number, to: number): SkillDef[] =>
   skillsOfClass(classId).filter((s) => s.unlock > from && s.unlock <= to);
+
+/** Short, additive roles for preparation; derived from the same catalogue as combat. */
+export function skillRoles(def: SkillDef): string[] {
+  return [
+    def.gen ? "Genera recurso" : null,
+    def.consume ? "Consume estados" : null,
+    def.extraCharge ? "Prepara elemento" : null,
+    def.shield || def.reduceNextHit ? "Protege" : null,
+    def.heal || def.healIfDamage ? "Cura" : null,
+    def.cleanse ? "Purifica" : null,
+    def.cancels === "interruptible" ? "Interrumpe ritual" : null,
+    def.aguante >= 1 ? "Rompe Aguante" : null,
+    def.target === "all" ? "Área" : null,
+  ].filter((role): role is string => role !== null);
+}
+
+/** Non-blocking consequences of an equipped pair; every legal pair remains playable. */
+export function loadoutHints(loadout: Loadout): string[] {
+  const defs = loadout.map((id) => SKILLS[id]);
+  return [
+    !defs.some((s) => s.gen) ? "Sin generador equipado: el Básico da 1 de recurso si hace daño; Defender ante una amenaza fuerte también da 1." : null,
+    !defs.some((s) => s.consume) ? "Sin consumidor equipado: conservas los efectos de tus cargas, pero estas habilidades no pueden detonarlas, retrasar, adelantar ni preparar penetración por consumo." : null,
+  ].filter((hint): hint is string => hint !== null);
+}

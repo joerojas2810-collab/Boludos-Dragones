@@ -518,7 +518,7 @@ export function skillEffects(def: SkillDef): string[] {
   if (def.reduceNextHit) out.push(`Reduce ${Math.round(def.reduceNextHit * 100)} % el próximo impacto`);
   if (def.cancels === "interruptible") out.push("Interrumpe rituales");
   if (def.cancels === "break") out.push("Si causa Quiebre, cancela una Carga");
-  if (def.aguante >= 1) out.push("Castiga el Aguante");
+  if (def.aguante >= 1) out.push(`Aguante: ${pct(def.aguante)} del daño de vida`);
   if (def.extraCharge) out.push("+1 carga elemental extra");
   if (def.consume) out.push("Consume el estado elemental");
   if (def.exposedPower) out.push("Más daño a Expuestos");

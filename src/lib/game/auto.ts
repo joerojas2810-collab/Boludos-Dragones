@@ -12,6 +12,7 @@ import {
   isStrongIntent,
   livingEnemies,
   MAGE_CONSUME_MULT,
+  projectTurns,
   RUPTURE_BYPASS_PER_CHARGE,
   skillBlockReason,
   SOBRECARGA_DISCHARGE,
@@ -55,6 +56,16 @@ function incoming(b: Battle, onlyStrong = false): number {
     if (onlyStrong && !isStrongIntent(e.intent)) return s;
     return s + ev(e, b.player, e.intent);
   }, 0);
+}
+
+/** One committed impact before the next own turn; a single-hit ward cannot cover a group. */
+function nextIncomingHit(b: Battle): number {
+  for (const turn of projectTurns(b, 6).slice(1)) {
+    if (turn.id === 0) break;
+    const e = b.enemies[turn.id - 1];
+    if (e.intent && isDamaging(e.intent)) return ev(e, b.player, e.intent);
+  }
+  return 0;
 }
 
 /** Which living enemy to hit with `key`: biggest share of remaining hp removed, weighted by threat. */
@@ -128,6 +139,14 @@ function skillValue(b: Battle, def: SkillDef, a1: number): Scored | null {
       if (foe.exposed && def.exposedPower) dmg *= def.exposedPower / def.power;
       value += dmg;
       if (def.consume) value += consumeValue(b, foe, a1);
+      if (def.extraCharge) {
+        const own = p.char.element === "viento" || p.char.element === "rayo";
+        const id = p.char.element === "rayo" ? null : ({ fuego: "quemadura", agua: "escarcha", viento: "impulso", tierra: "ruptura" } as const)[p.char.element];
+        const bearer = own ? p : foe;
+        const before = id ? stacksOf(bearer.statuses, id) : bearer.charge ?? 0;
+        const max = id ? STATUS_DATA[id].max : MAX_ELEMENT_CHARGES;
+        value += Math.max(0, Math.min(2, max - before) - Math.min(1, max - before)) * a1 * 0.5;
+      }
       if (foe.aguante !== undefined && def.aguante > 0.25) {
         const wouldBreak = (foe.quiebreResist ?? 0) === 0 && foe.aguante <= Math.round(dmg * def.aguante);
         if (wouldBreak) value += a1 * 0.8 + (def.cancels === "break" && foe.intent === "charge" ? ev(foe, p, "charge") : 0);
@@ -137,15 +156,14 @@ function skillValue(b: Battle, def: SkillDef, a1: number): Scored | null {
     if (def.selfDamage) value -= maxHp * def.selfDamage;
     if (def.healIfDamage) value += Math.min(maxHp - p.hp, maxHp * Math.min(def.healIfDamage, ACTIVE_HEAL_CAP));
   }
-  const strong = incoming(b, true);
   const all = incoming(b);
   if (def.shield) value += Math.min(maxHp * def.shield, all) * 0.9;
   if (def.heal) value += Math.min(maxHp - p.hp, maxHp * def.heal);
   if (def.cleanse) {
-    const negative = (p.statuses ?? []).filter((s) => STATUS_DATA[s.id].negative).length;
-    value += negative * maxHp * 0.04;
+    const negative = (p.statuses ?? []).some((s) => STATUS_DATA[s.id].negative);
+    if (negative) value += maxHp * 0.04;
   }
-  if (def.reduceNextHit) value += all * def.reduceNextHit * 0.5 + strong * 0.1;
+  if (def.reduceNextHit) value += nextIncomingHit(b) * def.reduceNextHit;
   if (def.power === 0 && value <= 0) return null;
   return { pick: { action: def.id, ...(target !== undefined && { target }) }, value };
 }

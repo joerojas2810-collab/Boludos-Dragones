@@ -8,10 +8,12 @@ import { ROUTE_IDS, levelsOf, type RouteId } from "../../../src/lib/game/levels"
 import { levelFights } from "../../../src/lib/game/stage";
 import { levelLoot } from "../../../src/lib/game/levelLoot";
 import { heroFromOwned, lootOptions, migrate } from "../../../src/lib/game/profile";
-import { heroRow, playLevelBot } from "../../../src/lib/server/testkit";
+import { heroRow } from "../../../src/lib/server/testkit";
 import {
   doPull, finishLevelService, loadMe, startLevelService,
 } from "../../../src/lib/server/services";
+import type { DungeonProgress } from "../../../src/lib/game/dungeonProgress";
+import type { GearLine } from "../../../src/lib/game/gear";
 import type { Deps } from "../../../src/lib/server/rpc";
 
 await setup();
@@ -28,10 +30,10 @@ for (const [i, n] of ["ana", "beto"].entries()) {
   await db.exec(`insert into auth.users(id,email) values ('${U(i + 1)}','${n}@players.invalid')`);
   await rpc("create_player", { p_user: U(i + 1), p_name: n, p_name_key: n, p_is_admin: false });
 }
-const q = async (sql: string) => (await db.query(sql)).rows as Record<string, any>[];
+const q = async <T = Record<string, unknown>,>(sql: string): Promise<T[]> => (await db.query<T>(sql)).rows;
 const P = U(1);
-const initialProgress = (await rpc("get_profile", { p_player: P })) as any;
-ok(initialProgress.dungeonProgress && initialProgress.dungeonProgress.steps && initialProgress.dungeonProgress.routes,
+const initialProgress = (await rpc("get_profile", { p_player: P })) as { dungeonProgress?: DungeonProgress };
+ok(initialProgress.dungeonProgress?.steps && initialProgress.dungeonProgress.routes,
   "get_profile exposes the new {steps,routes} shape");
 const coins = async () => Number((await q(`select coins from public.player_state where player_id='${P}'`))[0].coins);
 const setCoins = (n: number) => db.exec(`update public.player_state set coins=${n} where player_id='${P}'`);
@@ -40,7 +42,7 @@ const ROUTE: RouteId = ROUTE_IDS[0];
 // hero rows
 const h0 = generateCharacter(createRng(11), "caballero");
 const strong = heroRow(h0, "f", 40);
-const insHero = async (r: any, extra = "") =>
+const insHero = async (r: ReturnType<typeof heroRow>, extra = "") =>
   db.exec(`insert into public.characters(player_id,class,element,rarity,stars,data) values ('${P}','${r.a}','${r.element}','${r.rarity}',${r.stars},'${JSON.stringify(r.data)}')${extra}`);
 await insHero(strong);
 const HERO = strong.key;
@@ -159,7 +161,7 @@ await reset();
 // 6b. random loot drops many pieces at once: the bank must accept the submitted list
 {
   await reset();
-  const done0 = (await q(`select levels as cleared from public.route_progress where player_id='${P}' and route='${ROUTE}' and difficulty='f' and ascension=0`))[0]?.cleared ?? 0;
+  const done0 = (await q<{ cleared: number }>(`select levels as cleared from public.route_progress where player_id='${P}' and route='${ROUTE}' and difficulty='f' and ascension=0`))[0]?.cleared ?? 0;
   const prevRepeat = REPEAT;
   REPEAT = done0 > 0;
   const many = Array.from({ length: 12 }, (_, i) => ({ type: "casco", element: ["agua", "fuego", "viento", "tierra", "rayo"][i % 5], rarity: "f", name: "Casco", roll: 1 }));
@@ -187,17 +189,17 @@ const pullW = async (items: unknown[], over: Record<string, unknown> = {}) => {
 const cas = (roll: number, lines?: unknown) => ({ type: "casco", element: "fuego", rarity: "c", data: { name: "Casco" }, roll, ...(lines ? { lines } : {}) });
 await pullW([cas(0.9, [{ stat: "crit", roll: 1.05 }])]);
 await pullW([cas(1.1, [{ stat: "def", roll: 1.1 }])]);
-let w = (await q(`select stars,roll,lines from public.weapons where player_id='${P}' and key='w-casco-fuego-c'`))[0];
+const w = (await q<{ stars: number; roll: number; lines: GearLine[] }>(`select stars,roll,lines from public.weapons where player_id='${P}' and key='w-casco-fuego-c'`))[0];
 ok(w.stars === 0 && Number(w.roll) === 0.9 && w.lines[0].stat === "crit", "the main roll stays: a duplicate is a copy, not +1 star");
 await pullW([cas(0.86, [{ stat: "accuracy", roll: 0.9 }])]);
-const cp = (await q(`select copies from public.weapons where key='w-casco-fuego-c'`))[0].copies;
+const cp = (await q<{ copies: { roll: number; lines: GearLine[] }[] }>(`select copies from public.weapons where key='w-casco-fuego-c'`))[0].copies;
 ok(cp.length === 2 && cp[0].roll === 1.1 && cp[0].lines[0].stat === "def" && cp[1].roll === 0.86, "each duplicate keeps its own roll and lines as a copy");
 await err(pullW([cas(1.3)]), "invalid_items", "roll 1.3");
 await err(pullW([{ ...cas(1), roll: undefined }]), "invalid_items", "piece without roll");
 await err(pullW([cas(1, [{ stat: "hp", roll: 1 }])]), "invalid_items", "stat outside the pool");
 await err(pullW([cas(1, [{ stat: "crit", roll: 1 }, { stat: "def", roll: 1 }])]), "invalid_items", "2 lines on a C piece");
 // grants (the piece path Ascender and the drops share)
-const forge = async (grant: any[]) => { const g = grant[0]; return rpc("grant_piece", { p_player: P, p_type: g.type, p_element: g.element, p_rank: g.rarity, p_name: g.name, p_roll: g.roll, p_lines: g.lines ?? null, p_refund_on_max: false }); };
+const forge = async (grant: { type: string; element: string; rarity: string; name: string; roll: number; lines?: GearLine[] }[]) => { const g = grant[0]; return rpc("grant_piece", { p_player: P, p_type: g.type, p_element: g.element, p_rank: g.rarity, p_name: g.name, p_roll: g.roll, p_lines: g.lines ?? null, p_refund_on_max: false }); };
 await forge([{ type: "peto", element: "agua", rarity: "a", name: "Peto", roll: 1.02, lines: [{ stat: "hp", roll: 1 }, { stat: "regen", roll: 1.1 }] }]);
 ok((await q(`select count(*)::int c from public.weapons where key='w-peto-agua-a' and lines is not null`))[0].c === 1, "granted piece with lines");
 await err(forge([{ type: "peto", element: "agua", rarity: "a", name: "P", roll: 1, lines: [{ stat: "hp", roll: 1 }, { stat: "hp", roll: 1 }] }]), "invalid_items", "duplicate stat");
@@ -207,14 +209,15 @@ await err(forge([{ type: "peto", element: "agua", rarity: "a", name: "P", roll: 
 // 11. tower rounds tiebreak
 await rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9, p_rounds: 50, p_class: "caballero", p_element: "agua" });
 await rpc("tower_record", { p_player: U(2), p_mode: "nivelado", p_floor: 9, p_rounds: 30, p_class: "mago", p_element: "rayo" });
-let t = (await rpc("tower_state", { p_player: P })) as any;
-ok(t.modes.nivelado.top[0].name === "beto" && t.modes.nivelado.mine.place === 2, "fewer rounds wins at equal floors");
+type TowerSnapshot = { modes: { nivelado: { top: { name: string }[]; mine: { place: number; rounds: number; class: string | null; element: string | null } | null } } };
+let t = (await rpc("tower_state", { p_player: P })) as TowerSnapshot;
+ok(t.modes.nivelado.top[0].name === "beto" && t.modes.nivelado.mine?.place === 2, "fewer rounds wins at equal floors");
 await rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9, p_rounds: 20, p_class: "caballero", p_element: "agua" });
 t = await rpc("tower_state", { p_player: P });
-ok(t.modes.nivelado.mine.place === 1 && t.modes.nivelado.mine.rounds === 20 && t.modes.nivelado.mine.class === "caballero" && t.modes.nivelado.mine.element === "agua", "better result keeps its chosen identity");
+ok(t.modes.nivelado.mine?.place === 1 && t.modes.nivelado.mine?.rounds === 20 && t.modes.nivelado.mine?.class === "caballero" && t.modes.nivelado.mine?.element === "agua", "better result keeps its chosen identity");
 await rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9, p_rounds: 99, p_class: "picaro", p_element: "viento" });
 ok((await q(`select rounds from public.tower_scores where player_id='${P}'`))[0].rounds === 20, "worse rounds ignored");
-await err(rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9 } as any), "does not exist", "old 3-arg signature is gone");
+await err(rpc("tower_record", { p_player: P, p_mode: "nivelado", p_floor: 9 }), "does not exist", "old 3-arg signature is gone");
 
 // 12. exposure (check_exposure.sql logic)
 const leaks = await q(`select p.proname f, r.rolname r from pg_proc p join pg_namespace n on n.oid=p.pronamespace and n.nspname='public' join pg_roles r on r.rolname in ('anon','authenticated') where p.prokind='f' and has_function_privilege(r.oid,p.oid,'execute') and not exists (select 1 from pg_depend d where d.objid=p.oid and d.deptype='e')`);
@@ -229,10 +232,10 @@ ok((await q(`select count(*)::int c from public.migration_flags where key in ('0
 
 // 13. services end to end on this database (strong hero clears level 1 of F)
 const deps: Deps = {
-  rpc: async (name, args) => { try { return { data: await rpc(name, args as any), error: null }; } catch (e) { return { data: null, error: { message: String((e as Error).message) } }; } },
+  rpc: async (name, args) => { try { return { data: await rpc(name, args), error: null }; } catch (e) { return { data: null, error: { message: String((e as Error).message) } }; } },
   randomSeed: () => 4242,
-  openRunId: async (p) => (await q(`select id from public.runs where player_id='${p}' and status='open' limit 1`))[0]?.id ?? null,
-  getRun: async (p, id) => { const r = (await q(`select seed,hero,status,started_at from public.runs where player_id='${p}' and id='${id}'`))[0]; return r ? { seed: Number(r.seed), hero: r.hero, status: r.status, startedAt: Date.parse(r.started_at) } : null; },
+  openRunId: async (p) => (await q<{ id: string }>(`select id from public.runs where player_id='${p}' and status='open' limit 1`))[0]?.id ?? null,
+  getRun: async (p, id) => { const r = (await q<{ seed: number; hero: unknown; status: string; started_at: string | Date }>(`select seed,hero,status,started_at from public.runs where player_id='${p}' and id='${id}'`))[0]; return r ? { seed: Number(r.seed), hero: r.hero, status: r.status, startedAt: Date.parse(String(r.started_at)) } : null; },
   runsToday: async () => 0,
 };
 await reset(); await db.exec(`delete from public.rate_limit_hits`);
@@ -261,7 +264,7 @@ ok(migrate({ characters: [] }).characters.length === 0, "migrate ok");
 await setCoins(5000);
 const pr = await doPull(deps, P, { banner: "weapon", count: 10, idempotencyKey: crypto.randomUUID() });
 ok(pr.results!.length === 10, "service weapon pull x10");
-ok((await q(`select count(*)::int c from public.weapons where roll is not null`))[0].c > 0, "pulled pieces have rolls in the DB");
+ok(Number((await q(`select count(*)::int c from public.weapons where roll is not null`))[0].c) > 0, "pulled pieces have rolls in the DB");
 
 // 6a-3: first level coins and the step chest are shared by routes.
 REPEAT = false;

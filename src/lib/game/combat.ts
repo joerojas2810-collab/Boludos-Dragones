@@ -8,6 +8,7 @@ import {
   CLASS_PASSIVE_FURY,
   CLASS_PASSIVE_MAGE_CRIT,
   CLASS_PASSIVE_MAGE_REDUCTION,
+  CLASS_PASSIVE_MAGE_CONSUME_MULT,
   CLASS_PASSIVE_REGEN,
   CLASSES,
   type Attack,
@@ -121,7 +122,7 @@ export const BURN_CONSUME_TICKS = 1.5;
 export const FROST_DELAY = [0, 0.05, 0.1, 0.15] as const;
 export const WIND_ADVANCE = [0, 0.1, 0.2, 0.3] as const;
 export const RUPTURE_BYPASS_PER_CHARGE = 0.08;
-export const MAGE_CONSUME_MULT = 1.25;
+export const MAGE_CONSUME_MULT = CLASS_PASSIVE_MAGE_CONSUME_MULT;
 export const PROTECT_SHIELD = 0.08;
 const COLOSSAL_GOLEM = "Gólem Colosal";
 export const CHARGE_DEFENSE_BYPASS = 0.3;

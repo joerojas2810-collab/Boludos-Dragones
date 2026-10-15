@@ -72,11 +72,11 @@ describe("catalog", () => {
     knight_sweep: { cost: 2, cooldown: 1, target: "all", consume: true },
     mage_inscribe: { cost: 0, cooldown: 0, target: "single", consume: false },
     mage_detonate: { cost: 2, cooldown: 0, target: "single", consume: true },
-    mage_barrier: { cost: 2, cooldown: 1, target: "self", consume: false },
+    mage_barrier: { cost: 1, cooldown: 1, target: "single", consume: false },
     mage_seal: { cost: 1, cooldown: 1, target: "single", consume: false, cancels: "interruptible" },
     rogue_feint: { cost: 0, cooldown: 0, target: "single", consume: false },
     rogue_finish: { cost: 2, cooldown: 0, target: "single", consume: true },
-    rogue_step: { cost: 1, cooldown: 1, target: "self", consume: false },
+    rogue_step: { cost: 1, cooldown: 1, target: "single", consume: false },
     rogue_sabotage: { cost: 1, cooldown: 1, target: "single", consume: false, cancels: "interruptible" },
     cleric_judgment: { cost: 0, cooldown: 0, target: "single", consume: false },
     cleric_consecrate: { cost: 2, cooldown: 0, target: "single", consume: true },
@@ -107,8 +107,8 @@ describe("catalog", () => {
     }
   });
 
-  it("only the Mage's Inscribir adds an extra charge; only Remate has an exposed power", () => {
-    expect(SKILL_IDS.filter((id) => SKILLS[id].extraCharge)).toEqual(["mage_inscribe"]);
+  it("only Inscribir and Sello add extra charges; only Remate has an exposed power", () => {
+    expect(SKILL_IDS.filter((id) => SKILLS[id].extraCharge)).toEqual(["mage_inscribe", "mage_seal"]);
     expect(SKILL_IDS.filter((id) => SKILLS[id].exposedPower)).toEqual(["rogue_finish"]);
   });
 });
@@ -300,17 +300,17 @@ describe("Caballero", () => {
     expect(basic.log.some((l) => l.includes("lanza su Carga"))).toBe(true);
   });
 
-  it("Bastión / Barrera: shield 8 % of max hp, accumulating up to the 10 % cap, keeps elemental charges", () => {
+  it("Bastión protects without attacking; Barrera attacks and adds a smaller shield, both capped at 10 %", () => {
     for (const [cls, id] of [["caballero", "knight_bastion"], ["mago", "mage_barrier"]] as const) {
       let b = fight(hero(cls), foe(), { res: 3, loadout: [id, defaultLoadout(cls)[0]] });
       b = mapEnemy(b, 0, () => ({ statuses: [stat("escarcha", 2)] }));
       b = mapPlayer(b, { statuses: [stat("impulso", 1)], charge: 2 });
       const s1 = step(b, id, noCrit());
       expect(ev(s1, "shieldChanged")[0].value).toBe(Math.round(1000 * SKILLS[id].shield!));
-      expect(s1.enemies[0].statuses?.find((x) => x.id === "escarcha")?.stacks).toBe(2); // not consumed
+      expect(s1.enemies[0].statuses?.find((x) => x.id === "escarcha")?.stacks).toBe(cls === "mago" ? 3 : 2); // Barrier applies, neither consumes
       expect(s1.player.charge).toBe(2);
       expect(ev(s1, "statusConsumed")).toHaveLength(0);
-      expect(s1.player.res).toBe(1); // spent 2, generated nothing
+      expect(s1.player.res).toBe(3 - SKILLS[id].cost); // no generation
       // second use (after the cooldown) tops up to the cap only
       let b2 = step(mapPlayer(s1, { res: 3 }), "attack1", noCrit());
       b2 = step(mapPlayer(b2, { res: 3, shield: 80 }), id, noCrit());
@@ -424,7 +424,7 @@ describe("Pícaro", () => {
 
   it("Paso evasivo: the next hit received is 40 % lighter, only that one, and it expires", () => {
     const f = unit("berserker", { hp: 1e6, atk: 40, speed: 15 });
-    let b = fight(hero("picaro", { hp: 1e6, speed: 7.5 }), f, { res: 3, loadout: ["rogue_step", "rogue_finish"], intents: ["attack1"] });
+    let b = fight(hero("picaro", { hp: 1e6, speed: 7.5 }, { element: "tierra" }), f, { res: 3, loadout: ["rogue_step", "rogue_finish"], intents: ["attack1"] });
     b = { ...b, enemies: [{ ...b.enemies[0], progress: 10_000 }], player: { ...b.player, progress: 0 } };
     const s = step(b, "rogue_step", noCrit());
     const hits = ev(s, "hit").filter((e) => e.actor === 1).map((e) => e.value!);
@@ -439,7 +439,7 @@ describe("Pícaro", () => {
 
 describe("Clérigo", () => {
   it("Consagrar does not heal by itself; Juicio generates", () => {
-    const b = mapPlayer(fight(hero("clerigo"), foe(), { res: 3 }), { hp: 500 });
+    const b = mapPlayer(fight(hero("clerigo"), foe(), { res: 3, loadout: ["cleric_judgment", "cleric_consecrate"] }), { hp: 500 });
     const s = step(b, "cleric_consecrate", noCrit());
     expect(ev(s, "healed")).toHaveLength(0);
     const j = step(fight(hero("clerigo"), foe()), "cleric_judgment", noCrit());

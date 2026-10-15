@@ -6,8 +6,6 @@ import { db } from "./harness.mjs";
 
 const root = decodeURIComponent(new URL("../../", import.meta.url).pathname);
 await db.exec(fs.readFileSync("/tmp/old_setup.sql", "utf8"));
-const cols = async (t: string) =>
-  (await db.query(`select column_name from information_schema.columns where table_schema='public' and table_name='${t}'`)).rows.map((r: any) => r.column_name);
 const uid = "9b307199-21c3-42c7-aa12-80251d676396";
 await db.exec(`insert into auth.users(id,email) values ('${uid}','a@b.c')`);
 await db.exec(`
@@ -28,7 +26,7 @@ await db.exec(fs.readFileSync(root + "setup.sql", "utf8"));
 console.log("after second re-run:", await count());
 await db.exec(fs.readFileSync(root + "upgrade_from_0025.sql", "utf8"));
 console.log("after upgrade file:", await count());
-const slots = (await db.query(`select slot from public.equipment order by slot`)).rows.map((r: any) => r.slot);
+const slots = (await db.query<{ slot: string }>(`select slot from public.equipment order by slot`)).rows.map((r) => r.slot);
 console.log("slots:", slots.join(","));
 // Control: the OLD setup.sql re-run on a DB with several slots reproduces the reported error.
 try {
