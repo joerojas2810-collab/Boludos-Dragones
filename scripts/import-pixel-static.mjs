@@ -27,7 +27,8 @@ const phase3Names = {
 const registeredIcons = JSON.parse(readFileSync(join(repo, "src/lib/art/pixel-icons.generated.json"), "utf8"));
 const systemIconNames = registeredIcons.map((entry) => typeof entry === "string" ? entry : entry.name)
   .filter((name) => !name.startsWith("part_") && !name.startsWith("core_")).map((name) => `icon_${name}.png`).sort();
-if (systemIconNames.length !== 238 || new Set(systemIconNames).size !== 238) throw new Error("Expected the 238 registered phase 4 icon names");
+// 238 original + 6 skill icons from the art extension (import-art-extension.mjs).
+if (systemIconNames.length !== 244 || new Set(systemIconNames).size !== 244) throw new Error("Expected the 244 registered phase 4 icon names");
 const prepared = [];
 let written = 0;
 
@@ -58,7 +59,7 @@ for (const [folder, target] of jobs) {
     (folder !== "icons" || (mode === "items" ? ["forge_part", "forge_core"].includes(entry.kind) : mode === "icons" ? entry.kind === "system_icon" : true)));
   if (folder === "icons" && mode !== "items") {
     const actual = selected.filter((entry) => entry.kind === "system_icon").map((entry) => entry.file).sort();
-    if (JSON.stringify(actual) !== JSON.stringify(systemIconNames)) throw new Error("Expected the exact 238 phase 4 icons");
+    if (JSON.stringify(actual) !== JSON.stringify(systemIconNames)) throw new Error("Expected the exact 244 phase 4 icons");
   }
   if (mode !== "icons") {
     const phase3 = selected.filter((entry) => folder !== "icons" || ["forge_part", "forge_core"].includes(entry.kind));

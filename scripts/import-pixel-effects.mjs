@@ -12,7 +12,8 @@ const source = join(root, "effects");
 const manifest = JSON.parse(readFileSync(join(source, "manifest.json"), "utf8"));
 const entries = manifest.files.filter((entry) => entry.phase === 7);
 const expected = ["", "reduced"].flatMap((folder) => readdirSync(join(repo, "public/art/effects", folder)).filter((name) => name.endsWith(".webp")).map((name) => (folder ? folder + "/" : "") + name.replace(/\.webp$/, ".png"))).sort();
-if (expected.length !== 142 || entries.length !== 142 || JSON.stringify(expected) !== JSON.stringify(entries.map((entry) => entry.file).sort())) throw new Error("Expected the exact 142 effect filenames");
+// 71 original ids + 8 from the art extension (import-art-extension.mjs), each with a reduced sheet.
+if (expected.length !== 158 || entries.length !== 158 || JSON.stringify(expected) !== JSON.stringify(entries.map((entry) => entry.file).sort())) throw new Error("Expected the exact 158 effect filenames");
 const metadata = {};
 for (const entry of entries) {
   if (!/^(reduced\/)?[a-z0-9_]+\.png$/.test(entry.file)) throw new Error("Invalid filename: " + entry.file);

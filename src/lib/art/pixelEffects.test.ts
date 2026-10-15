@@ -10,7 +10,7 @@ const imageRoot = join(process.cwd(), "public/art/effects-px");
 describe("HD effects integration", () => {
   it("delivers the complete existing catalog in both motion modes", () => {
     const ids = Object.keys(EFFECTS).sort();
-    expect(ids).toHaveLength(71);
+    expect(ids).toHaveLength(79);
     expect(Object.keys(PIXEL_EFFECTS).sort()).toEqual(ids);
     for (const folder of [imageRoot, join(imageRoot, "reduced")]) {
       expect(readdirSync(folder).filter((file) => file.endsWith(".png")).sort())
@@ -18,7 +18,7 @@ describe("HD effects integration", () => {
     }
   });
 
-  it("matches all 142 physical sheets to their native cell and glyph geometry", () => {
+  it("matches all 158 physical sheets to their native cell and glyph geometry", () => {
     let frames = 0;
     let cells = 0;
     for (const [id, meta] of Object.entries(PIXEL_EFFECTS)) {
@@ -31,8 +31,8 @@ describe("HD effects integration", () => {
           .toEqual([meta.cell[0] * (reduced ? 1 : meta.frames), meta.cell[1] * meta.rows]);
       }
     }
-    expect(frames).toBe(426);
-    expect(cells).toBe(642);
+    expect(frames).toBe(474);
+    expect(cells).toBe(690);
     expect(PIXEL_EFFECTS.hit_fire.cell).toEqual([128, 128]);
     expect(PIXEL_EFFECTS.boss_entrance_ssr.cell).toEqual([384, 192]);
     expect(PIXEL_EFFECTS.damage_normal.cell).toEqual([32, 48]);
@@ -54,18 +54,18 @@ describe("HD effects integration", () => {
       setPixel(true);
       expect(isPixelEffect("hit_fire")).toBe(true);
       expect(effectMeta("hit_fire")).toBe(PIXEL_EFFECTS.hit_fire);
-      expect(effectSrc("hit_fire")).toBe("/art/effects-px/hit_fire.png?v=1");
-      expect(effectSrc("hit_fire", true)).toBe("/art/effects-px/reduced/hit_fire.png?v=1");
+      expect(effectSrc("hit_fire")).toBe("/art/effects-px/hit_fire.png?v=2");
+      expect(effectSrc("hit_fire", true)).toBe("/art/effects-px/reduced/hit_fire.png?v=2");
       expect(pixelEffectSrc("hit_fire", true)).toBe(effectSrc("hit_fire", true));
       expect(isPixelEffect("unavailable_effect")).toBe(false);
       expect(effectMeta("unavailable_effect")).toBeUndefined();
-      expect(effectSrc("unavailable_effect")).toBe("/art/effects/unavailable_effect.webp");
+      expect(effectSrc("unavailable_effect")).toBe("/art/effects/unavailable_effect.webp?v=2");
       setPixel(false);
       expect(isPixelEffect("hit_fire")).toBe(false);
       expect(effectMeta("hit_fire")).toBe(EFFECTS.hit_fire);
-      expect(effectSrc("hit_fire")).toBe("/art/effects/hit_fire.webp");
-      expect(effectSrc("hit_fire", true)).toBe("/art/effects/reduced/hit_fire.webp");
-      expect(pixelEffectSrc("hit_fire")).toBe("/art/effects-px/hit_fire.png?v=1");
+      expect(effectSrc("hit_fire")).toBe("/art/effects/hit_fire.webp?v=2");
+      expect(effectSrc("hit_fire", true)).toBe("/art/effects/reduced/hit_fire.webp?v=2");
+      expect(pixelEffectSrc("hit_fire")).toBe("/art/effects-px/hit_fire.png?v=2");
     } finally {
       setPixel(previous);
     }

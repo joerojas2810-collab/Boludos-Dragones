@@ -6,8 +6,9 @@ import { isPixel } from "./pixel";
 export const PIXEL_EFFECTS = pixelEffects as unknown as Record<string, EffectMeta & { label?: string }>;
 export const isPixelEffect = (id: string) => isPixel() && Object.hasOwn(PIXEL_EFFECTS, id);
 export const effectMeta = (id: string) => isPixelEffect(id) ? PIXEL_EFFECTS[id] : EFFECTS[id];
-// Replaced pixel sheets must bypass the long-lived static-art cache.
+// Replaced sheets (hit_* redraw, v2) must bypass the long-lived static-art cache.
+export const EFFECT_V = 2;
 export const pixelEffectSrc = (id: string, reduced = false) =>
-  `/art/effects-px/${reduced ? "reduced/" : ""}${id}.png?v=1`;
+  `/art/effects-px/${reduced ? "reduced/" : ""}${id}.png?v=${EFFECT_V}`;
 export const effectSrc = (id: string, reduced = false) =>
-  isPixelEffect(id) ? pixelEffectSrc(id, reduced) : `/art/effects/${reduced ? "reduced/" : ""}${id}.webp`;
+  isPixelEffect(id) ? pixelEffectSrc(id, reduced) : `/art/effects/${reduced ? "reduced/" : ""}${id}.webp?v=${EFFECT_V}`;

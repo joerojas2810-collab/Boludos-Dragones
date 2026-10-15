@@ -898,5 +898,101 @@
     ],
     "rows": 1,
     "label": "¡Ups!"
+  },
+  "stagger_break": {
+    "frames": 6,
+    "fps": 10,
+    "loop": false,
+    "finish": "remove",
+    "cell": [
+      192,
+      192
+    ],
+    "rows": 1,
+    "label": "stagger_break"
+  },
+  "ritual_interrupt": {
+    "frames": 6,
+    "fps": 10,
+    "loop": false,
+    "finish": "remove",
+    "cell": [
+      192,
+      192
+    ],
+    "rows": 1,
+    "label": "ritual_interrupt"
+  },
+  "armor_rebuild": {
+    "frames": 6,
+    "fps": 10,
+    "loop": false,
+    "finish": "remove",
+    "cell": [
+      192,
+      192
+    ],
+    "rows": 1,
+    "label": "armor_rebuild"
+  },
+  "consume_fire": {
+    "frames": 6,
+    "fps": 10,
+    "loop": false,
+    "finish": "remove",
+    "cell": [
+      192,
+      192
+    ],
+    "rows": 1,
+    "label": "consume_fire"
+  },
+  "consume_water": {
+    "frames": 6,
+    "fps": 10,
+    "loop": false,
+    "finish": "remove",
+    "cell": [
+      192,
+      192
+    ],
+    "rows": 1,
+    "label": "consume_water"
+  },
+  "consume_wind": {
+    "frames": 6,
+    "fps": 10,
+    "loop": false,
+    "finish": "remove",
+    "cell": [
+      192,
+      192
+    ],
+    "rows": 1,
+    "label": "consume_wind"
+  },
+  "consume_earth": {
+    "frames": 6,
+    "fps": 10,
+    "loop": false,
+    "finish": "remove",
+    "cell": [
+      192,
+      192
+    ],
+    "rows": 1,
+    "label": "consume_earth"
+  },
+  "consume_lightning": {
+    "frames": 6,
+    "fps": 10,
+    "loop": false,
+    "finish": "remove",
+    "cell": [
+      192,
+      192
+    ],
+    "rows": 1,
+    "label": "consume_lightning"
   }
 }

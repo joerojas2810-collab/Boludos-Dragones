@@ -880,7 +880,32 @@
     "height": 64
   },
   {
+    "name": "skill_berserker_charge",
+    "width": 64,
+    "height": 64
+  },
+  {
+    "name": "skill_berserker_recover",
+    "width": 64,
+    "height": 64
+  },
+  {
+    "name": "skill_berserker_release",
+    "width": 64,
+    "height": 64
+  },
+  {
+    "name": "skill_berserker_shatter",
+    "width": 64,
+    "height": 64
+  },
+  {
     "name": "skill_cataclysm",
+    "width": 64,
+    "height": 64
+  },
+  {
+    "name": "skill_cleric_cleanse",
     "width": 64,
     "height": 64
   },
@@ -916,6 +941,11 @@
   },
   {
     "name": "skill_mace_strike",
+    "width": 64,
+    "height": 64
+  },
+  {
+    "name": "skill_mage_seal",
     "width": 64,
     "height": 64
   },

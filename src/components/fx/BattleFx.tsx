@@ -5,6 +5,7 @@ import { ELEMENT_COLORS } from "@/sprites/palettes";
 import { ELEMENT_ART } from "@/lib/art";
 import { isPixel } from "@/lib/art/pixel";
 import { enemyAnim } from "@/lib/art/enemies";
+import { eventVfx } from "@/lib/art/skillFx";
 import { DUNGEON_THEMES } from "@/lib/game/levels";
 import { AnimSheet } from "@/components/AnimSheet";
 import { Vfx, VfxNumber } from "./Vfx";
@@ -25,7 +26,7 @@ type Num = {
 };
 type Part = { element: Element; delay: number };
 // Painted overlays on a target (element arrows, guard, shield, regeneration).
-type Extra = { id: string; delay: number };
+type Extra = { id: string; delay: number; wide?: boolean };
 export type TargetFx = { num?: Num; parts: Part[]; dodge?: number; extras?: Extra[] };
 type StepFx = {
   key: number;
@@ -99,7 +100,7 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
       e: hpsOf(b),
     };
     setSnap(next);
-    if (b.log.length < snap.log || b.events.length === 0) {
+    if (b.log.length < snap.log || (b.events.length === 0 && !b.cev.some(eventVfx))) {
       setFx(null);
     } else {
       const calm = reducedMotion();
@@ -194,6 +195,12 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
         if (en.hp > (snap.e[i] ?? en.hp) && en.hp > 0)
           (enemies[i].extras ??= []).push({ id: "regeneration", delay: IMPACT_S });
       });
+      // Structured events (consume / Quiebre / ritual cancelled / armor rebuilt) play their own sheet.
+      for (const ev of b.cev) {
+        const v = eventVfx(ev);
+        const t = v && (v.at === 0 ? player : enemies[v.at - 1]);
+        if (v && t) (t.extras ??= []).push({ id: v.id, delay: IMPACT_S, wide: true });
+      }
       if (boss && b.status === "won" && !calm)
         strong.push((b.events.length - 1) * STAGGER_S + IMPACT_S);
       setFx({ key: b.log.length, player, enemies, stops: strong.slice(0, 3) });
@@ -270,7 +277,7 @@ export function FxLayer({ t, k }: { t?: TargetFx; k: number }) {
           key={`x${i}`}
           id={x.id}
           delay={x.delay}
-          className="absolute left-1/2 top-[-10%] w-32 -translate-x-1/2"
+          className={`absolute left-1/2 -translate-x-1/2 ${x.wide ? "top-[-30%] w-44" : "top-[-10%] w-32"}`}
         />
       ))}
       {t.parts.map((p, pi) =>

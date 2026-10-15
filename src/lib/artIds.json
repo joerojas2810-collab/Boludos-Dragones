@@ -51,7 +51,13 @@
     "santuario": "sanctuary",
     "castigo": "smite",
     "defend": "defend",
-    "flee": "flee"
+    "flee": "flee",
+    "mage_seal": "mage_seal",
+    "cleric_cleanse": "cleric_cleanse",
+    "berserker_charge": "berserker_charge",
+    "berserker_release": "berserker_release",
+    "berserker_recover": "berserker_recover",
+    "berserker_shatter": "berserker_shatter"
   },
   "relic": {
     "colmillo": "dragon_fang",

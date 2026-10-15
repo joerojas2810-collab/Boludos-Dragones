@@ -6,12 +6,12 @@ import { PIXEL_ICON_NAMES, pixelIconSize, setPixel, isPixelIcon } from "./pixel"
 import { icon } from "../art";
 
 describe("HD system icons", () => {
-  it("registers 238 system icons and preserves the 19 forge components", () => {
-    expect(registry).toHaveLength(257);
-    expect(new Set(PIXEL_ICON_NAMES).size).toBe(257);
+  it("registers 244 system icons and preserves the 19 forge components", () => {
+    expect(registry).toHaveLength(263);
+    expect(new Set(PIXEL_ICON_NAMES).size).toBe(263);
     const forge = registry.filter((entry) => /^(part|core)_/.test(entry.name));
     expect(forge).toHaveLength(19);
-    expect(registry.length - forge.length).toBe(238);
+    expect(registry.length - forge.length).toBe(244);
   });
 
   it("uses actual 64px PNG dimensions throughout the registered catalog", () => {
