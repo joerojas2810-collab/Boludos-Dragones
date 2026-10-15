@@ -26,7 +26,7 @@ await db.exec(fs.readFileSync(root + "setup.sql", "utf8"));
 console.log("after second re-run:", await count());
 await db.exec(fs.readFileSync(root + "upgrade_from_0025.sql", "utf8"));
 console.log("after upgrade file:", await count());
-const slots = (await db.query<{ slot: string }>(`select slot from public.equipment order by slot`)).rows.map((r) => r.slot);
+const slots = (await db.query<{ slot: string }>(`select slot from public.equipment order by slot`)).rows.map((r: { slot: string }) => r.slot);
 console.log("slots:", slots.join(","));
 // Control: the OLD setup.sql re-run on a DB with several slots reproduces the reported error.
 try {
