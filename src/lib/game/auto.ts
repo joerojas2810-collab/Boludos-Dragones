@@ -17,14 +17,13 @@ import {
   SOBRECARGA_DISCHARGE,
   step,
   strongPending,
-  WIND_ADVANCE,
   type Action,
   type Battle,
   type Combatant,
   type Intent,
   type MoveKey,
 } from "./combat";
-import { ACTIVE_HEAL_CAP, SKILLS, type SkillDef } from "./skills";
+import { ACTIVE_HEAL_CAP, RESOURCE_MAX, SKILLS, type SkillDef } from "./skills";
 import type { Rng } from "./rng";
 import { BURN_CAP, burnDamage, MAX_ELEMENT_CHARGES, stacksOf, STATUS_DATA } from "./statuses";
 
@@ -105,12 +104,15 @@ interface Scored {
   value: number;
 }
 
+const hasSpender = (c: Combatant): boolean => equippedSkills(c).some((id) => SKILLS[id].cost > 0);
+
 function skillValue(b: Battle, def: SkillDef, a1: number): Scored | null {
   const p = b.player;
   const alive = livingEnemies(b);
   const maxHp = p.char.stats.hp;
-  const resValue = a1 * 0.35;
-  let value = def.gen * resValue;
+  // Resource is only worth something while there is room for it and a spender is equipped.
+  const resValue = hasSpender(p) ? a1 * 0.35 : 0;
+  let value = Math.min(def.gen, RESOURCE_MAX - (p.res ?? 0)) * resValue;
   let target: number | undefined;
   if (def.power > 0) {
     if (def.target === "all") {
@@ -169,7 +171,10 @@ export function autoPolicy(b: Battle, opts: AutoOptions = {}): AutoPick {
   const strongEv = incoming(b, true);
   if (useGuard && strongPending(b) && strongEv >= p.hp * AUTO_GUARD_FRAC) return { action: "defend" };
 
-  let best: Scored = { pick: basic, value: a1 + 1 * a1 * 0.35 };
+  let best: Scored = {
+    pick: basic,
+    value: a1 + (hasSpender(p) ? Math.min(1, RESOURCE_MAX - (p.res ?? 0)) * a1 * 0.35 : 0),
+  };
   for (const d of usable) {
     const s = skillValue(b, d, a1);
     if (s && s.value > best.value * 1.05) best = s;

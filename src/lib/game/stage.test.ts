@@ -111,13 +111,16 @@ describe("stage replay", () => {
     expect(replayStage(5, strong, fights, log, 0, ENGINE_VERSION - 1).error).toBe("engine_version");
   });
 
-  it("accepts Quebrar Aguante in a server stage replay", async () => {
+  it("accepts a class skill in a server stage replay and rejects a retired action", async () => {
     const { replayStage } = await import("./stageReplay");
     const h = generateCharacter(createRng(3), "caballero");
     const strong = { ...h, stats: { ...h.stats, hp: h.stats.hp * 20, atk: h.stats.atk * 10 } };
     const elite = levelFights(levelsOf(ROUTE_IDS[0], "f")[0], 0).at(-1)!;
-    const result = replayStage(5, strong, [elite], [{ t: "act", a: "quebrar" }]);
+    const result = replayStage(5, strong, [elite], [{ t: "act", a: "knight_advance" }]);
     expect(result.applied).toBe(1);
     expect(result.rejectedAt).toBeNull();
+    const retired = replayStage(5, strong, [elite], [{ t: "act", a: "quebrar" as never }]);
+    expect(retired.applied).toBe(0);
+    expect(retired.rejectedAt).toBe(0);
   });
 });

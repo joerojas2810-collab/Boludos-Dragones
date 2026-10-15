@@ -45,13 +45,13 @@ const S = (d: SkillDef): SkillDef => d;
 
 export const SKILLS: Record<SkillId, SkillDef> = {
   knight_advance: S({
-    id: "knight_advance", classId: "caballero", name: "Avance", unlock: 0, cost: 0, gen: 1, cooldown: 0,
+    id: "knight_advance", classId: "caballero", name: "Avance", unlock: 0, cost: 0, gen: 2, cooldown: 0,
     target: "single", power: 0.85, aguante: 0.25, consume: false,
-    description: "Golpe firme (85 % del básico). Genera 1 Resolución.",
+    description: "Golpe firme (85 % del básico). Genera 2 de Resolución.",
   }),
   knight_breaker: S({
     id: "knight_breaker", classId: "caballero", name: "Rompeguardia", unlock: 0, cost: 2, gen: 0, cooldown: 0,
-    target: "single", power: 1.35, aguante: 1.25, consume: true, cancels: "break",
+    target: "single", power: 1.25, aguante: 1.25, consume: true, cancels: "break",
     description: "Golpe pesado que castiga el Aguante; si provoca Quiebre cancela una Carga. Consume el estado elemental.",
   }),
   knight_bastion: S({
@@ -86,13 +86,13 @@ export const SKILLS: Record<SkillId, SkillDef> = {
   }),
   rogue_feint: S({
     id: "rogue_feint", classId: "picaro", name: "Finta", unlock: 0, cost: 0, gen: 2, cooldown: 0,
-    target: "single", power: 0.65, aguante: 0.25, consume: false,
-    description: "Golpe del 65 %. Genera 2 de Apertura.",
+    target: "single", power: 0.8, aguante: 0.25, consume: false,
+    description: "Golpe del 80 %. Genera 2 de Apertura.",
   }),
   rogue_finish: S({
     id: "rogue_finish", classId: "picaro", name: "Remate", unlock: 0, cost: 2, gen: 0, cooldown: 0,
-    target: "single", power: 1.45, exposedPower: 1.75, aguante: 0.25, consume: true,
-    description: "Golpe del 145 % (175 % si el objetivo está Expuesto). Consume el estado elemental.",
+    target: "single", power: 1.8, exposedPower: 2.15, aguante: 0.25, consume: true,
+    description: "Golpe del 180 % (215 % si el objetivo está Expuesto). Consume el estado elemental.",
   }),
   rogue_step: S({
     id: "rogue_step", classId: "picaro", name: "Paso evasivo", unlock: 5, cost: 1, gen: 0, cooldown: 1,
@@ -105,14 +105,14 @@ export const SKILLS: Record<SkillId, SkillDef> = {
     description: "Golpe del 50 % que cancela una amenaza interrumpible ya anunciada.",
   }),
   cleric_judgment: S({
-    id: "cleric_judgment", classId: "clerigo", name: "Juicio", unlock: 0, cost: 0, gen: 1, cooldown: 0,
-    target: "single", power: 0.85, aguante: 0.25, consume: false,
-    description: "Golpe del 85 %. Genera 1 Bendición.",
+    id: "cleric_judgment", classId: "clerigo", name: "Juicio", unlock: 0, cost: 0, gen: 2, cooldown: 0,
+    target: "single", power: 1.05, aguante: 0.25, consume: false,
+    description: "Golpe del 105 %. Genera 2 de Bendición.",
   }),
   cleric_consecrate: S({
     id: "cleric_consecrate", classId: "clerigo", name: "Consagrar", unlock: 0, cost: 2, gen: 0, cooldown: 0,
-    target: "single", power: 1.3, aguante: 0.25, consume: true,
-    description: "Golpe del 130 %. Consume el estado elemental. No cura.",
+    target: "single", power: 1.65, aguante: 0.25, consume: true,
+    description: "Golpe del 165 %. Consume el estado elemental. No cura.",
   }),
   cleric_restore: S({
     id: "cleric_restore", classId: "clerigo", name: "Restaurar", unlock: 5, cost: 2, gen: 0, cooldown: 1,
@@ -125,9 +125,9 @@ export const SKILLS: Record<SkillId, SkillDef> = {
     description: "Retira el estado negativo más antiguo y da un escudo del 3 %.",
   }),
   berserker_charge: S({
-    id: "berserker_charge", classId: "berserker", name: "Embestida", unlock: 0, cost: 0, gen: 1, cooldown: 0,
+    id: "berserker_charge", classId: "berserker", name: "Embestida", unlock: 0, cost: 0, gen: 2, cooldown: 0,
     target: "single", power: 1.0, aguante: 0.25, consume: false, selfDamage: 0.02,
-    description: "Golpe del 100 % que te cuesta el 2 % de tu vida (no letal). Genera 1 Furia.",
+    description: "Golpe del 100 % que te cuesta el 2 % de tu vida (no letal). Genera 2 de Furia.",
   }),
   berserker_release: S({
     id: "berserker_release", classId: "berserker", name: "Descarga", unlock: 0, cost: 2, gen: 0, cooldown: 0,

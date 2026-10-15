@@ -71,7 +71,7 @@ export interface Passive {
 }
 
 // Class passive strengths (tuned with scripts/balance.ts).
-export const CLASS_PASSIVE_DMG_REDUCTION = 0.15; // Caballero: incoming damage
+export const CLASS_PASSIVE_DMG_REDUCTION = 0.1; // Caballero: incoming damage
 export const CLASS_PASSIVE_ADVANTAGE_BONUS = 0.55; // Mago: replaces ADVANTAGE_BONUS
 export const CLASS_PASSIVE_CRIT_MULT = 2; // Pícaro: base crit damage multiplier
 export const CLASS_PASSIVE_MAGE_CRIT = 0.1; // Mago: extra crit chance
@@ -82,7 +82,7 @@ export const CLASS_PASSIVE_FURY: readonly { below: number; bonus: number }[] = [
   { below: 0.66, bonus: 0.15 },
 ];
 export const BASE_CRIT_DMG = 1.5;
-export const CLASS_PASSIVE_REGEN = 0.005; // Clérigo: max hp per turn
+export const CLASS_PASSIVE_REGEN = 0.008; // Clérigo: max hp per turn
 
 const pct = (v: number) => `${+(v * 100).toFixed(1)}%`;
 

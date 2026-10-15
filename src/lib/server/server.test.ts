@@ -3,6 +3,7 @@ import { ASCEND } from "../game/pieceGrowth";
 import { generateCharacter } from "../game/characters";
 import { ENGINE_VERSION, levelFights, resultFromWins } from "../game/stage";
 import { replayTower } from "../game/tower";
+import { defaultLoadout } from "../game/skills";
 import { createRng } from "../game/rng";
 import { derivePassword, safeEqual, syntheticEmail } from "./credentials";
 import { parseEnv } from "./envSchema";
@@ -132,8 +133,11 @@ describe("validators", () => {
   });
   it("run replay accepts the replacement combat actions and rejects retired attacks", () => {
     const ok = (a: unknown) => runActionSchema.safeParse(a).success;
-    expect(ok({ t: "act", a: "golpe", target: 2 })).toBe(true);
-    expect(ok({ t: "act", a: "barrido" })).toBe(true);
+    expect(ok({ t: "act", a: "knight_advance", target: 2 })).toBe(true);
+    expect(ok({ t: "act", a: "mage_seal" })).toBe(true);
+    expect(ok({ t: "act", a: "defend" })).toBe(true);
+    for (const old of ["golpe", "barrido", "quebrar", "interrumpir", "explotar"])
+      expect(ok({ t: "act", a: old }), old).toBe(false);
     expect(ok({ t: "act", a: "attack1" })).toBe(true);
     expect(ok({ t: "act", a: "attack2" })).toBe(false);
     expect(ok({ t: "act", a: "attack3" })).toBe(false);
@@ -433,7 +437,7 @@ describe("weekly tower", () => {
   const open = (db: FakeDb, startedAt?: number) => {
     db.run = {
       seed: 777,
-      hero: { ...hero, engineVersion: ENGINE_VERSION, tower: "coleccion" },
+      hero: { ...hero, engineVersion: ENGINE_VERSION, tower: "coleccion", loadout: defaultLoadout("caballero") },
       status: "open",
       startedAt,
     };
@@ -498,6 +502,7 @@ describe("weekly tower", () => {
         ...hero,
         engineVersion: ENGINE_VERSION,
         tower: "coleccion",
+        loadout: defaultLoadout("caballero"),
         heroId: "c-caballero-fuego-f",
       },
       status: "open",
@@ -516,7 +521,7 @@ describe("weekly tower", () => {
     const db = new FakeDb();
     db.run = {
       seed: 777,
-      hero: { ...hero, engineVersion: ENGINE_VERSION, tower: "nivelado" },
+      hero: { ...hero, engineVersion: ENGINE_VERSION, tower: "nivelado", loadout: defaultLoadout("caballero") },
       status: "open",
     };
     const log = playBot(777, hero, 800);

@@ -4,7 +4,6 @@ import {
   defReduction,
   estimateDamage,
   startBattle,
-  withRound,
   type Combatant,
 } from "./combat";
 import type { Element } from "./elements";
@@ -55,6 +54,8 @@ const comb = (char: Character): Combatant => ({
   hp: char.stats.hp,
   cooldown: 0,
   defending: false,
+  progress: 0,
+  ownTurns: 0,
 });
 
 describe("explain: class passives", () => {
@@ -88,15 +89,16 @@ describe("explain: stats", () => {
   const me = comb(hero("picaro", "agua", { speed: 12 }));
   const foe = comb(hero("mago", "fuego", { speed: 6 }));
 
-  it("VEL 12 against 6 acts 2 times per round", () => {
+  it("VEL 12 against 6 says you act more often", () => {
     const t = text(statTip("speed", me, { foe }));
     expect(t).toContain("VEL 12 contra 6");
-    expect(t).toContain("actúas 2 veces por ronda");
+    expect(t).toContain("10 000");
+    expect(t).toContain("juegas más seguido");
   });
 
-  it("VEL slower side says the rival acts more", () => {
+  it("VEL slower side says the rival acts more often", () => {
     const t = text(statTip("speed", foe, { foe: me }));
-    expect(t).toContain("actúas 1 vez por ronda; el rival, 2 veces");
+    expect(t).toContain("el rival juega más seguido");
   });
 
   it("ATQ example matches estimateDamage", () => {
@@ -132,30 +134,13 @@ describe("explain: elements, traits, actions", () => {
     expect(text(traitTip("sediento"))).toContain("10%");
   });
 
-  it("Golpe cooldown explains why it is unavailable", () => {
-    const c = { ...comb(hero("mago", "agua")), universalCooldowns: { golpe: 1.7 } };
-    expect(attackDisabledReason(c, "golpe")).toBe("Recarga: 2 activaciones");
+  it("a skill on cooldown or without resource explains why it is unavailable", () => {
+    const c = { ...comb(hero("mago", "agua")), res: 3, cds: { mage_barrier: 1 } };
+    expect(attackDisabledReason(c, "mage_barrier")).toBe("En enfriamiento (1).");
+    expect(attackDisabledReason({ ...c, res: 0 }, "mage_detonate")).toBe("Necesita 2 de recurso.");
+    expect(attackDisabledReason(c, "mage_detonate")).toBeNull();
     expect(attackDisabledReason(c, "attack1")).toBeNull();
-    expect(
-      text(attackTip(c, "golpe", comb(hero("mago", "fuego")))),
-    ).toContain("No disponible");
-  });
-
-  it("Quebrar shows a read-only reason when the selected enemy has no Aguante", () => {
-    const c = comb(hero("mago", "agua"));
-    expect(attackDisabledReason(c, "quebrar", comb(hero("mago", "fuego")))).toBe(
-      "Este enemigo no tiene Aguante.",
-    );
-    expect(attackDisabledReason(c, "quebrar", { ...comb(hero("mago", "fuego")), aguante: 1 })).toBeNull();
-  });
-
-  it("Interrumpir is available only during an announced channeling", () => {
-    const c = comb(hero("mago", "agua"));
-    const foe = comb(hero("clerigo", "tierra"));
-    expect(attackDisabledReason(c, "interrumpir", foe)).toBe(
-      "No hay una Canalización anunciada que puedas interrumpir.",
-    );
-    expect(attackDisabledReason(c, "interrumpir", { ...foe, channelingState: "announced" })).toBeNull();
+    expect(text(attackTip(c, "mage_barrier", comb(hero("mago", "fuego"))))).toContain("No disponible");
   });
 
   it("the basic uses the weapon profile without an old special", () => {
@@ -177,11 +162,7 @@ describe("explain: elements, traits, actions", () => {
 
   it("intents use real numbers", () => {
     const p = hero("caballero", "agua", { resist: 0.05 });
-    const b = withRound(
-      startBattle(p, hero("mago", "fuego"), createRng(2)),
-      false,
-      ["attack1", "defend"],
-    );
+    const b = startBattle(p, hero("mago", "fuego"), createRng(2));
     expect(text(intentTip("defend", b))).toContain("mitad");
     expect(text(intentTip("attack1", b))).toContain(
       `~${estimateDamage(b.enemies[0], b.player, "attack1")}`,
@@ -192,7 +173,7 @@ describe("explain: elements, traits, actions", () => {
     expect(text(modTip("regeneracion"))).toContain("3%");
     expect(text(modTip("escudo"))).toContain("30%");
     expect(text(modTip("dobleAtaque"))).toContain("50%");
-    expect(text(modTip("elementoCambiante"))).toContain("2 rondas");
+    expect(text(modTip("elementoCambiante"))).toContain("2 turnos propios");
   });
 });
 
