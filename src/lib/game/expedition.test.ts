@@ -12,6 +12,7 @@ import {
   eventOptions,
   EVENT_IDS,
   expeditionFight,
+  isRiskyOption,
   EXP_ACTION_TYPES,
   FRAGMENTS,
   MAX_FRAGMENTS,
@@ -830,12 +831,13 @@ describe("combat rewards", () => {
   it("pays 10 / 15 (hard route) / 20 / 30 fragments plus Bolsa, and only on a win", () => {
     const run = (pos: number, route: string, relics: OwnedRelic[] = []) =>
       finishFight(ok(at(1, pos, { relics }, { hero: TANK }), { type: "choose_route", optionId: route }));
-    expect(run(1, "r0").fragments).toBe(START_FRAGMENTS + 10);
-    expect(run(1, "r1").fragments).toBe(START_FRAGMENTS + 15);
+    const risky = isRiskyOption(11, 1, 1, 0) ? 0 : 1; // the route with more total enemy PV pays 50 % more
+    expect(run(1, `r${1 - risky}`).fragments).toBe(START_FRAGMENTS + 10);
+    expect(run(1, `r${risky}`).fragments).toBe(START_FRAGMENTS + 15);
     expect(run(5, "r0").fragments).toBe(START_FRAGMENTS + 20);
     expect(run(10, "r0").fragments).toBe(START_FRAGMENTS + 30);
-    expect(run(1, "r0", owned(["bottomless_purse", 2])).fragments).toBe(START_FRAGMENTS + 10 + 8);
-    expect(run(1, "r0", owned(["bottomless_purse", 1])).fragments).toBe(START_FRAGMENTS + 10 + 5);
+    expect(run(1, `r${1 - risky}`, owned(["bottomless_purse", 2])).fragments).toBe(START_FRAGMENTS + 10 + 8);
+    expect(run(1, `r${1 - risky}`, owned(["bottomless_purse", 1])).fragments).toBe(START_FRAGMENTS + 10 + 5);
   });
 
   it("heals only 2 % of max hp after a won fight (tower rule), capped, and records turns", () => {
@@ -1082,6 +1084,20 @@ describe("sanity of the relic catalog inside the expedition", () => {
     for (let seed = 1; seed <= 20; seed++) {
       const s = ok(fresh({ hero: MID, seed }), { type: "begin" });
       for (const o of s.offer!.options) expect(RELICS[o.relicId]).toBeDefined();
+    }
+  });
+});
+
+describe("elite variants", () => {
+  it("offers a lone elite and an escorted elite with different lead elements", () => {
+    for (const seed of [1, 7, 99]) {
+      const a = expeditionFight(seed, 1, 5, 0);
+      const b = expeditionFight(seed, 1, 5, 1);
+      expect(a.enemies).toHaveLength(1);
+      expect(b.enemies.length).toBeGreaterThan(1);
+      expect(b.enemies[0].element).not.toBe(a.enemies[0].element);
+      expect(isRiskyOption(seed, 1, 5, 1)).toBe(true);
+      expect(isRiskyOption(seed, 1, 5, 0)).toBe(false);
     }
   });
 });

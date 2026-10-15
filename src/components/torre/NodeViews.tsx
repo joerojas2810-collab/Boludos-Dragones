@@ -9,7 +9,6 @@ import { Icon } from "@/components/Icon";
 import { Panel } from "@/components/Panel";
 import { SkillPicker } from "@/components/SkillPicker";
 import {
-  compositionText,
   EVENT_ICON,
   eventChoices,
   goodView,
@@ -159,7 +158,14 @@ function RouteCard({ o, sector }: { o: RouteOption; sector: number }) {
         {!fight && <p className="text-xs">{ROUTE_PURPOSE[o.kind]}</p>}
         {fight && (
           <>
-            <p className="break-words text-xs leading-snug [overflow-wrap:anywhere]">{compositionText(o)}</p>
+            <ul className="space-y-0.5 text-xs leading-snug">
+              {(o.enemies ?? []).map((e, i) => (
+                <li key={i} className="break-words [overflow-wrap:anywhere]">
+                  {e.name} · {ELEMENT_LABEL[e.element]} · PV {e.hp}
+                </li>
+              ))}
+              {(o.enemies?.length ?? 0) > 1 && <li className="opacity-80">{o.tag} · PV total {o.totalHp}</li>}
+            </ul>
             {o.mods && o.mods.length > 0 && <p className="text-xs">Modificador: {o.mods.map((m) => MOD_LABEL[m]).join(", ")}</p>}
             <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
               <FragmentsChip value={o.fragments ?? 0} /> <ScopeTag scope="expedicion" />

@@ -151,10 +151,11 @@
   --hs: min(68cqh, 40cqw);
   --painted-reference-frame: min(calc(var(--hs) * 1.15), calc(min(12.5rem, 44cqw) / var(--painted-width, 0.52)));
 }
+/* --feet (px above the stage bottom) is set by BattleArena from the scene's ground line; 4cqh until it runs. */
 .stage-hero {
   width: var(--hs);
   height: var(--hs);
-  bottom: 4cqh;
+  bottom: var(--feet, 4cqh);
 }
 /* Position the visible body, excluding the sprite sheet's transparent margins. */
 body:not([data-art="pixel"]) .stage-hero {
@@ -171,23 +172,23 @@ body:not([data-art="pixel"]) .stage-hero {
   left: calc(var(--painted-frame) * var(--painted-x) * -1);
   top: calc(var(--painted-frame) * var(--painted-y) * -1);
 }
-.stage-foes[data-n="1"] { --es: 1.4; --s: min(68cqh, 42cqw, 100cqh - 8rem); }
+.stage-foes[data-n="1"] { --es: 1.4; --s: min(80cqh, 42cqw, 100cqh - 8rem); }
 .stage-foes[data-n="2"] { --es: 1.3; --s: min(58cqh, 27cqw, 100cqh - 8rem); }
 .stage-foes[data-n="3"] { --es: 1.15; --s: min(56cqh, 22cqw, 100cqh - 8rem); }
 /* 3 foes: shrink the hero a bit so the bigger foes do not overlap it (md+). */
 @media (min-width: 768px) {
   .stage {
-    --hs: min(58cqh, 28cqw);
-    --painted-reference-frame: min(calc(var(--hs) * 1.15), calc(min(16rem, 26cqw) / var(--painted-width, 0.52)));
+    --hs: min(72cqh, 30cqw);
+    --painted-reference-frame: min(calc(var(--hs) * 1.15), calc(min(24rem, 26cqw) / var(--painted-width, 0.52)));
   }
   .stage-player-hud { width: min(16rem, 26cqw); }
   .stage-hero,
   body:not([data-art="pixel"]) .stage-hero {
-    left: calc(0.5rem + min(8rem, 13cqw));
+    left: calc(0.5rem + min(12rem, 13cqw));
     transform: translateX(-50%);
   }
   body:not([data-art="pixel"]) .stage-hero {
-    --painted-frame: min(calc(var(--hs) * 1.15), calc(min(16rem, 26cqw) / var(--painted-width)));
+    --painted-frame: min(calc(var(--hs) * 1.15), calc(min(24rem, 26cqw) / var(--painted-width)));
   }
   .stage-foes[data-n="2"],
   .stage-foes[data-n="3"] {
@@ -219,15 +220,34 @@ body:not([data-art="pixel"]) .stage-hero {
 }
 
 /* Keep the solo boss inside the scene so broad silhouettes don't clip at the right edge. */
-.stage-foes[data-boss][data-n="1"] { right: 4%; --es: 1.08; --s: min(56cqh, 38cqw, 100cqh - 12rem); }
+.stage-foes[data-boss][data-n="1"] { right: 4%; --es: 1.08; --s: min(62cqh, 38cqw, 100cqh - 12rem); }
 .stage-foe {
   width: max(var(--s), 11rem);
   height: 100%; /* the info card is pinned to the top of the stage (md+), never over the model */
 }
+/* Painted sheets draw the feet 5.5 % of the sprite box above its bottom edge (then scaled by --es from the bottom). */
 .stage-foe-art {
-  width: var(--s);
-  height: var(--s);
-  margin-bottom: 4cqh;
+  --art: var(--s);
+  width: var(--art);
+  height: var(--art);
+  margin-bottom: max(0px, calc(var(--feet, 4cqh) - 0.055 * var(--art) * var(--es, 1)));
+}
+/* Contact shadow on the floor, centred on the feet. */
+.stage-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 120%;
+  height: max(0.9rem, 9%);
+  transform: translate(-50%, 55%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgb(0 0 0 / 0.55) 0%, rgb(0 0 0 / 0.28) 45%, transparent 72%);
+  pointer-events: none;
+}
+.stage-shadow-foe {
+  bottom: calc(0.055 * var(--art) * var(--es, 1));
+  width: calc(var(--art) * var(--es, 1) * 0.7);
+  height: calc(var(--art) * var(--es, 1) * 0.12);
 }
 /* Keep a solo boss's stat/intent card in the open lane between the hero and boss. */
 @media (min-width: 768px) {
@@ -243,8 +263,7 @@ body:not([data-art="pixel"]) .stage-foes:not([data-boss]) {
   --es: 1;
 }
 body:not([data-art="pixel"]) .stage-foes:not([data-boss]) .stage-foe-art {
-  width: min(var(--s), calc(var(--painted-reference-frame) * var(--painted-height, 0.607) / 0.72));
-  height: min(var(--s), calc(var(--painted-reference-frame) * var(--painted-height, 0.607) / 0.72));
+  --art: min(var(--s), calc(var(--painted-reference-frame) * var(--painted-height, 0.607) / 0.72));
 }
 @media (max-width: 767px) {
   .stage { --hs: min(46cqh, 44cqw); }
@@ -272,7 +291,7 @@ body:not([data-art="pixel"]) .stage-foes:not([data-boss]) .stage-foe-art {
   body:not([data-art="pixel"]) .stage:has(.stage-foes[data-n="3"]) { --hs: 30cqh; }
   .stage:has(.stage-foes[data-n="3"]) .stage-hero {
     --hs: 30cqh;
-    bottom: 4cqh;
+    bottom: var(--feet, 4cqh);
     top: auto;
     left: calc(0.5rem + 15cqw);
   }
@@ -293,7 +312,7 @@ body[data-art="pixel"] .combat-hud {
     --hs: 192px;
     left: calc(0.5rem + 15cqw);
     top: auto;
-    bottom: 4cqh;
+    bottom: var(--feet, 4cqh);
   }
   body[data-art="pixel"] .stage-foes[data-n="3"] .combat-hud {
     padding: 4px;
@@ -306,4 +325,18 @@ body[data-art="pixel"] .combat-hud {
     width: 100%;
     font-size: 0.8rem;
   }
+}
+
+/* Wide, tall screens: the cards grow with the arena instead of staying phone-sized in a huge scene. */
+@media (min-width: 1500px) and (min-height: 820px) {
+  .stage-player-hud,
+  .stage-enemy-hud { zoom: 1.2; }
+}
+@media (min-width: 1800px) and (min-height: 920px) {
+  .stage-player-hud,
+  .stage-enemy-hud { zoom: 1.35; }
+}
+/* A lone, common foe: its card stays as wide as the hero's, centred over the sprite, not as wide as the whole column. */
+@media (min-width: 768px) {
+  .stage-foes[data-n="1"]:not([data-boss]) .stage-enemy-hud { max-width: 17rem; margin-inline: auto; }
 }

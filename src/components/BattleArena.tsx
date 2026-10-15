@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { ArenaBackground } from "@/components/ArenaBackground";
 import { blockMenuMusic } from "@/lib/menu-music";
 import { BossIntro, FxLayer, useBattleFx } from "@/components/fx/BattleFx";
@@ -9,9 +9,11 @@ import { StatusIcons } from "@/components/StatusIcons";
 import { ElementalStatusOverlay } from "@/components/ElementalStatusOverlay";
 import { HudCard } from "@/components/HudCard";
 import { HeroSprite } from "@/components/HeroSprite";
-import { Tooltip } from "@/components/Tooltip";
 import { HERO_ACTIONS } from "@/lib/art/heroes";
 import { isPixel } from "@/lib/art/pixel";
+import { combatScene } from "@/lib/art/backgrounds";
+import { paintedBackground } from "@/lib/art/painted-backgrounds";
+import { feetLift, FEET_PAD } from "@/lib/art/groundLine";
 import { CLASS_ART, ELEMENT_ART, HERO_ART_V } from "@/lib/art";
 import paintedHeroes from "@/lib/art/hero-integration.generated.json";
 import type { HeroAction } from "@/lib/art/heroes";
@@ -21,8 +23,8 @@ import { effectSrc } from "@/lib/art/effects";
 import type { StatusAnchorFamily } from "@/lib/art/statusAnchors";
 import { allStatusLayerIds, layerChangeDelayMs, statusLayerSrc } from "@/lib/art/statusLayers";
 import { preloadImages } from "@/lib/preload";
-import { enemyIntents, type Battle, type Combatant, type Intent } from "@/lib/game/combat";
-import { intentInfo, intentTip, type Tip } from "@/lib/game/explain";
+import type { Battle, Combatant } from "@/lib/game/combat";
+import type { Tip } from "@/lib/game/explain";
 import { EVENT_VFX_IDS, heroActionFor, pickCallouts, SKILL_FX, skillTag, type Callout } from "@/lib/art/skillFx";
 import { isSkillId, SKILLS } from "@/lib/game/skills";
 import { STATUS_DATA, type StatusId } from "@/lib/game/statuses";
@@ -126,33 +128,6 @@ function bigMomentFx(b: Battle) {
   };
 }
 
-// `multi` (group fight): on phones the card shrinks to glyph + name; the full text is in the intent list of the action panel.
-function IntentCard({ b, enemy, intent, multi }: { b: Battle; enemy: Combatant; intent: Intent; multi: boolean }) {
-  const idx = b.enemies.indexOf(enemy);
-  const info = intentInfo(intent, b, idx);
-  const tip = intentTip(intent, b, idx);
-  const tone = info.cancel === "interrumpir"
-    ? "border-rose-400/70 bg-rose-950/70 text-rose-100"
-    : info.cancel === "quiebre"
-      ? "border-amber-400/60 bg-amber-950/65 text-amber-100"
-      : info.strong
-        ? "border-red-400/60 bg-red-950/60 text-[#f2e6d7]"
-        : "border-red-900/60 bg-black/35 text-[#f2e6d7]";
-  return (
-    <div
-      aria-label={`${info.name}. ${info.effect}. ${info.counter} ${info.cancelLabel}.`}
-      className={`flex min-w-0 items-start gap-1.5 rounded border px-1.5 py-1 ${tone}`}
-    >
-      <span aria-hidden="true" className="mt-0.5 w-4 shrink-0 text-center font-bold leading-4">{info.glyph}</span>
-      <Tooltip tip={tip} className="block min-w-0 flex-1">
-        <span className="block truncate text-[11px] font-bold leading-4">{info.name}</span>
-        <span className={`line-clamp-2 break-words text-[10px] leading-3 text-[#e4d9ca] ${multi ? "max-md:hidden" : ""}`} title={`${info.effect}. ${info.counter}`}>{info.effect}</span>
-        <span className={`block truncate text-[9px] font-semibold uppercase tracking-wide leading-3 text-amber-200 ${multi ? "max-md:hidden" : ""}`}>{info.cancelLabel}</span>
-      </Tooltip>
-    </div>
-  );
-}
-
 // Visible text for the structured events of the last step (no audio needed). Shapes, not colour,
 // tell the kinds apart; the list stays until the next step, so it also works with reduced motion.
 function nameOf(b: Battle, id: number) {
@@ -183,10 +158,7 @@ function stepCallouts(b: Battle): Callout[] {
     } else if (ev.type === "selfDamaged") out.push({ glyph: "✚", text: `${who} se hiere: −${ev.value} PV`, prio: 2 });
     else if (ev.type === "guardTriggered") out.push({ glyph: "◧", text: `¡Guardia perfecta de ${nameOf(b, ev.actor)}!`, prio: 1 });
     else if (ev.type === "telegraphCancelled") out.push({ glyph: "✦", text: `${nameOf(b, ev.actor)}: amenaza cancelada`, prio: 0 });
-    else if (ev.type === "telegraphStarted" && ev.detail) {
-      const info = intentInfo(ev.detail as Intent, b, ev.actor - 1);
-      out.push({ glyph: "⚠", text: `${nameOf(b, ev.actor)} prepara ${info.name} (${info.cancelLabel.toLowerCase()})`, prio: 3 });
-    } else if (ev.type === "progressChanged" && ev.value)
+    else if (ev.type === "progressChanged" && ev.value)
       group(ev.value < 0 ? "pl" : "pa", ev.value < 0 ? "⏳" : "»", 3, ev.value < 0 ? "Pierden ritmo (su turno se retrasa)" : "Adelantan su próximo turno", nameOf(b, ev.actor));
     else if (ev.type === "bossPhaseChanged" && ev.detail)
       out.push({ glyph: "☗", text: `${nameOf(b, ev.actor)}: ${ev.detail === "roto" ? "armadura rota (Roto)" : ev.detail === "cabeza" ? "le crece una cabeza" : ev.detail === "armadura" ? "armadura recompuesta" : `fase ${ev.detail}`}`, prio: 0 });
@@ -237,6 +209,36 @@ function usePreload(urls: string[]) {
   }, [key]);
 }
 
+// Keep the fighters' feet on the floor of the scene: the stage sets --feet (px above its bottom) from the
+// scene geometry (see groundLine.ts). `bleed` scenes fill the viewport; otherwise the stage owns its scene.
+function useFeetLine(ref: RefObject<HTMLDivElement | null>, scene: string | null, bleed: boolean) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const apply = () => {
+      const r = el.getBoundingClientRect();
+      if (!scene) return el.style.setProperty("--feet", `${Math.round(r.height * 0.15)}px`);
+      const narrow = window.matchMedia("(max-width: 767px)").matches;
+      const art = isPixel() ? undefined : paintedBackground(scene, narrow);
+      const aspect = art ? art.width / art.height : 16 / 9;
+      const root = document.documentElement;
+      // On phones the stage paints its own scene (the page scene would sit behind the action panel).
+      const full = bleed && !narrow;
+      const box = full ? { w: root.clientWidth, h: root.clientHeight } : { w: r.width, h: r.height };
+      const gap = full ? Math.max(0, root.clientHeight - r.bottom) : 0;
+      el.style.setProperty("--feet", `${r.height > 0 ? feetLift(box, aspect, gap, r.height) : FEET_PAD}px`);
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    window.addEventListener("resize", apply);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", apply);
+    };
+  }, [ref, scene, bleed]);
+}
+
 type Props = {
   b: Battle;
   playerExtra: string;
@@ -252,7 +254,7 @@ type Props = {
   enemyStatusFamily?: (i: number, c: Combatant) => StatusAnchorFamily; // anchor exception for wide / flying sprites
   enemy: number; // highlighted target (index in b.enemies)
   onTarget?: (i: number) => void;
-  bleed?: boolean; // the scenery is drawn full-screen by the page: no border, no own background
+  bleed?: boolean; // md+: the scenery is drawn full-screen by the page (no border, no own background); phones keep their own
   tall?: boolean; // no definite parent height (room page): give the stage its own height
 };
 
@@ -280,6 +282,8 @@ export function BattleArena({
   const first = b.enemies[Math.min(enemy, n - 1)];
   const big = bigMomentFx(b);
   const { fx, paused } = useBattleFx(b, boss);
+  const stageRef = useRef<HTMLDivElement>(null);
+  useFeetLine(stageRef, world === undefined ? null : combatScene(world, boss ?? false, rank), !!bleed);
   const hc = b.player.char;
   const cls = CLASS_ART[hc.classId];
   const [heroX, heroY, heroWidth, heroHeight] = paintedHeroes.idle_bounds[cls as keyof typeof paintedHeroes.idle_bounds];
@@ -301,7 +305,8 @@ export function BattleArena({
   );
   return (
     <div
-      className={`stage relative ${tall ? "h-[clamp(20rem,50vh,34rem)] flex-none" : "min-h-[clamp(17rem,36vh,30rem)] flex-1 max-md:flex-none"} max-md:h-[22.5rem] overflow-hidden ${bleed ? "" : "border-4 border-[var(--edge)]"} ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
+      ref={stageRef}
+      className={`stage relative ${tall ? "h-[clamp(20rem,50vh,34rem)] flex-none" : "min-h-[clamp(17rem,36vh,30rem)] flex-1 max-md:flex-none"} max-md:h-[22.5rem] overflow-hidden ${bleed ? "max-md:border-4 max-md:border-[var(--edge)]" : "border-4 border-[var(--edge)]"} ${world === undefined ? "bg-gradient-to-b from-[#3a2f3d] to-[#6b4a3a]" : ""} ${big?.className ?? ""}`}
       style={{ ...(!isPixel() ? heroEnvelope : {}), ...big?.style }}
       data-hitstop={paused}
     >
@@ -326,10 +331,11 @@ export function BattleArena({
       <StepCallouts b={b} />
       {world === undefined ? (
         <div className="absolute inset-x-0 bottom-0 h-[30%] border-t-4 border-[var(--edge)] bg-[#2b2420]" />
-      ) : bleed ? null : (
-        <ArenaBackground world={world} boss={boss} rank={rank} />
+      ) : (
+        <ArenaBackground world={world} boss={boss} rank={rank} className={bleed ? "md:hidden" : ""} />
       )}
       <div className="stage-hero absolute left-[2%]" style={isPixel() ? undefined : heroEnvelope}>
+        <span aria-hidden="true" className="stage-shadow" />
         <FxLayer t={fx?.player} k={fx?.key ?? 0} />
         <div
           key={`p${b.log.length}`}
@@ -367,7 +373,6 @@ export function BattleArena({
         {b.enemies.map((c, i) => {
           const dead = c.hp <= 0;
           const selected = i === enemy && !dead;
-          const intents = dead ? [] : enemyIntents(b, i);
           return (
             <div
               key={i}
@@ -416,19 +421,13 @@ export function BattleArena({
                   extra={dead ? "Derrotado" : enemyExtra(i, c)}
                   compact={multi}
                   className=""
-                  footer={
-                    <div className="mt-1 space-y-1">
-                      {intents.map((it, k) => (
-                        <IntentCard key={`${it}-${k}`} b={b} enemy={c} intent={it} multi={multi} />
-                      ))}
-                    </div>
-                  }
                 >
                   {enemyChips?.(i, c)}
                 </HudCard>
               </div>
               {/* Same slot as the art below, but not re-keyed per step: the envelope keeps its state across steps. */}
               <div className="stage-foe-art pointer-events-none absolute bottom-0 left-1/2 z-[5] -translate-x-1/2">
+                <span aria-hidden="true" className="stage-shadow stage-shadow-foe" />
                 <ElementalStatusOverlay
                   c={c}
                   family={enemyStatusFamily?.(i, c) ?? (boss ? "boss" : "foe")}

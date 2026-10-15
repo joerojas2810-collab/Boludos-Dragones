@@ -365,14 +365,14 @@ export function ProgressMode() {
     return (
       <main className="relative isolate flex flex-col gap-3 p-3 pt-6 text-base md:h-screen md:overflow-hidden">
         <Notice />
-        <div className="fixed inset-0 -z-10">
+        <div className="fixed inset-0 -z-10 max-md:hidden">
           <ArenaBackground
             world={theme.world}
             boss={role === "final"}
             rank={a.difficulty}
           />
         </div>
-        <div className="mx-auto w-full max-w-[min(100rem,calc((100vh-9rem)*1.78))] md:min-w-[48rem]">
+        <div className="mx-auto w-full max-w-[120rem] md:min-w-[48rem]">
           <div className="hud-float flex flex-wrap items-center gap-x-5 gap-y-1.5 px-3 py-2 text-base">
             <b className="text-yellow-300">
               {theme.name} · Nivel {a.level + 1}
@@ -406,7 +406,7 @@ export function ProgressMode() {
             </span>
           </div>
         </div>
-        <div className="mx-auto flex w-full max-w-[min(100rem,calc((100vh-9rem)*1.78))] flex-col gap-3 md:min-h-0 md:min-w-[48rem] md:flex-1">
+        <div className="mx-auto flex w-full max-w-[120rem] flex-col gap-3 md:min-h-0 md:min-w-[48rem] md:flex-1">
           <div className="flex min-w-0 flex-1 flex-col gap-3 md:min-h-0">
             <div className="flex min-w-0 flex-1 flex-col md:min-h-0">
               <BattleArena

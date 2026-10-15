@@ -152,6 +152,8 @@ export interface FloorOpts {
   route?: RouteId; // named boss route when role === 'final'
   worldFloor?: number; // picks the scenery/family world instead of `floor`
   mods?: EnemyMod[]; // replaces the depth-based modifiers
+  size?: number; // forces the group size (1..3)
+  leadElement?: Element; // forces the element of the lead enemy
 }
 
 /** The named boss of a boss room: by room rank in rooms, cycling through the nine in the tower. */
@@ -177,7 +179,7 @@ export function floorFight(
 ): FightSpec {
   const kind = opts.kind ?? kindOfFloor(floor);
   const depth = depthOf(floor, opts.rank);
-  const size = groupSize(seed, floor, kind, depth);
+  const size = opts.size ? Math.max(1, Math.min(3, Math.floor(opts.size))) : groupSize(seed, floor, kind, depth);
   const room = opts.role ? opts.role === "final" : kind === "boss" && isBossRoom(floor);
   const role: FightRole = opts.role ?? (room ? "final" : kind === "boss" ? "elite" : "normal");
   const world = worldOf(opts.worldFloor ?? floor);
@@ -206,6 +208,7 @@ export function floorFight(
       family = theme.families[0];
       element = theme.bossElement;
     } else if (lead) name = FAMILY_BOSS_LABEL[family];
+    if (lead && opts.leadElement) element = opts.leadElement;
     let power: number;
     let hpPower: number;
     if (kind === "boss") {

@@ -17,8 +17,8 @@ import {
 import { RESOURCE_MAX, RESOURCE_NAME, SKILLS, type SkillDef, type SkillId } from "@/lib/game/skills";
 import {
   attackTip,
-  autoTip,
   consumeHint,
+  autoTip,
   defendTip,
   intentInfo,
   intentTip,
@@ -66,40 +66,26 @@ function PenetrationNote({ b }: { b: Battle }) {
   const pen = preparedPenetration(b.player);
   if (!pen) return null;
   return (
-    <span className="block text-[11px] font-semibold leading-tight text-yellow-200" title={pen.condition}>
+    <span className="inline-block text-[11px] font-semibold leading-tight text-yellow-200" title={pen.condition}>
       <span aria-hidden="true">◆ </span>{pen.text}
     </span>
   );
 }
 
-// Next 6 turns. Only the first is certain; the rest are estimates (dashed, with "≈").
-function TurnQueue({ b, desktop = false }: { b: Battle; desktop?: boolean }) {
+// Next 6 turns as one non-wrapping strip of small chips. Only the first is certain (solid border);
+// the rest are estimates (dashed, with "≈").
+function TurnQueue({ b }: { b: Battle }) {
   const turns = projectTurns(b, 6);
   const seen = new Set<number>();
   // Turn order moved by an effect of the last step (consume, delay, advance): that slot pulses and carries a mark.
   const shifted = new Map<number, number>();
   for (const ev of b.cev) if (ev.type === "progressChanged" && ev.value) shifted.set(ev.actor, ev.value);
   return (
-    <section
-      aria-label="Orden de turnos"
-      className={desktop ? "min-w-0" : "rounded-md border border-[#b9855a]/30 bg-black/25 px-2 py-1.5"}
-    >
-      {!desktop && (
-        <div className="mb-1 flex items-center justify-between gap-2 text-[11px] leading-tight text-[#d9d2ca]">
-          <Tooltip tip={queueTip(b)}>
-            <span className="font-semibold uppercase tracking-wide text-[#f1d5a4]">Orden de turnos</span>
-          </Tooltip>
-          <span className="shrink-0">Seguro · ≈ estimado</span>
-        </div>
-      )}
-      <ol
-        aria-label="Próximos 6 turnos"
-        className={desktop ? "cmd-order-list" : "flex min-w-0 gap-1.5 overflow-x-auto pb-1"}
-      >
+    <section aria-label="Orden de turnos" className="min-w-0">
+      <ol aria-label="Próximos 6 turnos" className="cmd-order-list">
         {turns.map((t, i) => {
           const first = !seen.has(t.id);
           seen.add(t.id);
-          const base = `${desktop ? "cmd-order-slot" : "flex min-h-10 min-w-[4.5rem] shrink-0 flex-col justify-center rounded border px-1.5 py-1"} text-center`;
           const certain = t.certain ? "border-solid" : "border-dashed";
           const moved = first ? shifted.get(t.id) : undefined;
           const pulse = moved ? " ring-2 ring-amber-300 motion-safe:animate-[pulse_0.6s_ease-in-out_3]" : "";
@@ -109,29 +95,29 @@ function TurnQueue({ b, desktop = false }: { b: Battle; desktop?: boolean }) {
               <li
                 key={`q${i}`}
                 aria-label={`${t.certain ? "Ahora" : "Estimado"}: tu turno`}
-                className={`${base} ${certain} ${t.certain ? "border-yellow-300 bg-yellow-300/15 text-yellow-100" : "border-emerald-700/70 bg-emerald-950/50 text-emerald-100"}${pulse}`}
+                title={t.certain ? "Seguro: tu turno" : "Estimado: tu turno"}
+                className={`cmd-order-slot ${certain} ${t.certain ? "border-yellow-300 bg-yellow-300/15 text-yellow-100" : "border-emerald-700/70 bg-emerald-950/50 text-emerald-100"}${pulse}`}
               >
-                <span className="text-xs font-bold leading-tight">{mark}TÚ</span>
-                <span className="text-[10px] leading-tight">{t.certain ? "Ahora" : "≈"}</span>
+                <span className="text-xs font-bold leading-tight">{mark}TÚ{t.certain ? "" : " ≈"}</span>
               </li>
             );
           const idx = t.id - 1;
           const e = b.enemies[idx];
-          const known = first && !!e.intent;
-          const info = known ? intentInfo(e.intent!, b, idx) : null;
+          const info = first && e.intent ? intentInfo(e.intent, b, idx) : null;
           const label = `${t.certain ? "Seguro" : "Estimado"}: ${e.char.name}${info ? `, ${info.name}, ${info.cancelLabel}` : ""}`;
           return (
             <li
               key={`q${i}`}
               aria-label={label}
-              className={`${base} ${certain} ${info?.strong ? "border-rose-400/80 bg-rose-950/70 text-rose-100" : "border-red-900/70 bg-red-950/55 text-red-100"}${pulse}`}
+              title={label}
+              className={`cmd-order-slot ${certain} ${info?.strong ? "border-rose-400/80 bg-rose-950/70 text-rose-100" : "border-red-900/70 bg-red-950/55 text-red-100"}${pulse}`}
             >
-              <span className="block min-w-0">
-                <span className="block text-xs font-bold leading-tight">{mark}R{idx + 1}{t.certain ? "" : " ≈"}</span>
-                <span className="block max-w-24 truncate text-[10px] leading-tight" title={label}>
-                  {info ? <><span aria-hidden="true">{info.glyph} </span>{info.name}</> : "…"}
+              <span className="text-xs font-bold leading-tight">{mark}R{idx + 1}{t.certain ? "" : " ≈"}</span>
+              {info && (
+                <span className="max-w-24 truncate text-[11px] leading-tight">
+                  <span aria-hidden="true">{info.glyph} </span>{info.name}
                 </span>
-              </span>
+              )}
             </li>
           );
         })}
@@ -140,32 +126,35 @@ function TurnQueue({ b, desktop = false }: { b: Battle; desktop?: boolean }) {
   );
 }
 
-// Every living enemy's committed intent with effect, counterplay and whether it can be interrupted.
+// The one full explanation of what the rivals announced: effect, how to answer it and whether it can be
+// interrupted. The queue only carries the minimal marker; the enemy cards and the arena do not repeat it.
 function IntentStrip({ b }: { b: Battle }) {
   const alive = livingEnemies(b).filter((i) => b.enemies[i].intent);
   if (!alive.length) return null;
   return (
-    <ul aria-label="Intenciones de los rivales" className="grid min-w-0 gap-1 sm:grid-cols-2 lg:grid-cols-3">
+    <ul
+      aria-label="Intenciones de los rivales"
+      aria-live="polite"
+      className={`grid min-w-0 gap-1 ${alive.length > 1 ? "lg:grid-cols-2" : ""} ${alive.length > 2 ? "xl:grid-cols-3" : ""}`}
+    >
       {alive.map((i) => {
         const e = b.enemies[i];
         const info = intentInfo(e.intent!, b, i);
         return (
           <li
             key={i}
-            className={`min-w-0 rounded border px-1.5 py-1 text-[11px] leading-snug ${info.strong ? "border-rose-400/70 bg-rose-950/60 text-rose-50" : "border-red-900/60 bg-black/35 text-[#f2e6d7]"}`}
+            className={`min-w-0 rounded border px-2 py-0.5 text-xs leading-snug ${info.strong ? "border-rose-400/70 bg-rose-950/60 text-rose-50" : "border-red-900/60 bg-black/35 text-[#f2e6d7]"}`}
           >
             <Tooltip tip={intentTip(e.intent!, b, i)} className="block min-w-0">
-              <span className="flex min-w-0 items-baseline gap-1">
-                <span aria-hidden="true" className="font-bold">{info.glyph}</span>
-                <span className="min-w-0 truncate font-bold">
-                  {b.enemies.length > 1 ? `R${i + 1} ` : ""}{info.name}
-                </span>
-                <span className={`ml-auto shrink-0 rounded px-1 text-[10px] font-semibold uppercase tracking-wide ${info.cancel ? "bg-amber-300/20 text-amber-200" : "bg-white/10 text-[#d9d2ca]"}`}>
+              <span className="break-words [overflow-wrap:anywhere]">
+                <span aria-hidden="true" className="font-bold">{info.glyph} </span>
+                <b>{b.enemies.length > 1 ? `R${i + 1} ` : ""}{info.name}</b>{" "}
+                <span className={`rounded px-1 text-[10px] font-semibold uppercase tracking-wide ${info.cancel ? "bg-amber-300/20 text-amber-200" : "bg-white/10 text-[#d9d2ca]"}`}>
                   {info.cancelLabel}
-                </span>
+                </span>{" "}
+                {info.effect}.{" "}
+                <span className="text-[#f1d5a4]">{info.counter}</span>
               </span>
-              <span className="block break-words [overflow-wrap:anywhere]">{info.effect}</span>
-              <span className="block break-words text-[#f1d5a4] [overflow-wrap:anywhere]">{info.counter}</span>
             </Tooltip>
           </li>
         );
@@ -174,6 +163,7 @@ function IntentStrip({ b }: { b: Battle }) {
   );
 }
 
+// One command chip: skill plate, name, damage / effect and cost, in about half the height of the old cards.
 function ActionButton({
   tip,
   disabled,
@@ -182,9 +172,6 @@ function ActionButton({
   sub,
   hot,
   icon,
-  left,
-  wide,
-  chip,
   meta,
   disabledReason,
 }: {
@@ -195,65 +182,38 @@ function ActionButton({
   sub: string;
   hot?: boolean; // highlighted (perfect guard available)
   icon?: string; // painted skill icon name (iconFor)
-  left?: boolean; // left-aligned content (side column)
-  wide?: boolean; // spans the whole row of the actions grid
-  chip?: boolean; // slim command-bar chip (desktop bar)
   meta?: string;
   disabledReason?: string;
 }) {
-  const compactReason = disabledReason?.startsWith("En enfriamiento")
+  const compactReason = (disabledReason?.startsWith("En enfriamiento")
     ? disabledReason.replace("En enfriamiento", "En espera")
-    : disabledReason;
-  if (chip)
-    return (
-      <Tooltip tip={tip} className="block min-w-0">
-        <button className="cmd-chip !h-auto min-h-[5.25rem] w-full flex-col gap-0.5 px-1.5 py-1 text-center disabled:!opacity-80" data-hot={hot ? "" : undefined} disabled={disabled} onClick={onClick}>
-          <span className="flex min-w-0 items-center justify-center gap-1">
-            {icon && <Icon name={icon} className="h-6 shrink-0" />}
-            <span className="min-w-0 break-words text-[13px] font-bold leading-tight">{title}</span>
-          </span>
-          <span className={`block max-w-full break-words text-xs leading-tight ${disabled ? "text-[#fff1d0]" : "text-[#d9d2ca]"}`} title={sub}>{sub}</span>
-          {meta && <span className="block max-w-full border-t border-white/15 pt-0.5 text-[11px] leading-tight text-[#d9d2ca]" title={meta}>{meta}</span>}
-          {compactReason && <span className="block max-w-full break-words text-[10px] leading-tight text-amber-200" title={disabledReason}>{compactReason}</span>}
-        </button>
-      </Tooltip>
-    );
+    : disabledReason)?.replace(/\.$/, "");
   return (
-    <Tooltip
-      tip={tip}
-      className={wide ? "col-span-full block min-w-0" : "block min-w-0"}
-      placement={left ? "side" : "auto"}
-    >
+    <Tooltip tip={tip} className="block min-w-0">
       <button
-        className={`btn h-full w-full min-w-0 motion-safe:transition-transform motion-safe:active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none max-md:![border-width:6px_10px] max-md:![border-image-width:6px_10px] max-md:!px-1 max-md:!py-1 ${left ? "min-h-11 !px-2 !py-1" : "min-h-14 max-md:min-h-[5.25rem] md:[@media(max-height:700px)]:min-h-12 md:[@media(max-height:620px)]:min-h-10 md:[@media(max-height:620px)]:!py-1"} ${hot ? "!border-yellow-300" : ""}`}
+        className="cmd-chip w-full disabled:!opacity-80"
+        data-hot={hot ? "" : undefined}
         disabled={disabled}
         onClick={onClick}
         aria-label={`${title}. ${sub}${meta ? `. ${meta}` : ""}${disabledReason ? `. ${disabledReason}` : ""}`}
       >
-        <div
-          className={`flex min-w-0 items-center gap-2 max-md:flex-col max-md:justify-center max-md:gap-0.5 max-md:text-center ${left ? "justify-start text-left" : "justify-center"}`}
-        >
-          {icon && (
-            <Icon
-              name={icon}
-              className={`shrink-0 max-md:h-6 ${left ? "h-6" : "h-8"}`}
-            />
-          )}
-          <div className="min-w-0">
-            <div
-              className={`break-words font-semibold leading-tight [overflow-wrap:anywhere] max-md:text-[13px] ${left ? "text-sm" : "text-base"} ${disabled ? "max-md:!text-[#fff3d6]" : ""}`}
-            >
-              {title}
-            </div>
-            <div
-              className={`whitespace-normal break-words leading-snug [overflow-wrap:anywhere] max-md:text-[11px] max-md:leading-tight ${disabled ? "!text-[#fff3d6]" : "!text-[#24382f]"} ${left ? "text-xs" : "text-sm"}`}
-            >
-              {sub}
-            </div>
-            {meta && <div className={`whitespace-normal break-words !text-[11px] leading-tight [overflow-wrap:anywhere] ${disabled ? "!text-[#fff3d6]" : "!text-[#24382f]"}`}>{meta}</div>}
-            {disabledReason && <div className="whitespace-normal break-words text-[11px] leading-tight text-amber-100 [overflow-wrap:anywhere]" title={disabledReason}>{disabledReason}</div>}
-          </div>
-        </div>
+        {icon && (
+          <span aria-hidden="true" className="cmd-chip-icon">
+            <Icon name={icon} className="h-8 w-8" />
+          </span>
+        )}
+        <span className="min-w-0 flex-1 text-left">
+          <span className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:justify-between sm:gap-2">
+            <span className="shrink-0 text-sm font-bold leading-5 sm:text-[15px]">{title}</span>
+            <span className={`min-w-0 text-[13px] font-semibold leading-4 sm:truncate sm:leading-5 ${disabled ? "text-[#fff1d0]" : "text-[#ffe7b0]"}`} title={sub}>{sub}</span>
+          </span>
+          <span
+            className={`block text-xs leading-4 max-sm:line-clamp-2 sm:truncate ${compactReason ? "text-amber-200" : "text-[#cfc7bb]"}`}
+            title={[meta, disabledReason].filter(Boolean).join(" · ")}
+          >
+            {compactReason ? (compactReason.startsWith("Necesita") ? compactReason : `${compactReason} · ${meta}`) : meta}
+          </span>
+        </span>
       </button>
     </Tooltip>
   );
@@ -276,16 +236,14 @@ export function ActionPanel({
   const p = b.player;
   const resName = RESOURCE_NAME[p.char.classId];
 
-  const basicAction = (chip = false) => (
+  const basicAction = () => (
     <ActionButton
-      chip={chip}
-      left={float}
       tip={attackTip(p, "attack1", foe)}
       onClick={() => onAct("attack1", target)}
       icon={basicIcon(p.char.classId, p.char.weapon?.type)}
       title="Básico"
       sub={`~${previewDamage(p, foe, "attack1")} daño`}
-      meta={`Sin costo · +1 ${resName}${alive.length > 1 && !chip ? ` · Objetivo: ${foe.char.name}` : ""}`}
+      meta={`Sin costo · +1 ${resName}`}
     />
   );
 
@@ -300,41 +258,35 @@ export function ActionPanel({
       : `~${dmg} daño${breaks ? " · ¡Quiebre!" : ""}`;
   };
 
-  const skillAction = (id: SkillId, chip = false) => {
+  const skillAction = (id: SkillId) => {
     const def = SKILLS[id];
     const reason = skillBlockReason(p, id) ?? undefined;
     const cd = p.cds?.[id] ?? 0;
-    const hint = consumeHint(p, foe, def);
-    const effects = def.power > 0 ? skillEffects(def).filter((e) => !e.startsWith("Consume")) : [];
-    const extra = chip ? "" : [hint, effects.join(" · ")].filter(Boolean).join(" · ");
+    const hint = consumeHint(p, foe, def); // what consuming would do now; cost stays first, the tip has the rest
     return (
       <ActionButton
         key={id}
-        chip={chip}
-        left={float}
         tip={attackTip(p, id, foe)}
         disabled={!!reason}
         onClick={() => onAct(id, target)}
         icon={SKILL_FX[id].icon}
         title={def.name}
         sub={preview(def)}
-        meta={`${skillMeta(def)}${cd ? ` · Quedan ${cd}` : ""}${extra ? ` · ${extra}` : ""}`}
+        meta={`${skillMeta(def)}${cd ? ` · Quedan ${cd}` : ""}${hint ? ` · ${hint}` : ""}`}
         disabledReason={reason}
       />
     );
   };
 
   const [slotA, slotB] = equippedSkills(p);
-  const defendAction = (chip = false) => (
+  const defendAction = () => (
     <ActionButton
-      chip={chip}
-      left={float}
       tip={defendTip(b)}
       onClick={() => onAct("defend", target)}
       icon={SKILL_FX.defend.icon}
       title="Defender"
-      sub={perfect ? "¡Guardia perfecta!" : "Mitad de daño hasta tu turno"}
-      meta={perfect ? `−75 % al golpe fuerte · +1 ${resName}` : "Sin costo"}
+      sub={perfect ? "¡Guardia perfecta!" : "−50 % daño"}
+      meta={perfect ? `−75 % al golpe fuerte · +1 ${resName}` : "Hasta tu turno · Sin costo"}
       hot={perfect}
     />
   );
@@ -367,7 +319,7 @@ export function ActionPanel({
       )}
       {!over && turnWarning && <div role="status" className="mb-1 text-xs font-semibold text-amber-200">⚠ {turnWarning}</div>}
       {!over && <TurnQueue b={b} />}
-      {!over && <div className="mt-1.5"><IntentStrip b={b} /></div>}
+      {!over && <div className="mt-1"><IntentStrip b={b} /></div>}
       {over && (
         <div className="mb-2 text-center text-base font-semibold text-yellow-300">
           Fin de la pelea
@@ -375,22 +327,18 @@ export function ActionPanel({
       )}
       {!over && (
         <div
-          className={`mt-1.5 grid grid-cols-2 gap-1.5 sm:gap-2 ${side ? (float ? "md:grid-cols-2" : "md:grid-cols-1") : "md:grid-cols-4"}`}
+          className={`mt-1.5 grid grid-cols-2 gap-1.5 sm:gap-2 ${side ? (float ? "md:grid-cols-2" : "md:grid-cols-1") : "lg:grid-cols-4"}`}
         >
           {basicAction()}
           {skillAction(slotA)}
           {skillAction(slotB)}
           {defendAction()}
           {auto && (
-            <ActionButton
-              left={float}
-              tip={autoTip(auto.reason)}
-              disabled={!!auto.reason}
-              wide
-              onClick={auto.onAuto}
-              title="Resolver rápido"
-              sub={auto.reason ?? "Juega la pelea por ti"}
-            />
+            <Tooltip tip={autoTip(auto.reason)} className="col-span-full block">
+              <button className="cmd-ghost min-h-11 w-full !whitespace-normal" disabled={!!auto.reason} onClick={auto.onAuto}>
+                Resolver rápido{auto.reason ? ` · ${auto.reason}` : " · juega la pelea por ti"}
+              </button>
+            </Tooltip>
           )}
         </div>
       )}
@@ -421,17 +369,17 @@ export function ActionPanel({
         ) : (
           <>
             <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 lg:flex-nowrap">
-              <div className="w-44 shrink-0 leading-tight">
-                <div className="text-sm font-semibold text-[#7ce0a3]">Tu turno</div>
+              <div className="flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-0 leading-tight">
+                <span className="text-sm font-semibold text-[#7ce0a3]">Tu turno</span>
                 <Tooltip tip={queueTip(b)}>
-                  <div className="text-xs text-[#d9d2ca]">Turno {b.turn + 1}</div>
+                  <span className="text-xs text-[#d9d2ca]">Turno {b.turn + 1}</span>
                 </Tooltip>
                 <ResourceMeter b={b} />
                 <PenetrationNote b={b} />
-                {alive.length > 1 && <div className="text-[11px] text-yellow-300">Objetivo: {foe.char.name}</div>}
+                {alive.length > 1 && <span className="text-[11px] text-yellow-300">Objetivo: {foe.char.name}</span>}
               </div>
               <div className="order-last min-w-0 basis-full lg:order-none lg:basis-0 lg:flex-1">
-                <TurnQueue b={b} desktop />
+                <TurnQueue b={b} />
               </div>
               {auto && (
                 <Tooltip tip={autoTip(auto.reason)} className="ml-auto lg:ml-0">
@@ -441,11 +389,11 @@ export function ActionPanel({
             </div>
             {turnWarning && <div role="status" className="text-xs font-semibold text-amber-200">⚠ {turnWarning}</div>}
             <IntentStrip b={b} />
-            <div className="grid min-w-0 grid-cols-4 gap-1.5">
-              {basicAction(true)}
-              {skillAction(slotA, true)}
-              {skillAction(slotB, true)}
-              {defendAction(true)}
+            <div className="grid min-w-0 grid-cols-2 gap-1.5 lg:grid-cols-4">
+              {basicAction()}
+              {skillAction(slotA)}
+              {skillAction(slotB)}
+              {defendAction()}
             </div>
           </>
         )}

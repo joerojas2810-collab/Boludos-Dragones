@@ -6,6 +6,7 @@
 import { type Character } from "./characters";
 import { step, startBattle, actionError, type Action, type Battle, type EnemyMod } from "./combat";
 import { autoResolve } from "./auto";
+import { ELEMENTS } from "./elements";
 import { floorFight } from "./floorFights";
 import { DUNGEON_THEMES, ROUTE_IDS, type RouteId } from "./levels";
 import { loadoutError, defaultLoadout, type Loadout } from "./skills";
@@ -213,14 +214,36 @@ export function expeditionFight(
     return { ...spec, relicReward: true, kind: "boss", route };
   }
   const elite = info.type === "elite";
-  const spec = floorFight(optSeed, ordinal, {
-    tower: true,
-    kind: elite ? "boss" : option === 1 ? "hard" : "easy",
-    role: elite ? "elite" : "normal",
-    worldFloor: (sector - 1) * 10 + 1,
-    mods,
-  });
+  const common = { tower: true as const, worldFloor: (sector - 1) * 10 + 1, mods };
+  let spec: FightSpec;
+  if (elite) {
+    // Variant A: a lone elite. Variant B: an elite with an escort and a different element.
+    const solo = floorFight(hashSeed(seed, sector, position, 100), ordinal, {
+      ...common, kind: "boss", role: "elite", size: 1,
+    });
+    spec =
+      option === 0
+        ? solo
+        : floorFight(optSeed, ordinal, {
+            ...common, kind: "boss", role: "elite", size: 2,
+            leadElement: ELEMENTS[(ELEMENTS.indexOf(solo.enemies[0].element) + 2) % ELEMENTS.length],
+          });
+  } else {
+    spec = floorFight(optSeed, ordinal, { ...common, kind: option === 1 ? "hard" : "easy", role: "normal" });
+  }
   return { ...spec, relicReward: info.relicReward, kind: elite ? "elite" : "combat", route: null };
+}
+
+/** Total enemy PV of a fight spec: the measure used to call one route riskier than the other. */
+const threatOf = (spec: FightSpec): number => spec.enemies.reduce((n, e) => n + e.stats.hp, 0);
+
+/** The riskier of the two routes of a combat/elite node pays 50 % more fragments. */
+export function isRiskyOption(seed: number, sector: number, position: number, option: number): boolean {
+  const type = nodeInfo(position).type;
+  if (type !== "combat" && type !== "elite") return false;
+  const mine = threatOf(expeditionFight(seed, sector, position, option));
+  const other = threatOf(expeditionFight(seed, sector, position, 1 - option));
+  return mine > other || (mine === other && option === 1);
 }
 
 export interface RouteOption {
@@ -232,6 +255,8 @@ export interface RouteOption {
   fragments?: number;
   relicReward?: boolean;
   risk?: "normal" | "alto";
+  tag?: string; // what makes this route different (e.g. "En solitario", "Con escolta")
+  totalHp?: number;
 }
 
 /** The routes available at the current node (derived, never stored). */
@@ -240,11 +265,13 @@ export function routeOptions(s: ExpState): RouteOption[] {
   const fight = (kind: "combat" | "elite" | "boss", i: number): RouteOption => {
     const spec = expeditionFight(s.seed, s.sector, s.node, i);
     const base = kind === "boss" ? FRAGMENTS.boss : kind === "elite" ? FRAGMENTS.elite : FRAGMENTS.normal;
-    const hard = kind === "combat" && i === 1;
+    const hard = isRiskyOption(s.seed, s.sector, s.node, i);
     return {
       id: `r${i}`,
       kind,
-      label: kind === "boss" ? "Jefe del sector" : kind === "elite" ? (i === 0 ? "Élite · Variante A" : "Élite · Variante B") : hard ? "Camino exigente" : "Camino estándar",
+      label: kind === "boss" ? "Jefe del sector" : kind === "elite" ? (spec.enemies.length === 1 ? "Élite en solitario" : "Élite con escolta") : hard ? "Camino exigente" : "Camino estándar",
+      tag: kind === "boss" ? undefined : `${spec.enemies.length} ${spec.enemies.length === 1 ? "rival" : "rivales"}`,
+      totalHp: threatOf(spec),
       enemies: spec.enemies.map((e) => ({ name: e.name, element: e.element, hp: e.stats.hp })),
       mods: spec.mods,
       fragments: Math.round(base * (hard ? HARD_ROUTE_FRAGMENT_MULT : 1)),
@@ -428,7 +455,7 @@ function beginFight(s: ExpState, option: number): ExpState {
     phoenixSpent: s.phoenixSpent,
   });
   const base = spec.kind === "boss" ? FRAGMENTS.boss : spec.kind === "elite" ? FRAGMENTS.elite : FRAGMENTS.normal;
-  const hard = spec.kind === "combat" && option === 1;
+  const hard = isRiskyOption(s.seed, s.sector, s.node, option);
   const started: ExpState = {
     ...s,
     phase: "combat",

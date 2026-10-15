@@ -56,17 +56,17 @@ export function CombatView({
   return (
     <main className="relative isolate flex flex-col gap-3 p-3 pt-6 text-base md:h-screen md:overflow-hidden">
       <Notice />
-      <div className="fixed inset-0 -z-10">
+      <div className="fixed inset-0 -z-10 max-md:hidden">
         <ArenaBackground world={world} boss={boss} />
       </div>
-      <div className="mx-auto w-full max-w-[min(100rem,calc((100vh-9rem)*1.78))] md:min-w-[48rem]">
+      <div className="mx-auto w-full max-w-[120rem] md:min-w-[48rem]">
         {hud(
           <span className="max-md:hidden">
             <LogPanel compact lines={battle.log} />
           </span>,
         )}
       </div>
-      <div className="mx-auto flex w-full max-w-[min(100rem,calc((100vh-9rem)*1.78))] flex-col gap-3 md:min-h-0 md:min-w-[48rem] md:flex-1">
+      <div className="mx-auto flex w-full max-w-[120rem] flex-col gap-3 md:min-h-0 md:min-w-[48rem] md:flex-1">
         <div className="flex min-w-0 flex-1 flex-col gap-3 md:min-h-0">
           <div className="flex min-w-0 flex-1 flex-col md:min-h-0">
             <BattleArena

@@ -62,6 +62,12 @@ function newGame(rng: Rng): Game {
 // `?foes=1`: real enemy sprites (limo, diablillo, arpia = flying, golem = wide, espectro) instead of hero clones.
 const FOE_FAMILIES: EnemyFamily[] = ["limo", "arpia", "golem", "diablillo", "espectro"];
 
+// `?mundo=0..4`: paint that world's scene (grounding checks) instead of the plain bench floor.
+function benchWorld(): number | undefined {
+  const w = new URLSearchParams(location.search).get("mundo");
+  return w !== null && /^[0-4]$/.test(w) ? Number(w) : isPixel() ? 0 : undefined;
+}
+
 export default function Prueba() {
   const [game, setGame] = useState<Game | null>(null);
   const targeting = useTargeting(game?.b ?? null);
@@ -90,7 +96,7 @@ export default function Prueba() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <BattleArena
             b={b}
-            world={isPixel() ? 0 : undefined}
+            world={benchWorld()}
             enemyExtra={(_, c) => `Nv ${c.char.level}`}
             playerExtra={`Victorias ${game.wins}`}
             enemyStatusFamily={(i) => (FOE_FAMILIES[i % 5] === "arpia" ? "flying" : FOE_FAMILIES[i % 5] === "golem" ? "wide" : "foe")}

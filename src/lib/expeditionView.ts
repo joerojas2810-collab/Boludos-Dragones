@@ -265,4 +265,8 @@ export const compositionText = (o: Pick<RouteOption, "enemies">): string =>
   (o.enemies ?? []).map((e) => `${e.name} (${ELEMENT_LABEL[e.element]})`).join(" · ");
 
 export const riskText = (o: Pick<RouteOption, "risk" | "kind">): string =>
-  o.risk === "alto" ? "Riesgo alto: rivales más duros, más fragmentos." : o.kind === "elite" || o.kind === "boss" ? "Riesgo alto: rivales reforzados." : "Riesgo normal.";
+  o.risk === "alto"
+    ? "Riesgo alto: más PV rival en total, más fragmentos."
+    : o.kind === "boss"
+      ? "Jefe del sector."
+      : "Riesgo menor: menos PV rival en total.";
