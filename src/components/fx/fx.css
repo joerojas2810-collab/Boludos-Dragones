@@ -25,6 +25,9 @@
 .fxn-heal {
   color: #69db7c;
 }
+.fxn-self {
+  color: #ff922b;
+}
 .fxn-miss {
   color: #cfe0f0;
   font-size: 1.9rem;

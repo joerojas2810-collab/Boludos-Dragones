@@ -30,7 +30,9 @@ export const uiAsset = (name: string) =>
   `/art/${isPixel() ? "ui-px" : "ui"}/${name}.${isPixel() ? "png" : "webp"}?v=${ART_V}`;
 export const icon = (name: string) => isPixelIcon(name)
   ? `/art/icons-px/icon_${name}.png?v=${PIXEL_ICON_V}`
-  : `/art/icons/icon_${name}.webp?v=${ART_V}`;
+  : name.startsWith("part_")
+    ? `/art/equipment/icon_${name}.webp?v=${ART_V}` // weapon-family icons live with the equipment art
+    : `/art/icons/icon_${name}.webp?v=${ART_V}`;
 export const elementIconSrc = (e: Element) => icon(`element_${ELEMENT_ART[e]}`);
 export const gearIconSrc = (t: GearType, e: Element) =>
   isPixel()

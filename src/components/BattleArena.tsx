@@ -20,7 +20,7 @@ import { effectSrc } from "@/lib/art/effects";
 import { preloadImages } from "@/lib/preload";
 import { enemyIntents, type Battle, type Combatant, type Intent } from "@/lib/game/combat";
 import { intentInfo, intentTip, type Tip } from "@/lib/game/explain";
-import { heroActionFor, SKILL_FX } from "@/lib/art/skillFx";
+import { EVENT_VFX_IDS, heroActionFor, pickCallouts, SKILL_FX, skillTag, type Callout } from "@/lib/art/skillFx";
 import { isSkillId, SKILLS } from "@/lib/game/skills";
 import { STATUS_DATA, type StatusId } from "@/lib/game/statuses";
 
@@ -150,28 +150,41 @@ function nameOf(b: Battle, id: number) {
   return id === 0 ? b.player.char.name : (b.enemies[id - 1]?.char.name ?? "Rival");
 }
 
-function stepCallouts(b: Battle): { glyph: string; text: string }[] {
-  const out: { glyph: string; text: string }[] = [];
+function stepCallouts(b: Battle): Callout[] {
+  const out: Callout[] = [];
+  // Several targets of one kind collapse into a single line ("Se consume Quemadura en R1 y R2").
+  const grouped = new Map<string, { glyph: string; prio: number; head: string; names: string[]; at: number }>();
+  const group = (key: string, glyph: string, prio: number, head: string, name: string) => {
+    const g = grouped.get(key);
+    if (g) g.names.push(name);
+    else grouped.set(key, { glyph, prio, head, names: [name], at: out.length });
+  };
   for (const ev of b.cev) {
     const who = nameOf(b, ev.target ?? ev.actor);
     if (ev.type === "actionCommitted" && ev.actor === 0 && isSkillId(ev.skillId)) {
       const fx = SKILL_FX[ev.skillId];
-      out.push({ glyph: fx.glyph, text: `${SKILLS[ev.skillId].name}: ${fx.tag}` });
-    } else if (ev.type === "staggerBroken") out.push({ glyph: "◆", text: `¡Quiebre! ${who} queda Expuesto (DEF −15 %)` });
+      out.push({ glyph: fx.glyph, text: `${SKILLS[ev.skillId].name}: ${skillTag(ev.skillId)}`, prio: 2 });
+    } else if (ev.type === "staggerBroken") out.push({ glyph: "◆", text: `¡Quiebre! ${who} queda Expuesto (DEF −15 %)`, prio: 0 });
     else if (ev.type === "statusConsumed") {
       const label = ev.detail === "sobrecarga" ? "Sobrecarga" : (STATUS_DATA[ev.detail as StatusId]?.label ?? "estado");
-      out.push({ glyph: "✹", text: `Se consume ${label}${ev.value ? ` (${ev.value} de daño)` : ""}` });
-    } else if (ev.type === "guardTriggered") out.push({ glyph: "◧", text: `¡Guardia perfecta de ${nameOf(b, ev.actor)}!` });
-    else if (ev.type === "telegraphCancelled") out.push({ glyph: "✦", text: `${nameOf(b, ev.actor)}: amenaza cancelada` });
+      group(`c${label}`, "✹", 1, `Se consume ${label}`, `${who}${ev.value ? ` (${ev.value})` : ""}`);
+    } else if (ev.type === "statusRemoved") {
+      const label = STATUS_DATA[ev.detail as StatusId]?.label ?? "un estado negativo";
+      out.push({ glyph: "✧", text: `Purificado: ${who} se libra de ${label}`, prio: 1 });
+    } else if (ev.type === "selfDamaged") out.push({ glyph: "✚", text: `${who} se hiere: −${ev.value} PV`, prio: 2 });
+    else if (ev.type === "guardTriggered") out.push({ glyph: "◧", text: `¡Guardia perfecta de ${nameOf(b, ev.actor)}!`, prio: 1 });
+    else if (ev.type === "telegraphCancelled") out.push({ glyph: "✦", text: `${nameOf(b, ev.actor)}: amenaza cancelada`, prio: 0 });
     else if (ev.type === "telegraphStarted" && ev.detail) {
       const info = intentInfo(ev.detail as Intent, b, ev.actor - 1);
-      out.push({ glyph: "⚠", text: `${nameOf(b, ev.actor)} prepara ${info.name} (${info.cancelLabel.toLowerCase()})` });
+      out.push({ glyph: "⚠", text: `${nameOf(b, ev.actor)} prepara ${info.name} (${info.cancelLabel.toLowerCase()})`, prio: 3 });
     } else if (ev.type === "progressChanged" && ev.value)
-      out.push({ glyph: ev.value < 0 ? "⏳" : "»", text: ev.value < 0 ? `${nameOf(b, ev.actor)} pierde ritmo: su turno se retrasa` : `${nameOf(b, ev.actor)} adelanta su próximo turno` });
+      group(ev.value < 0 ? "pl" : "pa", ev.value < 0 ? "⏳" : "»", 3, ev.value < 0 ? "Pierden ritmo (su turno se retrasa)" : "Adelantan su próximo turno", nameOf(b, ev.actor));
     else if (ev.type === "bossPhaseChanged" && ev.detail)
-      out.push({ glyph: "☗", text: `${nameOf(b, ev.actor)}: ${ev.detail === "roto" ? "armadura rota (Roto)" : ev.detail === "cabeza" ? "le crece una cabeza" : ev.detail === "armadura" ? "armadura recompuesta" : `fase ${ev.detail}`}` });
+      out.push({ glyph: "☗", text: `${nameOf(b, ev.actor)}: ${ev.detail === "roto" ? "armadura rota (Roto)" : ev.detail === "cabeza" ? "le crece una cabeza" : ev.detail === "armadura" ? "armadura recompuesta" : `fase ${ev.detail}`}`, prio: 0 });
   }
-  return out.slice(0, 4);
+  [...grouped.values()].forEach((g, k) =>
+    out.splice(g.at + k, 0, { glyph: g.glyph, text: `${g.head}: ${g.names.join(", ")}`, prio: g.prio }));
+  return pickCallouts(out);
 }
 
 function StepCallouts({ b }: { b: Battle }) {
@@ -199,7 +212,7 @@ const FIGHT_EFFECTS = [
   "hit_fire", "hit_water", "hit_wind", "hit_earth", "hit_lightning",
   "critical_label", "damage_normal", "damage_critical", "heal_number", "dodge",
   "element_advantage", "element_disadvantage", "perfect_guard", "regeneration", "shield",
-  "defeat", "victory",
+  "defeat", "victory", ...EVENT_VFX_IDS,
 ];
 
 // Warm the browser cache (and decode) every sheet of this fight so an action never
@@ -207,7 +220,7 @@ const FIGHT_EFFECTS = [
 function usePreload(urls: string[]) {
   const key = urls.join("|");
   useEffect(() => {
-    preloadImages([...key.split("|"), ...FIGHT_EFFECTS.map((id) => effectSrc(id))]);
+    preloadImages([...key.split("|"), ...FIGHT_EFFECTS.flatMap((id) => [effectSrc(id), effectSrc(id, true)])]);
   }, [key]);
 }
 

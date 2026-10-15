@@ -2,8 +2,7 @@ import type { ReactNode } from "react";
 import { Icon } from "@/components/Icon";
 import { Panel } from "@/components/Panel";
 import { Tooltip } from "@/components/Tooltip";
-import { iconFor } from "@/lib/art";
-import { SKILL_FX } from "@/lib/art/skillFx";
+import { basicIcon, SKILL_FX } from "@/lib/art/skillFx";
 import {
   estimateDamage,
   equippedSkills,
@@ -26,6 +25,7 @@ import {
   intentTip,
   queueTip,
   skillEffects,
+  skillMeta,
   type Tip,
 } from "@/lib/game/explain";
 
@@ -65,6 +65,9 @@ function ResourceMeter({ b }: { b: Battle }) {
 function TurnQueue({ b, desktop = false }: { b: Battle; desktop?: boolean }) {
   const turns = projectTurns(b, 6);
   const seen = new Set<number>();
+  // Turn order moved by an effect of the last step (consume, delay, advance): that slot pulses and carries a mark.
+  const shifted = new Map<number, number>();
+  for (const ev of b.cev) if (ev.type === "progressChanged" && ev.value) shifted.set(ev.actor, ev.value);
   return (
     <section
       aria-label="Orden de turnos"
@@ -87,14 +90,17 @@ function TurnQueue({ b, desktop = false }: { b: Battle; desktop?: boolean }) {
           seen.add(t.id);
           const base = `${desktop ? "cmd-order-slot" : "flex min-h-10 min-w-[4.5rem] shrink-0 flex-col justify-center rounded border px-1.5 py-1"} text-center`;
           const certain = t.certain ? "border-solid" : "border-dashed";
+          const moved = first ? shifted.get(t.id) : undefined;
+          const pulse = moved ? " ring-2 ring-amber-300 motion-safe:animate-[pulse_0.6s_ease-in-out_3]" : "";
+          const mark = moved ? (moved < 0 ? "⏳ " : "» ") : "";
           if (t.id === 0)
             return (
               <li
                 key={`q${i}`}
                 aria-label={`${t.certain ? "Ahora" : "Estimado"}: tu turno`}
-                className={`${base} ${certain} ${t.certain ? "border-yellow-300 bg-yellow-300/15 text-yellow-100" : "border-emerald-700/70 bg-emerald-950/50 text-emerald-100"}`}
+                className={`${base} ${certain} ${t.certain ? "border-yellow-300 bg-yellow-300/15 text-yellow-100" : "border-emerald-700/70 bg-emerald-950/50 text-emerald-100"}${pulse}`}
               >
-                <span className="text-xs font-bold leading-tight">TÚ</span>
+                <span className="text-xs font-bold leading-tight">{mark}TÚ</span>
                 <span className="text-[10px] leading-tight">{t.certain ? "Ahora" : "≈"}</span>
               </li>
             );
@@ -107,10 +113,10 @@ function TurnQueue({ b, desktop = false }: { b: Battle; desktop?: boolean }) {
             <li
               key={`q${i}`}
               aria-label={label}
-              className={`${base} ${certain} ${info?.strong ? "border-rose-400/80 bg-rose-950/70 text-rose-100" : "border-red-900/70 bg-red-950/55 text-red-100"}`}
+              className={`${base} ${certain} ${info?.strong ? "border-rose-400/80 bg-rose-950/70 text-rose-100" : "border-red-900/70 bg-red-950/55 text-red-100"}${pulse}`}
             >
               <span className="block min-w-0">
-                <span className="block text-xs font-bold leading-tight">R{idx + 1}{t.certain ? "" : " ≈"}</span>
+                <span className="block text-xs font-bold leading-tight">{mark}R{idx + 1}{t.certain ? "" : " ≈"}</span>
                 <span className="block max-w-24 truncate text-[10px] leading-tight" title={label}>
                   {info ? <><span aria-hidden="true">{info.glyph} </span>{info.name}</> : "…"}
                 </span>
@@ -265,7 +271,7 @@ export function ActionPanel({
       left={float}
       tip={attackTip(p, "attack1", foe)}
       onClick={() => onAct("attack1", target)}
-      icon={iconFor("skill", SKILL_FX.attack1.icon)}
+      icon={basicIcon(p.char.classId, p.char.weapon?.type)}
       title="Básico"
       sub={`~${estimateDamage(p, foe, "attack1")} daño`}
       meta={`Sin costo · +1 ${resName}${alive.length > 1 && !chip ? ` · Objetivo: ${foe.char.name}` : ""}`}
@@ -287,9 +293,6 @@ export function ActionPanel({
     const def = SKILLS[id];
     const reason = skillBlockReason(p, id) ?? undefined;
     const cd = p.cds?.[id] ?? 0;
-    const cost = def.cost ? `Cuesta ${def.cost} ${resName}` : "Sin costo";
-    const gen = def.gen ? ` · +${def.gen} ${resName}` : "";
-    const wait = def.cooldown ? ` · Espera ${def.cooldown}` : "";
     const hint = consumeHint(p, foe, def);
     const effects = def.power > 0 ? skillEffects(def).filter((e) => !e.startsWith("Consume")) : [];
     const extra = chip ? "" : [hint, effects.join(" · ")].filter(Boolean).join(" · ");
@@ -301,10 +304,10 @@ export function ActionPanel({
         tip={attackTip(p, id, foe)}
         disabled={!!reason}
         onClick={() => onAct(id, target)}
-        icon={iconFor("skill", SKILL_FX[id].icon)}
+        icon={SKILL_FX[id].icon}
         title={def.name}
         sub={preview(def)}
-        meta={`${cost}${gen}${wait}${cd ? ` · Quedan ${cd}` : ""}${extra ? ` · ${extra}` : ""}`}
+        meta={`${skillMeta(def)}${cd ? ` · Quedan ${cd}` : ""}${extra ? ` · ${extra}` : ""}`}
         disabledReason={reason}
       />
     );
@@ -317,7 +320,7 @@ export function ActionPanel({
       left={float}
       tip={defendTip(b)}
       onClick={() => onAct("defend", target)}
-      icon={iconFor("skill", "defend")}
+      icon={SKILL_FX.defend.icon}
       title="Defender"
       sub={perfect ? "¡Guardia perfecta!" : "Mitad de daño hasta tu turno"}
       meta={perfect ? `−75 % al golpe fuerte · +1 ${resName}` : "Sin costo"}

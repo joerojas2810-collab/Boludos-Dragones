@@ -465,6 +465,29 @@ describe("Clérigo", () => {
     expect(s.player.statuses?.map((x) => x.id)).toEqual(["impulso", "ruptura"]);
     expect(ev(s, "shieldChanged")[0].value).toBe(Math.round(1000 * SKILLS.cleric_cleanse.shield!));
     expect(s.player.res).toBe(2);
+    // the removal is announced with the status id; nothing is announced when nothing was removed
+    expect(ev(s, "statusRemoved").map((e) => e.detail)).toEqual(["escarcha"]);
+    const clean = step(fight(hero("clerigo"), foe(), { res: 3, loadout: ["cleric_cleanse", "cleric_judgment"] }), "cleric_cleanse", noCrit());
+    expect(ev(clean, "statusRemoved")).toHaveLength(0);
+    const buffOnly = step(mapPlayer(fight(hero("clerigo"), foe(), { res: 3, loadout: ["cleric_cleanse", "cleric_judgment"] }), { statuses: [stat("impulso", 1)] }), "cleric_cleanse", noCrit());
+    expect(ev(buffOnly, "statusRemoved")).toHaveLength(0);
+  });
+
+  it("the Cleric's perfect guard announces the status it cleanses", () => {
+    let b = fight(hero("clerigo", { hp: 1e6 }), foe(), { intents: ["attack2"] });
+    b = mapPlayer(b, { statuses: [stat("escarcha", 1)] });
+    const d = step(b, "defend", noCrit());
+    expect(ev(d, "guardTriggered")).toHaveLength(1);
+    expect(ev(d, "statusRemoved").map((e) => e.detail)).toEqual(["escarcha"]);
+  });
+});
+
+describe("Paso evasivo wording", () => {
+  it("logs mitigation, not evasion", () => {
+    const b = fight(hero("picaro"), foe(), { res: 3, loadout: ["rogue_step", "rogue_finish"] });
+    const log = step(b, "rogue_step", noCrit()).log.join("\n");
+    expect(log).toContain("40 % menos");
+    expect(log).not.toMatch(/esquiva/);
   });
 });
 
@@ -474,6 +497,9 @@ describe("Berserker", () => {
     const s = step(b, "berserker_charge", noCrit());
     expect(s.player.hp).toBeLessThanOrEqual(1000 - 20);
     expect(s.player.res).toBe(SKILLS.berserker_charge.gen);
+    const cost = ev(s, "selfDamaged");
+    expect(cost).toHaveLength(1);
+    expect(cost[0]).toMatchObject({ actor: 0, target: 0, value: 20, skillId: "berserker_charge" });
     const low = step(withIntents(mapPlayer(b, { hp: 5 }), ["defend"]), "berserker_charge", noCrit());
     expect(low.player.hp).toBeGreaterThanOrEqual(1);
     expect(low.status).toBe("ongoing");

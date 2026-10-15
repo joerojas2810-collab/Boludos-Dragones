@@ -179,7 +179,8 @@ export type CombatEventType =
   | "turnStarted" | "actionCommitted" | "skillResolved" | "hit" | "healed" | "shieldChanged"
   | "classResourceChanged" | "statusApplied" | "statusConsumed" | "statusExpired"
   | "progressChanged" | "guardTriggered" | "staggerDamaged" | "staggerBroken"
-  | "telegraphStarted" | "telegraphCancelled" | "bossPhaseChanged" | "combatEnded";
+  | "telegraphStarted" | "telegraphCancelled" | "bossPhaseChanged" | "combatEnded"
+  | "statusRemoved" | "selfDamaged"; // cleanse removed `detail` (status id) / Embestida cost `value`
 export interface CombatEvent {
   seq: number;
   turn: number;
@@ -622,10 +623,20 @@ function addShield(w: Work, c: Combatant, fraction: number) {
   }
 }
 
+/** Removes the oldest negative status; emits `statusRemoved` (detail = status id) only if one went. */
+function cleanseStatus(w: Work, c: Combatant): boolean {
+  const before = c.statuses ?? [];
+  const after = cleanse(before);
+  c.statuses = after;
+  const gone = before.find((s) => !after.includes(s));
+  if (gone) emit(w, "statusRemoved", idOf(w, c), { target: idOf(w, c), detail: gone.id });
+  return !!gone;
+}
+
 function earnGuard(w: Work, c: Combatant) {
   c.guard = true;
   addRes(w, c, 1);
-  if (c.char.classId === "clerigo") c.statuses = cleanse(c.statuses);
+  if (c.char.classId === "clerigo") cleanseStatus(w, c);
   w.log.push(`¡Guardia perfecta! ${c.char.name} ${c.char.classId === "clerigo" ? "se purifica y " : ""}gana 1 de recurso.`);
   if (c === w.p || w.humanFoe) w.guardEarned = true;
   emit(w, "guardTriggered", idOf(w, c));
@@ -946,18 +957,18 @@ function heroAction(w: Work, action: Action, tIdx: number | undefined) {
     if (def.heal) healActive(w, p, def.heal);
     if (def.healIfDamage && dealt > 0) healActive(w, p, def.healIfDamage);
     if (def.cleanse) {
-      const before = p.statuses?.length ?? 0;
-      p.statuses = cleanse(p.statuses);
-      if ((p.statuses?.length ?? 0) < before) w.log.push(`${p.char.name} se purifica de un estado negativo.`);
+      if (cleanseStatus(w, p)) w.log.push(`${p.char.name} se purifica de un estado negativo.`);
     }
     if (def.reduceNextHit) {
       p.nextHitReduction = def.reduceNextHit;
-      w.log.push(`${p.char.name} esquiva: el próximo impacto recibido hace ${Math.round(def.reduceNextHit * 100)} % menos.`);
+      w.log.push(`${p.char.name} se cubre: el próximo impacto recibido hace ${Math.round(def.reduceNextHit * 100)} % menos.`);
     }
     if (def.selfDamage) {
       const cost = Math.round(p.char.stats.hp * def.selfDamage);
-      p.hp = Math.max(1, p.hp - cost);
+      const lost = p.hp - Math.max(1, p.hp - cost);
+      p.hp -= lost;
       w.log.push(`${p.char.name} se desgarra: pierde ${cost} de vida.`);
+      if (lost > 0) emit(w, "selfDamaged", idOf(w, p), { target: idOf(w, p), value: lost, skillId: def.id });
     }
     if (def.cooldown) p.cds = { ...p.cds, [def.id]: def.cooldown };
     emit(w, "skillResolved", 0, { skillId: def.id, value: dealt });

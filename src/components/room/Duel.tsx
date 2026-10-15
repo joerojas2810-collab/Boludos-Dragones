@@ -7,14 +7,17 @@ import { ClassElementPicker } from "@/components/room/ClassElementPicker";
 import { SkillPicker } from "@/components/SkillPicker";
 import { HealthBar } from "@/components/HealthBar";
 import { HeroSprite } from "@/components/HeroSprite";
+import { Icon } from "@/components/Icon";
+import { Vfx } from "@/components/fx/Vfx";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
-import type { HeroAction } from "@/lib/art/heroes";
+import { basicIcon, eventVfx, heroActionFor, SKILL_FX, skillTag, stepNumbers } from "@/lib/art/skillFx";
+import { skillMeta } from "@/lib/game/explain";
 import type { ClassId } from "@/lib/game/characters";
-import { skillBlockReason, type Action, type Combatant } from "@/lib/game/combat";
+import { skillBlockReason, type Action, type Combatant, type CombatEventType } from "@/lib/game/combat";
 import type { Element } from "@/lib/game/elements";
 import { equipLoadout, heroKey, masteryOf } from "@/lib/game/loadout";
-import { RESOURCE_MAX, RESOURCE_NAME, SKILLS, isSkillId, sanitizeLoadout, type Loadout } from "@/lib/game/skills";
+import { RESOURCE_MAX, RESOURCE_NAME, SKILLS, sanitizeLoadout, type Loadout } from "@/lib/game/skills";
 import {
   DEFAULT_HERO,
   ROOM_K,
@@ -329,9 +332,30 @@ type Fight = NonNullable<Match["fight"]>;
 type Side = "a" | "b";
 const FOE: Record<Side, Side> = { a: "b", b: "a" };
 
-/** Sprite pose of a move: attacks and skills with a target strike, self skills guard. */
-const poseOf = (a: Action): HeroAction =>
-  a === "attack1" ? "attack_1" : a === "defend" ? "defend" : isSkillId(a) && SKILLS[a].target === "self" ? "defend" : "attack_2";
+/** Overlays of the last step for one side, from the same semantic events and skill map as the PvE arena. */
+function sideFx(f: Fight, s: Side): { id: string; cls?: string; wide?: boolean }[] {
+  const num = (x: Side | null | undefined) => (x === "a" ? 0 : x === "b" ? 1 : undefined);
+  const out: { id: string; cls?: string; wide?: boolean }[] = [];
+  const mine = num(s);
+  for (const e of f.events) {
+    const actor = num(e.actor);
+    if (actor === undefined) continue;
+    const v = eventVfx({ type: e.type as CombatEventType, actor, target: num(e.target), detail: e.detail });
+    if (v && v.at === mine) out.push({ id: v.id, wide: true });
+    if (e.type === "guardTriggered" && actor === mine) out.push({ id: "perfect_guard" });
+    if (e.type === "shieldChanged" && actor === mine) out.push({ id: "shield" });
+    if (e.type === "healed" && num(e.target) === mine) out.push({ id: "regeneration" });
+  }
+  // A shield skill that left no shieldChanged (capped) still shows its own look; Paso shows its half shield.
+  const last = f.last;
+  if (last && last.side === s && last.action !== "attack1" && last.action !== "defend") {
+    const fx = SKILL_FX[last.action];
+    if (fx.vfx === "shield" && !out.some((x) => x.id === "shield")) out.push({ id: "shield" });
+    const shield = out.find((x) => x.id === "shield");
+    if (shield && fx.vfx === "shield") shield.cls = fx.look;
+  }
+  return out;
+}
 
 /** The engine's own block reason for `id`, rebuilt from the public view (res, cooldowns, loadout). */
 function blockReason(f: Fight, side: Side, id: Parameters<typeof skillBlockReason>[1]): string | null {
@@ -392,26 +416,38 @@ function MatchFight({
     });
   };
   const idOf = (s: Side) => (s === "a" ? m.a : m.b);
-  const hits = (s: Side) =>
-    f.events.filter((e) => e.type === "hit" && e.target === s && (e.value ?? 0) > 0).reduce((t, e) => t + (e.value ?? 0), 0);
-  const heals = (s: Side) =>
-    f.events.filter((e) => e.type === "healed" && e.target === s).reduce((t, e) => t + (e.value ?? 0), 0);
+  // Separate numbers from event amounts: hit, heal and self-damage never net each other out.
+  const numbers = stepNumbers<Side>(f.events);
+  const amount = (s: Side, kind: "dmg" | "heal" | "self") => numbers.find((n) => n.target === s && n.kind === kind)?.value ?? 0;
+  const removed = (s: Side) => f.events.filter((e) => e.type === "statusRemoved" && e.target === s).map((e) => e.detail ?? "estado");
   const hero = (s: Side) => {
     const h = f.heroes[s];
     const moved = f.last?.side === s ? f.last : null;
-    const dmg = hits(s);
-    const heal = heals(s);
+    const dmg = amount(s, "dmg");
+    const heal = amount(s, "heal");
+    const self = amount(s, "self");
+    const gone = removed(s);
     return (
       <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-        <HeroSprite
-          key={`${s}${f.n}`}
-          classId={h.classId as ClassId}
-          element={h.element as Element}
-          flip={s === "b"}
-          animated
-          action={dmg > 0 ? "hit" : moved ? poseOf(moved.action) : "idle"}
-          className={big ? "w-32 sm:w-56" : "w-20 sm:w-24"}
-        />
+        <div className={`relative ${big ? "w-32 sm:w-56" : "w-20 sm:w-24"}`}>
+          <HeroSprite
+            key={`${s}${f.n}`}
+            classId={h.classId as ClassId}
+            element={h.element as Element}
+            flip={s === "b"}
+            animated
+            action={dmg > 0 ? "hit" : moved ? heroActionFor(moved.action) : "idle"}
+            className="w-full"
+          />
+          {sideFx(f, s).map((x, i) => (
+            <Vfx
+              key={`${f.n}-${x.id}-${i}`}
+              id={x.id}
+              delay={0.2}
+              className={`pointer-events-none absolute left-1/2 -translate-x-1/2 ${x.cls ?? (x.wide ? "top-[-30%] w-44" : "top-[-10%] w-32")}`}
+            />
+          ))}
+        </div>
         <div className="max-w-full truncate text-sm font-semibold">
           {f.toMove === s && !over ? "▶ " : ""}
           {nameOf(view, idOf(s))}
@@ -429,26 +465,23 @@ function MatchFight({
           ))}
           {dmg > 0 && <span className="font-bold text-red-400 motion-safe:animate-bounce">−{dmg}</span>}
           {heal > 0 && <span className="font-bold text-green-300 motion-safe:animate-bounce">+{heal}</span>}
+          {self > 0 && <span className="font-bold text-orange-400">−{self} (propio)</span>}
+          {gone.length > 0 && <span className="font-semibold text-sky-200">✧ Purificado: {gone.join(", ")}</span>}
         </div>
         <ResourceMeter classId={h.classId} value={f.res[s]} />
       </div>
     );
   };
-  const buttons: { id: Action; name: string; sub: string; reason: string | null }[] = side
+  const myClass = side ? (f.heroes[side].classId as ClassId) : null;
+  const buttons: { id: Action; name: string; sub: string; meta: string; icon: string; tip: string; reason: string | null }[] = side && myClass
     ? [
-        { id: "attack1", name: "Básico", sub: "Siempre disponible · +1 recurso", reason: null },
+        { id: "attack1", name: "Básico", sub: skillTag("attack1"), meta: `Sin costo · +1 ${RESOURCE_NAME[myClass]}`, icon: basicIcon(myClass), tip: "Ataque básico del arma: nunca falla y genera 1 de recurso si hace daño.", reason: null },
         ...f.loadouts[side].map((id) => {
           const k = id as Parameters<typeof skillBlockReason>[1];
           const d = SKILLS[k];
-          const res = RESOURCE_NAME[f.heroes[side].classId as ClassId];
-          return {
-            id: k as Action,
-            name: d.name,
-            sub: `${d.cost ? `Cuesta ${d.cost} ${res}` : "Sin costo"}${d.gen ? ` · da ${d.gen}` : ""}`,
-            reason: blockReason(f, side, k),
-          };
+          return { id: k as Action, name: d.name, sub: skillTag(k), meta: skillMeta(d), icon: SKILL_FX[k].icon, tip: d.description, reason: blockReason(f, side, k) };
         }),
-        { id: "defend", name: "Defender", sub: "Menos daño hasta tu próximo turno", reason: null },
+        { id: "defend", name: "Defender", sub: "Mitad de daño hasta tu turno", meta: "Sin costo", icon: SKILL_FX.defend.icon, tip: "Hasta el inicio de tu próximo turno recibes la mitad del daño; guardia perfecta contra una amenaza fuerte.", reason: null },
       ]
     : [];
   const left = Math.max(0, f.turnCap - f.turn);
@@ -500,9 +533,14 @@ function MatchFight({
                   className="btn min-w-0 !whitespace-normal break-words"
                   disabled={bt.reason !== null || sent === tag}
                   onClick={() => act(bt.id)}
+                  title={bt.tip}
                 >
-                  {bt.name}
-                  <span className="block text-xs font-normal opacity-80">{bt.reason ?? bt.sub}</span>
+                  <span className="flex items-center justify-center gap-1">
+                    <Icon name={bt.icon} className="h-6 shrink-0" />
+                    {bt.name}
+                  </span>
+                  <span className="block text-xs font-normal opacity-80">{bt.sub}</span>
+                  <span className="block text-[11px] font-normal opacity-80">{bt.reason ?? bt.meta}</span>
                 </button>
               ))}
             </div>

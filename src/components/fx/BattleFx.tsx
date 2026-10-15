@@ -5,7 +5,8 @@ import { ELEMENT_COLORS } from "@/sprites/palettes";
 import { ELEMENT_ART } from "@/lib/art";
 import { isPixel } from "@/lib/art/pixel";
 import { enemyAnim } from "@/lib/art/enemies";
-import { eventVfx } from "@/lib/art/skillFx";
+import { eventVfx, SKILL_FX, stepNumbers } from "@/lib/art/skillFx";
+import { isSkillId } from "@/lib/game/skills";
 import { DUNGEON_THEMES } from "@/lib/game/levels";
 import { AnimSheet } from "@/components/AnimSheet";
 import { Vfx, VfxNumber } from "./Vfx";
@@ -20,14 +21,15 @@ const PAINTED_HITS = true;
 
 type Num = {
   text: string;
-  tone: "dmg" | "foe" | "heal";
+  tone: "dmg" | "foe" | "heal" | "self";
   crit: boolean;
   delay: number;
 };
 type Part = { element: Element; delay: number };
 // Painted overlays on a target (element arrows, guard, shield, regeneration).
-type Extra = { id: string; delay: number; wide?: boolean };
-export type TargetFx = { num?: Num; parts: Part[]; dodge?: number; extras?: Extra[] };
+type Extra = { id: string; delay: number; wide?: boolean; cls?: string };
+// `nums`: damage, healing and self-damage are separate numbers (never a net HP difference).
+export type TargetFx = { nums: Num[]; parts: Part[]; dodge?: number; extras?: Extra[] };
 type StepFx = {
   key: number;
   player: TargetFx;
@@ -80,6 +82,9 @@ const VECTORS: Record<Element, [number, number][]> = {
   ],
 };
 
+const castsShield = (c: Battle["cev"][number]) =>
+  c.type === "actionCommitted" && c.actor === 0 && isSkillId(c.skillId) && SKILL_FX[c.skillId].vfx === "shield";
+
 export function useBattleFx(b: Battle, boss: boolean | undefined) {
   const hpsOf = (x: Battle) => x.enemies.map((e) => e.hp);
   const [snap, setSnap] = useState({
@@ -100,16 +105,16 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
       e: hpsOf(b),
     };
     setSnap(next);
-    if (b.log.length < snap.log || (b.events.length === 0 && !b.cev.some(eventVfx))) {
+    if (b.log.length < snap.log || (b.events.length === 0 && !b.cev.some(eventVfx) && !stepNumbers(b.cev).length && !b.cev.some(castsShield))) {
       setFx(null);
     } else {
       const calm = reducedMotion();
       const strong: number[] = [];
-      const player: TargetFx = { parts: [] };
-      const enemies: TargetFx[] = b.enemies.map(() => ({ parts: [] }));
-      const firstAt: Record<string, number> = {};
-      const crits: Record<string, boolean> = {};
-      const foeOf: Record<string, number> = {};
+      const player: TargetFx = { nums: [], parts: [] };
+      const enemies: TargetFx[] = b.enemies.map(() => ({ nums: [], parts: [] }));
+      const fxOf = (id: number) => (id === 0 ? player : enemies[id - 1]);
+      const firstAt: Record<number, number> = {};
+      const crits: Record<number, boolean> = {};
       let particleEvents = 0;
       b.events.forEach((ev, i) => {
         if (ev.kind === "miss") {
@@ -120,13 +125,13 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
         if (ev.kind !== "hit" && ev.kind !== "crit") return;
         const t = i * STAGGER_S + IMPACT_S;
         const toEnemy = ev.actor === "player";
-        const id = toEnemy ? `e${ev.enemy}` : "p";
+        const id = toEnemy ? ev.enemy + 1 : 0;
         const tgt = toEnemy ? enemies[ev.enemy] : player;
         firstAt[id] ??= t;
         if (ev.kind === "crit") crits[id] = true;
-        if (!toEnemy) foeOf[id] ??= ev.enemy;
         const attacker = toEnemy ? b.player : b.enemies[ev.enemy];
-        if (!calm && tgt && particleEvents < MAX_PARTICLE_EVENTS) {
+        // Reduced motion keeps the still impact variant (it carries where and what element hit).
+        if (tgt && particleEvents < MAX_PARTICLE_EVENTS) {
           particleEvents++;
           tgt.parts.push({ element: attacker.char.element, delay: t });
         }
@@ -141,64 +146,49 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
             delay: t,
           });
       });
-      const mkNum = (
-        id: string,
-        tgt: TargetFx,
-        lost: number,
-        defElement: Element,
-        atkElement: Element,
-        tone: "dmg" | "foe",
-      ) => {
-        if (lost <= 0 || firstAt[id] === undefined) return;
-        const m = elementMultiplier(atkElement, defElement);
-        const mark = m > 1 ? "▲" : m < 1 ? "▼" : "";
-        tgt.num = {
-          text: `${lost}${mark}`,
-          tone,
-          crit: !!crits[id],
-          delay: firstAt[id],
-        };
-      };
-      b.enemies.forEach((en, i) =>
-        mkNum(
-          `e${i}`,
-          enemies[i],
-          (snap.e[i] ?? en.hp) - en.hp,
-          en.char.element,
-          b.player.char.element,
-          "dmg",
-        ),
-      );
-      mkNum(
-        "p",
-        player,
-        snap.p - b.player.hp,
-        b.player.char.element,
-        b.enemies[foeOf.p ?? 0].char.element,
-        "foe",
-      );
-      const gained = b.player.hp - snap.p;
-      if (gained > 0 && !player.num) {
-        player.num = {
-          text: `+${gained}`,
-          tone: "heal",
-          crit: false,
-          delay: IMPACT_S,
-        };
-        (player.extras ??= []).push({ id: "regeneration", delay: IMPACT_S });
+      // Numbers come from event amounts and causes: hits, heals and Embestida's cost each get their own.
+      const afterHits = Math.min(IMPACT_S + 0.4, ...Object.values(firstAt)) + 0.15;
+      const regen = new Set<number>();
+      for (const n of stepNumbers<number>(b.cev)) {
+        const t = fxOf(n.target);
+        if (!t) continue;
+        if (n.kind === "dmg") {
+          const atk = n.actor === null ? undefined : n.actor === 0 ? b.player : b.enemies[n.actor - 1];
+          const defn = n.target === 0 ? b.player : b.enemies[n.target - 1];
+          const m = atk ? elementMultiplier(atk.char.element, defn.char.element) : 1;
+          t.nums.push({
+            text: `${n.value}${m > 1 ? "▲" : m < 1 ? "▼" : ""}`,
+            tone: n.target === 0 ? "foe" : "dmg",
+            crit: !!crits[n.target],
+            delay: firstAt[n.target] ?? IMPACT_S,
+          });
+        } else if (n.kind === "heal") {
+          regen.add(n.target);
+          t.nums.push({ text: `+${n.value}`, tone: "heal", crit: false, delay: afterHits });
+        } else t.nums.push({ text: `-${n.value}`, tone: "self", crit: false, delay: afterHits });
       }
-      if ((b.player.shield ?? 0) > snap.sh)
-        (player.extras ??= []).push({ id: "shield", delay: IMPACT_S });
+      // Passive recovery / life steal / regeneration emit no event: a rise in HP that no event explains
+      // (and no damage took away) still shows as its own heal number.
+      const felt = new Set(stepNumbers<number>(b.cev).filter((n) => n.kind !== "heal").map((n) => n.target));
+      const gain = (id: number, before: number | undefined, now: number) => {
+        if (before === undefined || now <= before || regen.has(id) || felt.has(id)) return;
+        regen.add(id);
+        fxOf(id).nums.push({ text: `+${now - before}`, tone: "heal", crit: false, delay: afterHits });
+      };
+      gain(0, snap.p, b.player.hp);
+      b.enemies.forEach((en, i) => gain(i + 1, snap.e[i], en.hp));
+      for (const id of regen) (fxOf(id).extras ??= []).push({ id: "regeneration", delay: afterHits });
+      // Shield skills: their own geometry/material (SKILL_FX.look); a plain gain keeps the default overlay.
+      const cast = b.cev.find((c) => c.type === "actionCommitted" && c.actor === 0 && isSkillId(c.skillId));
+      const castFx = cast && isSkillId(cast.skillId) ? SKILL_FX[cast.skillId] : undefined;
+      if (castFx?.vfx === "shield" || (b.player.shield ?? 0) > snap.sh)
+        (player.extras ??= []).push({ id: "shield", delay: IMPACT_S, cls: castFx?.vfx === "shield" ? castFx.look : undefined });
       if (b.guardEarned)
         (player.extras ??= []).push({ id: "perfect_guard", delay: IMPACT_S });
-      b.enemies.forEach((en, i) => {
-        if (en.hp > (snap.e[i] ?? en.hp) && en.hp > 0)
-          (enemies[i].extras ??= []).push({ id: "regeneration", delay: IMPACT_S });
-      });
-      // Structured events (consume / Quiebre / ritual cancelled / armor rebuilt) play their own sheet.
+      // Structured events (consume / Quiebre / ritual cancelled / armor rebuilt / status cleansed) play their own sheet.
       for (const ev of b.cev) {
         const v = eventVfx(ev);
-        const t = v && (v.at === 0 ? player : enemies[v.at - 1]);
+        const t = v && fxOf(v.at);
         if (v && t) (t.extras ??= []).push({ id: v.id, delay: IMPACT_S, wide: true });
       }
       if (boss && b.status === "won" && !calm)
@@ -231,7 +221,7 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
 export function FxLayer({ t, k }: { t?: TargetFx; k: number }) {
   if (
     !t ||
-    (!t.num && t.parts.length === 0 && t.dodge === undefined && !t.extras?.length)
+    (!t.nums.length && t.parts.length === 0 && t.dodge === undefined && !t.extras?.length)
   )
     return null;
   return (
@@ -240,30 +230,31 @@ export function FxLayer({ t, k }: { t?: TargetFx; k: number }) {
       aria-hidden
       className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-3/5"
     >
-      {t.num && (
+      {t.nums.map((n, i) => (
         <span
-          className={`fxn fxn-${t.num.tone} ${t.num.crit ? "fxn-crit" : ""}`}
-          style={{ animationDelay: `${t.num.delay}s` }}
+          key={`n${i}`}
+          className={`fxn fxn-${n.tone} ${n.crit ? "fxn-crit" : ""}`}
+          style={{ animationDelay: `${n.delay}s`, marginTop: `${i * 2.6}rem` }}
         >
           <VfxNumber
-            text={t.num.text}
+            text={n.text}
             kind={
-              t.num.tone === "heal"
+              n.tone === "heal"
                 ? "heal_number"
-                : t.num.crit
+                : n.crit
                   ? "damage_critical"
                   : "damage_normal"
             }
-            delay={t.num.delay}
-            size={t.num.crit ? 52 : 40}
+            delay={n.delay}
+            size={n.crit ? 52 : n.tone === "dmg" || n.tone === "foe" ? 40 : 32}
           />
-          {t.num.text.match(/[▲▼]/)?.[0]}
+          {n.text.match(/[▲▼]/)?.[0]}
         </span>
-      )}
-      {t.num?.crit && (
+      ))}
+      {t.nums.some((n) => n.crit) && (
         <Vfx
           id="critical_label"
-          delay={t.num.delay}
+          delay={t.nums.find((n) => n.crit)!.delay}
           className="absolute left-1/2 top-0 w-24 -translate-x-1/2 -translate-y-1/2"
         />
       )}
@@ -277,7 +268,7 @@ export function FxLayer({ t, k }: { t?: TargetFx; k: number }) {
           key={`x${i}`}
           id={x.id}
           delay={x.delay}
-          className={`absolute left-1/2 -translate-x-1/2 ${x.wide ? "top-[-30%] w-44" : "top-[-10%] w-32"}`}
+          className={`absolute left-1/2 -translate-x-1/2 ${x.cls ?? (x.wide ? "top-[-30%] w-44" : "top-[-10%] w-32")}`}
         />
       ))}
       {t.parts.map((p, pi) =>

@@ -526,7 +526,7 @@ export function skillEffects(def: SkillDef): string[] {
   if (def.heal) out.push(`Cura ${pct(def.heal)} de PV máx.`);
   if (def.healIfDamage) out.push(`Si hace daño, curas ${pct(def.healIfDamage)}`);
   if (def.cleanse) out.push("Purifica un estado negativo");
-  if (def.reduceNextHit) out.push(`Próximo golpe recibido −${pct(def.reduceNextHit)}`);
+  if (def.reduceNextHit) out.push(`Reduce ${Math.round(def.reduceNextHit * 100)} % el próximo impacto`);
   if (def.cancels === "interruptible") out.push("Interrumpe rituales");
   if (def.cancels === "break") out.push("Si causa Quiebre, cancela una Carga");
   if (def.aguante >= 1) out.push("Castiga el Aguante");
@@ -535,6 +535,16 @@ export function skillEffects(def: SkillDef): string[] {
   if (def.exposedPower) out.push("Más daño a Expuestos");
   if (def.selfDamage) out.push(`Te cuesta ${pct(def.selfDamage)} de PV`);
   return out;
+}
+
+/** Cost, generation and cooldown of a skill in words, straight from its SkillDef (ActionPanel and Duel). */
+export function skillMeta(def: SkillDef): string {
+  const res = RESOURCE_NAME[def.classId];
+  return [
+    def.cost ? `Cuesta ${def.cost} ${res}` : "Sin costo",
+    def.gen ? `+${def.gen} ${res}` : null,
+    def.cooldown ? `Espera ${def.cooldown}` : null,
+  ].filter(Boolean).join(" · ");
 }
 
 /** What consuming would do right now, or why it would not (null when the skill does not consume). */
