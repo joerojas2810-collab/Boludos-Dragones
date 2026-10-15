@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { EstadosPanel } from "./EstadosPanel";
 import { ActionPanel } from "@/components/ActionPanel";
 import { BattleArena } from "@/components/BattleArena";
 import { LogPanel } from "@/components/LogPanel";
 import { MuteButton } from "@/components/MuteButton";
 import { Sprite } from "@/components/Sprite";
+import { EnemySprite } from "@/components/EnemySprite";
+import type { EnemyFamily } from "@/lib/game/worlds";
 import { HeroSprite } from "@/components/HeroSprite";
 import { isPixel } from "@/lib/art/pixel";
 import { generateCharacter, type Character } from "@/lib/game/characters";
@@ -56,6 +59,9 @@ function newGame(rng: Rng): Game {
   return { rng, hero, b: startBattle(hero, nextEnemies(rng, 0), rng, { loadout: benchLoadout(hero) }), wins: 0 };
 }
 
+// `?foes=1`: real enemy sprites (limo, diablillo, arpia = flying, golem = wide, espectro) instead of hero clones.
+const FOE_FAMILIES: EnemyFamily[] = ["limo", "arpia", "golem", "diablillo", "espectro"];
+
 export default function Prueba() {
   const [game, setGame] = useState<Game | null>(null);
   const targeting = useTargeting(game?.b ?? null);
@@ -87,7 +93,10 @@ export default function Prueba() {
             world={isPixel() ? 0 : undefined}
             enemyExtra={(_, c) => `Nv ${c.char.level}`}
             playerExtra={`Victorias ${game.wins}`}
-            enemyArt={(_, c) => isPixel() ? (
+            enemyStatusFamily={(i) => (FOE_FAMILIES[i % 5] === "arpia" ? "flying" : FOE_FAMILIES[i % 5] === "golem" ? "wide" : "foe")}
+            enemyArt={(i, c) => new URLSearchParams(location.search).has("foes") ? (
+              <EnemySprite family={FOE_FAMILIES[i % 5]} element={c.char.element} />
+            ) : isPixel() ? (
               <HeroSprite classId={c.char.classId} element={c.char.element} traits={c.char.traits} animated flip />
             ) : (
               <Sprite
@@ -100,6 +109,9 @@ export default function Prueba() {
             enemy={targeting.enemy}
             onTarget={targeting.select}
           />
+          {new URLSearchParams(location.search).has("estados") && (
+            <EstadosPanel b={b} onChange={(nb) => setGame({ ...game, b: nb })} />
+          )}
           <ActionPanel b={b} target={targeting.target} onAct={act}>
             {b.status === "lost" ? (
               <button

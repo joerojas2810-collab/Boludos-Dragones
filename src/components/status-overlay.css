@@ -1,0 +1,65 @@
+/* Elemental status envelopes (ElementalStatusOverlay). Static bitmaps; the motion is only CSS opacity/offset. */
+.est-root {
+  position: absolute;
+  inset: 0;
+  z-index: 5; /* over the sprite, under damage numbers (10), target cursor (20) and HUD cards (30) */
+  pointer-events: none;
+  container-type: size;
+  --est-side: max(calc(100cqw * var(--est-ws)), calc(100cqh * var(--est-hs)));
+}
+.est-root[data-art="pixel"] {
+  /* whole steps of half a native frame keep the nearest-neighbour scale clean */
+  --est-side: max(48px, round(nearest, max(calc(100cqw * var(--est-ws)), calc(100cqh * var(--est-hs))), 48px));
+}
+.est-layer {
+  position: absolute;
+  width: var(--est-side);
+  height: var(--est-side);
+  /* the layer's own anchor (0.5, 0.84 in every manifest entry) lands on the configured box point */
+  left: calc(100cqw * (var(--est-ax) + var(--est-ox)) - var(--est-side) * 0.5);
+  top: calc(100cqh * (var(--est-ay) + var(--est-oy)) - var(--est-side) * 0.84);
+  opacity: var(--est-o, 1);
+  transition: opacity 150ms ease-out;
+}
+.est-root[data-art="pixel"] .est-layer {
+  left: round(nearest, calc(100cqw * (var(--est-ax) + var(--est-ox)) - var(--est-side) * 0.5), 1px);
+  top: round(nearest, calc(100cqh * (var(--est-ay) + var(--est-oy)) - var(--est-side) * 0.84), 1px);
+}
+.est-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.est-root[data-art="pixel"] .est-img {
+  image-rendering: pixelated;
+}
+
+/* Enter / leave (150 ms). The old image is removed by the component after the fade. */
+@keyframes est-in { from { opacity: 0; } }
+@keyframes est-out { to { opacity: 0; } }
+.est-in { animation: est-in 150ms ease-out var(--est-delay, 0ms) both; }
+.est-out { animation: est-out 150ms ease-in var(--est-delay, 0ms) forwards; }
+
+/* Loops per state (contract table). Pixel art moves in whole pixels and steps instead of easing. */
+@keyframes est-frost { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
+@keyframes est-burn { 0%, 100% { opacity: 0.8; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-2px); } }
+@keyframes est-wind { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(2px, -1px); } }
+@keyframes est-fracture { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
+@keyframes est-charge { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
+@keyframes est-charge-strong { 0%, 100% { opacity: 0.9; } 50% { opacity: 1; } }
+.est-frost { animation: est-frost 2.4s ease-in-out infinite; }
+.est-burn { animation: est-burn 0.85s ease-in-out infinite; }
+.est-wind { animation: est-wind 1.8s ease-in-out infinite; }
+.est-fracture { animation: est-fracture 2.1s ease-in-out infinite; }
+.est-charge { animation: est-charge 1.3s ease-in-out infinite; }
+.est-charge.est-strong { animation-name: est-charge-strong; }
+.est-root[data-art="pixel"] .est-img { animation-timing-function: steps(1, end); }
+
+.est-root[data-paused="true"] .est-img { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .est-img, .est-in, .est-out { animation: none; }
+  .est-layer { transition: none; }
+}

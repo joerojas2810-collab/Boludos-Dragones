@@ -488,6 +488,10 @@ export function hitChance(att: Combatant, intent: HitKey | "channeling"): number
   return clamp(attackOf(att, key).accuracy + att.char.stats.accuracy + retry, 0.05, 1);
 }
 
+/** Damage of one Quemadura tick at the start of `c`'s turn (hero relic bonus, per-tick cap). */
+export const burnTickDamage = (c: Combatant, burnBonus = 0): number =>
+  Math.min(Math.round(burnDamage(c.statuses) * (1 + burnBonus)), Math.round(c.char.stats.hp * BURN_CAP));
+
 function relicDealtMult(att: Combatant, def: Combatant, key: MoveKey): number {
   const r = att.relic;
   if (!r) return 1;
@@ -1130,8 +1134,7 @@ function beginTurn(w: Work, c: Combatant): boolean {
   c.activeHeal = 0;
   c.firstHitDone = false;
   emit(w, "turnStarted", id);
-  const burnBonus = c === w.p ? 0 : (w.p.relic?.burnDmg ?? 0);
-  const burn = Math.min(Math.round(burnDamage(c.statuses) * (1 + burnBonus)), Math.round(c.char.stats.hp * BURN_CAP));
+  const burn = burnTickDamage(c, c === w.p ? 0 : (w.p.relic?.burnDmg ?? 0));
   if (burn > 0) {
     c.hp = Math.max(0, c.hp - burn);
     w.log.push(`${c.char.name} se quema: ${burn} de daño.`);

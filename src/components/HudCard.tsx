@@ -12,15 +12,30 @@ import { ENRAGE_AFTER_OWN_TURN } from "@/lib/game/bossRules";
 import {
   elementTip,
   enrageTip,
+  exposedTip,
+  healCutTip,
+  mitigationTip,
   passiveTip,
+  penetrationTip,
   guardTip,
   bossBadge,
+  resistQuiebreTip,
   shieldTip,
   statTip,
   traitTip,
   weaponTip,
   type Tip,
 } from "@/lib/game/explain";
+import {
+  healCutText,
+  mitigationText,
+  preparedPenetration,
+  statBreakdown,
+  statusChanges,
+  statusRows,
+  statValue,
+  type StatusRow,
+} from "@/lib/game/statusView";
 import type { Stats } from "@/lib/game/characters";
 import { TRAITS } from "@/lib/game/traits";
 import type { EnemyFamily } from "@/lib/game/worlds";
@@ -44,7 +59,6 @@ type Props = {
 };
 
 const pct = (v: number) => `${+(v * 100).toFixed(1)}%`;
-const n1 = (v: number) => `${+v.toFixed(1)}`;
 
 type Cell = { stat: keyof Stats; label: string; value: string; hot?: boolean };
 
@@ -64,9 +78,9 @@ export function HudCard({
   const s = c.char.stats;
   const you = tone === "player";
   const cells: Cell[] = [
-    { stat: "atk", label: "ATQ", value: n1(s.atk), hot: true },
-    { stat: "def", label: "DEF", value: n1(s.def) },
-    { stat: "speed", label: "VEL", value: n1(s.speed) },
+    { stat: "atk", label: "ATQ", value: statValue(statBreakdown(c, "atk")), hot: true },
+    { stat: "def", label: "DEF", value: statValue(statBreakdown(c, "def")) },
+    { stat: "speed", label: "VEL", value: statValue(statBreakdown(c, "speed")) },
     ...(compact
       ? []
       : [
@@ -84,6 +98,22 @@ export function HudCard({
     cells.push({ stat: "accuracy", label: "PRE", value: pct(s.accuracy) });
   const [open, setOpen] = useState(false);
   const ctx = { foe, you, inRun };
+  const rows = statusRows(c, { you, burnBonus: you ? 0 : (foe.relic?.burnDmg ?? 0) });
+  const pen = preparedPenetration(c);
+  const bb = bossBadge(c, you ? undefined : foe);
+  const cut = healCutText(c);
+  const mitig = mitigationText(c);
+  // Screen reader: only what changed since the last render (new/changed/gone states, Sobrecarga ready,
+  // penetration prepared/spent). Silent on mount and when the combatant is replaced.
+  const sig = `${c.char.name}|${rows.map((r) => `${r.key}:${r.stacks}:${r.ready ? 1 : 0}`).join(",")}|${pen?.pct ?? 0}`;
+  const [seen, setSeen] = useState<{ sig: string; name: string; rows: StatusRow[]; pen: number; msg: string }>({
+    sig, name: c.char.name, rows, pen: pen?.pct ?? 0, msg: "",
+  });
+  if (seen.sig !== sig)
+    setSeen({
+      sig, name: c.char.name, rows, pen: pen?.pct ?? 0,
+      msg: seen.name === c.char.name ? statusChanges(seen.rows, rows, c.char.name, seen.pen, pen?.pct ?? 0).join(" ") : "",
+    });
   const weapon = weaponTip(c);
   const guarded = !!c.guard && c.defending;
   const enraged = !you && c.ownTurns > ENRAGE_AFTER_OWN_TURN;
@@ -93,8 +123,10 @@ export function HudCard({
     !!c.exposed ||
     (c.quiebreResist ?? 0) > 0 ||
     !!c.boss ||
-    (c.healCut ?? 0) > 0 ||
-    (c.nextHitReduction ?? 0) > 0 ||
+    !!cut ||
+    !!mitig ||
+    rows.length > 0 ||
+    !!pen ||
     enraged ||
     !!children;
   return (
@@ -114,7 +146,11 @@ export function HudCard({
             className="text-[13px] leading-5 text-[#9fb0c0] hover:text-white"
             aria-expanded={open}
             aria-label="Detalles"
-            onClick={() => setOpen(!open)}
+            onClick={(e) => {
+              e.stopPropagation(); // the card lives inside a clickable target slot: Info must not select it
+              setOpen(!open);
+            }}
+            onKeyDown={(e) => e.stopPropagation()} // Enter/Space would otherwise reach the target radio's handler
           >
             <span className="md:hidden">ⓘ</span>
             <span className="max-md:hidden">{open ? "Info ▴" : "Info ▾"}</span>
@@ -207,39 +243,48 @@ export function HudCard({
               <span aria-hidden="true">◧ </span>Guardia perfecta
             </Chip>
           )}
-          {c.exposed && (
-            <Chip
-              tip={{ title: "Expuesto", kind: "danger", lines: ["DEF −15 % hasta que complete su siguiente turno. Es el momento de golpear fuerte."], source: "Quiebre" }}
-              tone="danger"
+          {rows.map((r) => (
+            <span
+              key={r.key}
+              role="img"
+              aria-label={r.aria}
+              className={`chip ${r.negative ? "text-red-300" : "text-green-300"} ${r.ready ? "ring-1 ring-yellow-300" : ""}`}
             >
+              <span aria-hidden="true">{r.negative ? "▼" : "▲"} </span>
+              {compact ? `${r.short} ${r.stacks}/${r.max}${r.ready ? " ✓" : ""}` : r.text}
+            </span>
+          ))}
+          {pen && (
+            <Chip tip={penetrationTip(c)} tone="gold">
+              <span aria-hidden="true">◆ </span>{compact ? `Penetr. ${Math.round(pen.pct * 100)}%` : pen.text}
+            </Chip>
+          )}
+          {c.exposed && (
+            <Chip tip={exposedTip()} tone="danger">
               <span aria-hidden="true">◇ </span>Expuesto
             </Chip>
           )}
           {(c.quiebreResist ?? 0) > 0 && (
-            <Chip
-              tip={{ title: "Resiste Quiebre", kind: "info", lines: [`No se le puede provocar otro Quiebre durante ${c.quiebreResist} turno(s) propio(s).`], source: "Quiebre" }}
-              tone="info"
-            >
+            <Chip tip={resistQuiebreTip(c.quiebreResist ?? 0)} tone="info">
               <span aria-hidden="true">⛨ </span>Resiste Quiebre {c.quiebreResist}
             </Chip>
           )}
-          {(() => {
-            const bb = bossBadge(c);
-            return bb ? (
-              <Chip tip={bb.tip} tone="danger">
-                {bb.label}
-              </Chip>
-            ) : null;
-          })()}
-          {(c.healCut ?? 0) > 0 && (
-            <Chip
-              tip={{ title: "Curas a la mitad", kind: "info", lines: ["El ritual marchito reduce todas tus curas durante unos turnos."] }}
-              tone="danger"
-            >
-              Curas ½
+          {bb && (
+            <Chip tip={bb.tip} tone="danger" className={bb.urgent ? "ring-1 ring-amber-300" : ""}>
+              {bb.urgent && <span aria-hidden="true">⚠ </span>}
+              {bb.label}
             </Chip>
           )}
-          {(c.nextHitReduction ?? 0) > 0 && <Chip tip={{ title: "Mitigación preparada", kind: "info", lines: ["El próximo golpe recibido hace menos daño."] }} tone="info"><span aria-hidden="true">↷ </span>Mitigación</Chip>}
+          {cut && (
+            <Chip tip={healCutTip()} tone="danger">
+              {compact ? `Curas ½ · ${c.healCut}t` : cut}
+            </Chip>
+          )}
+          {mitig && (
+            <Chip tip={mitigationTip(c)} tone="info">
+              <span aria-hidden="true">↷ </span>{compact ? `Mitig. −${Math.round((c.nextHitReduction ?? 0) * 100)}%` : mitig}
+            </Chip>
+          )}
           {enraged && (
             <Chip tip={enrageTip()} tone="danger">
               Enfurecido
@@ -248,9 +293,17 @@ export function HudCard({
           {children}
         </div>
       )}
+      <div className="sr-only" role="status" aria-live="polite">{seen.msg}</div>
       {footer}
       {open && (
-        <div className="pixel-frame absolute left-0 top-full z-30 mt-1 w-64 max-w-[80vw] p-2">
+        <div
+          className="pixel-frame absolute left-0 top-full z-30 mt-1 max-h-[60vh] w-64 max-w-[80vw] overflow-y-auto p-2"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            e.stopPropagation(); // keys inside the detail never reach the target radio (Enter/Space/arrows)
+            if (e.key === "Escape") setOpen(false);
+          }}
+        >
           <div className="flex flex-wrap gap-1">
             <Chip
               tip={passiveTip(c, foe, you)}
@@ -276,6 +329,41 @@ export function HudCard({
               </Chip>
             )}
           </div>
+          {(rows.length > 0 || pen || c.exposed || bb) && (
+            <details className="mt-1.5 rounded border border-white/15 px-1.5 py-1 text-[12px] leading-4 text-[#d9d2ca]">
+              <summary className="cursor-pointer select-none font-semibold text-[#f1d5a4]">
+                Estados ({rows.length + (pen ? 1 : 0) + (c.exposed ? 1 : 0) + (bb ? 1 : 0)})
+              </summary>
+              <ul className="mt-1 space-y-1">
+                {rows.map((r) => (
+                  <li key={r.key}>
+                    <b className={r.negative ? "text-red-300" : "text-green-300"}>{r.text}</b>
+                    <span className="block">{r.negative ? "Perjuicio" : "Beneficio"}: {r.effect}.</span>
+                  </li>
+                ))}
+                {pen && (
+                  <li>
+                    <b className="text-yellow-300">{pen.text}</b>
+                    <span className="block">{pen.condition}</span>
+                  </li>
+                )}
+                {c.exposed && (
+                  <li>
+                    <b className="text-red-300">Expuesto</b>
+                    <span className="block">{exposedTip().lines[0]}</span>
+                  </li>
+                )}
+                {bb && (
+                  <li>
+                    <b className={bb.urgent ? "text-amber-300" : "text-red-300"}>{bb.label}</b>
+                    {bb.tip.lines.map((l, i) => (
+                      <span key={i} className="block">{l}</span>
+                    ))}
+                  </li>
+                )}
+              </ul>
+            </details>
+          )}
           <div className="mt-1.5 grid grid-cols-2 gap-x-2">
             {cells.map((cell) => (
               <Tooltip

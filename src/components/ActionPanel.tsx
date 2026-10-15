@@ -4,7 +4,6 @@ import { Panel } from "@/components/Panel";
 import { Tooltip } from "@/components/Tooltip";
 import { basicIcon, SKILL_FX } from "@/lib/art/skillFx";
 import {
-  estimateDamage,
   equippedSkills,
   livingEnemies,
   projectTurns,
@@ -28,6 +27,7 @@ import {
   skillMeta,
   type Tip,
 } from "@/lib/game/explain";
+import { preparedPenetration, previewDamage } from "@/lib/game/statusView";
 
 type Props = {
   b: Battle;
@@ -57,6 +57,17 @@ function ResourceMeter({ b }: { b: Battle }) {
         {Array.from({ length: RESOURCE_MAX }, (_, i) => (i < res ? "◆" : "◇")).join("")}
       </span>
       <span className="text-xs tabular-nums text-yellow-200">{res}/{RESOURCE_MAX}</span>
+    </span>
+  );
+}
+
+// Ruptura consumed: the next attack ignores part of the DEF. Persistent, with its exact expiry in the tooltip.
+function PenetrationNote({ b }: { b: Battle }) {
+  const pen = preparedPenetration(b.player);
+  if (!pen) return null;
+  return (
+    <span className="block text-[11px] font-semibold leading-tight text-yellow-200" title={pen.condition}>
+      <span aria-hidden="true">◆ </span>{pen.text}
     </span>
   );
 }
@@ -273,14 +284,14 @@ export function ActionPanel({
       onClick={() => onAct("attack1", target)}
       icon={basicIcon(p.char.classId, p.char.weapon?.type)}
       title="Básico"
-      sub={`~${estimateDamage(p, foe, "attack1")} daño`}
+      sub={`~${previewDamage(p, foe, "attack1")} daño`}
       meta={`Sin costo · +1 ${resName}${alive.length > 1 && !chip ? ` · Objetivo: ${foe.char.name}` : ""}`}
     />
   );
 
   const preview = (def: SkillDef): string => {
     if (def.power <= 0) return skillEffects(def).slice(0, 2).join(" · ") || "Efecto propio";
-    let dmg = estimateDamage(p, foe, def.id);
+    let dmg = previewDamage(p, foe, def.id);
     if (def.exposedPower && foe.exposed) dmg = Math.round((dmg * def.exposedPower) / def.power);
     // Aguante: the share of the life damage that goes to the secondary bar decides a Quiebre.
     const breaks = foe.aguante !== undefined && foe.aguante > 0 && Math.min(dmg, foe.hp) * def.aguante >= foe.aguante;
@@ -348,6 +359,7 @@ export function ActionPanel({
           <ResourceMeter b={b} />
         </div>
       )}
+      {!over && <PenetrationNote b={b} />}
       {!over && alive.length > 1 && (
         <div className="mb-1 text-[13px] leading-5 text-yellow-300">
           Elige un rival (clic o 1-3) · objetivo: {foe.char.name}
@@ -415,6 +427,7 @@ export function ActionPanel({
                   <div className="text-xs text-[#d9d2ca]">Turno {b.turn + 1}</div>
                 </Tooltip>
                 <ResourceMeter b={b} />
+                <PenetrationNote b={b} />
                 {alive.length > 1 && <div className="text-[11px] text-yellow-300">Objetivo: {foe.char.name}</div>}
               </div>
               <div className="order-last min-w-0 basis-full lg:order-none lg:basis-0 lg:flex-1">

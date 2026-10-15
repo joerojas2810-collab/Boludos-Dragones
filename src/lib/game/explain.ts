@@ -22,17 +22,13 @@ import {
   DOUBLE_ATTACK_FACTOR,
   ELEMENT_SHIFT_EVERY,
   estimateDamage,
-  FROST_DELAY,
   intentType,
-  MAGE_CONSUME_MULT,
   isStrongIntent,
   RATE_MAX,
   RATE_MIN,
-  RUPTURE_BYPASS_PER_CHARGE,
   skillBlockReason,
   TURN_CAP,
   TURN_WARN,
-  WIND_ADVANCE,
   REGEN_FRACTION,
   SHIELD_FRACTION,
   livingEnemies,
@@ -74,25 +70,19 @@ import {
 import { MODIFIER_FLOORS } from "./floorFights";
 import { CLEAR_XP_BONUS, FIGHT_XP, GAFE_LOSS_XP, SEDIENTO_HEAL } from "./stage";
 import { BURN_CAP, STATUS_DATA, type StatusEffect, type StatusId } from "./statuses";
+import { ENRAGE_AFTER_OWN_TURN, ENRAGE_STEP, type BossRule } from "./bossRules";
 import {
-  ADAPT_AFTER,
-  ADAPT_FACTOR,
-  ARMOR_FRACTION,
-  ARMOR_TAKEN,
-  ENRAGE_AFTER_OWN_TURN,
-  ENRAGE_STEP,
-  BROKEN_TAKEN,
-  HEAD_THRESHOLDS,
-  HUNGER_BELOW,
-  HUNGER_STEAL,
-  PLAGUE_LOSS,
-  PRESSURE_STEP,
-  RAMP_STEP,
-  RITUAL_EVERY,
-  ruleOf,
-  STANCES,
-  type BossRule,
-} from "./bossRules";
+  bossText,
+  bossView,
+  consumeLines,
+  interruptLine,
+  MITIGATION_CONDITION,
+  mitigationText,
+  preparedPenetration,
+  previewDamage,
+  statBreakdown,
+  type BossView,
+} from "./statusView";
 import { TOWER_XP_FACTOR } from "./tower";
 import { EXECUTE_HP, HIGH_HP, RAGE_MAX, TRAITS, type TraitId, type TraitMods, type TraitRules } from "./traits";
 
@@ -420,7 +410,7 @@ export function statTip(
         const em = attackElementMultiplier(c, foe);
         lines.push(
           `Ahora, ${a.name}: ${n1(st.atk)} × ${n1(a.power)} × ${em.toFixed(2)} (elemento) reducido por DEF de ${foe.char.name}.`,
-          `Con defensa, equipo y pasivas: ~${estimateDamage(c, foe, "attack1")} por golpe (sin crítico).`,
+          `Con defensa, equipo y pasivas: ~${previewDamage(c, foe, "attack1")} por golpe (sin crítico).`,
         );
       } else
         lines.push(
@@ -471,7 +461,7 @@ export function statTip(
         `Un crítico hace x${m.toFixed(1)} de daño${c.char.classId === "picaro" ? " (Filo mortal)" : ""}.`,
       );
       if (foe) {
-        const d = estimateDamage(c, foe, "attack1");
+        const d = previewDamage(c, foe, "attack1");
         lines.push(
           `Ahora, ${cls.attack1.name}: ~${d} normal, ~${Math.round(d * m)} crítico.`,
         );
@@ -492,6 +482,14 @@ export function statTip(
       break;
     }
   }
+  if (stat === "atk" || stat === "def" || stat === "speed") {
+    const bd = statBreakdown(c, stat);
+    if (bd.changed) title = `${STAT_NAME[stat]} ${n1(bd.base)} → ${n1(bd.effective)}`;
+    if (bd.mods.length) lines.push(`Base ${n1(bd.base)}, efectiva ahora ${n1(bd.effective)}: ${bd.mods.join("; ")}.`);
+    lines.push(...bd.notes);
+  }
+  const pen = stat === "atk" ? preparedPenetration(c) : null;
+  if (pen) lines.push(`${pen.text}. ${pen.condition}`);
   return { title, kind, lines, source: `Stat de ${c.char.name}` };
 }
 
@@ -502,7 +500,7 @@ export function attackDisabledReason(c: Combatant, key: MoveKey): string | null 
 }
 
 const damageLine = (c: Combatant, foe: Combatant, key: MoveKey) => {
-  const d = estimateDamage(c, foe, key);
+  const d = previewDamage(c, foe, key);
   return `Daño: ~${d} (sin crítico). Con crítico (${pct(c.char.stats.crit)} de probabilidad): ~${Math.round(d * critMultiplier(c))}.`;
 };
 
@@ -538,30 +536,10 @@ export function skillMeta(def: SkillDef): string {
   ].filter(Boolean).join(" · ");
 }
 
-/** What consuming would do right now, or why it would not (null when the skill does not consume). */
+/** What consuming would do right now, or why it would not (null when the skill does not consume). Source: consumePreview. */
 export function consumeHint(c: Combatant, foe: Combatant | undefined, def: SkillDef): string | null {
   if (!def.consume) return null;
-  const el = c.char.element;
-  const mage = c.char.classId === "mago" ? MAGE_CONSUME_MULT : 1;
-  const st = (who: Combatant | undefined, id: StatusId) => who?.statuses?.find((x) => x.id === id)?.stacks ?? 0;
-  if (el === "fuego") {
-    const n = st(foe, "quemadura");
-    return n ? `Consume Quemadura ×${n}: adelanta 1,5 tics de daño` : "Sin Quemadura en el objetivo: no consume";
-  }
-  if (el === "agua") {
-    const n = st(foe, "escarcha");
-    if (!n) return "Sin Escarcha en el objetivo: no consume";
-    return foe?.frostDelayed ? "Ya retrasado por Escarcha: no vuelve a retrasar" : `Consume Escarcha ×${n}: retrasa su turno ${pct(FROST_DELAY[Math.min(3, n)] * mage)}`;
-  }
-  if (el === "tierra") {
-    const n = st(foe, "ruptura");
-    return n ? `Consume Ruptura ×${n}: tu siguiente ataque ignora ${pct(Math.min(0.9, n * RUPTURE_BYPASS_PER_CHARGE * mage))} de DEF` : "Sin Ruptura en el objetivo: no consume";
-  }
-  if (el === "viento") {
-    const n = st(c, "impulso");
-    return n ? `Consume Impulso ×${n}: adelantas tu turno ${pct(WIND_ADVANCE[Math.min(3, n)] * mage)}` : "Sin Impulso propio: no consume";
-  }
-  return (c.charge ?? 0) >= 3 ? "Descarga Sobrecarga: daño extra" : `Sobrecarga ${c.charge ?? 0}/3: necesita 3 cargas para descargar`;
+  return consumeLines(c, foe)?.join(" · ") ?? null;
 }
 
 export function attackTip(c: Combatant, key: "attack1" | SkillId, foe?: Combatant): Tip {
@@ -581,6 +559,8 @@ export function attackTip(c: Combatant, key: "attack1" | SkillId, foe?: Combatan
     lines.push(def ? `Poder x${n1(a.power)} (Básico × ${n1(def.power)}; ATQ ${n1(st.atk)}).` : `Poder x${n1(a.power)} del arma (ATQ ${n1(st.atk)}).`);
     if (foe) {
       lines.push(damageLine(c, foe, key));
+      const pen = preparedPenetration(c);
+      if (pen) lines.push(`Incluye la penetración preparada (${pct(pen.pct)} de DEF): este golpe la gasta.`);
       const em = attackElementMultiplier(c, foe);
       if (em !== 1) lines.push(`Elemento: x${em.toFixed(2)} (${em > 1 ? "ventaja" : "desventaja"}).`);
       if (foe.defending) lines.push(`${foe.char.name} se defiende: ya está contada la mitad de daño.`);
@@ -588,8 +568,7 @@ export function attackTip(c: Combatant, key: "attack1" | SkillId, foe?: Combatan
     } else lines.push(`Daño base ≈ ${n1(st.atk * a.power)} antes de la DEF del rival.`);
   }
   if (def) {
-    const hint = consumeHint(c, foe, def);
-    if (hint) lines.push(hint + ".");
+    if (def.consume) for (const l of consumeLines(c, foe) ?? []) lines.push(l + ".");
   }
   if (a.heal > 0) lines.push(`Cura ${pct(a.heal)} de tu vida máxima (≈${Math.round(st.hp * a.heal)} PV).`);
   const why = def ? skillBlockReason(c, def.id) : null;
@@ -659,7 +638,7 @@ export function intentInfo(intent: Intent, b: Battle, idx: number): IntentInfo {
       return {
         name: "Ritual", glyph: "✦", strong, damage, cancel: "interrumpir", cancelLabel: "Interrumpible",
         effect: "Te aplica Ruptura y reduce tus curas a la mitad",
-        counter: "Sello o Sabotaje lo interrumpen; Defender no lo detiene.",
+        counter: `${interruptLine(b.player)}`,
       };
     case "defensa":
       return {
@@ -720,47 +699,78 @@ export const guardTip = (c: Combatant): Tip => ({
 });
 
 const STATUS_RULE: Record<StatusId, string> = {
-  escarcha: `Cada carga quita ${pct(STATUS_DATA.escarcha.per)} de velocidad. Consumirla retrasa su próximo turno (5, 10 o 15 % según las cargas).`,
-  quemadura: `Al inicio de su turno sufre ${pct(STATUS_DATA.quemadura.per)} del golpe que la causó por carga (máx. ${STATUS_DATA.quemadura.max}), con tope de ${pct(BURN_CAP)} de la vida máxima. Consumirla adelanta 1,5 tics.`,
-  impulso: `Cada carga da +${pct(STATUS_DATA.impulso.per)} de velocidad propia. Consumirlo adelanta tu siguiente turno (10, 20 o 30 %).`,
-  ruptura: `Cada carga quita ${pct(STATUS_DATA.ruptura.per)} de DEF (máx. ${STATUS_DATA.ruptura.max}). Consumirla hace que tu siguiente ataque ignore parte de la DEF.`,
+  escarcha: `Cada carga quita ${pct(STATUS_DATA.escarcha.per)} de velocidad (máx. ${STATUS_DATA.escarcha.max}). Una habilidad que consume retrasa su turno según las cargas y tus reliquias.`,
+  quemadura: `Al inicio de su turno sufre ${pct(STATUS_DATA.quemadura.per)} del golpe que la causó por carga (máx. ${STATUS_DATA.quemadura.max}), con tope de ${pct(BURN_CAP)} de la vida máxima por tic. Consumirla adelanta 1,5 tics.`,
+  impulso: `Cada carga da +${pct(STATUS_DATA.impulso.per)} de velocidad propia (máx. ${STATUS_DATA.impulso.max}). Una habilidad que consume adelanta tu siguiente turno.`,
+  ruptura: `Cada carga quita ${pct(STATUS_DATA.ruptura.per)} de DEF (máx. ${STATUS_DATA.ruptura.max}). Consumirla hace que el siguiente ataque de quien la consume ignore parte de la DEF.`,
 };
 
 export const statusTip = (s: StatusEffect): Tip => ({
-  title: `${STATUS_DATA[s.id].label} ×${s.stacks}`,
+  title: `${STATUS_DATA[s.id].label} ${s.stacks}/${STATUS_DATA[s.id].max}`,
   kind: "info",
   lines: [
     STATUS_RULE[s.id],
-    `Dura ${plural(s.turns, "turno más", "turnos más")} del portador; cada golpe del mismo elemento la renueva.`,
+    `Dura ${plural(s.turns, "turno más", "turnos más")} del portador (se cuenta al cerrar su turno); cada golpe del mismo elemento la renueva y suma una carga.`,
   ],
   source: "Efecto elemental",
 });
 
-// Boss mechanic shown as a HUD chip (label + tooltip); null when it has nothing to show.
-export const BOSS_TEXT: Record<BossRule, { title: string; line: string }> = {
-  plaga: { title: "Plaga", line: `Al final de cada turno del jefe pierdes ${pct(PLAGUE_LOSS)} de tu vida máxima.` },
-  presion: { title: "Presión", line: `Cada turno suyo suma +${pct(PRESSURE_STEP)} de daño por nivel (máx. 5). Una guardia perfecta contra su golpe fuerte la reinicia.` },
-  aprende: { title: "Te lee", line: `Si repites la misma acción ${ADAPT_AFTER} veces seguidas, la siguiente hace ${pct(1 - ADAPT_FACTOR)} menos.` },
-  armadura: { title: "Armadura", line: `Barra del ${pct(ARMOR_FRACTION)} de su vida: recibe ${pct(1 - ARMOR_TAKEN)} menos de daño. Al romperla queda Roto (+${pct(BROKEN_TAKEN - 1)} de daño recibido) y la recompone después.` },
-  velocidad: { title: "Aceleración", line: `Cada 2 turnos propios gana +${pct(RAMP_STEP)} de velocidad. La Escarcha lo frena.` },
-  cabezas: { title: "Cabezas", line: `Al bajar del ${HEAD_THRESHOLDS.map((t) => pct(t)).join(", ")} de vida se cura y gana una cabeza: su próxima acción suma impactos extra.` },
-  marchitar: { title: "Ritual", line: `Cada ${RITUAL_EVERY} turnos propios prepara un ritual que te aplica Ruptura y reduce tus curas a la mitad. Solo Sello o Sabotaje lo interrumpen; Defender no.` },
-  posturas: { title: "Postura", line: `Alterna cada 2 turnos propios: ofensiva (+${pct(STANCES.ofensiva.dmg - 1)} daño, −${pct(1 - STANCES.ofensiva.def)} DEF) y defensiva (−${pct(1 - STANCES.defensiva.dmg)} daño, +${pct(STANCES.defensiva.def - 1)} DEF).` },
-  hambre: { title: "Hambre", line: `Se cura ${pct(HUNGER_STEAL)} del daño que hace y con menos del ${pct(HUNGER_BELOW)} de vida actúa una vez más.` },
+/** Expuesto (Quiebre): distinct from Ruptura (Tierra stacks). Expires when the carrier completes its next own turn. */
+export const EXPUESTO_LINE = "DEF −15 % hasta que complete su próximo turno propio. Es el momento de golpear fuerte.";
+export const exposedTip = (): Tip => ({ title: "Expuesto", kind: "danger", lines: [EXPUESTO_LINE], source: "Quiebre" });
+
+export const resistQuiebreTip = (turns: number): Tip => ({
+  title: "Resiste Quiebre",
+  kind: "info",
+  lines: [`No se le puede provocar otro Quiebre durante ${plural(turns, "turno propio", "turnos propios")} suyos.`],
+  source: "Quiebre",
+});
+
+export const healCutTip = (): Tip => ({
+  title: "Curas a la mitad",
+  kind: "info",
+  lines: [
+    "El ritual marchito reduce a la mitad todas tus curas: activas, regeneración y robo de vida.",
+    "Cuenta tus turnos propios, incluido el actual; baja al cerrar cada uno.",
+  ],
+  source: "Reina Marchita",
+});
+
+export const mitigationTip = (c: Combatant): Tip => ({
+  title: mitigationText(c) ?? "Mitigación",
+  kind: "info",
+  lines: [MITIGATION_CONDITION],
+  source: "Paso evasivo",
+});
+
+export const penetrationTip = (c: Combatant): Tip | null => {
+  const p = preparedPenetration(c);
+  if (!p) return null;
+  return {
+    title: p.text,
+    kind: "damage",
+    lines: [
+      "Consumir Ruptura prepara tu siguiente ataque: ignora ese porcentaje de la DEF del objetivo.",
+      p.condition,
+      ...(p.pierceBonus ? [`Reliquia: el ataque que la gasta pega +${pct(p.pierceBonus)}.`] : []),
+    ],
+    source: "Ruptura consumida",
+  };
 };
 
-export function bossBadge(c: Combatant): { label: string; tip: Tip } | null {
-  const rule = ruleOf(c);
-  if (!rule || !c.boss) return null;
-  const t = BOSS_TEXT[rule];
-  const label =
-    rule === "presion" ? `Presión ×${c.boss.pressure}`
-    : rule === "velocidad" ? `Aceleración ×${c.boss.ramp}`
-    : rule === "cabezas" ? `Cabezas ×${1 + c.boss.heads}`
-    : rule === "posturas" ? `Postura ${c.boss.stance}`
-    : rule === "armadura" ? ((c.shield ?? 0) > 0 ? "Armadura" : c.boss.broken > 0 ? `Roto ${c.boss.broken}` : "Sin armadura")
-    : t.title;
-  return { label, tip: { title: t.title, kind: "info", lines: [t.line], source: "Mecánica de jefe" } };
+// Boss mechanic text at a given ascension; BOSS_TEXT keeps the base (ascension 0) values for previews.
+export { bossText };
+export const BOSS_TEXT: Record<BossRule, { title: string; line: string }> = Object.fromEntries(
+  (["plaga", "presion", "aprende", "armadura", "velocidad", "cabezas", "marchitar", "posturas", "hambre"] as const).map(
+    (r) => [r, bossText(r, 0)],
+  ),
+) as Record<BossRule, { title: string; line: string }>;
+
+/** Chip of a boss mechanic: live counter, limit/next threshold and response, read from combatant.boss.ascension. */
+export function bossBadge(c: Combatant, hero?: Combatant): { label: string; tip: Tip; urgent: boolean } | null {
+  const v: BossView | null = bossView(c, hero);
+  if (!v) return null;
+  return { label: v.label, urgent: v.urgent, tip: { title: v.title, kind: v.urgent ? "danger" : "info", lines: v.lines, source: "Mecánica de jefe" } };
 }
 
 /** Closing line of a lost fight; a turn-cap draw counts as a defeat outside duels. */
