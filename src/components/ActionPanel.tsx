@@ -3,25 +3,29 @@ import { Icon } from "@/components/Icon";
 import { Panel } from "@/components/Panel";
 import { Tooltip } from "@/components/Tooltip";
 import { iconFor } from "@/lib/art";
-import { UNIVERSAL_SKILLS, universalCooldownLabel, type UniversalSkillId } from "@/lib/game/universalSkills";
+import { SKILL_FX } from "@/lib/art/skillFx";
 import {
-  actionsLeft,
   estimateDamage,
-  isStrongIntent,
+  equippedSkills,
   livingEnemies,
+  projectTurns,
+  skillBlockReason,
   strongPending,
-  type EnemySlot,
+  TURN_CAP,
+  TURN_WARN,
   type Action,
   type Battle,
-  attackOf,
 } from "@/lib/game/combat";
+import { RESOURCE_MAX, RESOURCE_NAME, SKILLS, type SkillDef, type SkillId } from "@/lib/game/skills";
 import {
-  announceTip,
-  attackDisabledReason,
   attackTip,
   autoTip,
+  consumeHint,
   defendTip,
+  intentInfo,
   intentTip,
+  queueTip,
+  skillEffects,
   type Tip,
 } from "@/lib/game/explain";
 
@@ -37,112 +41,119 @@ type Props = {
   children?: ReactNode; // shown below the result once the fight is over
 };
 
-const UNIVERSAL_ACTION_ORDER = ["golpe", "barrido", "quebrar", "interrumpir", "explotar"] as const;
-const UNIVERSAL_ACTION_LABELS: Record<UniversalSkillId, string> = {
-  golpe: "Golpe",
-  barrido: "Barrido",
-  quebrar: "Quebrar",
-  interrumpir: "Interrumpir",
-  explotar: "Explotar",
-};
-
-function RoundQueue({ b, desktop = false }: { b: Battle; desktop?: boolean }) {
-  const slots = b.queue.filter(
-    (slot): slot is "player" | EnemySlot =>
-      slot === "player" || b.enemies[slot.e].hp > 0,
+// Class resource: three marks, filled = available. Shape differs (◆/◇) so it never relies on colour.
+function ResourceMeter({ b }: { b: Battle }) {
+  const c = b.player;
+  const name = RESOURCE_NAME[c.char.classId];
+  const res = Math.min(RESOURCE_MAX, c.res ?? 0);
+  return (
+    <span
+      className="inline-flex items-center gap-1 whitespace-nowrap"
+      role="img"
+      aria-label={`${name}: ${res} de ${RESOURCE_MAX}`}
+    >
+      <span className="text-xs text-[#d9d2ca]">{name}</span>
+      <span aria-hidden="true" className="tracking-wider text-yellow-300">
+        {Array.from({ length: RESOURCE_MAX }, (_, i) => (i < res ? "◆" : "◇")).join("")}
+      </span>
+      <span className="text-xs tabular-nums text-yellow-200">{res}/{RESOURCE_MAX}</span>
+    </span>
   );
-  const firstPlayer = slots.findIndex((slot) => slot === "player");
-  const completedPlayerActions = b.playerActions - actionsLeft(b);
+}
 
+// Next 6 turns. Only the first is certain; the rest are estimates (dashed, with "≈").
+function TurnQueue({ b, desktop = false }: { b: Battle; desktop?: boolean }) {
+  const turns = projectTurns(b, 6);
+  const seen = new Set<number>();
   return (
     <section
-      aria-label="Cola de acciones de la ronda"
+      aria-label="Orden de turnos"
       className={desktop ? "min-w-0" : "rounded-md border border-[#b9855a]/30 bg-black/25 px-2 py-1.5"}
     >
-      {!desktop && <div className="mb-1 flex items-center justify-between gap-2 text-[11px] leading-tight text-[#d9d2ca]">
-        <span className="font-semibold uppercase tracking-wide text-[#f1d5a4]">
-          Orden de la ronda
-        </span>
-        <span className="shrink-0">Tú eliges ahora</span>
-      </div>}
-      {slots.length === 0 ? (
-        <div className="text-xs text-[#aebccb]">Ronda resuelta</div>
-      ) : (
-        <ol
-          aria-label="Acciones pendientes, en orden de resolución"
-          className={desktop ? "cmd-order-list" : "flex min-w-0 gap-1.5 overflow-x-auto pb-1"}
-        >
-          {slots.map((slot, i) => {
-            const current = i === firstPlayer;
-            if (slot === "player") {
-              const playerNumber =
-                completedPlayerActions +
-                slots.slice(0, i + 1).filter((queued) => queued === "player").length;
-              const label = `Tú, acción ${playerNumber} de ${b.playerActions}`;
-              return (
-                <li
-                  key={`player-${playerNumber}`}
-                  aria-current={current ? "step" : undefined}
-                  aria-label={label}
-                  className={`${desktop ? "cmd-order-slot" : "flex min-h-10 min-w-[5.5rem] shrink-0 flex-col justify-center rounded border px-2 py-1"} text-center ${current ? "border-yellow-300 bg-yellow-300/15 text-yellow-100 shadow-[0_0_0_1px_#fcd34d66]" : "border-emerald-700/60 bg-emerald-950/50 text-emerald-100"}`}
-                >
-                  <span className="text-xs font-bold leading-tight">TÚ</span>
-                  <span className="text-[10px] leading-tight">
-                    {current ? "Tu acción" : "Acción extra"}
-                  </span>
-                </li>
-              );
-            }
-
-            const enemy = b.enemies[slot.e];
-            const intent =
-              slot.intent === "defend"
-                ? "Defender"
-                : slot.intent === "charge"
-                  ? "Carga"
-                  : slot.intent === "channeling"
-                    ? "Canalización"
-                : attackOf(enemy, slot.intent).name;
-            const strong = isStrongIntent(slot.intent);
-            const cue = slot.intent === "channeling"
-              ? "Interrumpible"
-              : slot.intent === "charge"
-                ? "Cancelable por Quiebre"
-                : strong
-                  ? "Golpe fuerte"
-                  : "";
-            const label = `${enemy.char.name}: ${intent}${cue ? ` · ${cue}` : ""}`;
-            const compactCue = slot.intent === "channeling"
-              ? "Interrumpible"
-              : slot.intent === "charge"
-                ? "Quiebre"
-                : slot.intent === "attack2"
-                  ? "Fuerte"
-                  : "";
+      {!desktop && (
+        <div className="mb-1 flex items-center justify-between gap-2 text-[11px] leading-tight text-[#d9d2ca]">
+          <Tooltip tip={queueTip(b)}>
+            <span className="font-semibold uppercase tracking-wide text-[#f1d5a4]">Orden de turnos</span>
+          </Tooltip>
+          <span className="shrink-0">Seguro · ≈ estimado</span>
+        </div>
+      )}
+      <ol
+        aria-label="Próximos 6 turnos"
+        className={desktop ? "cmd-order-list" : "flex min-w-0 gap-1.5 overflow-x-auto pb-1"}
+      >
+        {turns.map((t, i) => {
+          const first = !seen.has(t.id);
+          seen.add(t.id);
+          const base = `${desktop ? "cmd-order-slot" : "flex min-h-10 min-w-[4.5rem] shrink-0 flex-col justify-center rounded border px-1.5 py-1"} text-center`;
+          const certain = t.certain ? "border-solid" : "border-dashed";
+          if (t.id === 0)
             return (
               <li
-                key={`enemy-${slot.e}-${slot.n}-${i}`}
-                aria-label={label}
-                className={`${desktop ? "cmd-order-slot" : "flex min-h-10 min-w-[5.5rem] shrink-0 flex-col justify-center rounded border px-1.5 py-1"} text-center ${slot.intent === "channeling" ? "border-rose-500/80 bg-rose-950/75 text-rose-100" : "border-red-900/70 bg-red-950/55 text-red-100"}`}
+                key={`q${i}`}
+                aria-label={`${t.certain ? "Ahora" : "Estimado"}: tu turno`}
+                className={`${base} ${certain} ${t.certain ? "border-yellow-300 bg-yellow-300/15 text-yellow-100" : "border-emerald-700/70 bg-emerald-950/50 text-emerald-100"}`}
               >
-                <Tooltip tip={intentTip(slot.intent, b, slot.e)} className="block min-w-0">
-                  <span className="block min-w-0">
-                    <span className="flex items-center justify-center gap-1 text-xs font-bold leading-tight">
-                      <span>R{slot.e + 1}</span>
-                      {compactCue && <span className="truncate text-[9px] text-[#f1d5a4]">{compactCue}</span>}
-                    </span>
-                    <span className="block max-w-28 truncate text-[10px] leading-tight" title={label}>
-                      {strong && <span aria-hidden="true">⚠ </span>}
-                      {intent}
-                    </span>
-                  </span>
-                </Tooltip>
+                <span className="text-xs font-bold leading-tight">TÚ</span>
+                <span className="text-[10px] leading-tight">{t.certain ? "Ahora" : "≈"}</span>
               </li>
             );
-          })}
-        </ol>
-      )}
+          const idx = t.id - 1;
+          const e = b.enemies[idx];
+          const known = first && !!e.intent;
+          const info = known ? intentInfo(e.intent!, b, idx) : null;
+          const label = `${t.certain ? "Seguro" : "Estimado"}: ${e.char.name}${info ? `, ${info.name}, ${info.cancelLabel}` : ""}`;
+          return (
+            <li
+              key={`q${i}`}
+              aria-label={label}
+              className={`${base} ${certain} ${info?.strong ? "border-rose-400/80 bg-rose-950/70 text-rose-100" : "border-red-900/70 bg-red-950/55 text-red-100"}`}
+            >
+              <span className="block min-w-0">
+                <span className="block text-xs font-bold leading-tight">R{idx + 1}{t.certain ? "" : " ≈"}</span>
+                <span className="block max-w-24 truncate text-[10px] leading-tight" title={label}>
+                  {info ? <><span aria-hidden="true">{info.glyph} </span>{info.name}</> : "…"}
+                </span>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
     </section>
+  );
+}
+
+// Every living enemy's committed intent with effect, counterplay and whether it can be interrupted.
+function IntentStrip({ b }: { b: Battle }) {
+  const alive = livingEnemies(b).filter((i) => b.enemies[i].intent);
+  if (!alive.length) return null;
+  return (
+    <ul aria-label="Intenciones de los rivales" className="grid min-w-0 gap-1 sm:grid-cols-2 lg:grid-cols-3">
+      {alive.map((i) => {
+        const e = b.enemies[i];
+        const info = intentInfo(e.intent!, b, i);
+        return (
+          <li
+            key={i}
+            className={`min-w-0 rounded border px-1.5 py-1 text-[11px] leading-snug ${info.strong ? "border-rose-400/70 bg-rose-950/60 text-rose-50" : "border-red-900/60 bg-black/35 text-[#f2e6d7]"}`}
+          >
+            <Tooltip tip={intentTip(e.intent!, b, i)} className="block min-w-0">
+              <span className="flex min-w-0 items-baseline gap-1">
+                <span aria-hidden="true" className="font-bold">{info.glyph}</span>
+                <span className="min-w-0 truncate font-bold">
+                  {b.enemies.length > 1 ? `R${i + 1} ` : ""}{info.name}
+                </span>
+                <span className={`ml-auto shrink-0 rounded px-1 text-[10px] font-semibold uppercase tracking-wide ${info.cancel ? "bg-amber-300/20 text-amber-200" : "bg-white/10 text-[#d9d2ca]"}`}>
+                  {info.cancelLabel}
+                </span>
+              </span>
+              <span className="block break-words [overflow-wrap:anywhere]">{info.effect}</span>
+              <span className="block break-words text-[#f1d5a4] [overflow-wrap:anywhere]">{info.counter}</span>
+            </Tooltip>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -173,26 +184,20 @@ function ActionButton({
   meta?: string;
   disabledReason?: string;
 }) {
-  const compactReason = disabledReason?.startsWith("Este enemigo no tiene Aguante")
-    ? "Sin Aguante"
-    : disabledReason?.startsWith("No hay una Canalización")
-      ? "Sin canalización"
-      : disabledReason?.startsWith("Requiere Escarcha")
-        ? "Sin estado"
-        : disabledReason?.startsWith("Recarga:")
-          ? "En recarga"
-          : disabledReason;
+  const compactReason = disabledReason?.startsWith("En enfriamiento")
+    ? disabledReason.replace("En enfriamiento", "En espera")
+    : disabledReason;
   if (chip)
     return (
       <Tooltip tip={tip} className="block min-w-0">
         <button className="cmd-chip !h-auto min-h-[5.25rem] w-full flex-col gap-0.5 px-1.5 py-1 text-center disabled:!opacity-80" data-hot={hot ? "" : undefined} disabled={disabled} onClick={onClick}>
           <span className="flex min-w-0 items-center justify-center gap-1">
             {icon && <Icon name={icon} className="h-6 shrink-0" />}
-            <span className="min-w-0 whitespace-nowrap text-[13px] font-bold leading-tight">{title}</span>
+            <span className="min-w-0 break-words text-[13px] font-bold leading-tight">{title}</span>
           </span>
-          <span className={`block max-w-full whitespace-nowrap text-xs leading-tight ${disabled ? "text-[#fff1d0]" : "text-[#d9d2ca]"}`} title={sub}>{sub}</span>
+          <span className={`block max-w-full break-words text-xs leading-tight ${disabled ? "text-[#fff1d0]" : "text-[#d9d2ca]"}`} title={sub}>{sub}</span>
           {meta && <span className="block max-w-full border-t border-white/15 pt-0.5 text-[11px] leading-tight text-[#d9d2ca]" title={meta}>{meta}</span>}
-          {compactReason && <span className="block max-w-full whitespace-nowrap text-[10px] leading-tight text-amber-200" title={disabledReason}>{compactReason}</span>}
+          {compactReason && <span className="block max-w-full break-words text-[10px] leading-tight text-amber-200" title={disabledReason}>{compactReason}</span>}
         </button>
       </Tooltip>
     );
@@ -248,100 +253,106 @@ export function ActionPanel({
   children,
 }: Props) {
   const over = b.status !== "ongoing";
-  const left = actionsLeft(b);
-  const mine = b.playerActions;
   const alive = livingEnemies(b);
   const foe = b.enemies[alive[target] ?? alive[0] ?? 0];
   const perfect = strongPending(b);
+  const p = b.player;
+  const resName = RESOURCE_NAME[p.char.classId];
 
   const basicAction = (chip = false) => (
     <ActionButton
       chip={chip}
       left={float}
-      tip={attackTip(b.player, "attack1", foe)}
-      disabled={!!attackDisabledReason(b.player, "attack1")}
+      tip={attackTip(p, "attack1", foe)}
       onClick={() => onAct("attack1", target)}
-      icon={iconFor("skill", `${b.player.char.classId}.attack1`)}
+      icon={iconFor("skill", SKILL_FX.attack1.icon)}
       title="Básico"
-      sub={`~${estimateDamage(b.player, foe, "attack1")} daño`}
-      meta={chip ? "CD —" : `Sin enfriamiento${alive.length > 1 ? ` · Objetivo: ${foe.char.name}` : ""}`}
+      sub={`~${estimateDamage(p, foe, "attack1")} daño`}
+      meta={`Sin costo · +1 ${resName}${alive.length > 1 && !chip ? ` · Objetivo: ${foe.char.name}` : ""}`}
     />
   );
 
-  const universalActions = (chip = false) => UNIVERSAL_ACTION_ORDER.map((id) => {
-    const action = UNIVERSAL_SKILLS[id];
-    const remaining = universalCooldownLabel(b.player.universalCooldowns?.[action.id] ?? 0);
-    const targetLabel = alive.length <= 1
-      ? ""
-      : action.target === "all"
-        ? `Objetivo: ${alive.length} rivales`
-        : `Objetivo: ${foe.char.name}`;
-    const reason = attackDisabledReason(b.player, id, foe) ?? undefined;
-    const damage = action.attack.power === 0
-      ? action.attack.name === "Quebrar Aguante"
-        ? "Reduce Aguante"
-        : action.attack.name === "Interrumpir"
-          ? "Detiene canalización"
-          : "Consume el estado"
-      : `~${estimateDamage(b.player, foe, action.id)} daño`;
+  const preview = (def: SkillDef): string => {
+    if (def.power <= 0) return skillEffects(def).slice(0, 2).join(" · ") || "Efecto propio";
+    let dmg = estimateDamage(p, foe, def.id);
+    if (def.exposedPower && foe.exposed) dmg = Math.round((dmg * def.exposedPower) / def.power);
+    // Aguante: the share of the life damage that goes to the secondary bar decides a Quiebre.
+    const breaks = foe.aguante !== undefined && foe.aguante > 0 && Math.min(dmg, foe.hp) * def.aguante >= foe.aguante;
+    return def.target === "all"
+      ? `~${dmg} a cada rival${breaks ? " · ¡Quiebre!" : ""}`
+      : `~${dmg} daño${breaks ? " · ¡Quiebre!" : ""}`;
+  };
+
+  const skillAction = (id: SkillId, chip = false) => {
+    const def = SKILLS[id];
+    const reason = skillBlockReason(p, id) ?? undefined;
+    const cd = p.cds?.[id] ?? 0;
+    const cost = def.cost ? `Cuesta ${def.cost} ${resName}` : "Sin costo";
+    const gen = def.gen ? ` · +${def.gen} ${resName}` : "";
+    const wait = def.cooldown ? ` · Espera ${def.cooldown}` : "";
+    const hint = consumeHint(p, foe, def);
+    const effects = def.power > 0 ? skillEffects(def).filter((e) => !e.startsWith("Consume")) : [];
+    const extra = chip ? "" : [hint, effects.join(" · ")].filter(Boolean).join(" · ");
     return (
       <ActionButton
-        key={action.id}
+        key={id}
         chip={chip}
         left={float}
-        tip={{ title: action.name, kind: "info", lines: [reason ?? (remaining ? `Se activa de nuevo en ${remaining} acciones.` : targetLabel || "Disponible para usar.")] }}
+        tip={attackTip(p, id, foe)}
         disabled={!!reason}
-        onClick={() => onAct(action.id, target)}
-        icon={iconFor("skill", action.id)}
-        title={UNIVERSAL_ACTION_LABELS[action.id]}
-        sub={damage}
-        meta={remaining ? `${chip ? "CD" : "Activaciones"}: ${remaining}` : "Listo"}
+        onClick={() => onAct(id, target)}
+        icon={iconFor("skill", SKILL_FX[id].icon)}
+        title={def.name}
+        sub={preview(def)}
+        meta={`${cost}${gen}${wait}${cd ? ` · Quedan ${cd}` : ""}${extra ? ` · ${extra}` : ""}`}
         disabledReason={reason}
       />
     );
-  });
+  };
+
+  const [slotA, slotB] = equippedSkills(p);
+  const defendAction = (chip = false) => (
+    <ActionButton
+      chip={chip}
+      left={float}
+      tip={defendTip(b)}
+      onClick={() => onAct("defend", target)}
+      icon={iconFor("skill", "defend")}
+      title="Defender"
+      sub={perfect ? "¡Guardia perfecta!" : "Mitad de daño hasta tu turno"}
+      meta={perfect ? `−75 % al golpe fuerte · +1 ${resName}` : "Sin costo"}
+      hot={perfect}
+    />
+  );
+
+  const turnWarning =
+    b.turn >= TURN_WARN
+      ? `Quedan ${Math.max(0, TURN_CAP - b.turn)} turnos antes del empate.`
+      : null;
 
   const panel = (
     <Panel
       className={`${float ? "panel-float" : ""} shrink-0 !p-2 max-md:sticky max-md:bottom-0 max-md:z-30 max-md:max-h-[62dvh] max-md:overflow-y-auto ${side ? `md:w-[22rem] md:overflow-y-auto ${float ? "md:max-h-full" : "md:self-stretch"}` : ""}`}
     >
       {!over && (
-        <div
-          className={
-            float
-              ? "mb-1.5"
-              : "mb-1.5 flex flex-wrap items-center justify-center gap-x-4 text-center"
-          }
-        >
-          <div
-            className={`flex flex-wrap items-center gap-x-3 text-base ${float ? "justify-between" : "justify-center"}`}
-          >
-            <span className="flex items-center gap-3">
-              <span className="font-semibold text-green-300">Tu turno</span>
-              <span className="font-[family-name:var(--font-title)] text-lg font-bold text-yellow-300">
-                Ronda {b.turn}
-              </span>
-            </span>
-            <Tooltip tip={announceTip(b)}>
-              <span className={`${float ? "action-pill" : ""}`}>
-                Acciones:{" "}
-                <span className="tracking-wider text-yellow-300">
-                  {Array.from({ length: mine }, (_, i) =>
-                    i < mine - left ? "○" : "●",
-                  ).join("")}
-                </span>{" "}
-                {left} de {mine}
-              </span>
+        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <span className="flex items-center gap-3">
+            <span className="font-semibold text-green-300">Tu turno</span>
+            <Tooltip tip={queueTip(b)}>
+              <span className="font-[family-name:var(--font-title)] text-base font-bold text-yellow-300">Turno {b.turn + 1}</span>
             </Tooltip>
-          </div>
-          {alive.length > 1 && (
-            <div className="text-[13px] leading-5 text-yellow-300">
-              Elige un rival (clic o 1-3) · objetivo: {foe.char.name}
-            </div>
-          )}
+          </span>
+          <ResourceMeter b={b} />
         </div>
       )}
-      {!over && <RoundQueue b={b} />}
+      {!over && alive.length > 1 && (
+        <div className="mb-1 text-[13px] leading-5 text-yellow-300">
+          Elige un rival (clic o 1-3) · objetivo: {foe.char.name}
+        </div>
+      )}
+      {!over && turnWarning && <div role="status" className="mb-1 text-xs font-semibold text-amber-200">⚠ {turnWarning}</div>}
+      {!over && <TurnQueue b={b} />}
+      {!over && <div className="mt-1.5"><IntentStrip b={b} /></div>}
       {over && (
         <div className="mb-2 text-center text-base font-semibold text-yellow-300">
           Fin de la pelea
@@ -349,21 +360,12 @@ export function ActionPanel({
       )}
       {!over && (
         <div
-          className={`grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 ${side ? (float ? "md:grid-cols-2" : "md:grid-cols-1") : "md:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]"}`}
+          className={`mt-1.5 grid grid-cols-2 gap-1.5 sm:gap-2 ${side ? (float ? "md:grid-cols-2" : "md:grid-cols-1") : "md:grid-cols-4"}`}
         >
           {basicAction()}
-          {universalActions().slice(0, 4)}
-          <ActionButton
-            left={float}
-            tip={defendTip(b)}
-            onClick={() => onAct("defend", target)}
-            icon={iconFor("skill", "defend")}
-            title="Defender"
-            sub={perfect ? "¡Guardia perfecta!" : "Recibes la mitad de daño"}
-            meta="Sin enfriamiento · Objetivo: tú"
-            hot={perfect}
-          />
-          {universalActions().slice(4)}
+          {skillAction(slotA)}
+          {skillAction(slotB)}
+          {defendAction()}
           {auto && (
             <ActionButton
               left={float}
@@ -381,9 +383,7 @@ export function ActionPanel({
         <div className="mt-3 space-y-2">
           <div className="text-base text-yellow-300">
             Resultado:{" "}
-            {b.status === "won"
-              ? "victoria"
-              : "derrota"}
+            {b.status === "won" ? "victoria" : b.status === "draw" ? "empate (sin ganador)" : "derrota"}
           </div>
           {children}
         </div>
@@ -391,30 +391,31 @@ export function ActionPanel({
     </Panel>
   );
   if (!bar) return panel;
-  // Desktop: a slim command bar under the scene (own look, one row); phones keep the panel.
+  // Desktop: a slim command bar under the scene (own look); phones keep the panel.
   return (
     <>
       <div className="sm:hidden">{panel}</div>
       <div className="cmd-bar hidden flex-col gap-1 px-3 py-1.5 sm:flex">
         {over ? (
           <div className="flex flex-1 items-center gap-4">
-            <b className="text-yellow-300">Fin de la pelea</b>
+            <b className="text-yellow-300">
+              {b.status === "draw" ? "Empate: sin ganador" : "Fin de la pelea"}
+            </b>
             <div className="flex flex-1 items-center gap-3 [&>*]:!mt-0 [&>*]:!w-auto">{children}</div>
           </div>
         ) : (
           <>
             <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 lg:flex-nowrap">
-              <div className="w-40 shrink-0 leading-tight">
+              <div className="w-44 shrink-0 leading-tight">
                 <div className="text-sm font-semibold text-[#7ce0a3]">Tu turno</div>
-                <Tooltip tip={announceTip(b)}>
-                  <div className="text-xs text-[#d9d2ca]">
-                    Ronda {b.turn} · <span className="tracking-wider text-yellow-300">{Array.from({ length: mine }, (_, i) => (i < mine - left ? "○" : "●")).join("")}</span> {left}/{mine}
-                  </div>
+                <Tooltip tip={queueTip(b)}>
+                  <div className="text-xs text-[#d9d2ca]">Turno {b.turn + 1}</div>
                 </Tooltip>
+                <ResourceMeter b={b} />
                 {alive.length > 1 && <div className="text-[11px] text-yellow-300">Objetivo: {foe.char.name}</div>}
               </div>
               <div className="order-last min-w-0 basis-full lg:order-none lg:basis-0 lg:flex-1">
-                <RoundQueue b={b} desktop />
+                <TurnQueue b={b} desktop />
               </div>
               {auto && (
                 <Tooltip tip={autoTip(auto.reason)} className="ml-auto lg:ml-0">
@@ -422,20 +423,13 @@ export function ActionPanel({
                 </Tooltip>
               )}
             </div>
-            <div className="grid min-w-0 grid-cols-4 gap-1.5 lg:grid-cols-7">
+            {turnWarning && <div role="status" className="text-xs font-semibold text-amber-200">⚠ {turnWarning}</div>}
+            <IntentStrip b={b} />
+            <div className="grid min-w-0 grid-cols-4 gap-1.5">
               {basicAction(true)}
-              {universalActions(true).slice(0, 4)}
-              <ActionButton
-                chip
-                tip={defendTip(b)}
-                onClick={() => onAct("defend", target)}
-                icon={iconFor("skill", "defend")}
-                title="Defender"
-                sub={perfect ? "¡Guardia perfecta!" : "Recibes la mitad"}
-                meta="CD — · Tú"
-                hot={perfect}
-              />
-              {universalActions(true).slice(4)}
+              {skillAction(slotA, true)}
+              {skillAction(slotB, true)}
+              {defendAction(true)}
             </div>
           </>
         )}

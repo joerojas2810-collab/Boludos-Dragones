@@ -124,7 +124,7 @@ export function phaseBanner(
     case "duel_betting":
       return { title: "Duelos 1v1: apuestas", hint: "Apuesta por tu favorito.", tone: "gold" };
     case "duel_fight":
-      return { title: "¡Duelos en curso!", hint: "Elige en secreto cada turno.", tone: "boss" };
+      return { title: "¡Duelos en curso!", hint: "Se juega por turnos: actúa cuando te toque.", tone: "boss" };
     case "duel_reveal":
       return { title: "Resultado de los duelos", hint: "Gana quien tumbe al rival.", tone: "gold" };
     case "night_summary":

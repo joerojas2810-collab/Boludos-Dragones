@@ -18,7 +18,7 @@ export const COOP_K = {
   maxActions: 400,
 } as const;
 
-// A Clérigo boss regenerates a share of its (huge) max hp every round: nobody
+// A Clérigo boss regenerates a share of its (huge) max hp every own turn: nobody
 // could ever hurt it, so those seeds are skipped (deterministically).
 function pickBoss(seed: number, rank: RarityId | null) {
   for (let k = 0; ; k++) {
@@ -73,7 +73,7 @@ export function startCoop(
   node: FightSpec,
 ): { battle: Battle; rng: Rng } {
   const f = startFight(
-    createStage(hashSeed(run.seed, 2), run.hero, [node]),
+    createStage(hashSeed(run.seed, 2), run.hero, [node], 0, run.loadout),
   );
   return { battle: f.battle, rng: f.rng };
 }

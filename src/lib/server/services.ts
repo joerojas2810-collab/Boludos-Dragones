@@ -28,6 +28,8 @@ import {
   towerXp,
   type TowerMode,
 } from "../game/tower";
+import { loadoutFor, masteryOf } from "../game/loadout";
+import { loadoutError, type Loadout } from "../game/skills";
 import { ascendPiece, starUpPiece, swapPieceRoll } from "../game/pieceGrowth";
 import { upgradePiece } from "../game/upgrade";
 import { isDifficulty, type Difficulty } from "../game/rarity";
@@ -67,6 +69,9 @@ interface RawProfile {
   dados?: number;
   dadosDay?: { day: string; n: number } | null;
   dungeonRewardsDay?: { day: string; escamas: number; dados: number } | null;
+  classMastery?: Record<string, number>; // 0058: highest hero level per class (trigger-maintained)
+  loadouts?: Record<string, string[]>; // 0058: hero key -> two skills
+  levelLoadouts?: Record<string, string[]>; // 0058: nivelado selection per class
   characters: {
     id: string;
     classId: string;
@@ -108,6 +113,9 @@ export function toMe(raw: RawProfile): Me {
     dadosDay: raw.dadosDay,
     dungeonRewardsDay: raw.dungeonRewardsDay,
     pitySsr: raw.pitySsr,
+    classMastery: raw.classMastery,
+    loadouts: raw.loadouts,
+    levelLoadouts: raw.levelLoadouts,
     bestFloor: raw.bestFloor,
     equipped: raw.equipped,
     characters: raw.characters.map((c) => ({
@@ -305,6 +313,62 @@ export async function doPull(
   }
 }
 
+// ---- skill loadouts ----
+type LoadoutMode = "nivelado" | "coleccion";
+
+/**
+ * The two skills a run is played with. The client may name a selection (it is validated), otherwise the
+ * saved one is used. Mastery comes from the server-side profile (max hero level per class), never from
+ * the client; nivelado (mastery null) has all four skills of the class available.
+ */
+export function resolveLoadout(
+  profile: Profile,
+  hero: Character,
+  mode: LoadoutMode,
+  requested?: readonly string[],
+): Loadout {
+  if (!requested) return loadoutFor(profile, hero, mode);
+  const err = loadoutError(hero.classId, requested, mode === "nivelado" ? null : masteryOf(profile, hero.classId));
+  if (err) throw new ApiError(400, "invalid_loadout", err);
+  return [requested[0], requested[1]] as unknown as Loadout;
+}
+
+export interface LoadoutSaveBody {
+  mode: LoadoutMode;
+  key?: string; // coleccion: characterKey of an owned hero
+  classId?: ClassId; // nivelado
+  loadout: readonly string[];
+}
+
+/** Persists a selection after revalidating it against the mastery the server stores. */
+export async function saveLoadoutService(d: Deps, playerId: string, body: LoadoutSaveBody) {
+  await limit(d.rpc, `loadout:${playerId}`, 60, 60);
+  const me = await loadMe(d.rpc, playerId);
+  let classId: ClassId;
+  if (body.mode === "nivelado") {
+    if (!body.classId || !CLASS_IDS.includes(body.classId))
+      throw new ApiError(400, "invalid_input", "Elige una clase.");
+    classId = body.classId;
+  } else {
+    const owned = body.key ? me.profile.characters.find((c) => c.id === body.key) : undefined;
+    if (!owned) throw new ApiError(404, "character_not_found", "Personaje no encontrado.");
+    classId = owned.classId;
+  }
+  const err = loadoutError(classId, body.loadout, body.mode === "nivelado" ? null : masteryOf(me.profile, classId));
+  if (err) throw new ApiError(400, "invalid_loadout", err);
+  try {
+    await call(d.rpc, "set_loadout", {
+      p_player: playerId,
+      p_scope: body.mode === "nivelado" ? "level" : "hero",
+      p_key: body.mode === "nivelado" ? classId : body.key,
+      p_skills: [body.loadout[0], body.loadout[1]],
+    });
+  } catch (e) {
+    return mapRpcError(e);
+  }
+  return { profile: (await loadMe(d.rpc, playerId)).profile };
+}
+
 // ---- runs ----
 // `runs` rows are generic attempts: the weekly tower (hero.tower) and dungeon levels
 // (hero.kind = "level", written by start_level). Each has its own start/finish service.
@@ -314,6 +378,7 @@ export interface RunStartBody {
   characterId: string | null;
   tower?: TowerMode; // weekly tower: the week's seed, no payout
   element?: Element;
+  loadout?: readonly string[]; // optional: validated; otherwise the saved selection
 }
 
 // Opens the run row; a stale open run (page reloaded mid-run) is closed unpaid first.
@@ -370,16 +435,19 @@ export async function startRunService(
   );
   if (!hero)
     throw new ApiError(404, "character_not_found", "Personaje no encontrado.");
+  const loadout = resolveLoadout(me.profile, hero, body.tower, body.loadout);
   try {
     const r = await openRunRow(d, playerId, {
       p_player: playerId,
       p_character_id: body.tower === "coleccion" ? body.characterId : null,
       p_seed: seed,
-      // The engine version rides inside the hero json (no schema change): a log
-      // is only replayable by the engine that recorded it. heroId: who gets the EXP.
+      // The engine version and the validated loadout ride inside the hero json (no schema change):
+      // a log is only replayable by the engine and with the skills that recorded it.
+      // heroId: who gets the EXP.
       p_hero: {
         ...hero,
         engineVersion: ENGINE_VERSION,
+        loadout,
         tower: body.tower,
         ...(body.tower === "coleccion" && body.characterId
           ? { heroId: body.characterId }
@@ -392,6 +460,7 @@ export async function startRunService(
       hero,
       rank: null,
       tower: body.tower,
+      loadout,
       engineVersion: ENGINE_VERSION,
     };
   } catch (e) {
@@ -457,11 +526,13 @@ export async function submitRunService(
     engineVersion: stored = 1,
     tower: storedTower,
     heroId,
+    loadout: storedLoadout,
     ...hero
   } = row.hero as Character & {
     engineVersion?: number;
     tower?: string;
     heroId?: string;
+    loadout?: readonly string[];
   };
   const tower = isTowerMode(storedTower) ? storedTower : null;
   if (!tower)
@@ -503,7 +574,17 @@ export async function submitRunService(
       "engine_outdated",
       "La run se jugó con otra versión del juego. Recarga la página y empieza una nueva.",
     );
-  const rep = replayTower(row.seed, hero, body.actions, stored);
+  // Old-engine logs are never reinterpreted, and a run without a valid stored loadout cannot be replayed.
+  if (stored !== ENGINE_VERSION)
+    throw new ApiError(
+      409,
+      "engine_outdated",
+      "Esta run es de una versión anterior del juego y ya no se puede verificar. Empieza una nueva.",
+    );
+  const loadoutProblem = loadoutError(hero.classId, storedLoadout, null);
+  if (loadoutProblem)
+    throw new ApiError(409, "invalid_loadout", `La run no guardó unas habilidades válidas: ${loadoutProblem}`);
+  const rep = replayTower(row.seed, hero, body.actions, stored, [storedLoadout![0], storedLoadout![1]] as unknown as Loadout);
   if (rep.error === "too_many_actions") {
     await call(d.rpc, "bank_run", {
       p_player: playerId,
@@ -562,7 +643,7 @@ export async function submitRunService(
         p_player: playerId,
         p_mode: tower,
         p_floor: floors,
-        p_rounds: Math.min(rep.rounds, 1_000_000),
+        p_rounds: Math.min(rep.rounds, 1_000_000), // resolved turns
         p_class: hero.classId,
         p_element: hero.element,
       }).catch(async (e) => {
@@ -604,6 +685,7 @@ export interface LevelStartBody {
   difficulty: Difficulty;
   level: number;
   ascension: number;
+  loadout?: readonly string[]; // optional: validated; otherwise the saved selection
 }
 
 /**
@@ -638,6 +720,7 @@ export async function startLevelService(
   const hero = heroFromOwned(me.profile, body.characterId);
   if (!hero)
     throw new ApiError(404, "character_not_found", "Personaje no encontrado.");
+  const loadout = resolveLoadout(me.profile, hero, "coleccion", body.loadout);
   const seed = d.randomSeed();
   try {
     const r = await openRunRow(
@@ -647,7 +730,7 @@ export async function startLevelService(
         p_player: playerId,
         p_character_id: body.characterId,
         p_seed: seed,
-        p_hero: hero,
+        p_hero: { ...hero, engineVersion: ENGINE_VERSION, loadout },
         p_route: route,
         p_difficulty: difficulty,
         p_level: level,
@@ -663,6 +746,8 @@ export async function startLevelService(
       difficulty,
       level,
       ascension: asc,
+      loadout,
+      engineVersion: ENGINE_VERSION,
     };
   } catch (e) {
     return mapRpcError(e);
@@ -719,8 +804,12 @@ export async function finishLevelService(
     level,
     asc,
     heroId,
+    engineVersion: storedEngine,
+    loadout: _storedLoadout,
     ...hero
   } = row.hero as Character & {
+    engineVersion?: number;
+    loadout?: readonly string[];
     kind?: string;
     route?: string;
     difficulty?: string;
@@ -739,6 +828,13 @@ export async function finishLevelService(
       400,
       "wrong_run_kind",
       "Esa run no es un nivel de dungeon.",
+    );
+  // A level started under another engine was played with rules that no longer exist: refuse, never pay.
+  if (storedEngine !== ENGINE_VERSION)
+    throw new ApiError(
+      409,
+      "engine_outdated",
+      "Este nivel se empezó con una versión anterior del juego y ya no se puede registrar. Empieza el nivel de nuevo.",
     );
   const routeId = route as RouteId;
   const diff = difficulty as Difficulty;
@@ -907,8 +1003,9 @@ export async function sweepLevelService(
   const hero = heroFromOwned(me.profile, characterId);
   if (!hero)
     throw new ApiError(404, "character_not_found", "Personaje no encontrado.");
+  const loadout = resolveLoadout(me.profile, hero, "coleccion", body.loadout);
   const seed = d.randomSeed();
-  const stage = sweepStage(seed, hero, levelFights(spec, asc), asc);
+  const stage = sweepStage(seed, hero, levelFights(spec, asc), asc, loadout);
   if (stage.status !== "cleared")
     throw new ApiError(
       409,
@@ -928,7 +1025,7 @@ export async function sweepLevelService(
         p_player: playerId,
         p_character_id: characterId,
         p_seed: seed,
-        p_hero: { ...hero, sweep: true },
+        p_hero: { ...hero, engineVersion: ENGINE_VERSION, loadout, sweep: true },
         p_route: route,
         p_difficulty: difficulty,
         p_level: level,
@@ -969,6 +1066,7 @@ export async function sweepLevelService(
     return {
       seed,
       hero,
+      loadout,
       bank: {
         cleared: raw.cleared,
         repeat: raw.repeat,

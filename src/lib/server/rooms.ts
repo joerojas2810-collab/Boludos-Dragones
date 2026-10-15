@@ -57,6 +57,7 @@ import {
   heroForRound,
   applyFloor,
   newRoomRun,
+  isStaleRun,
   timeoutRun,
 } from "./roomRun";
 import type { FloorRow, RoomDeps } from "./roomsStore";
@@ -280,7 +281,7 @@ async function coopRun(d: RoomDeps, s: RoomState, player: string) {
   const heroKey = s.players.find((p) => p.id === player)?.heroId ?? null;
   const hero = heroForRound(profile, heroKey, s.mode, s.roundSeed, player);
   return {
-    run: newRoomRun(s.roundSeed, hero, s.rank),
+    run: newRoomRun(s.roundSeed, hero, s.rank, profile, s.mode),
     node: coopNode(s.roundSeed, coopRank(s.mode, s.rank)),
   };
 }
@@ -557,11 +558,13 @@ async function runAtFloorStart(
     const { profile } = await d.loadProfile(player);
     const heroKey = s.players.find((p) => p.id === player)?.heroId ?? null;
     const hero = heroForRound(profile, heroKey, s.mode, s.roundSeed, player);
-    base = newRoomRun(s.roundSeed, hero, s.rank);
+    base = newRoomRun(s.roundSeed, hero, s.rank, profile, s.mode);
     await d.store.saveFloorRun(room, s.round, s.floor, player, {
       actions: { base },
     });
   }
+  // Never mix engine versions in a room: a climb saved by an older build is refused, not converted.
+  if (isStaleRun(base)) return fail("engine_outdated");
   return alignRun(base, s.floor);
 }
 
@@ -922,7 +925,7 @@ export async function roomAction(
         await duelBetService(d, player, room, msg.key, msg.prediction, msg.stake);
         break;
       case "duel_move":
-        await duelMoveService(d, player, room, msg.key, msg.action);
+        await duelMoveService(d, player, room, msg.key, msg.action, msg.n);
         break;
       case "vote": {
         const s = await load(d, room);

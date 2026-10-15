@@ -8,19 +8,21 @@ import { EnemyCueContext, type EnemyCue } from "@/components/EnemySprite";
 import { StatusIcons } from "@/components/StatusIcons";
 import { HudCard } from "@/components/HudCard";
 import { HeroSprite } from "@/components/HeroSprite";
-import { Icon } from "@/components/Icon";
 import { Tooltip } from "@/components/Tooltip";
 import { HERO_ACTIONS } from "@/lib/art/heroes";
 import { isPixel } from "@/lib/art/pixel";
-import { CLASS_ART, ELEMENT_ART, HERO_ART_V, iconFor } from "@/lib/art";
+import { CLASS_ART, ELEMENT_ART, HERO_ART_V } from "@/lib/art";
 import paintedHeroes from "@/lib/art/hero-integration.generated.json";
 import type { HeroAction } from "@/lib/art/heroes";
 import { Vfx } from "@/components/fx/Vfx";
 import { STAGGER_S } from "@/components/fx/timing";
 import { effectSrc } from "@/lib/art/effects";
 import { preloadImages } from "@/lib/preload";
-import { attackOf, enemyIntents, estimateDamage, type Battle, type Combatant, type Intent } from "@/lib/game/combat";
-import { intentTip, type Tip } from "@/lib/game/explain";
+import { enemyIntents, type Battle, type Combatant, type Intent } from "@/lib/game/combat";
+import { intentInfo, intentTip, type Tip } from "@/lib/game/explain";
+import { heroActionFor, SKILL_FX } from "@/lib/art/skillFx";
+import { isSkillId, SKILLS } from "@/lib/game/skills";
+import { STATUS_DATA, type StatusId } from "@/lib/game/statuses";
 
 // Animation for who attacked / who got hit in the last step, staggered like the sfx.
 
@@ -72,13 +74,10 @@ function heroCue(b: Battle): { action: HeroAction; delay: number } {
   if (b.guardEarned)
     return { action: "perfect_guard", delay: at(foeIdx((e) => e.kind !== "buff")) };
   const ownIdx = b.events.findIndex((e) => e.actor === "player" && e.kind !== "buff");
-  if (ownIdx >= 0) {
-    const m = b.events[ownIdx].move;
-    return {
-      action: m === "attack1" ? "attack_1" : "attack_2",
-      delay: at(ownIdx, 0),
-    };
-  }
+  if (ownIdx >= 0) return { action: heroActionFor(b.events[ownIdx].move), delay: at(ownIdx, 0) };
+  // Skills without a damaging hit (shield, cleanse, ...) leave no hit event: use the committed action.
+  const committed = b.cev.find((c) => c.type === "actionCommitted" && c.actor === 0 && isSkillId(c.skillId));
+  if (committed && isSkillId(committed.skillId)) return { action: heroActionFor(committed.skillId), delay: 0 };
   const anyFoe = foeIdx(() => true);
   if (b.player.defending && anyFoe >= 0) return { action: "defend", delay: 0 };
   const hitIdx = foeIdx((e) => e.kind === "hit" || e.kind === "crit");
@@ -119,56 +118,78 @@ function bigMomentFx(b: Battle) {
   };
 }
 
-function IntentCard({ b, enemy, intent, index }: { b: Battle; enemy: Combatant; intent: Intent; index: number }) {
-  const name = intent === "defend" ? "Defender" : intent === "charge" ? "Carga" : intent === "channeling" ? "Canalización" : attackOf(enemy, intent).name;
-  const damage = intent === "defend" || intent === "channeling"
-    ? null
-    : Math.round(estimateDamage(enemy, b.player, intent));
-  const effect = intent === "channeling"
-    ? "Aplica Ruptura y reduce las curas a la mitad"
-    : intent === "charge"
-      ? `Golpe fuerte · ignora 30 % DEF · ~${damage} PV`
-      : intent === "defend"
-        ? "Reduce el daño que recibe"
-        : `${intent === "attack2" ? "Golpe fuerte" : "Ataque"} · ~${damage} PV`;
-  const outcome = intent === "channeling"
-    ? "Interrumpible"
-    : intent === "charge"
-      ? "Cancelable por Quiebre"
-      : intent === "defend"
-        ? "Defensiva"
-        : "Inevitable";
-  const iconName = intent === "defend"
-    ? iconFor("skill", "defend")
-    : intent === "attack1"
-      ? iconFor("skill", `${enemy.char.classId}.attack1`)
-      : intent === "attack2"
-        ? iconFor("skill", `${enemy.char.classId}.attack2`)
-        : null;
-  const glyph = intent === "charge" ? "↯" : intent === "channeling" ? "✦" : "⚔";
-  const countdown = `${index + 1} ${index === 0 ? "activación" : "activaciones"}`;
-  const tip = intentTip(intent, b, b.enemies.indexOf(enemy));
-  const tone = intent === "channeling"
+function IntentCard({ b, enemy, intent }: { b: Battle; enemy: Combatant; intent: Intent }) {
+  const idx = b.enemies.indexOf(enemy);
+  const info = intentInfo(intent, b, idx);
+  const tip = intentTip(intent, b, idx);
+  const tone = info.cancel === "interrumpir"
     ? "border-rose-400/70 bg-rose-950/70 text-rose-100"
-    : intent === "charge"
+    : info.cancel === "quiebre"
       ? "border-amber-400/60 bg-amber-950/65 text-amber-100"
-      : "border-red-900/60 bg-black/35 text-[#f2e6d7]";
+      : info.strong
+        ? "border-red-400/60 bg-red-950/60 text-[#f2e6d7]"
+        : "border-red-900/60 bg-black/35 text-[#f2e6d7]";
   return (
     <div
-      key={`${intent}-${index}`}
-      aria-label={`${name}. ${effect}. En ${countdown}. ${outcome}.`}
+      aria-label={`${info.name}. ${info.effect}. ${info.counter} ${info.cancelLabel}.`}
       className={`flex min-w-0 items-start gap-1.5 rounded border px-1.5 py-1 ${tone}`}
     >
-      {iconName ? <Icon name={iconName} className="mt-0.5 h-4 shrink-0" /> : <span aria-hidden="true" className="mt-0.5 w-4 shrink-0 text-center font-bold leading-4">{glyph}</span>}
+      <span aria-hidden="true" className="mt-0.5 w-4 shrink-0 text-center font-bold leading-4">{info.glyph}</span>
       <Tooltip tip={tip} className="block min-w-0 flex-1">
-        <span className="flex min-w-0 items-center gap-1 text-[11px] leading-4">
-          <span className="min-w-0 flex-1 truncate font-bold">{name}</span>
-          <span className="shrink-0 tabular-nums text-[#f1d5a4]">{countdown}</span>
-        </span>
-        <span className="block truncate text-[10px] leading-3 text-[#e4d9ca]" title={effect}>{effect}</span>
-        <span className="block truncate text-[9px] font-semibold uppercase tracking-wide leading-3 text-amber-200">{outcome}</span>
+        <span className="block truncate text-[11px] font-bold leading-4">{info.name}</span>
+        <span className="line-clamp-2 break-words text-[10px] leading-3 text-[#e4d9ca]" title={`${info.effect}. ${info.counter}`}>{info.effect}</span>
+        <span className="block truncate text-[9px] font-semibold uppercase tracking-wide leading-3 text-amber-200">{info.cancelLabel}</span>
       </Tooltip>
     </div>
+  );
+}
+
+// Visible text for the structured events of the last step (no audio needed). Shapes, not colour,
+// tell the kinds apart; the list stays until the next step, so it also works with reduced motion.
+function nameOf(b: Battle, id: number) {
+  return id === 0 ? b.player.char.name : (b.enemies[id - 1]?.char.name ?? "Rival");
+}
+
+function stepCallouts(b: Battle): { glyph: string; text: string }[] {
+  const out: { glyph: string; text: string }[] = [];
+  for (const ev of b.cev) {
+    const who = nameOf(b, ev.target ?? ev.actor);
+    if (ev.type === "actionCommitted" && ev.actor === 0 && isSkillId(ev.skillId)) {
+      const fx = SKILL_FX[ev.skillId];
+      out.push({ glyph: fx.glyph, text: `${SKILLS[ev.skillId].name}: ${fx.tag}` });
+    } else if (ev.type === "staggerBroken") out.push({ glyph: "◆", text: `¡Quiebre! ${who} queda Expuesto (DEF −15 %)` });
+    else if (ev.type === "statusConsumed") {
+      const label = ev.detail === "sobrecarga" ? "Sobrecarga" : (STATUS_DATA[ev.detail as StatusId]?.label ?? "estado");
+      out.push({ glyph: "✹", text: `Se consume ${label}${ev.value ? ` (${ev.value} de daño)` : ""}` });
+    } else if (ev.type === "guardTriggered") out.push({ glyph: "◧", text: `¡Guardia perfecta de ${nameOf(b, ev.actor)}!` });
+    else if (ev.type === "telegraphCancelled") out.push({ glyph: "✦", text: `${nameOf(b, ev.actor)}: amenaza cancelada` });
+    else if (ev.type === "telegraphStarted" && ev.detail) {
+      const info = intentInfo(ev.detail as Intent, b, ev.actor - 1);
+      out.push({ glyph: "⚠", text: `${nameOf(b, ev.actor)} prepara ${info.name} (${info.cancelLabel.toLowerCase()})` });
+    } else if (ev.type === "progressChanged" && ev.value)
+      out.push({ glyph: ev.value < 0 ? "⏳" : "»", text: ev.value < 0 ? `${nameOf(b, ev.actor)} pierde ritmo: su turno se retrasa` : `${nameOf(b, ev.actor)} adelanta su próximo turno` });
+    else if (ev.type === "bossPhaseChanged" && ev.detail)
+      out.push({ glyph: "☗", text: `${nameOf(b, ev.actor)}: ${ev.detail === "roto" ? "armadura rota (Roto)" : ev.detail === "cabeza" ? "le crece una cabeza" : ev.detail === "armadura" ? "armadura recompuesta" : `fase ${ev.detail}`}` });
+  }
+  return out.slice(0, 4);
+}
+
+function StepCallouts({ b }: { b: Battle }) {
+  const items = stepCallouts(b);
+  if (!items.length) return null;
+  return (
+    <ul
+      role="status"
+      aria-live="polite"
+      aria-label="Lo que pasó"
+      className="pointer-events-none absolute bottom-2 left-1/2 z-40 flex w-[min(92%,24rem)] -translate-x-1/2 flex-col items-center gap-1"
+    >
+      {items.map((it, i) => (
+        <li key={i} className="max-w-full rounded border border-[#e0b070]/60 bg-black/80 px-2 py-0.5 text-center text-[11px] font-semibold leading-4 text-[#fff1d0] md:text-xs">
+          <span aria-hidden="true">{it.glyph} </span>{it.text}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -274,6 +295,7 @@ export function BattleArena({
           className="pointer-events-none absolute left-1/2 top-2 z-40 w-[min(60%,24rem)] -translate-x-1/2"
         />
       )}
+      <StepCallouts b={b} />
       {world === undefined ? (
         <div className="absolute inset-x-0 bottom-0 h-[30%] border-t-4 border-[var(--edge)] bg-[#2b2420]" />
       ) : bleed ? null : (
@@ -298,7 +320,6 @@ export function BattleArena({
         <HudCard
           c={b.player}
           foe={first}
-          turn={b.turn}
           inRun={inRun}
           extraTip={playerExtraTip}
           label="TÚ"
@@ -359,8 +380,7 @@ export function BattleArena({
                 <HudCard
                   c={c}
                   foe={b.player}
-                  turn={b.turn}
-                  inRun={inRun}
+                          inRun={inRun}
                   label={multi ? `R${i + 1}` : "RIVAL"}
                   tone="enemy"
                   extra={dead ? "Derrotado" : enemyExtra(i, c)}
@@ -369,7 +389,7 @@ export function BattleArena({
                   footer={
                     <div className="mt-1 space-y-1">
                       {intents.map((it, k) => (
-                        <IntentCard key={`${it}-${k}`} b={b} enemy={c} intent={it} index={k} />
+                        <IntentCard key={`${it}-${k}`} b={b} enemy={c} intent={it} />
                       ))}
                     </div>
                   }

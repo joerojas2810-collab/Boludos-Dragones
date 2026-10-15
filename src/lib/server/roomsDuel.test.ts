@@ -70,13 +70,26 @@ function harness(ids = [A, B, C, D]) {
   const after = async () => {
     clock = (await st()).deadline + 1;
   };
-  return { d, st, adv, after, at: (t: number) => (clock = t), base: () => base, get clock() { return clock; } };
+  return { d, st, adv, after, at: (t: number) => (clock = t), base: () => base, db: () => db, get clock() { return clock; } };
 }
 const pick = { classId: "mago", element: "agua" } as const;
+type H = ReturnType<typeof harness>;
+const view = async (h: H, who = A) => (await duelViewOf(h.d, await h.st(), R, who))!.matches[0].fight!;
+/** Id of the duelist whose decision is pending (a = first of the pair). */
+const mover = async (h: H) => {
+  const f = await view(h);
+  const m = (await h.st()).duels[0];
+  return f.toMove === "a" ? m.a : m.b;
+};
+/** Both duelists attack in turn until the verdict (or `max` decisions). */
+async function playOut(h: H, key: string, max = 400) {
+  for (let i = 0; i < max && !(await h.st()).duels[0].reported; i++)
+    await duelMoveService(h.d, await mover(h), R, key, "attack1");
+}
 const total = (s: RoomState) => s.players.reduce((a, p) => a + p.chips, 0);
 
 describe("duel services", () => {
-  it("full night: start, picks, bets, secret moves, payout, back to the lobby", async () => {
+  it("full night: start, picks, bets, alternating turns, payout, back to the lobby", async () => {
     const h = harness();
     await duelStartService(h.d, A, R, "balanceado", [[A, B]]);
     await duelPickService(h.d, A, R, pick);
@@ -95,23 +108,28 @@ describe("duel services", () => {
     expect((await h.adv()).advanced).toBe(true); // locks -> fight
     s = await h.st();
     expect(s.phase).toBe("duel_fight");
-    // a pick is secret: the view only says who answered
-    await duelMoveService(h.d, A, R, key, "attack1");
-    let v = (await duelViewOf(h.d, await h.st(), R, B))!.matches[0].fight!;
-    expect(v.picked).toEqual({ a: true, b: false });
-    expect(v.turn).toBe(1);
+    // public, turn-based state: someone is to move, with their skills, queue and no secrets
+    let f = await view(h, B);
+    expect(f.n).toBe(0);
+    expect(f.toMove).not.toBeNull();
+    expect(f.loadouts.a).toEqual(["mage_inscribe", "mage_detonate"]);
+    expect(f.queue.length).toBe(6);
+    const first = await mover(h);
+    const second = first === A ? B : A;
     await expect(duelMoveService(h.d, C, R, key, "attack1")).rejects.toThrow("battle_not_found");
-    await duelMoveService(h.d, B, R, key, "attack1"); // both answered -> resolves
-    v = (await duelViewOf(h.d, await h.st(), R, B))!.matches[0].fight!;
-    expect(v.turn).toBe(2);
-    expect(v.last).toEqual({ a: "attack1", b: "attack1" });
-    for (let i = 0; i < 80 && !(await h.st()).duels[0].reported; i++) {
-      await duelMoveService(h.d, A, R, key, "attack1");
-      await duelMoveService(h.d, B, R, key, "attack1");
-    }
+    await duelMoveService(h.d, second, R, key, "attack1", 0); // not your turn: ignored
+    expect((await view(h)).n).toBe(0);
+    await expect(duelMoveService(h.d, first, R, key, "mage_detonate" as never)).rejects.toThrow(); // other class or no resource
+    await duelMoveService(h.d, first, R, key, "attack1", 0);
+    f = await view(h);
+    expect(f.n).toBe(1);
+    expect(f.last).toMatchObject({ side: first === A ? "a" : "b", action: "attack1", auto: false });
+    await duelMoveService(h.d, first, R, key, "attack1", 0); // stale n: ignored
+    expect((await view(h)).n).toBe(1);
+    await playOut(h, key);
     s = await h.st();
     expect(s.duels[0].reported).toBe(true);
-    expect(["ko", "draw"]).toContain(s.duels[0].end);
+    expect(["ko", "time", "draw"]).toContain(s.duels[0].end);
     expect((await h.adv()).advanced).toBe(true); // all reported -> settle + reveal
     s = await h.st();
     expect(s.phase).toBe("duel_reveal");
@@ -131,17 +149,30 @@ describe("duel services", () => {
     await duelPickService(h.d, B, R, { classId: "caballero", element: "fuego" });
     await h.adv(); // no fans -> fight
     const key = (await h.st()).duels[0].key;
-    await duelMoveService(h.d, A, R, key, "attack1");
-    await duelMoveService(h.d, B, R, key, "defend");
-    const f = (await duelViewOf(h.d, await h.st(), R, A))!.matches[0].fight!;
+    await duelMoveService(h.d, await mover(h), R, key, "defend");
+    const f = await view(h, A);
     expect(f.heroes.a.name).toBe("Ana");
+    expect(f.heroes.b.name).toBe("Beto");
     const text = f.log.join(" ");
     expect(text).toContain("Ana");
-    expect(text).toContain("Beto se defiende");
     expect(text).not.toMatch(/Mago|Caballero/);
   });
 
-  it("an absent duelist never holds the turn and forfeits after two misses", async () => {
+  it("picks carry a validated loadout: class, duplicates and unlocks", async () => {
+    const h = harness([A, B]);
+    await duelStartService(h.d, A, R, "balanceado");
+    const bad = (loadout: [string, string]) => duelPickService(h.d, A, R, { classId: "mago", element: "agua", loadout });
+    await expect(bad(["knight_advance", "knight_breaker"])).rejects.toThrow("invalid_args");
+    await expect(bad(["mage_seal", "mage_seal"])).rejects.toThrow("invalid_args");
+    await duelPickService(h.d, A, R, { classId: "mago", element: "agua", loadout: ["mage_barrier", "mage_seal"] }); // balanced: all four open
+    await duelPickService(h.d, B, R, { classId: "caballero", element: "fuego" }); // default loadout
+    await h.adv();
+    const f = await view(h);
+    expect(f.loadouts.a).toEqual(["mage_barrier", "mage_seal"]);
+    expect(f.loadouts.b).toEqual(["knight_advance", "knight_breaker"]);
+  });
+
+  it("an absent duelist never holds the turn and forfeits after two missed turns", async () => {
     const h = harness([A, B, C]);
     await duelStartService(h.d, A, R, "real", [[A, B]]);
     await duelPickService(h.d, A, R, { heroId: "seed_default" });
@@ -151,29 +182,52 @@ describe("duel services", () => {
     await h.adv(); // -> fight
     const key = (await h.st()).duels[0].key;
     h.base().players.find((p) => p.id === B)!.present = false;
-    await duelMoveService(h.d, A, R, key, "attack1"); // resolves at once: B is away
-    const f = (await duelViewOf(h.d, await h.st(), R, A))!.matches[0].fight!;
-    expect(f.turn).toBe(2);
-    await duelMoveService(h.d, A, R, key, "attack1"); // 2nd miss -> forfeit (unless A already won)
+    for (let i = 0; i < 6 && !(await h.st()).duels[0].reported; i++) {
+      await duelTick(h.d, R); // B's turn is answered for them at once
+      if ((await h.st()).duels[0].reported) break;
+      await duelMoveService(h.d, A, R, key, "attack1");
+    }
     const s = await h.st();
     expect(s.duels[0].reported).toBe(true);
     expect(["forfeit", "ko"]).toContain(s.duels[0].end);
     expect(s.duels[0].winner).toBe(A);
   });
 
-  it("overdue turns resolve from a plain tick (nobody answered)", async () => {
+  it("overdue turns resolve from a plain tick with the Defender fallback", async () => {
     const h = harness([A, B]);
     await duelStartService(h.d, A, R, "balanceado");
     await h.after();
     await h.adv(); // no fans -> straight to the fight
     expect((await h.st()).phase).toBe("duel_fight");
+    const first = await view(h);
     h.at(h.clock + 31_000);
-    await duelTick(h.d, R); // turn 1 unanswered by both
-    h.at(h.clock + 31_000);
-    await duelTick(h.d, R); // turn 2: both forfeit
+    await duelTick(h.d, R); // nobody answered: Defender for the side to move
+    const f = await view(h);
+    expect(f.n).toBe(1);
+    expect(f.last).toMatchObject({ action: "defend", auto: true });
+    expect(f.last!.side).toBe(first.toMove);
+    for (let i = 0; i < 6 && !(await h.st()).duels[0].reported; i++) {
+      h.at(h.clock + 31_000);
+      await duelTick(h.d, R);
+    }
     const s = await h.st();
     expect(s.duels[0].reported).toBe(true);
-    expect(s.duels[0].end).toBe("draw"); // both forfeited at the same time
+    expect(s.duels[0].end).toBe("forfeit"); // two missed turns in a row
+    expect(s.duels[0].winner).not.toBeNull();
+  });
+
+  it("a duel started on another engine version is voided, never replayed", async () => {
+    const h = harness([A, B]);
+    await duelStartService(h.d, A, R, "balanceado");
+    await h.after();
+    await h.adv();
+    const key = (await h.st()).duels[0].key;
+    h.db()!.live[key].v -= 1;
+    await expect(duelMoveService(h.d, A, R, key, "attack1")).rejects.toThrow("engine_outdated");
+    expect((await duelViewOf(h.d, await h.st(), R, A))!.matches[0].fight).toBeNull();
+    await duelTick(h.d, R);
+    const s = await h.st();
+    expect(s.duels[0]).toMatchObject({ reported: true, winner: null, end: "no_fight" });
   });
 
   it("leaving mid-fight: the rival wins and the bets are paid", async () => {

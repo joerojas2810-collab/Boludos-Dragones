@@ -89,15 +89,15 @@ const ROLE_LABEL: Record<FightRole, string> = {
 const ROUTE_STEP_STORAGE_KEY = "dungeon-route-steps-v1";
 type SavedRouteStep = { difficulty: Difficulty; asc: 0 | 1 | 2 | 3 | 4 | 5 };
 const ROUTE_COPY: Record<RouteId, { ambience: string; levels: readonly [string, string, string]; bossNode: string; mechanic: string }> = {
-  lord_of_flies: { ambience: "La niebla cubre el camino y también nuestras decisiones dudosas.", levels: ["Muelle Hundido", "Charca Umbría", "Nido de la Plaga"], bossNode: "Guarida de las Moscas", mechanic: "Plaga: causa daño constante por ronda." },
-  ash_king: { ambience: "La ceniza cae despacio; el calor, en cambio, no espera.", levels: ["Portal de Brasa", "Galería Tiznada", "Forja del Monarca"], bossNode: "Corte de Ceniza", mechanic: "Presión: acumula daño con las rondas." },
-  eternal_watcher: { ambience: "El cañón repite tus pasos; ojalá no también tus errores.", levels: ["Senda de Plumas", "Puente de los Ecos", "Observatorio Ciego"], bossNode: "Torre del Vigía", mechanic: "Aprende: se adapta si repetís la misma acción." },
+  lord_of_flies: { ambience: "La niebla cubre el camino y también nuestras decisiones dudosas.", levels: ["Muelle Hundido", "Charca Umbría", "Nido de la Plaga"], bossNode: "Guarida de las Moscas", mechanic: "Plaga: te quita vida al final de cada turno del jefe." },
+  ash_king: { ambience: "La ceniza cae despacio; el calor, en cambio, no espera.", levels: ["Portal de Brasa", "Galería Tiznada", "Forja del Monarca"], bossNode: "Corte de Ceniza", mechanic: "Presión: su daño crece con cada turno suyo." },
+  eternal_watcher: { ambience: "El cañón repite tus pasos; ojalá no también tus errores.", levels: ["Senda de Plumas", "Puente de los Ecos", "Observatorio Ciego"], bossNode: "Torre del Vigía", mechanic: "Aprende: se adapta si repites la misma acción." },
   hollow_colossus: { ambience: "La piedra se mueve sola. Seguro que fue el viento.", levels: ["Boca de la Cantera", "Galerías de Basalto", "Cámara Partida"], bossNode: "Sala del Coloso", mechanic: "Armadura: se rompe y vuelve a cubrirlo." },
-  thunder_king: { ambience: "Cada trueno llega antes; ya no queda tiempo para discutir.", levels: ["Escalinata del Rayo", "Aguja Relampagueante", "Plataforma Celeste"], bossNode: "Cima del Trueno", mechanic: "Velocidad: acelera con las rondas." },
-  mother_hydra: { ambience: "El agua parece calma; mejor no contar las cabezas.", levels: ["Bajío de Burbujas", "Paso de las Cabezas", "Umbral Sumergido"], bossNode: "Foso de la Hidra", mechanic: "Cabezas: gana acciones y se cura al cruzar umbrales." },
-  withered_queen: { ambience: "Las brasas respiran despacio; el ritual no tiene apuro.", levels: ["Vereda de Escoria", "Arco de Raíces", "Capilla Marchita"], bossNode: "Santuario de la Reina", mechanic: "Marchitar: anuncia un ritual cada tres rondas." },
+  thunder_king: { ambience: "Cada trueno llega antes; ya no queda tiempo para discutir.", levels: ["Escalinata del Rayo", "Aguja Relampagueante", "Plataforma Celeste"], bossNode: "Cima del Trueno", mechanic: "Velocidad: acelera con sus turnos." },
+  mother_hydra: { ambience: "El agua parece calma; mejor no contar las cabezas.", levels: ["Bajío de Burbujas", "Paso de las Cabezas", "Umbral Sumergido"], bossNode: "Foso de la Hidra", mechanic: "Cabezas: se cura y suma impactos al cruzar umbrales de vida." },
+  withered_queen: { ambience: "Las brasas respiran despacio; el ritual no tiene apuro.", levels: ["Vereda de Escoria", "Arco de Raíces", "Capilla Marchita"], bossNode: "Santuario de la Reina", mechanic: "Marchitar: anuncia un ritual cada tres turnos suyos; solo Sello o Sabotaje lo interrumpen." },
   faceless_one: { ambience: "Nadie muestra el rostro; hasta las máscaras guardan secretos.", levels: ["Puerta Astillada", "Corredor de Máscaras", "Atrio Deshabitado"], bossNode: "Salón del Sin Rostro", mechanic: "Posturas: alterna entre ataque y defensa." },
-  great_devourer: { ambience: "El viento empuja hacia la garganta; los restos llegaron primero.", levels: ["Camino de Restos", "Garganta Hambrienta", "Borde del Vacío"], bossNode: "Fauces del Devorador", mechanic: "Hambre: consigue una acción extra con poca vida." },
+  great_devourer: { ambience: "El viento empuja hacia la garganta; los restos llegaron primero.", levels: ["Camino de Restos", "Garganta Hambrienta", "Borde del Vacío"], bossNode: "Fauces del Devorador", mechanic: "Hambre: se cura al golpear y suma un impacto con poca vida." },
 };
 
 function readRouteStep(route: RouteId): SavedRouteStep {

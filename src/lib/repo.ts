@@ -43,6 +43,8 @@ import type { Element } from "./game/elements";
 import type { Slot } from "./game/weapons";
 import { ENGINE_VERSION, type StageAction } from "./game/stageReplay";
 import { createRng } from "./game/rng";
+import { equipLoadout, loadoutFor } from "./game/loadout";
+import type { Loadout } from "./game/skills";
 import { claimDaily, dayKey } from "./game/streak";
 
 export class RepoError extends Error {
@@ -65,12 +67,14 @@ export interface RunStartInfo {
   rank: Difficulty | null; // null = weekly tower (no dungeon)
   ascension?: number;
   tower?: TowerMode;
+  loadout?: Loadout; // the two skills the run is played (and verified) with
 }
 // A dungeon-level attempt: in remote mode the server fixes the seed and the hero snapshot.
 export interface LevelStartInfo {
   attemptId: string;
   seed: number;
   hero: Character;
+  loadout?: Loadout;
 }
 export interface LevelFinish {
   info: LevelStartInfo;
@@ -140,6 +144,14 @@ export interface ProfileRepo {
     level: number,
     asc: number,
   ): Promise<LevelOutcome & { stage: Stage }>;
+  /**
+   * Saves a skill selection (never called automatically). Remote: the server revalidates it against
+   * the mastery it stores itself; local: against the profile.
+   */
+  saveLoadout(
+    target: { key: string; classId: ClassId } | { classId: ClassId; nivelado: true },
+    loadout: Loadout,
+  ): Promise<void>;
   /** Rank-up of a piece (Forja > Equipo): `id` is the resulting piece (new rank, or the owned one it merged into). */
   ascendPiece(baseId: string, materials: Material[], keep?: "base" | "existing"): Promise<{ text: string; id: string }>;
   /** +1 star for 3 units of material of the piece's rank. */
@@ -254,7 +266,7 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       if (!hero)
         throw new RepoError("character_not_found", "Personaje no encontrado.");
       const seed = Date.now();
-      return { attemptId: `lv-${seed}`, seed, hero };
+      return { attemptId: `lv-${seed}`, seed, hero, loadout: loadoutFor(p, hero, "coleccion") };
     },
     finishLevel: async (a) => {
       const p = store.get();
@@ -284,6 +296,11 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       store.update(() => bank.profile);
       return { bank, loot };
     },
+    saveLoadout: async (target, loadout) => {
+      const next = equipLoadout(store.get(), target, loadout);
+      if (!next) throw new RepoError("invalid_loadout", "Esa selección de habilidades no es válida.");
+      store.update(() => next);
+    },
     sweepLevel: async (heroId, route, difficulty, level, asc) => {
       const p = store.get();
       const why = sweepBlock(p, heroId, route, difficulty, level, asc);
@@ -293,7 +310,7 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       if (!hero || !spec)
         throw new RepoError("character_not_found", "Personaje no encontrado.");
       const seed = Date.now();
-      const stage = sweepStage(seed, hero, levelFights(spec, asc), asc);
+      const stage = sweepStage(seed, hero, levelFights(spec, asc), asc, loadoutFor(p, hero, "coleccion"));
       if (stage.status !== "cleared")
         throw new RepoError(
           "sweep_failed",
@@ -367,6 +384,7 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
           hero,
           rank: null,
           tower,
+          loadout: loadoutFor(store.get(), hero, tower),
         };
       }
       const p = store.get();
@@ -378,7 +396,7 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       const hero =
         (characterId && heroFromOwned(store.get(), characterId)) ||
         generateCharacter(createRng(seed), classId);
-      return { runId: `${seed}-${Date.now()}`, seed, hero, rank, ascension };
+      return { runId: `${seed}-${Date.now()}`, seed, hero, rank, ascension, loadout: loadoutFor(p, hero, "coleccion") };
     },
     submitRun: async (runId, _actions, claimed) => {
       const before = store.get();
@@ -479,6 +497,7 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         runId: string;
         seed: number;
         hero: Character;
+        loadout: Loadout;
       }>("/api/level/start", {
         characterId: heroId,
         route,
@@ -490,6 +509,7 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         attemptId: r.runId,
         seed: r.seed,
         hero: r.hero,
+        loadout: r.loadout,
       };
     },
     finishLevel: async (a) => {
@@ -509,6 +529,7 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       const r = await api<{
         seed: number;
         hero: Character;
+        loadout: Loadout;
         bank: Omit<LevelBank, "profile">;
         loot: LevelLoot;
         profile: Profile;
@@ -521,8 +542,16 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
       });
       store.replace(r.profile);
       // The server paid from its own play; the same deterministic engine rebuilds it for display.
-      const stage = sweepStage(r.seed, r.hero, levelFights(levelsOf(route, difficulty)[level], asc), asc);
+      const stage = sweepStage(r.seed, r.hero, levelFights(levelsOf(route, difficulty)[level], asc), asc, r.loadout);
       return { bank: { ...r.bank, profile: r.profile }, loot: r.loot, stage };
+    },
+    saveLoadout: async (target, loadout) => {
+      // The server derives mastery itself; this body only names the selection.
+      const body =
+        "nivelado" in target
+          ? { mode: "nivelado", classId: target.classId, loadout }
+          : { mode: "coleccion", key: target.key, loadout };
+      store.replace((await api<{ profile: Profile }>("/api/loadout", body)).profile);
     },
     ascendPiece: async (baseId, materials, keep) => {
       const r = await api<{ text: string; id: string; profile: Profile }>("/api/forge/ascend", { baseId, materials, keep });

@@ -170,8 +170,8 @@ export interface RoomClient {
   duelStart(mode: DuelMode, pairs?: [string, string][]): Promise<Res>;
   duelPick(pick: DuelPick): Promise<Res>;
   duelBet(key: string, prediction: BetPrediction, stake: number): Promise<Res>;
-  /** The secret pick of the open turn. */
-  duelMove(key: string, action: DuelAction): Promise<Res>;
+  /** The decision of the duelist whose turn it is; `n` = decisions seen (`fight.n`), stale clicks are ignored. */
+  duelMove(key: string, action: DuelAction, n?: number): Promise<Res>;
   close(): Promise<Res>;
   leave(): Promise<Res>;
   turn(msg: Omit<TurnInfo, "fighter">): void;

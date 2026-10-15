@@ -5,6 +5,10 @@
 import { useState } from "react";
 import { HeroSprite } from "@/components/HeroSprite";
 import { CLASS_IDS, CLASSES, type ClassId } from "@/lib/game/characters";
+import { SkillPicker } from "@/components/SkillPicker";
+import { equipLoadout } from "@/lib/game/loadout";
+import { sanitizeLoadout } from "@/lib/game/skills";
+import { updateProfile, useProfile } from "@/lib/useProfile";
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "@/lib/game/elements";
 
 export function ClassElementPicker({
@@ -14,6 +18,7 @@ export function ClassElementPicker({
   value: { classId: ClassId; element: Element } | null; // what the server already has
   onPick: (classId: ClassId, element: Element) => void;
 }) {
+  const { profile } = useProfile();
   const [cls, setCls] = useState<ClassId | null>(null);
   const [el, setEl] = useState<Element | null>(null);
   const c = cls ?? value?.classId ?? null;
@@ -56,6 +61,16 @@ export function ClassElementPicker({
           </button>
         ))}
       </div>
+      {c && profile && (
+        <div className="mt-3">
+          <SkillPicker
+            classId={c}
+            mastery={null}
+            value={sanitizeLoadout(c, profile.levelLoadouts?.[c], null)}
+            onChange={(l) => updateProfile((p) => equipLoadout(p, { classId: c, nivelado: true }, l) ?? p)}
+          />
+        </div>
+      )}
       <p className="mt-2 text-center text-sm">
         {c && e ? (
           <>

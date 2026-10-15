@@ -6,6 +6,7 @@ import type { Climb } from "../game/floorFights";
 import type { FightSpec } from "../game/stage";
 import {
   doorKindEnum,
+  duelAction,
   phaseMsg,
   REALTIME_MAX_BYTES,
   interfereKindEnum,
@@ -125,8 +126,8 @@ const duelHero = z.object({
   classId: z.string(),
   element: z.string(),
 });
-const duelAction = z.enum(["attack1", "golpe", "barrido", "quebrar", "interrumpir", "explotar", "defend"]);
 const ab = <T extends z.ZodType>(t: T) => z.object({ a: t, b: t });
+const sideEnum = z.enum(["a", "b"]);
 export const duelView = z.object({
   mode: z.enum(["balanceado", "real"]),
   round: int,
@@ -144,17 +145,41 @@ export const duelView = z.object({
       bets: z.array(
         z.object({ bettor: uuid, prediction: z.enum(["win", "lose"]), stake: int }),
       ),
+      // public state of the turn-based duel (replayed by the server); nothing is secret
       fight: z
         .object({
+          n: int, // decisions resolved; echoed with a move
           turn: int,
+          turnCap: int,
+          warn: z.boolean(),
+          toMove: sideEnum.nullable(),
           deadlineMs: int,
           hp: ab(int),
           maxHp: ab(int),
-          universalCooldowns: ab(z.record(z.string(), z.number())),
-          picked: ab(z.boolean()),
+          shield: ab(int),
+          res: ab(int),
+          cds: ab(z.record(z.string(), z.number())),
+          loadouts: ab(z.tuple([z.string(), z.string()])),
+          progress: ab(int),
+          defending: ab(z.boolean()),
+          statuses: ab(z.array(z.object({ id: z.string(), stacks: int }))),
+          queue: z.array(z.object({ side: sideEnum, certain: z.boolean() })),
           heroes: ab(duelHero),
           log: z.array(z.string()),
-          last: z.object({ a: duelAction.nullable(), b: duelAction.nullable() }).nullable(),
+          last: z
+            .object({ side: sideEnum, action: duelAction, auto: z.boolean() })
+            .nullable(),
+          events: z.array(
+            z.object({
+              seq: int,
+              type: z.string(),
+              actor: sideEnum.nullable(),
+              target: sideEnum.nullable().optional(),
+              skillId: z.string().optional(),
+              value: z.number().optional(),
+              detail: z.string().optional(),
+            }),
+          ),
         })
         .nullable(),
     }),

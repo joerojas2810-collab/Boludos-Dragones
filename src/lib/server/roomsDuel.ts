@@ -1,23 +1,29 @@
 // Room duels, server side. The pure reducer (game/room.ts) decides phases, bets
-// and payouts; game/duelRoom.ts runs the secret-pick turn loop; this file loads
+// and payouts; game/duelRoom.ts runs the alternating-turn loop on the shared engine
+// (the server replays every action: authoritative); this file loads
 // the state, applies one transition inside an optimistic transaction and saves
 // state + chip deltas + phase move in ONE store call. Errors are RpcError(code)
 // so the caller's `guarded` maps them to HTTP like every other room error.
-import { canAct, type Duel } from "../game/duel";
+import { sideToMove } from "../game/duel";
 import { niveladoHero } from "../game/niveladoHero";
 import {
+  applyMove,
   chipDeltas,
   duelMissions,
   decideByHp,
   extractDuelDb,
+  liveIsStale,
   newLive,
   replayLive,
   resolveTurn,
   sideOf,
   type DuelLive,
+  type TurnResult,
 } from "../game/duelRoom";
 import type { Character } from "../game/characters";
-import type { Action } from "../game/combat";
+import { projectTurns, TURN_CAP, TURN_WARN, type Action, type Combatant } from "../game/combat";
+import { heroKey, masteryOf } from "../game/loadout";
+import { loadoutError, sanitizeLoadout, type Loadout } from "../game/skills";
 import {
   advance as modelAdvance,
   autoPairs,
@@ -115,9 +121,16 @@ export async function duelPickService(
   room: string,
   pick: DuelPick,
 ) {
-  if ("heroId" in pick && pick.heroId !== DEFAULT_HERO) {
+  if ("classId" in pick) {
+    // balanced: nivelado rules, all four skills of the class are candidates
+    if (pick.loadout && loadoutError(pick.classId, pick.loadout, null)) err("invalid_args");
+  } else if (pick.heroId !== DEFAULT_HERO) {
     const { profile } = await d.loadProfile(player);
-    if (!profile.characters.some((c) => c.id === pick.heroId)) err("hero_not_owned");
+    const hero = profile.characters.find((c) => c.id === pick.heroId);
+    if (!hero) err("hero_not_owned");
+    // collection: skills 3 and 4 need the class mastery of this account
+    else if (pick.loadout && loadoutError(hero.classId, pick.loadout, masteryOf(profile, hero.classId)))
+      err("invalid_args");
   }
   await duelTx(d, room, async (s) => ({
     s: must(chooseDuelPick(s, player, pick)).state,
@@ -155,7 +168,17 @@ function finish(s: RoomState, m: DuelMatch, winner: string | null, end: DuelEnd)
   return must(r.ok ? r : reportDuel(s, m.b, m.key, winner, end)).state;
 }
 
-/** Resolves every open turn that is ready; reports the duels that ended. */
+/** Settles a finished turn result into the room state (winner id or null). */
+function report(st: RoomState, m: DuelMatch, r: TurnResult): RoomState {
+  const o = r.over;
+  if (!o) return st;
+  return finish(st, m, o.winner === null ? null : o.winner === "a" ? m.a : m.b, o.end);
+}
+
+/**
+ * Resolves every overdue/absent turn (Defender fallback) and reports the duels that ended.
+ * A duel started on another engine version is voided as "no_fight" (never replayed).
+ */
 function tickState(
   s: RoomState,
   live: Record<string, DuelLive>,
@@ -168,15 +191,19 @@ function tickState(
   for (const m of s.duels) {
     const lv = out[m.key];
     if (!lv || m.reported || m.status === "settled") continue;
+    if (liveIsStale(lv)) {
+      st = finish(st, m, null, "no_fight");
+      changed = true;
+      continue;
+    }
     // several turns can be overdue (absent players): resolve until it waits again
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 12; i++) {
       const r = resolveTurn(out[m.key], now, s.turnSeconds * 1000, here(st, m));
       if (!r) break;
       out[m.key] = r.live;
       changed = true;
       if (r.over) {
-        const w = r.over.winner === null ? null : r.over.winner === "a" ? m.a : m.b;
-        st = finish(st, m, w, r.over.end);
+        st = report(st, m, r);
         break;
       }
     }
@@ -202,12 +229,17 @@ export async function duelTick(d: RoomDeps, room: string): Promise<boolean> {
   return r === true;
 }
 
+/**
+ * The acting duelist's decision. `n` (optional) = decisions the client had seen: a stale click
+ * (the turn already moved on, e.g. after a timeout fallback) is a harmless no-op.
+ */
 export async function duelMoveService(
   d: RoomDeps,
   player: string,
   room: string,
   key: string,
   action: Action,
+  n?: number,
 ) {
   await duelTx(d, room, async (s, live) => {
     if (s.phase !== "duel_fight") return err("wrong_phase");
@@ -216,30 +248,51 @@ export async function duelMoveService(
     if (!m || !side) return err("battle_not_found");
     const lv = live[key];
     if (!lv || m.reported || m.status === "settled") return err("wrong_phase");
-    if (lv.pending[side] !== undefined) return null; // first pick of the turn stands
-    const { duel } = replayLive(lv);
-    if (!canAct(duel[side], action)) return err("invalid_args");
-    const next = { ...live, [key]: { ...lv, pending: { ...lv.pending, [side]: action } } };
-    const t = tickState(s, next, d.now());
+    if (liveIsStale(lv)) return err("engine_outdated");
+    if (n !== undefined && n !== lv.history.length) return null;
+    const r = applyMove(lv, side, action, d.now(), s.turnSeconds * 1000);
+    if (r === "not_turn") return null;
+    if (r === "illegal") return err("invalid_args");
+    const next = { ...live, [key]: r.live };
+    const st = report(s, m, r);
+    const t = tickState(st, next, d.now());
     return { s: t.s, live: t.live, value: true };
   });
 }
 
 // ---------------------------------------------------------------- phase moves
-/** The duelist as the fight log names them: the player, not the class. */
-async function duelHeroOf(
+/**
+ * The duelist as the fight log names them (the player, not the class) plus the two skills they
+ * take in. Balanced: all four skills are candidates; collection: mastery of the account decides.
+ */
+async function duelFighterOf(
   d: RoomDeps,
   s: RoomState,
   id: string,
   seed: number,
   names: Record<string, string>,
-): Promise<Character> {
+): Promise<{ hero: Character; loadout: Loadout }> {
   const pick = s.players.find((p) => p.id === id)?.duelPick ?? DEFAULT_DUEL_PICK_FOR(s.duelMode);
-  const hero =
-    "classId" in pick
-      ? niveladoHero(pick.classId, pick.element)
-      : heroForRound((await d.loadProfile(id)).profile, pick.heroId, "completo", seed, id);
-  return { ...hero, name: names[id] ?? hero.name };
+  if ("classId" in pick) {
+    const hero = niveladoHero(pick.classId, pick.element);
+    return {
+      hero: { ...hero, name: names[id] ?? hero.name },
+      loadout: sanitizeLoadout(pick.classId, pick.loadout, null),
+    };
+  }
+  const { profile } = await d.loadProfile(id);
+  const hero = heroForRound(profile, pick.heroId, "completo", seed, id);
+  const named = { ...hero, name: names[id] ?? hero.name };
+  if (pick.heroId === DEFAULT_HERO) // a seeded Común: it has no saved skills, only the unlocked ones
+    return { hero: named, loadout: sanitizeLoadout(hero.classId, pick.loadout, 0) };
+  return {
+    hero: named,
+    loadout: sanitizeLoadout(
+      hero.classId,
+      pick.loadout ?? profile.loadouts?.[heroKey(hero)],
+      masteryOf(profile, hero.classId),
+    ),
+  };
 }
 
 export type DuelAdvance = { advanced: boolean; reason?: string };
@@ -267,7 +320,9 @@ export async function duelAdvanceService(
       if (now >= s.deadline)
         for (const m of s.duels) {
           if (m.reported || m.status === "settled" || !live[m.key]) continue;
-          const o = decideByHp(replayLive(live[m.key]).duel);
+          const o = liveIsStale(live[m.key])
+            ? { winner: null, end: "no_fight" as const }
+            : decideByHp(replayLive(live[m.key]).battle);
           s = finish(s, m, o.winner === null ? null : o.winner === "a" ? m.a : m.b, o.end);
         }
     }
@@ -284,12 +339,12 @@ export async function duelAdvanceService(
       for (const m of next.duels) {
         if (m.status === "settled") continue;
         const seed = d.randomSeed();
+        const fa = await duelFighterOf(d, next, m.a, seed, names);
+        const fb = await duelFighterOf(d, next, m.b, seed, names);
         live[m.key] = newLive(
           seed,
-          {
-            a: await duelHeroOf(d, next, m.a, seed, names),
-            b: await duelHeroOf(d, next, m.b, seed, names),
-          },
+          { a: fa.hero, b: fb.hero },
+          { a: fa.loadout, b: fb.loadout },
           now,
           next.turnSeconds * 1000,
         );
@@ -332,18 +387,33 @@ export interface DuelMatchView {
   end: DuelEnd | null;
   outcome: DuelMatch["outcome"];
   bets: { bettor: string; prediction: BetPrediction; stake: number }[];
-  /** Only while the fight is on / after it: public state of the duel. */
-  fight: {
-    turn: number;
-    deadlineMs: number;
-    hp: { a: number; b: number };
-    maxHp: { a: number; b: number };
-    universalCooldowns: { a: Record<string, number>; b: Record<string, number> };
-    picked: { a: boolean; b: boolean };
-    heroes: { a: Pick<Character, "name" | "classId" | "element">; b: Pick<Character, "name" | "classId" | "element"> };
-    log: string[];
-    last: { a: Action | null; b: Action | null } | null; // revealed picks of the last turn
-  } | null;
+  /** Only while the fight is on / after it. Everything is public: there are no secret picks. */
+  fight: DuelFight | null;
+}
+type Hero = Pick<Character, "name" | "classId" | "element">;
+type Pair<T> = { a: T; b: T };
+/** Public state of a duel, replayed from the action log (engine `Battle`, side a = player). */
+export interface DuelFight {
+  n: number; // decisions resolved (clients echo it with a move to ignore stale clicks)
+  turn: number; // turns resolved by both sides; capped at `turnCap`
+  turnCap: number;
+  warn: boolean; // close to the cap
+  toMove: "a" | "b" | null;
+  deadlineMs: number;
+  hp: Pair<number>;
+  maxHp: Pair<number>;
+  shield: Pair<number>;
+  res: Pair<number>; // class resource 0..3
+  cds: Pair<Record<string, number>>;
+  loadouts: Pair<[string, string]>;
+  progress: Pair<number>;
+  defending: Pair<boolean>;
+  statuses: Pair<{ id: string; stacks: number }[]>;
+  queue: { side: "a" | "b"; certain: boolean }[]; // next turns (projection, only the first is certain)
+  heroes: Pair<Hero>;
+  log: string[];
+  last: { side: "a" | "b"; action: Action; auto: boolean } | null;
+  events: { seq: number; type: string; actor: "a" | "b" | null; target?: "a" | "b" | null; skillId?: string; value?: number; detail?: string }[];
 }
 export interface DuelView {
   mode: DuelMode;
@@ -364,30 +434,7 @@ export async function duelViewOf(
   const live = loaded?.db.live ?? {};
   const matches = s.duels.map((m): DuelMatchView => {
     const lv = live[m.key];
-    let fight: DuelMatchView["fight"] = null;
-    if (lv) {
-      const du: Duel = replayLive(lv).duel;
-      const last = lv.history[lv.history.length - 1];
-      const hero = (c: Character) => ({
-        name: c.name,
-        classId: c.classId,
-        element: c.element,
-      });
-      fight = {
-        turn: du.turn,
-        deadlineMs: lv.deadline,
-        hp: { a: du.a.hp, b: du.b.hp },
-        maxHp: { a: du.a.char.stats.hp, b: du.b.char.stats.hp },
-        universalCooldowns: {
-          a: du.a.universalCooldowns ?? {},
-          b: du.b.universalCooldowns ?? {},
-        },
-        picked: { a: lv.pending.a !== undefined, b: lv.pending.b !== undefined },
-        heroes: { a: hero(lv.heroes.a), b: hero(lv.heroes.b) },
-        log: du.log.slice(-8),
-        last: last ? { a: last[0], b: last[1] } : null,
-      };
-    }
+    const fight = lv && !liveIsStale(lv) ? fightOf(lv) : null;
     return {
       key: m.key,
       a: m.a,
@@ -410,5 +457,50 @@ export async function duelViewOf(
     round: s.duelRound,
     picked: s.players.filter((p) => p.duelPick !== null).map((p) => p.id),
     matches,
+  };
+}
+
+const sideId = (id: number | undefined): "a" | "b" | null => (id === 0 ? "a" : id === 1 ? "b" : null);
+
+function fightOf(lv: DuelLive): DuelFight {
+  const { battle: bt } = replayLive(lv);
+  const [pa, pb] = [bt.player, bt.enemies[0]];
+  const both = <T,>(f: (c: Combatant) => T): Pair<T> => ({ a: f(pa), b: f(pb) });
+  const hero = (c: Combatant): Hero => ({ name: c.char.name, classId: c.char.classId, element: c.char.element });
+  const last = lv.history[lv.history.length - 1];
+  return {
+    n: lv.history.length,
+    turn: Math.min(bt.turn, TURN_CAP),
+    turnCap: TURN_CAP,
+    warn: bt.turn >= TURN_WARN,
+    toMove: sideToMove(bt),
+    deadlineMs: lv.deadline,
+    hp: both((c) => Math.max(0, Math.round(c.hp))),
+    maxHp: both((c) => c.char.stats.hp),
+    shield: both((c) => Math.max(0, Math.round(c.shield ?? 0))),
+    res: both((c) => c.res ?? 0),
+    cds: both((c) => Object.fromEntries(Object.entries(c.cds ?? {}).filter(([, v]) => (v ?? 0) > 0)) as Record<string, number>),
+    loadouts: both((c) => [...(c.loadout ?? [])] as [string, string]),
+    progress: both((c) => Math.round(c.progress)),
+    defending: both((c) => c.defending),
+    statuses: both((c) => (c.statuses ?? []).map((x) => ({ id: x.id, stacks: x.stacks }))),
+    queue: projectTurns(bt, 6).flatMap((t) => {
+      const side = sideId(t.id);
+      return side ? [{ side, certain: t.certain }] : [];
+    }),
+    heroes: both(hero),
+    log: bt.log.slice(-8),
+    last: last
+      ? { side: last.side, action: last.act, auto: !!last.auto }
+      : null,
+    events: bt.cev.slice(-30).map((e) => ({
+      seq: e.seq,
+      type: e.type,
+      actor: sideId(e.actor),
+      target: sideId(e.target),
+      skillId: e.skillId,
+      value: e.value,
+      detail: e.detail,
+    })),
   };
 }

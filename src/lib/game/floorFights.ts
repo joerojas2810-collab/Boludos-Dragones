@@ -14,6 +14,7 @@ import { DUNGEON_THEMES, ROUTE_IDS, type RouteId } from "./levels";
 import { makePow } from "./powTable";
 import { DIFFICULTIES, type Difficulty } from "./rarity";
 import { createRng, hashSeed } from "./rng";
+import { defaultLoadout, type Loadout } from "./skills";
 import {
   createStage,
   ENGINE_VERSION,
@@ -242,13 +243,14 @@ export function floorFight(
 export interface Climb {
   seed: number;
   hero: Character;
+  loadout: Loadout; // two equipped skills, fixed for the whole climb
   hp: number;
   floor: number; // floor to play next (1-based)
   status: "active" | "over";
   rank: Difficulty | null; // room difficulty (null in the tower)
   wins: number;
   bossWins: number;
-  rounds: number; // battle rounds fought so far (tower tiebreak)
+  rounds: number; // resolved battle turns so far (tower tiebreak; the name is kept for the SQL column)
   engineVersion: number;
 }
 
@@ -256,9 +258,11 @@ export const newClimb = (
   seed: number,
   hero: Character,
   rank: Difficulty | null = null,
+  loadout: Loadout = defaultLoadout(hero.classId),
 ): Climb => ({
   seed,
   hero,
+  loadout,
   hp: hero.stats.hp,
   floor: 1,
   status: "active",
@@ -277,7 +281,7 @@ export function floorStage(
   c: Climb,
   spec: FightSpec = floorFight(c.seed, c.floor, { rank: c.rank }),
 ): Stage {
-  return { ...createStage(hashSeed(c.seed, 1), c.hero, [spec]), hp: c.hp };
+  return { ...createStage(hashSeed(c.seed, 1), c.hero, [spec], 0, c.loadout), hp: c.hp };
 }
 
 /** Folds a finished floor stage (cleared | lost) into the climb. Unfinished: unchanged. */
@@ -285,10 +289,10 @@ export function advanceClimb(
   c: Climb,
   stage: Stage,
   role: FightRole,
-  rounds = 0,
+  turns = 0,
 ): Climb {
   if (stage.status === "lost")
-    return { ...c, status: "over", hp: 0 }; // the lost floor does not count, nor its rounds
+    return { ...c, status: "over", hp: 0 }; // the lost floor does not count, nor its turns
   if (stage.status !== "cleared") return c;
   const max = c.hero.stats.hp;
   return {
@@ -297,7 +301,7 @@ export function advanceClimb(
     floor: c.floor + 1,
     wins: c.wins + 1,
     bossWins: c.bossWins + (role === "normal" ? 0 : 1),
-    rounds: c.rounds + rounds,
+    rounds: c.rounds + turns,
   };
 }
 

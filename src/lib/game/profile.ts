@@ -49,6 +49,7 @@ import {
 import type { Rng } from "./rng";
 import { dayKey, isDayKey, type DailyState } from "./streak";
 import { dayPayMult } from "./economy";
+import { EMPTY_MASTERY, isSkillId, type ClassMastery, type Loadout } from "./skills";
 import { addHeroXp, gapMult, levelCap } from "./heroLevel";
 import { TRAIT_IDS, type TraitId } from "./traits";
 import {
@@ -67,7 +68,7 @@ import {
   type Weapon,
 } from "./weapons";
 
-export const PROFILE_VERSION = 7; // 7: dungeon progress is shared by difficulty step and tracked per route
+export const PROFILE_VERSION = 8; // 8: class mastery + skill loadouts (7: dungeon progress shared by difficulty step, tracked per route)
 // Raised from 150: at ~11-22 pulls/day of income the old price made SSR pity reachable in
 // ~2 weeks (cheaper than the forge). Keep in sync with game_constants (0017).
 // Day-1 tutorial progress (tutorial.ts). Only brand-new local accounts carry it (see
@@ -150,6 +151,9 @@ export interface Profile {
   dadosDay?: { day: string; n: number }; // dice found on that game day by last-level drops (max 2)
   dungeonRewardsDay?: { day: string; escamas: number; dados: number };
   tutorial?: number; // step 0..TUTORIAL_DONE; missing = done
+  classMastery?: ClassMastery; // monotonic max hero level reached per class (unlocks skills 3 and 4)
+  loadouts?: Record<string, Loadout>; // collection mode: two equipped skills per hero, keyed by characterKey
+  levelLoadouts?: Partial<Record<ClassId, Loadout>>; // nivelado: selection per class
 }
 
 export const characterKey = (c: ClassId, e: Element, r: RarityId) =>
@@ -169,6 +173,9 @@ export const createProfile = (): Profile => ({
   escamas: 0,
   dados: 0,
   dungeonRewardsDay: { day: dayKey(), escamas: 0, dados: 0 },
+  classMastery: { ...EMPTY_MASTERY },
+  loadouts: {},
+  levelLoadouts: {},
 });
 
 const UNIT_COST: Record<Banner, number> = {
@@ -575,6 +582,10 @@ export function bankLevel(p: Profile, r: LevelResult): LevelBank {
       characters: q.characters.map((c) =>
         c.id === hero.id ? { ...c, level: res.level, xp: res.xp } : c,
       ),
+      classMastery: {
+        ...(q.classMastery ?? EMPTY_MASTERY),
+        [hero.classId]: Math.max(q.classMastery?.[hero.classId] ?? 0, res.level),
+      },
     };
   }
   return { profile: q, cleared, repeat, coins, chest, xp, levelsGained, newLevel };
@@ -902,5 +913,36 @@ export function migrate(json: unknown): Profile {
     ...(typeof json.tutorial === "number" && json.tutorial < TUTORIAL_DONE
       ? { tutorial: nat(json.tutorial, TUTORIAL_DONE) }
       : {}),
+    classMastery: parseMastery(json.classMastery, characters),
+    ...parseLoadouts(json),
   };
+}
+
+const parseLoadout = (v: unknown): Loadout | null =>
+  Array.isArray(v) && v.length === 2 && isSkillId(v[0]) && isSkillId(v[1]) ? [v[0], v[1]] : null;
+
+// Shape only: class legality and unlocks are checked when a loadout is read (loadout.ts).
+function parseLoadouts(json: Record<string, unknown>): Pick<Profile, "loadouts" | "levelLoadouts"> {
+  const loadouts: Record<string, Loadout> = {};
+  if (isObj(json.loadouts))
+    for (const [k, v] of Object.entries(json.loadouts)) {
+      const l = parseLoadout(v);
+      if (l && k.length < 60) loadouts[k] = l;
+    }
+  const levelLoadouts: Partial<Record<ClassId, Loadout>> = {};
+  if (isObj(json.levelLoadouts))
+    for (const c of CLASS_IDS) {
+      const l = parseLoadout(json.levelLoadouts[c]);
+      if (l) levelLoadouts[c] = l;
+    }
+  return { loadouts, levelLoadouts };
+}
+
+function parseMastery(v: unknown, characters: OwnedCharacter[]): ClassMastery {
+  const m = { ...EMPTY_MASTERY };
+  for (const c of CLASS_IDS) {
+    const saved = isObj(v) ? nat(v[c], 1000) : 0;
+    m[c] = Math.max(saved, ...characters.filter((h) => h.classId === c).map((h) => h.level));
+  }
+  return m;
 }

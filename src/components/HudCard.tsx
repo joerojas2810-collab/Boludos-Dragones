@@ -7,15 +7,15 @@ import { Icon } from "@/components/Icon";
 import { ElementIcon } from "@/components/ElementIcon";
 import { Tooltip } from "@/components/Tooltip";
 import { CLASSES } from "@/lib/game/characters";
-import { ENRAGE_AFTER_TURN, type Combatant } from "@/lib/game/combat";
+import type { Combatant } from "@/lib/game/combat";
+import { ENRAGE_AFTER_OWN_TURN } from "@/lib/game/bossRules";
 import {
   elementTip,
   enrageTip,
   freeHitsTip,
   passiveTip,
-  resolutionTip,
+  guardTip,
   bossBadge,
-  riposteTip,
   shieldTip,
   statTip,
   traitTip,
@@ -33,7 +33,6 @@ const FAMILY_LABEL: Record<EnemyFamily, string> = {
 type Props = {
   c: Combatant;
   foe: Combatant;
-  turn: number;
   label: string;
   tone: "enemy" | "player";
   className: string;
@@ -53,7 +52,6 @@ type Cell = { stat: keyof Stats; label: string; value: string; hot?: boolean };
 export function HudCard({
   c,
   foe,
-  turn,
   label,
   tone,
   className,
@@ -88,15 +86,18 @@ export function HudCard({
   const [open, setOpen] = useState(false);
   const ctx = { foe, you, inRun };
   const weapon = weaponTip(c);
+  const guarded = !!c.guard && c.defending;
+  const enraged = !you && c.ownTurns > ENRAGE_AFTER_OWN_TURN;
   const hasStatus =
     (c.shield ?? 0) > 0 ||
-    c.riposte ||
+    guarded ||
+    !!c.exposed ||
+    (c.quiebreResist ?? 0) > 0 ||
     !!c.boss ||
     (c.healCut ?? 0) > 0 ||
-    c.resolution ||
     (c.nextHitReduction ?? 0) > 0 ||
     (c.freeHits ?? 0) > 0 ||
-    (!you && turn > ENRAGE_AFTER_TURN) ||
+    enraged ||
     !!children;
   return (
     <div
@@ -170,7 +171,7 @@ export function HudCard({
             return (
               <>
                 <div className="mb-0.5 flex items-center justify-between gap-2 text-[10px] leading-3 text-[#e4c98d]">
-                  <span className="font-semibold">Aguante</span>
+                  <span className="font-semibold"><span aria-hidden="true">◆ </span>Aguante</span>
                   <span className="tabular-nums">{Math.round(current)} / {Math.round(max)}</span>
                 </div>
                 <div
@@ -200,12 +201,28 @@ export function HudCard({
         <div className="mt-1 flex flex-wrap gap-1">
           {(c.shield ?? 0) > 0 && (
             <Chip tip={shieldTip(c, you)} tone="info">
-              Escudo {Math.round(c.shield ?? 0)}
+              <span aria-hidden="true">▣ </span>Escudo {Math.round(c.shield ?? 0)}
             </Chip>
           )}
-          {c.riposte && (
-            <Chip tip={riposteTip(c)} tone="heal">
-              Guardia perfecta
+          {guarded && (
+            <Chip tip={guardTip(c)} tone="heal">
+              <span aria-hidden="true">◧ </span>Guardia perfecta
+            </Chip>
+          )}
+          {c.exposed && (
+            <Chip
+              tip={{ title: "Expuesto", kind: "danger", lines: ["DEF −15 % hasta que complete su siguiente turno. Es el momento de golpear fuerte."], source: "Quiebre" }}
+              tone="danger"
+            >
+              <span aria-hidden="true">◇ </span>Expuesto
+            </Chip>
+          )}
+          {(c.quiebreResist ?? 0) > 0 && (
+            <Chip
+              tip={{ title: "Resiste Quiebre", kind: "info", lines: [`No se le puede provocar otro Quiebre durante ${c.quiebreResist} turno(s) propio(s).`], source: "Quiebre" }}
+              tone="info"
+            >
+              <span aria-hidden="true">⛨ </span>Resiste Quiebre {c.quiebreResist}
             </Chip>
           )}
           {(() => {
@@ -218,24 +235,19 @@ export function HudCard({
           })()}
           {(c.healCut ?? 0) > 0 && (
             <Chip
-              tip={{ title: "Curas a la mitad", kind: "info", lines: ["El ritual marchito reduce todas tus curas durante unas rondas."] }}
+              tip={{ title: "Curas a la mitad", kind: "info", lines: ["El ritual marchito reduce todas tus curas durante unos turnos."] }}
               tone="danger"
             >
               Curas ½
             </Chip>
           )}
-          {c.resolution && (
-            <Chip tip={resolutionTip(c)} tone="info">
-              Resolución
-            </Chip>
-          )}
-          {(c.nextHitReduction ?? 0) > 0 && <Chip tip={{ title: "Guardia preparada", kind: "info", lines: ["El próximo golpe recibido hace menos daño."] }} tone="info">Guardia</Chip>}
+          {(c.nextHitReduction ?? 0) > 0 && <Chip tip={{ title: "Evasión preparada", kind: "info", lines: ["El próximo golpe recibido hace menos daño."] }} tone="info"><span aria-hidden="true">↷ </span>Evasión</Chip>}
           {(c.freeHits ?? 0) > 0 && (
             <Chip tip={freeHitsTip(c)} tone="passive">
               Esquiva ×{c.freeHits}
             </Chip>
           )}
-          {!you && turn > ENRAGE_AFTER_TURN && (
+          {enraged && (
             <Chip tip={enrageTip()} tone="danger">
               Enfurecido
             </Chip>

@@ -6,6 +6,7 @@ import {
   type Climb,
   type FloorKind,
 } from "../game/floorFights";
+import { TURN_CAP } from "../game/combat";
 import type { Stage } from "../game/stage";
 import type { FightOutcome } from "../game/room";
 import type { StageReplayState } from "../game/stageReplay";
@@ -15,7 +16,7 @@ import type { StageReplayState } from "../game/stageReplay";
 export interface FloorReport {
   outcome: "won" | "lost" | "fled";
   hp: number; // hero hp when the fight ended (before the win heal)
-  turns: number; // battle rounds
+  turns: number; // resolved battle turns (combat.ts `turn`)
 }
 
 export interface FloorReplay {
@@ -28,6 +29,7 @@ export function reportOf(s: StageReplayState, fled = false): FloorReport | null 
   if (fled) return { outcome: "fled", hp: 0, turns: s.battle?.turn ?? 0 };
   if (!s.settled || !s.battle) return null;
   return {
+    // a "draw" (turn cap) leaves the stage lost: only a cleared stage is a win
     outcome: s.settled.status === "cleared" ? "won" : "lost",
     hp: Math.round(s.battle.player.hp),
     turns: s.battle.turn,
@@ -48,6 +50,6 @@ export function applyReport(
   const stage = { status: won ? "cleared" : "lost", hp: Math.min(max, Math.max(1, r.hp)) } as Stage;
   return {
     outcome: won ? "won" : "lost",
-    run: advanceClimb(start, stage, role, Math.min(r.turns, 500)),
+    run: advanceClimb(start, stage, role, Math.min(r.turns, TURN_CAP)),
   };
 }

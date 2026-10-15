@@ -53,6 +53,7 @@ import {
   PRESSURE_STEP,
   pressureGain,
   RAMP_MAX,
+  RITUAL_EFFECT_TURNS,
   RAMP_STEP,
   rampInterval,
   ritualEvery,
@@ -123,7 +124,7 @@ export const RUPTURE_BYPASS_PER_CHARGE = 0.08;
 export const MAGE_CONSUME_MULT = 1.25;
 export const PROTECT_SHIELD = 0.08;
 const COLOSSAL_GOLEM = "Gólem Colosal";
-const CHARGE_DEFENSE_BYPASS = 0.3;
+export const CHARGE_DEFENSE_BYPASS = 0.3;
 export const isStrongIntent = (k: HitKey | Intent): boolean =>
   k === "attack2" || k === "charge" || k === "channeling";
 /** Skills that cost 2 or more resource count as strong hits for guard purposes. */
@@ -1162,8 +1163,8 @@ function enemyTurn(w: Work, c: Combatant) {
     emit(w, "bossPhaseChanged", i + 1, { detail: "armadura" });
   } else if (intent === "channeling") {
     w.log.push(`${c.char.name} completa su ritual.`);
-    const rune = addStatus(w.p.statuses, "ruptura", 1, undefined, w.p.char.stats.resist);
-    w.p.statuses = rune;
+    w.p.statuses = addStatus(w.p.statuses, "ruptura", 1, undefined, w.p.char.stats.resist)
+      .map((st) => (st.id === "ruptura" ? { ...st, turns: Math.min(st.turns, RITUAL_EFFECT_TURNS) } : st));
     if (ruleOf(c) === "marchitar") {
       w.p.healCut = RITUAL_ROUNDS;
       w.log.push("El ritual te marchita: Ruptura y curas a la mitad.");
@@ -1191,7 +1192,7 @@ function enemyAttack(w: Work, c: Combatant, i: number, intent: "attack1" | "atta
     if (rule === "cabezas") extra = Math.min(MAX_EXTRA_IMPACTS, c.boss?.heads ?? 0);
     if (rule === "hambre" && c.hp < c.char.stats.hp * hungerBelow(c.boss?.ascension ?? 0)) extra = 1;
     for (let k = 0; k < extra && w.p.hp > 0; k++)
-      strike(w, c, w.p, key, { eIdx: i, factor: EXTRA_IMPACT, applyElement: false, defenseBypass: 0 });
+      strike(w, c, w.p, "attack1", { eIdx: i, factor: EXTRA_IMPACT, applyElement: false });
     if (rule === "cabezas" && extra > 0 && c.boss) c.boss = { ...c.boss, heads: 0 };
     if (w.mods?.includes("dobleAtaque") && w.p.hp > 0 && c.hp > 0)
       strike(w, c, w.p, "attack1", { eIdx: i, factor: DOUBLE_ATTACK_FACTOR });

@@ -130,11 +130,15 @@ export interface Battle {
   outcome: BetOutcome | null;
   voidReason: VoidReason | null;
 }
-// 1v1 duels (lib/game/duel.ts). `balanceado`: everybody picks only class +
-// element and fights with the plain hero of that class; `real`: a hero of the
+// 1v1 duels (lib/game/duel.ts, shared turn-based engine). `balanceado`: everybody picks class +
+// element (+ 2 of the 4 skills) and fights with the plain hero of that class; `real`: a hero of the
 // account, full power. A duel is a Battle-like match: bets are "win" = a wins.
 export type DuelMode = "balanceado" | "real";
-export type DuelPick = { classId: ClassId; element: Element } | { heroId: string };
+// `loadout` = the two skills the duelist takes in (checked by the server: class, duplicates,
+// unlocks via loadoutError; missing = the saved/default loadout).
+export type DuelPick =
+  | { classId: ClassId; element: Element; loadout?: [string, string] }
+  | { heroId: string; loadout?: [string, string] };
 export type DuelEnd = "ko" | "time" | "forfeit" | "draw" | "no_fight";
 export interface DuelMatch {
   key: string;
@@ -876,7 +880,9 @@ export function chooseDuelPick(s: RoomState, id: string, pick: DuelPick): Result
       : "classId" in pick &&
         (CLASS_IDS as readonly string[]).includes(pick.classId) &&
         (ELEMENTS as readonly string[]).includes(pick.element);
-  if (!ok) return fail("invalid_args");
+  const lo = pick.loadout;
+  if (!ok || (lo !== undefined && !(Array.isArray(lo) && lo.length === 2 && lo.every((x) => typeof x === "string"))))
+    return fail("invalid_args");
   const n = clone(s);
   byId(n, id)!.duelPick = pick;
   return done(n);

@@ -6,7 +6,9 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { cpus, tmpdir } from "node:os";
 import { join } from "node:path";
 import { CLASS_IDS, type ClassId } from "../src/lib/game/characters";
-import { duelRound, canAct, startDuel, type Duel } from "../src/lib/game/duel";
+import { actionError, step, type Action, type Battle } from "../src/lib/game/combat";
+import { duelStatus, sideToMove, startDuel, type DuelSide } from "../src/lib/game/duel";
+import { defaultLoadout } from "../src/lib/game/skills";
 import { ELEMENTS, type Element } from "../src/lib/game/elements";
 import { niveladoHero } from "../src/lib/game/niveladoHero";
 import { createRng, hashSeed, type Rng } from "../src/lib/game/rng";
@@ -23,15 +25,13 @@ const SHARD = (args.get("shard") ?? "0/1").split("/").map(Number);
 const PARTIAL = args.get("partial") ?? "";
 if (!Number.isInteger(RUNS) || RUNS < 1 || !Number.isInteger(SEED) || SEED < 0) throw new Error("Use --runs>=1 and a nonnegative --seed.");
 
-type Policy = (duel: Duel, side: "a" | "b", rng: Rng) => "attack1" | "golpe" | "barrido" | "defend";
-// Duel combat currently supports Golpe and Barrido as universal skills. Quebrar is
-// unavailable without Aguante; Interrumpir/Explotar lack their combat effects in duelRound.
-const policy: Policy = (duel, side, rng) => {
-  const fighter = duel[side];
+// Random legal bot for the side to move: mostly skills when affordable, else the basic, sometimes Defender.
+const policy = (b: Battle, side: DuelSide, rng: Rng): Action => {
+  const me = side === "a" ? b.player : b.enemies[0];
   const roll = rng.next();
-  if (roll < 0.12) return "defend";
-  if (roll < 0.52 && canAct(fighter, "golpe")) return "golpe";
-  if (roll < 0.72 && canAct(fighter, "barrido")) return "barrido";
+  if (roll < 0.1) return "defend";
+  const usable = (me.loadout ?? []).filter((id) => actionError(b, id) === null);
+  if (roll < 0.7 && usable.length) return usable[Math.floor(rng.next() * usable.length)];
   return "attack1";
 };
 
@@ -47,14 +47,19 @@ for (const aClass of CLASS_IDS) for (const aElement of ELEMENTS)
     const bi = CLASS_IDS.indexOf(bClass) * ELEMENTS.length + ELEMENTS.indexOf(bElement);
     for (let run = 0; run < RUNS; run++) {
       const rng = createRng(hashSeed(SEED, ai, bi, run));
-      let duel = startDuel(niveladoHero(aClass as ClassId, aElement as Element), niveladoHero(bClass as ClassId, bElement as Element));
-      while (duel.status === "ongoing" && duel.turn <= 65) {
-        duel = duelRound(duel, policy(duel, "a", rng), policy(duel, "b", rng), rng);
+      const seed = hashSeed(SEED, ai, bi, run);
+      const heroes = { a: niveladoHero(aClass as ClassId, aElement as Element), b: niveladoHero(bClass as ClassId, bElement as Element) };
+      const loadouts = { a: defaultLoadout(aClass as ClassId), b: defaultLoadout(bClass as ClassId) };
+      let duel = startDuel({ seed, heroes, loadouts }, rng);
+      for (let i = 0; i < 800 && duel.status === "ongoing"; i++) {
+        const side = sideToMove(duel)!;
+        duel = step(duel, policy(duel, side, rng), rng);
       }
-      rounds += duel.turn - 1;
-      if (duel.status === "a") wins++;
-      else if (duel.status === "draw") draws++;
-      else if (duel.status === "ongoing") timeouts++;
+      rounds += duel.turn;
+      const st = duelStatus(duel);
+      if (st === "a") wins++;
+      else if (st === "draw") draws++;
+      else if (st === "ongoing") timeouts++;
     }
     cells.push({ ai, bi, wins, draws, timeouts, rounds });
   }
@@ -83,10 +88,10 @@ function print(rows: Cell[]): void {
   const labels = CLASS_IDS.flatMap((c) => ELEMENTS.map((e) => `${c}/${e}`));
   const ordered = rows.sort((a, b) => a.ai - b.ai || a.bi - b.bi);
   const indexed = new Map(ordered.map((row) => [`${row.ai}:${row.bi}`, row]));
-  console.log(`seed=${SEED} duels/matchup=${RUNS} preset=D 0★ Lv1 policy=universal-supported workers=${WORKERS}`);
-  console.log("ROW wins % / draws % / timeouts % / mean rounds; rows act as side A");
+  console.log(`seed=${SEED} duels/matchup=${RUNS} preset=D 0★ Lv1 policy=random-legal(2 skills) workers=${WORKERS}`);
+  console.log("ROW wins % / draws % / timeouts % / mean turns; rows act as side A");
   const totalDuels = RUNS * labels.length * labels.length;
-  console.log(`overall draws=${(100 * ordered.reduce((sum, cell) => sum + cell.draws, 0) / totalDuels).toFixed(2)}%, timeouts=${(100 * ordered.reduce((sum, cell) => sum + cell.timeouts, 0) / totalDuels).toFixed(2)}%, mean rounds=${(ordered.reduce((sum, cell) => sum + cell.rounds, 0) / totalDuels).toFixed(2)}`);
+  console.log(`overall draws=${(100 * ordered.reduce((sum, cell) => sum + cell.draws, 0) / totalDuels).toFixed(2)}%, timeouts=${(100 * ordered.reduce((sum, cell) => sum + cell.timeouts, 0) / totalDuels).toFixed(2)}%, mean turns=${(ordered.reduce((sum, cell) => sum + cell.rounds, 0) / totalDuels).toFixed(2)}`);
   console.log(`\t${labels.join("\t")}`);
   for (let ai = 0; ai < labels.length; ai++) {
     const result = labels.map((_, bi) => {

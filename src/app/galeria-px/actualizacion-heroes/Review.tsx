@@ -11,6 +11,7 @@ import { EquipmentEditor } from "@/components/EquipmentEditor";
 import { BattleArena } from "@/components/BattleArena";
 import { EnemySprite } from "@/components/EnemySprite";
 import { startBattle } from "@/lib/game/combat";
+import { loadoutFor } from "@/lib/game/loadout";
 import { createProfile, slotKey, type OwnedCharacter } from "@/lib/game/profile";
 import { generateCharacter } from "@/lib/game/characters";
 import { createRng } from "@/lib/game/rng";
@@ -55,7 +56,7 @@ function BattlePreview({ barbarian = false }: { barbarian?: boolean }) {
   const rng = createRng(72);
   const hero = { ...generateCharacter(rng, barbarian ? "berserker" : "caballero"), element: "rayo" as const };
   const foes = Array.from({ length: count }, (_, i) => ({ ...generateCharacter(rng, "mago"), name: `Gólem ${i + 1}`, element: "tierra" as const }));
-  const battle = startBattle(hero, foes, rng);
+  const battle = startBattle(hero, foes, rng, { loadout: loadoutFor(createProfile(), hero, "nivelado") });
   return <div className="space-y-3"><label>Enemigos de muestra <select className="rounded border border-slate-600 bg-slate-800 p-2" value={count} onChange={e => setCount(Number(e.target.value))}>{[1,2,3].map(n => <option key={n} value={n}>{n}</option>)}</select></label><div className="flex h-[420px] flex-col"><BattleArena b={battle} world={0} playerExtra="Muestra" enemyExtra={() => "Muestra"} enemy={0} enemyArt={(_, c) => <EnemySprite family="golem" element={c.char.element} flip />} /></div></div>;
 }
 
