@@ -8,8 +8,9 @@ export type StatusId = "escarcha" | "quemadura" | "impulso" | "ruptura";
 export interface StatusEffect {
   id: StatusId;
   stacks: number;
-  turns: number; // rounds left
-  amount?: number; // quemadura: damage per stack per round
+  turns: number; // carrier maintenances left
+  amount?: number; // quemadura: damage per stack per tick
+  fresh?: boolean; // applied during the carrier's own turn: that same close does not consume it
 }
 
 export const STATUS_OF_ELEMENT: Partial<Record<Element, StatusId>> = {
@@ -48,6 +49,7 @@ export function addStatus(
   stacks: number,
   amount?: number,
   resist = 0, // target's resistance: shortens the duration of negative statuses
+  own = false, // the carrier is acting right now (self-applied): skip its closing tick
 ): StatusEffect[] {
   const d = STATUS_DATA[id];
   const turns = d.negative ? Math.max(1, Math.round(d.turns * (1 - resist))) : d.turns;
@@ -56,6 +58,7 @@ export function addStatus(
     id,
     stacks: Math.min(d.max, (cur?.stacks ?? 0) + stacks),
     turns,
+    ...(own && { fresh: true }),
     ...(amount !== undefined && { amount }),
   };
   return [...(list ?? []).filter((s) => s.id !== id), next];
@@ -69,9 +72,16 @@ export function cleanse(list: List): StatusEffect[] {
   return out;
 }
 
-// End of round: one round less on every status, expired ones drop.
+// Close of the carrier's turn: one maintenance less on every status that already
+// existed, expired ones drop. A status applied during this very turn keeps its duration.
 export const tickStatuses = (list: List): StatusEffect[] =>
-  (list ?? []).flatMap((s) => (s.turns > 1 ? [{ ...s, turns: s.turns - 1 }] : []));
+  (list ?? []).flatMap((s) => {
+    if (s.fresh) {
+      const { fresh: _fresh, ...rest } = s;
+      return [rest];
+    }
+    return s.turns > 1 ? [{ ...s, turns: s.turns - 1 }] : [];
+  });
 
 // Damage of the burn this round (before the hp cap).
 export const burnDamage = (list: List): number => {
