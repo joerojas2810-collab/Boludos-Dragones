@@ -847,26 +847,84 @@ function cancelIntent(w: Work, tgt: Combatant, why: string) {
 
 // ---- elemental consumption (docs/ideal/01 §6) -------------------------------------------------
 
-function consumeElement(w: Work, att: Combatant, tgt: Combatant | null, skillId: SkillId) {
+/**
+ * What consuming the hero's elemental state would do right now, with relic bonuses and caps.
+ * Single source of truth: the engine resolves consumption with it and the UI predicts with it.
+ */
+export interface ConsumePreview {
+  state: "quemadura" | "escarcha" | "ruptura" | "impulso" | "sobrecarga";
+  stacks: number;
+  ready: boolean; // false: nothing to consume yet (Sobrecarga below 3 charges, no state on the target)
+  damage?: number; // quemadura (advanced ticks, capped) / sobrecarga (discharge)
+  delayPct?: number; // escarcha: share of the turn threshold taken from the target (max possible)
+  delayLost?: number; // escarcha: progress actually removable now (min with the target's progress)
+  alreadyDelayed?: boolean; // escarcha: the target was already delayed until its next turn
+  advancePct?: number; // impulso: share of the threshold added to the hero's progress
+  bypass?: number; // ruptura: DEF ignored by the next attack
+  mage: number; // class multiplier applied
+}
+
+export function consumePreview(att: Combatant, tgt: Combatant | null | undefined): ConsumePreview | null {
   const el = att.char.element;
   const mage = att.char.classId === "mago" ? MAGE_CONSUME_MULT : 1;
+  if (el === "fuego") {
+    const stacks = stacksOf(tgt?.statuses, "quemadura");
+    if (!tgt || !stacks) return { state: "quemadura", stacks, ready: false, mage };
+    const damage = Math.min(
+      Math.round(burnDamage(tgt.statuses) * BURN_CONSUME_TICKS * mage * (1 + (att.relic?.burnDmg ?? 0))),
+      Math.round(tgt.char.stats.hp * BURN_CAP),
+    );
+    return { state: "quemadura", stacks, ready: true, damage, mage };
+  }
+  if (el === "agua") {
+    const stacks = stacksOf(tgt?.statuses, "escarcha");
+    if (!tgt || !stacks) return { state: "escarcha", stacks, ready: false, mage };
+    const delayPct = Math.min(FROST_CAP, FROST_DELAY[stacks] * mage + (att.relic?.frostBonus ?? 0));
+    return {
+      state: "escarcha", stacks, ready: true, delayPct, mage,
+      delayLost: Math.min(tgt.progress, Math.round(TURN_THRESHOLD * delayPct)),
+      alreadyDelayed: !!tgt.frostDelayed,
+    };
+  }
+  if (el === "tierra") {
+    const stacks = stacksOf(tgt?.statuses, "ruptura");
+    if (!tgt || !stacks) return { state: "ruptura", stacks, ready: false, mage };
+    return { state: "ruptura", stacks, ready: true, bypass: Math.min(0.9, stacks * RUPTURE_BYPASS_PER_CHARGE * mage), mage };
+  }
+  if (el === "viento") {
+    const stacks = stacksOf(att.statuses, "impulso");
+    if (!stacks) return { state: "impulso", stacks, ready: false, mage };
+    return {
+      state: "impulso", stacks, ready: true, mage,
+      advancePct: Math.min(WIND_CAP, WIND_ADVANCE[stacks] * mage + (att.relic?.windBonus ?? 0)),
+    };
+  }
+  const stacks = att.charge ?? 0;
+  if (stacks < MAX_ELEMENT_CHARGES || !tgt) return { state: "sobrecarga", stacks, ready: false, mage };
+  return {
+    state: "sobrecarga", stacks, ready: true, mage,
+    damage: Math.round(estimateDamage(att, tgt, "attack1", true) * SOBRECARGA_DISCHARGE * mage * (1 + (att.relic?.dischargeBonus ?? 0))),
+  };
+}
+
+function consumeElement(w: Work, att: Combatant, tgt: Combatant | null, skillId: SkillId) {
+  const el = att.char.element;
   const consumed = (id: string, extra?: Partial<CombatEvent>) =>
     emit(w, "statusConsumed", idOf(w, att), { target: tgt ? idOf(w, tgt) : 0, detail: id, skillId, ...extra });
   if (el === "fuego" && tgt) {
-    const stacks = stacksOf(tgt.statuses, "quemadura");
-    if (!stacks) return;
-    const burn = Math.min(Math.round(burnDamage(tgt.statuses) * BURN_CONSUME_TICKS * mage * (1 + (att.relic?.burnDmg ?? 0))), Math.round(tgt.char.stats.hp * BURN_CAP));
+    const pv = consumePreview(att, tgt);
+    if (!pv?.ready) return;
+    const burn = pv.damage ?? 0;
     tgt.hp = Math.max(0, tgt.hp - burn);
     tgt.statuses = (tgt.statuses ?? []).filter((s) => s.id !== "quemadura");
     w.log.push(`${tgt.char.name} sufre ${burn} de Quemadura adelantada; el efecto termina.`);
     consumed("quemadura", { value: burn });
   } else if (el === "agua" && tgt) {
-    const stacks = stacksOf(tgt.statuses, "escarcha");
-    if (!stacks) return;
+    const pv = consumePreview(att, tgt);
+    if (!pv?.ready) return;
     tgt.statuses = (tgt.statuses ?? []).filter((s) => s.id !== "escarcha");
     if (!tgt.frostDelayed) {
-      const pct = Math.min(FROST_CAP, FROST_DELAY[stacks] * mage + (att.relic?.frostBonus ?? 0));
-      const lost = Math.min(tgt.progress, Math.round(TURN_THRESHOLD * pct));
+      const lost = pv.delayLost ?? 0;
       tgt.progress -= lost;
       tgt.frostDelayed = true;
       w.log.push(`Escarcha retrasa el turno de ${tgt.char.name}.`);
@@ -874,28 +932,28 @@ function consumeElement(w: Work, att: Combatant, tgt: Combatant | null, skillId:
     } else w.log.push(`${tgt.char.name} ya fue retrasado por Escarcha.`);
     consumed("escarcha");
   } else if (el === "tierra" && tgt) {
-    const stacks = stacksOf(tgt.statuses, "ruptura");
-    if (!stacks) return;
+    const pv = consumePreview(att, tgt);
+    if (!pv?.ready) return;
     tgt.statuses = (tgt.statuses ?? []).filter((s) => s.id !== "ruptura");
-    const bypass = Math.min(0.9, stacks * RUPTURE_BYPASS_PER_CHARGE * mage);
+    const bypass = pv.bypass ?? 0;
     att.nextAttackDefenseBypass = bypass;
     att.bypassFresh = true;
     w.log.push(`${att.char.name} prepara el siguiente ataque: ignora ${Math.round(bypass * 100)} % de DEF.`);
     consumed("ruptura");
   } else if (el === "viento") {
-    const stacks = stacksOf(att.statuses, "impulso");
-    if (!stacks) return;
+    const pv = consumePreview(att, tgt);
+    if (!pv?.ready) return;
     att.statuses = (att.statuses ?? []).filter((s) => s.id !== "impulso");
-    const add = Math.round(TURN_THRESHOLD * Math.min(WIND_CAP, WIND_ADVANCE[stacks] * mage + (att.relic?.windBonus ?? 0)));
+    const add = Math.round(TURN_THRESHOLD * (pv.advancePct ?? 0));
     att.progress += add;
     w.log.push(`${att.char.name} consume Impulso y adelanta su próximo turno.`);
     emit(w, "progressChanged", idOf(w, att), { value: add });
     consumed("impulso");
   } else if (el === "rayo") {
     if ((att.charge ?? 0) < MAX_ELEMENT_CHARGES) return;
+    const extra = consumePreview(att, tgt)?.damage ?? 0;
     att.charge = 0;
     if (tgt && tgt.hp > 0) {
-      const extra = Math.round(estimateDamage(att, tgt, "attack1", true) * SOBRECARGA_DISCHARGE * mage * (1 + (att.relic?.dischargeBonus ?? 0)));
       const absorbed = Math.min(tgt.shield ?? 0, extra);
       tgt.hp = Math.max(0, tgt.hp - (extra - absorbed));
       if (tgt.shield !== undefined) tgt.shield -= absorbed;
