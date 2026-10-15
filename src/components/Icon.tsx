@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
 import { icon } from "@/lib/art";
 import { isPixelIcon, pixelIconSize } from "@/lib/art/pixel";
+import { isPixel } from "@/lib/art/pixel";
+import { PaintedDoorImage, isPaintedDoor } from "./PaintedDoorImage";
 
 // Painted system icon (public/art/icons/icon_<name>.webp), sized by className.
 export function Icon({
@@ -12,6 +14,7 @@ export function Icon({
   className?: string;
   style?: CSSProperties;
 }) {
+  if (!isPixel() && isPaintedDoor(name)) return <PaintedDoorImage name={name} className={className} style={style} />;
   const native = isPixelIcon(name) ? pixelIconSize(name) : undefined;
   return (
     // eslint-disable-next-line @next/next/no-img-element

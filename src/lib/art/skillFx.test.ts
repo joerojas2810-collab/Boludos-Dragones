@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { iconFor } from "../art";
 import { EFFECTS } from "./effects.generated";
-import { PIXEL_ICON_NAMES } from "./pixel";
+import { PIXEL_ICON_NAMES, pixelIconName } from "./pixel";
 import { SKILL_FX, basicIcon, eventVfx, pickCallouts, skillTag, stepNumbers } from "./skillFx";
 import type { CombatEvent } from "@/lib/game/combat";
 import { CLASS_IDS } from "@/lib/game/characters";
@@ -53,7 +53,7 @@ describe("presentation map", () => {
     const names = [...Object.values(SKILL_FX).map((f) => f.icon), ...CLASS_IDS.map((c) => basicIcon(c)), ...HAND_TYPES.map((w) => basicIcon("caballero", w))];
     for (const n of names) {
       expect(existsSync(iconFile(n)), n).toBe(true);
-      expect(PIXEL_ICON_NAMES, n).toContain(n);
+      expect(PIXEL_ICON_NAMES, n).toContain(pixelIconName(n));
     }
   });
 

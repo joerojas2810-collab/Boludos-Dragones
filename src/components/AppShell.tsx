@@ -4,6 +4,7 @@ import { TutorialGuide } from "@/components/TutorialGuide";
 import { Icon } from "@/components/Icon";
 import { useArt } from "@/components/ArtScope";
 import { uiAsset } from "@/lib/art";
+import { PAINTED_NAVIGATION } from "@/lib/art/painted-navigation";
 import { ScreenBg } from "@/components/ScreenBg";
 import { SoundControls } from "@/components/SoundControls";
 import { useMenuMusic } from "@/components/useMenuMusic";
@@ -137,6 +138,7 @@ const SCREEN_SCENE: Record<string, string> = {
 };
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const art = useArt();
   const path = usePathname();
   useEffect(() => {
     loadAudioSettings();
@@ -213,10 +215,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             (t.id === "missions" && missionsPending);
           const inner = (
             <>
-              <Icon
+              {!art.pixel && (t.id === "tower" || t.id === "dungeons") ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={PAINTED_NAVIGATION[t.id]} alt="" draggable={false} className="inline-block aspect-square align-middle shell-nav-art" />
+              ) : <Icon
                 name={NAV_ICON[t.id]}
                 className="shell-nav-art"
-              />
+              />}
               <span>{t.label}</span>
               {badge && (
                 <i

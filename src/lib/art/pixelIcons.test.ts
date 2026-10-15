@@ -6,6 +6,27 @@ import { PIXEL_ICON_NAMES, pixelIconSize, setPixel, isPixelIcon } from "./pixel"
 import { icon } from "../art";
 
 describe("HD system icons", () => {
+  it("keeps the existing Pixel drawings for the four new painted skills without replacing relic art", () => {
+    const pairs = [
+      ["skill_rogue_sabotage", "relic_broken_clock"],
+      ["skill_knight_bastion", "passive_wall"],
+      ["skill_rogue_step", "relic_winged_boots"],
+      ["skill_cleric_restore", "skill_prayer"],
+    ];
+    try {
+      for (const [skill, previous] of pairs) {
+        setPixel(false);
+        expect(icon(skill)).toBe(`/art/icons/icon_${skill}.webp?v=2`);
+        expect(icon(previous)).toBe(`/art/icons/icon_${previous}.webp?v=2`);
+        setPixel(true);
+        expect(icon(skill)).toBe(icon(previous));
+        expect(isPixelIcon(skill)).toBe(true);
+        expect(pixelIconSize(skill)).toEqual(pixelIconSize(previous));
+      }
+    } finally {
+      setPixel(process.env.NEXT_PUBLIC_ART === "pixel");
+    }
+  });
   it("registers 244 system icons and preserves the 19 forge components", () => {
     expect(registry).toHaveLength(263);
     expect(new Set(PIXEL_ICON_NAMES).size).toBe(263);

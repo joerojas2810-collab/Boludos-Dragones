@@ -1,5 +1,5 @@
 import ids from "./artIds.json";
-import { isPixel, isPixelIcon } from "./art/pixel";
+import { isPixel, isPixelIcon, pixelIconName } from "./art/pixel";
 import { paintedEquipment } from "./art/painted-equipment";
 import type { Element } from "@/lib/game/elements";
 import type { ClassId } from "@/lib/game/characters";
@@ -29,7 +29,7 @@ const PIXEL_ICON_V = 3;
 export const uiAsset = (name: string) =>
   `/art/${isPixel() ? "ui-px" : "ui"}/${name}.${isPixel() ? "png" : "webp"}?v=${ART_V}`;
 export const icon = (name: string) => isPixelIcon(name)
-  ? `/art/icons-px/icon_${name}.png?v=${PIXEL_ICON_V}`
+  ? `/art/icons-px/icon_${pixelIconName(name)}.png?v=${PIXEL_ICON_V}`
   : name.startsWith("part_")
     ? `/art/equipment/icon_${name}.webp?v=${ART_V}` // weapon-family icons live with the equipment art
     : `/art/icons/icon_${name}.webp?v=${ART_V}`;
