@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # Diseño funcional: combate por progreso, armas, clases y elementos
 
 **Destinatario:** diseñador/a de lógica de combate  

@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # CONTRATOS_H1 — Héroes con Factor de atributo (etapas H1a, H1b, H1c)
 
 **Estado:** contrato para el programador (ChatGPT/Codex). Rama `v2`. Diseño: `HEROES_V2.md`; plan: `PLAN_EJECUCION_V2.md`. Lo que no esté aquí o en el diseño es decisión del dueño: se deja como pregunta en `CRUCE_IAS.md`, no se inventa.

@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # CONTRATOS_E6A — Etapa 6a: rutas, escalera de dificultad y economía de dungeons
 
 **Estado:** contrato para el programador (ChatGPT/Codex). Rama `v2`. Decisiones del dueño en `CRUCE_IAS.md` (Q21, incisos 1–12). Sub-pasos con commit y auditoría cada uno, **en orden**. Hay reset total (`reset_progress.sql`): sin compatibilidad con datos antiguos. Sin push, sin merge a `main`, sin ejecutar SQL contra Supabase. Dudas de diseño: pregunta en `CRUCE_IAS.md`. Usa `npx tsx scripts/sim-stage3.ts --quick` para iterar y la corrida completa para confirmar.

@@ -11,6 +11,7 @@ import { Panel } from "@/components/Panel";
 import { useTargeting } from "@/components/useTargeting";
 import { step, type Action, type Battle } from "@/lib/game/combat";
 import { damageDealt, startCoop } from "@/lib/game/coop";
+import { lossLine } from "@/lib/game/explain";
 import type { Rng } from "@/lib/game/rng";
 import type { RoomClient, RoomView } from "@/lib/roomui/types";
 import { errorText } from "@/lib/roomui/viewModels";
@@ -185,7 +186,7 @@ export function CoopFight({ client }: { client: RoomClient }) {
     return (
       <Panel title="Tu combate" className="text-center">
         <div className="text-yellow-300">
-          {b.status === "won" ? "¡Derrotaste al jefe tú solo!" : "Caíste."} Tu
+          {b.status === "won" ? "¡Derrotaste al jefe tú solo!" : lossLine(b)} Tu
           daño: {Math.round(damageDealt(b)).toLocaleString("es")}
         </div>
         <div className="text-sm opacity-80">Mira cómo avanza el resto.</div>

@@ -26,7 +26,7 @@ import { autoBlockReason } from "@/lib/game/auto";
 import { type Action } from "@/lib/game/combat";
 import { bossAscensionNotice } from "@/lib/game/bossRules";
 import { elementMultiplier, ELEMENT_LABEL } from "@/lib/game/elements";
-import { MOD_LABEL, modTip } from "@/lib/game/explain";
+import { lossLine, MOD_LABEL, modTip } from "@/lib/game/explain";
 import { levelCap, xpToNextLevel } from "@/lib/game/heroLevel";
 import { recommendedPower } from "@/lib/game/recommended";
 import {
@@ -468,7 +468,7 @@ export function ProgressMode() {
                         ? settled.status === "cleared"
                           ? "¡Última pelea ganada!"
                           : "Pelea ganada."
-                        : "Caíste."}
+                        : lossLine(b)}
                     </div>
                     <button
                       className="btn btn-gray w-full text-center"

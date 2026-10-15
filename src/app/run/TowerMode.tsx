@@ -3,7 +3,7 @@ import { askConfirm } from "@/lib/dialogs";
 
 // Weekly tower on the stage engine: ONE life, hp carried floor to floor with a small
 // heal, one fight per floor, no doors, relics, upgrades or shops. Score = floors
-// cleared (tiebreak: fewer battle rounds). The server repeats the logged actions.
+// cleared (tiebreak: fewer resolved battle turns). The server repeats the logged actions.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -22,7 +22,7 @@ import { useTargeting } from "@/components/useTargeting";
 import { iconFor } from "@/lib/art";
 import { autoBlockReason } from "@/lib/game/auto";
 import type { Action } from "@/lib/game/combat";
-import { MOD_LABEL, modTip } from "@/lib/game/explain";
+import { lossLine, MOD_LABEL, modTip } from "@/lib/game/explain";
 import { bossRankOf } from "@/lib/game/floorFights";
 import type { Character, ClassId } from "@/lib/game/characters";
 import type { Element } from "@/lib/game/elements";
@@ -362,7 +362,7 @@ export function TowerMode() {
               {rs.settled && (
                 <>
                   <div className="text-sm">
-                    {b.status === "won" ? `Piso ${floor} superado.` : "Caíste."}
+                    {b.status === "won" ? `Piso ${floor} superado.` : lossLine(b)}
                   </div>
                   <button
                     className="btn btn-gray w-full text-center"

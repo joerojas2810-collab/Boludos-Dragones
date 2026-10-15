@@ -104,7 +104,7 @@ export const WEAPON_TYPE_DATA: Record<WeaponType, WeaponTypeInfo> = {
   },
   daga: {
     label: "Daga",
-    description: "Arma veloz que favorece los críticos y la iniciativa.",
+    description: "Arma veloz que favorece los críticos y la velocidad.",
     atkMult: 0.95,
     accuracy: 0,
     crit: 0.05,

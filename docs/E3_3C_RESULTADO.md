@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # E3 3c — resultado y balance
 
 ## Cambios entregados

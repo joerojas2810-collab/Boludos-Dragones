@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # E5 5a — Explotar Quemadura, Ruptura y Sobrecarga
 
 ## Implementación

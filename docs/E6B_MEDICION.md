@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # Etapa 6b — medición
 
 Medición reproducible, sin ajustar el balance. El preset común es `niveladoHero`: rango D, 0★, nivel 1, sin rasgo, Factor ni equipo. Los simuladores `coop-sim.ts` y `duel-sim.ts` aceptan `--quick` (20 muestras/duelos por celda), `--seed` y `--workers`; el valor completo predeterminado es 200 salas cooperativas y 100 duelos por cruce. La división por workers conserva las semillas y el orden de resultados, como `sim-stage3.ts`.

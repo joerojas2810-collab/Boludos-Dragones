@@ -151,7 +151,6 @@ export interface BattleOptions {
   perks?: Perks;
   playerHp?: number;
   playerShield?: number;
-  freeHits?: number;
   mods?: EnemyMod[];
   enemyStatus?: boolean;
   enemyAguante?: boolean;
@@ -166,7 +165,7 @@ export interface BattleOptions {
 
 export interface BattleEvent {
   actor: "player" | "enemy";
-  kind: "hit" | "crit" | "miss" | "buff";
+  kind: "hit" | "crit" | "miss";
   classId: ClassId;
   move: CombatMoveKey;
   weapon?: string;
@@ -201,7 +200,6 @@ export interface Combatant {
   defending: boolean; // until the start of its next own turn
   guard?: boolean; // perfect guard still unspent against a strong hit
   shield?: number;
-  freeHits?: number;
   perks?: Perks;
   statuses?: StatusEffect[];
   charge?: number; // Rayo Sobrecarga charges
@@ -665,11 +663,6 @@ function strike(w: Work, att: Combatant, def: Combatant, key: HitKey, o: StrikeO
       actor, kind, classId: att.char.classId, move: key === "charge" ? "attack2" : key,
       weapon: att.char.weapon?.type, element: att.char.element, enemy: o.eIdx,
     });
-  if (def.freeHits) {
-    w.log.push(`${def.char.name} esquiva el golpe de ${who}.`);
-    def.freeHits -= 1;
-    return 0;
-  }
   if (!w.rng.chance(hitChance(att, key))) {
     w.log.push(`${who} usa ${a.name}${on} y falla.`);
     ev("miss");
@@ -1325,7 +1318,6 @@ export function startBattle(
   p.loadout = opts.loadout ?? defaultLoadout(player.classId);
   if (opts.playerHp !== undefined) p.hp = opts.playerHp;
   if (opts.playerShield) p.shield = opts.playerShield;
-  if (opts.freeHits) p.freeHits = opts.freeHits;
   if (opts.perks) p.perks = opts.perks;
   const ids = [0, ...es.map((_, i) => i + 1)];
   const order = opts.swapOrder && ids.length >= 2 ? [1, 0, ...ids.slice(2)] : ids;

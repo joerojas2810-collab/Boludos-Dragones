@@ -36,7 +36,7 @@ function fxStyle(b: Battle, side: "player" | "enemy", enemy?: number) {
     const t = i * STAGGER_S;
     const mine = side === "player" || e.enemy === enemy;
     if (e.actor === side && mine) anims.push(`${lunge} 0.35s ease-out ${t}s`);
-    else if (e.actor !== side && e.kind !== "miss" && e.kind !== "buff") {
+    else if (e.actor !== side && e.kind !== "miss") {
       // hurt: the hero feels every enemy hit; an enemy only its own
       if (side === "player" || e.enemy === enemy)
         anims.push(`hurt 0.35s linear ${t + 0.1}s`);
@@ -53,9 +53,9 @@ function enemyCue(b: Battle, i: number, boss?: boolean): EnemyCue {
   let cue: EnemyCue = { action: dead ? "defeat" : "idle", delay: 0, held: dead };
   b.events.forEach((e, k) => {
     if (e.enemy !== i) return;
-    if (e.actor === "enemy" && e.kind !== "buff") {
+    if (e.actor === "enemy") {
       if (!dead && cue.action === "idle") cue = { action: "attack", delay: k * STAGGER_S * 1000 };
-    } else if (e.actor === "player" && e.kind !== "miss" && e.kind !== "buff") {
+    } else if (e.actor === "player" && e.kind !== "miss") {
       cue = { action: dead ? "defeat" : "hit", delay: (k * STAGGER_S + 0.1) * 1000 };
     }
   });
@@ -72,8 +72,8 @@ function heroCue(b: Battle): { action: HeroAction; delay: number } {
   const foeIdx = (f: (e: Battle["events"][number]) => boolean) =>
     b.events.findIndex((e) => e.actor === "enemy" && f(e));
   if (b.guardEarned)
-    return { action: "perfect_guard", delay: at(foeIdx((e) => e.kind !== "buff")) };
-  const ownIdx = b.events.findIndex((e) => e.actor === "player" && e.kind !== "buff");
+    return { action: "perfect_guard", delay: at(foeIdx(() => true)) };
+  const ownIdx = b.events.findIndex((e) => e.actor === "player");
   if (ownIdx >= 0) return { action: heroActionFor(b.events[ownIdx].move), delay: at(ownIdx, 0) };
   // Skills without a damaging hit (shield, cleanse, ...) leave no hit event: use the committed action.
   const committed = b.cev.find((c) => c.type === "actionCommitted" && c.actor === 0 && isSkillId(c.skillId));
@@ -118,7 +118,8 @@ function bigMomentFx(b: Battle) {
   };
 }
 
-function IntentCard({ b, enemy, intent }: { b: Battle; enemy: Combatant; intent: Intent }) {
+// `multi` (group fight): on phones the card shrinks to glyph + name; the full text is in the intent list of the action panel.
+function IntentCard({ b, enemy, intent, multi }: { b: Battle; enemy: Combatant; intent: Intent; multi: boolean }) {
   const idx = b.enemies.indexOf(enemy);
   const info = intentInfo(intent, b, idx);
   const tip = intentTip(intent, b, idx);
@@ -137,8 +138,8 @@ function IntentCard({ b, enemy, intent }: { b: Battle; enemy: Combatant; intent:
       <span aria-hidden="true" className="mt-0.5 w-4 shrink-0 text-center font-bold leading-4">{info.glyph}</span>
       <Tooltip tip={tip} className="block min-w-0 flex-1">
         <span className="block truncate text-[11px] font-bold leading-4">{info.name}</span>
-        <span className="line-clamp-2 break-words text-[10px] leading-3 text-[#e4d9ca]" title={`${info.effect}. ${info.counter}`}>{info.effect}</span>
-        <span className="block truncate text-[9px] font-semibold uppercase tracking-wide leading-3 text-amber-200">{info.cancelLabel}</span>
+        <span className={`line-clamp-2 break-words text-[10px] leading-3 text-[#e4d9ca] ${multi ? "max-md:hidden" : ""}`} title={`${info.effect}. ${info.counter}`}>{info.effect}</span>
+        <span className={`block truncate text-[9px] font-semibold uppercase tracking-wide leading-3 text-amber-200 ${multi ? "max-md:hidden" : ""}`}>{info.cancelLabel}</span>
       </Tooltip>
     </div>
   );
@@ -343,7 +344,7 @@ export function BattleArena({
       </div>
       <div
         role="radiogroup"
-        aria-label="Objetivo del ataque"
+        aria-label="Objetivo de tu acción"
         data-n={Math.min(n, 3)}
         data-boss={boss ? "" : undefined}
         className="stage-foes absolute bottom-0 right-[1.5%] top-0 flex items-end justify-end gap-[1%]"
@@ -402,7 +403,7 @@ export function BattleArena({
                   footer={
                     <div className="mt-1 space-y-1">
                       {intents.map((it, k) => (
-                        <IntentCard key={`${it}-${k}`} b={b} enemy={c} intent={it} />
+                        <IntentCard key={`${it}-${k}`} b={b} enemy={c} intent={it} multi={multi} />
                       ))}
                     </div>
                   }

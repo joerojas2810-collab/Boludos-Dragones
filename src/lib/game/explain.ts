@@ -47,7 +47,7 @@ import {
   TRAIT_CAPS,
   attackOf,
 } from "./combat";
-import { isSkillId, RESOURCE_NAME, SKILL_IDS, SKILLS, type SkillDef, type SkillId } from "./skills";
+import { isSkillId, RESOURCE_NAME, SKILLS, type SkillDef, type SkillId } from "./skills";
 import { AUTO_STOP_HP } from "./auto";
 import { WEAPON_TYPE_DATA } from "./weapons";
 import {
@@ -133,12 +133,6 @@ export const STAT_NAME: Record<keyof Stats, string> = {
   lifesteal: "Vampirismo",
 };
 const FRACTION_STATS: readonly (keyof Stats)[] = ["hp", "atk", "def", "speed"];
-
-export const ATTACK_NUMBER = {
-  attack1: "Básico",
-  attack2: "Golpe fuerte enemigo",
-  ...Object.fromEntries(SKILL_IDS.map((id) => [id, SKILLS[id].name])),
-} as Record<MoveKey, string>;
 
 export const MOD_LABEL: Record<EnemyMod, string> = {
   regeneracion: "Regeneración",
@@ -492,8 +486,8 @@ export function statTip(
     }
     case "accuracy": {
       lines.push(
-        `Se suma a la precisión de todos los ataques (${st.accuracy >= 0 ? "+" : "−"}${pct(Math.abs(st.accuracy))} ahora).`,
-        `${cls.attack1.name}: ${pct(cls.attack1.accuracy)} base → ${pct(cls.attack1.accuracy + st.accuracy)}.`,
+        `Tu Básico y tus habilidades nunca fallan: la precisión (${st.accuracy >= 0 ? "+" : "−"}${pct(Math.abs(st.accuracy))} ahora) no cambia su resultado.`,
+        "Solo cuenta para los golpes fuertes de los rivales, que sí pueden fallar.",
       );
       break;
     }
@@ -503,16 +497,13 @@ export function statTip(
 
 // ---------- actions ----------
 
-export const cooldownOf = (c: Combatant, key: MoveKey): number =>
-  isSkillId(key) ? (c.cds?.[key] ?? 0) : 0;
-
 export function attackDisabledReason(c: Combatant, key: MoveKey): string | null {
   return isSkillId(key) ? skillBlockReason(c, key) : null;
 }
 
 const damageLine = (c: Combatant, foe: Combatant, key: MoveKey) => {
   const d = estimateDamage(c, foe, key);
-  return `Daño: ~${d} si acierta (sin crítico). Con crítico (${pct(c.char.stats.crit)} de probabilidad): ~${Math.round(d * critMultiplier(c))}.`;
+  return `Daño: ~${d} (sin crítico). Con crítico (${pct(c.char.stats.crit)} de probabilidad): ~${Math.round(d * critMultiplier(c))}.`;
 };
 
 // Class benefit of a perfect guard (combat.ts earnGuard).
@@ -587,7 +578,7 @@ export function attackTip(c: Combatant, key: "attack1" | SkillId, foe?: Combatan
     );
   }
   if (!def || def.power > 0) {
-    lines.push(`Poder x${n1(a.power)} del arma (ATQ ${n1(st.atk)}).`);
+    lines.push(def ? `Poder x${n1(a.power)} (Básico × ${n1(def.power)}; ATQ ${n1(st.atk)}).` : `Poder x${n1(a.power)} del arma (ATQ ${n1(st.atk)}).`);
     if (foe) {
       lines.push(damageLine(c, foe, key));
       const em = attackElementMultiplier(c, foe);
@@ -772,6 +763,10 @@ export function bossBadge(c: Combatant): { label: string; tip: Tip } | null {
   return { label, tip: { title: t.title, kind: "info", lines: [t.line], source: "Mecánica de jefe" } };
 }
 
+/** Closing line of a lost fight; a turn-cap draw counts as a defeat outside duels. */
+export const lossLine = (b: Battle): string =>
+  b.status === "draw" ? `Empate por el límite de ${TURN_CAP} turnos: cuenta como derrota.` : "Caíste.";
+
 export function queueTip(b: Battle): Tip {
   const foes = livingEnemies(b).length;
   return {
@@ -794,7 +789,7 @@ export function autoTip(reason: string | null): Tip {
     title: "Resolver rápido",
     kind: "info",
     lines: [
-      "Juega la pelea por ti con una estrategia fija: elige objetivos, usa tu habilidad y defiende golpes fuertes.",
+      "Juega la pelea por ti con una estrategia fija: elige objetivos, usa tus dos habilidades equipadas según el recurso de clase y defiende ante los golpes fuertes anunciados.",
       "Solo al empezar la pelea. Es bajo tu riesgo: con una sola vida, si pierdes el intento termina.",
       `Si tu vida baja de ${pct(AUTO_STOP_HP)}, te devuelve el control.`,
       reason ? `No disponible: ${reason}` : "Disponible ahora.",
@@ -825,8 +820,8 @@ export function modTip(mod: EnemyMod, enemy?: Combatant): Tip {
       break;
     case "dobleAtaque":
       lines.push(
-        `Después de cada ataque suyo lanza un Ataque 1 extra que hace ${pct(DOUBLE_ATTACK_FACTOR)} del daño.`,
-        "El golpe extra tiene su propia tirada de acierto y de crítico.",
+        `Después de cada ataque suyo lanza un golpe básico extra que hace ${pct(DOUBLE_ATTACK_FACTOR)} del daño.`,
+        "El golpe extra tiene su propia tirada de crítico.",
       );
       break;
     case "elementoCambiante":
@@ -870,21 +865,7 @@ export function shieldTip(c: Combatant, you: boolean): Tip {
   };
 }
 
-export function freeHitsTip(c: Combatant): Tip {
-  return {
-    title: `Esquiva ×${c.freeHits}`,
-    kind: "relic",
-    lines: [
-      `Los próximos ${plural(c.freeHits ?? 0, "golpe", "golpes")} del rival fallan automáticamente.`,
-    ],
-    source: "Efecto de bono",
-  };
-}
-
-// ---------- classes ----------
-
-
-// ---------- Run v2 rules (levels, rank traits, gear, sets, burning, pay, pity) ----------
+// ---------- progression and gear ----------
 
 export const levelTip = (level: number, xp: number, stars: number): Tip => ({
   title: `Nivel ${level} de ${levelCap(stars)}`,

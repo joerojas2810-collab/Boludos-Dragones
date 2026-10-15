@@ -209,7 +209,7 @@ export function pieceTip(w: OwnedWeapon): Tip {
     if (info.crit) mods.push(`${sgn(info.crit)} puntos de crítico`);
     if (info.speedMult !== 1) mods.push(`velocidad ×${info.speedMult}`);
     if (mods.length) lines.push(`Efecto del tipo: ${mods.join(", ")}.`);
-    lines.push(`Su elemento (${ELEMENT_LABEL[w.element]}) pasa a ser el de tus ataques.`);
+    lines.push(`Su elemento (${ELEMENT_LABEL[w.element]}) cuenta para los sets; tus ataques usan el elemento del héroe.`);
   }
   lines.push(`${w.stars}★: cada estrella mejora la pieza. Piezas del mismo elemento forman set (2, 4 y 6).`);
   return { title: `${w.name} · ${RARITIES[w.rarity].label}`, kind: "info", lines, color: RARITIES[w.rarity].color };

@@ -1,6 +1,6 @@
 // Elemental status effects (pure data + helpers; combat.ts applies them).
 // Agua -> Escarcha, Fuego -> Quemadura, Viento -> Impulso, Tierra -> Ruptura.
-// Rayo stores Sobrecarga on its bearer; Explotar's consumption is implemented in stage 5.
+// Rayo stores Sobrecarga on its bearer; skills with `consume` spend these charges (see skills.ts).
 import type { Element } from "./elements";
 
 export type StatusId = "escarcha" | "quemadura" | "impulso" | "ruptura";
@@ -21,7 +21,7 @@ export const STATUS_OF_ELEMENT: Partial<Record<Element, StatusId>> = {
 };
 
 // per: escarcha = speed lost per stack, impulso = speed gained per stack (own),
-// ruptura = DEF lost per stack, quemadura = share of the hit dealt each round.
+// ruptura = DEF lost per stack, quemadura = share of the hit dealt at each tick (start of the bearer's turn).
 export const STATUS_DATA: Record<
   StatusId,
   { label: string; max: number; turns: number; per: number; negative: boolean }
@@ -32,10 +32,8 @@ export const STATUS_DATA: Record<
   ruptura: { label: "Ruptura", max: 3, turns: 3, per: 0.08, negative: true },
 };
 
-// Hit-based elemental application limit per target and action.
-export const CLASS_STACKS = 2;
 export const MAX_ELEMENT_CHARGES = 3;
-export const BURN_CAP = 0.06; // a burn never takes more than this share of max hp per round
+export const BURN_CAP = 0.06; // a burn never takes more than this share of max hp per tick
 
 type List = readonly StatusEffect[] | undefined;
 
@@ -83,7 +81,7 @@ export const tickStatuses = (list: List): StatusEffect[] =>
     return s.turns > 1 ? [{ ...s, turns: s.turns - 1 }] : [];
   });
 
-// Damage of the burn this round (before the hp cap).
+// Damage of one burn tick (before the hp cap).
 export const burnDamage = (list: List): number => {
   const b = list?.find((s) => s.id === "quemadura");
   return b ? Math.round((b.amount ?? 0) * b.stacks) : 0;

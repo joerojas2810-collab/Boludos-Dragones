@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # Etapa 3b — resultado de la simulación
 
 ## Comparación con la línea base

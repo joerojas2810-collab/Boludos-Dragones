@@ -24,7 +24,7 @@ export interface TraitRules {
   retryAccuracy?: number; // Terco: extra accuracy on the hit right after a miss
   pride?: number; // Orgulloso: +atk above half hp, -atk below
   executeBonus?: number; // Sanguinario: extra damage vs targets under EXECUTE_HP
-  guardedBonus?: number; // Paciente: extra damage on the hit after a round spent defending
+  guardedBonus?: number; // Paciente: extra damage on the hit after a turn spent defending
   killHeal?: number; // Glotón: share of max hp healed when it takes down an enemy
   openingBonus?: number; // Fanfarrón: extra damage on the first hit of a fight
   statusBonus?: number; // Curioso: extra damage vs a target carrying a status
@@ -71,7 +71,7 @@ export const TRAITS = {
   },
   paciente: {
     name: "Paciente",
-    description: "+5 precisión; si defendió la ronda anterior, su siguiente golpe hace +8%",
+    description: "+5 precisión; si defendió en su turno anterior, su siguiente golpe hace +8%",
     mods: { accuracy: 0.05 },
     rules: { guardedBonus: 0.08 },
   },

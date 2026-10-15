@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # PLAN_EJECUCION_V2 — pasos de ejecución (rama `v2`)
 
 **Estado:** aprobado por el dueño (2026-10-10). Documentos de diseño: `COMBATE_V2.md`, `HEROES_V2.md`; decisiones en `CRUCE_IAS.md`. Trabajo en la rama **`v2`** (sale de `main` en `7bbbd38`); `main` despliega a producción, así que nada se mezcla ni se sube sin confirmación del dueño.

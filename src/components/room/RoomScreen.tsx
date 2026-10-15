@@ -548,7 +548,7 @@ function HeroPicker({
     return (
       <Panel title="Tu héroe · modo nivelado">
         <p className="mb-2 text-center text-sm opacity-80">
-          Todos pelean con poder parejo: elige tu clase y tu elemento.
+          Todos pelean con poder parejo: elige tu clase, tu elemento y 2 de sus 4 habilidades.
         </p>
         <ClassElementPicker
           value={parsePickKey(mine)}
@@ -580,7 +580,7 @@ function HeroPicker({
     <Panel title={`Tu héroe · rango ${RARITIES[view.rank].label}`}>
       <p className="mb-2 text-center text-sm opacity-80">
         Poder completo: solo cuentan tus héroes del rango que eligió el
-        anfitrión.
+        anfitrión. Pelean con las 2 habilidades que equipaste en Héroes.
       </p>
       <div className="flex flex-wrap justify-center gap-2">
         <button

@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # E3 — resultado por elemento
 
 Motor 14 se simuló con semilla 13013 y 100 corridas por nivel en los nueve rangos.

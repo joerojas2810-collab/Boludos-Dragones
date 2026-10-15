@@ -28,9 +28,9 @@ export interface Stats {
   crit: number;
   resist: number;
   accuracy: number; // additive to attack accuracy
-  speed: number; // initiative
+  speed: number; // turn rate (see combat.ts rateOf)
   critDmg: number; // crit damage multiplier (base x1.5, Pícaro x2.0)
-  regen: number; // gear line: fraction of max hp healed per round (capped in combat)
+  regen: number; // gear line: fraction of max hp healed per own turn (capped in combat)
   lifesteal: number; // gear line: fraction of damage dealt healed (capped in combat)
 }
 
@@ -335,8 +335,8 @@ export interface Character {
   // Gacha fields; absent means común / 0 stars / no weapon.
   rarity?: RarityId;
   stars?: number;
-  // Equipped weapon snapshot: element replaces the hero's ATTACK element in
-  // combat. atkBonus is informational: heroFromOwned already adds it to stats.atk.
+  // Equipped weapon snapshot: the weapon type defines the basic; its element only counts for sets
+  // (attacks use the hero's own element). atkBonus is informational: heroFromOwned already adds it to stats.atk.
   weapon?: { element: Element; atkBonus: number; type?: string };
   // Worn gear bonus, already folded into stats (kept so nivelado can undo it).
   gear?: GearBonus;

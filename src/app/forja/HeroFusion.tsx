@@ -114,7 +114,7 @@ export function HeroFusionPanel({
         </p>
         <p>
           <b className="text-yellow-300">Subir ★:</b> {STAR_UNITS} unidades dan +1★ (más tope de nivel). <b className="text-yellow-300">Subir de
-          rango:</b> el héroe pasa al rango siguiente y conserva rasgo, nivel y habilidad; sus ★ se convierten. <b className="text-yellow-300">Rasgos:</b> cambia
+          rango:</b> el héroe pasa al rango siguiente y conserva clase, elemento, perfil (rasgo y Factor) y nivel; sus ★ se convierten. <b className="text-yellow-300">Rasgos:</b> cambia
           el rasgo principal por el de una copia.
         </p>
       </div>

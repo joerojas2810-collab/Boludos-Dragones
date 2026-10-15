@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # CONTRATOS_E2 — Prototipo del acumulador de progreso (puerta de viabilidad)
 
 **Estado:** contrato para el programador (ChatGPT/Codex). Rama `v2-e2` (desde `v2`). Diseño: `COMBATE_V2.md` §3 y §4. **Es un prototipo aislado: no se conecta al juego, no cambia `combat.ts` ni `ENGINE_VERSION`.** Objetivo: demostrar (o descartar) que un modelo de progreso por activaciones reproduce el balance del motor 13 antes de construir nada encima. Si no lo logra, se **aborta** y se replantea (decisión del dueño).

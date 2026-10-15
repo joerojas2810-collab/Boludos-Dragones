@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # 6a-4 — Intensidad de mecánicas por ascensión
 
 Las nueve mecánicas conservan su comportamiento y usan la ascensión de la dungeon (`0…5`) que ya guarda la etapa. Los valores se calculan con funciones puras, limitadas a ese intervalo; la semilla no altera los parámetros. Una ascensión no modifica las peleas normales ni los jefes de otros modos. `ENGINE_VERSION` pasa a 23 porque estas reglas cambian resultados de combate y replay.

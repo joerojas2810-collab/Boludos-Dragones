@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # CONTRATOS_E3 — Etapa 3: habilidades universales, básico por arma, ganchos de clase
 
 **Estado:** contrato para el programador (ChatGPT/Codex). Rama `v2` (E2 integrado). Diseño: `COMBATE_V2.md` §5, §6. **Esta es la primera etapa que modifica `combat.ts`: un solo agente toca el motor a la vez.** Se divide en 4 pasos, cada uno con su commit y su puerta; no se empieza el siguiente sin la auditoría del anterior. Dudas de diseño: pregunta en `CRUCE_IAS.md`.

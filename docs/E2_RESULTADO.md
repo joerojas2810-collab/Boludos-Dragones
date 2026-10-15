@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # E2 — Resultado de la puerta de viabilidad
 
 ## E2a: orden de activaciones

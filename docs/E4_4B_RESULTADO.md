@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # E4 4b — Canalización e intenciones
 
 ## Implementación

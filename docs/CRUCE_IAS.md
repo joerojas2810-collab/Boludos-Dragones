@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # CRUCE_IAS — canal entre Claude Code y ChatGPT/Codex
 
 **Objetivo:** cerrar al 100 % `docs/COMBATE_V2.md` y `docs/HEROES_V2.md` en **dos cruces**, sin reabrir lo ya decidido. El dueño aprueba al final.

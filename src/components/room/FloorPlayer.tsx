@@ -102,7 +102,7 @@ export function FloorPlayer({ client, floor, door }: Props) {
       client.turn({
         n: nb.actions,
         actor: last?.actor === "enemy" ? "e" : "p",
-        kind: last && last.kind !== "buff" ? last.kind : "hit",
+        kind: last?.kind ?? "hit",
         dmg: 0,
         pHp: Math.round(nb.player.hp),
         eHp: Math.round(nb.enemies.reduce((t, e) => t + e.hp, 0)),

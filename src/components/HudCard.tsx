@@ -12,7 +12,6 @@ import { ENRAGE_AFTER_OWN_TURN } from "@/lib/game/bossRules";
 import {
   elementTip,
   enrageTip,
-  freeHitsTip,
   passiveTip,
   guardTip,
   bossBadge,
@@ -96,7 +95,6 @@ export function HudCard({
     !!c.boss ||
     (c.healCut ?? 0) > 0 ||
     (c.nextHitReduction ?? 0) > 0 ||
-    (c.freeHits ?? 0) > 0 ||
     enraged ||
     !!children;
   return (
@@ -241,12 +239,7 @@ export function HudCard({
               Curas ½
             </Chip>
           )}
-          {(c.nextHitReduction ?? 0) > 0 && <Chip tip={{ title: "Evasión preparada", kind: "info", lines: ["El próximo golpe recibido hace menos daño."] }} tone="info"><span aria-hidden="true">↷ </span>Evasión</Chip>}
-          {(c.freeHits ?? 0) > 0 && (
-            <Chip tip={freeHitsTip(c)} tone="passive">
-              Esquiva ×{c.freeHits}
-            </Chip>
-          )}
+          {(c.nextHitReduction ?? 0) > 0 && <Chip tip={{ title: "Mitigación preparada", kind: "info", lines: ["El próximo golpe recibido hace menos daño."] }} tone="info"><span aria-hidden="true">↷ </span>Mitigación</Chip>}
           {enraged && (
             <Chip tip={enrageTip()} tone="danger">
               Enfurecido

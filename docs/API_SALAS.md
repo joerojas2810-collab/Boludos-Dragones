@@ -1,5 +1,7 @@
 # API de salas (v1) — contrato servidor <-> cliente
 
+> Actualizado: motor por turnos (`docs/ideal/ENGINE_API.md`). `submit` ya no lleva un log de acciones: lleva `{floor, report: {outcome, hp, turns} | null}` y el servidor acota ese resultado en vez de repetir la pelea (`messages.ts`). Las acciones de combate son `attack1`, `defend` o uno de los 20 ids de habilidad; los ids antiguos (`golpe`, `barrido`, `quebrar`, `interrumpir`, `explotar`) ya no existen. `ENGINE_VERSION` actual: 26.
+
 Tipos y esquemas zod: `src/lib/rooms/api.ts` (respuestas y eventos) y `src/lib/rooms/messages.ts` (peticiones). Todo es JSON, sesión por cookie, `Origin` propio obligatorio en POST. Errores: `{ "error": { "code", "message", "retryAfter?" } }` (códigos en `ROOM_ERROR_CODES`). Toda petición de sala actualiza tu presencia (latido) y barre ausentes; `404/403 not_member` si no eres miembro.
 
 ## Endpoints
@@ -22,7 +24,7 @@ Reglas por fase: ver `can()` en `room.ts`. Cualquiera puede llamar `advance` (co
 - **Run por piso.** El servidor guarda tu Run entre pisos. `GET /run` devuelve el Run al inicio del piso (puntos de mejora/reliquia pendientes que no elegiste se resuelven solos con la primera oferta; la oferta de reliquia vigente SÍ la puedes elegir con `{t:"relic"}` como primera acción del log). Tu log de ese piso empieza **desde ese Run**:
   - Pelea: `[relic?] door{i}` (i = índice de la puerta elegida en `doorsFor`) `act/auto/skill... fin pick/skill...`. Se envía con `submit` en fase `fighting`.
   - Cofre/descanso/mercader/evento: `[relic?] door{i} buy/event/leave...`; se envía con `submit` en fase `betting` o `fighting`. Lo que no envíes a tiempo se pierde (el piso cuenta como saltado).
-  - `submit {floor, actions}` NO lleva resultado: el servidor repite el log con el motor (ENGINE_VERSION 2, varios enemigos, `target`, `{t:"auto"}`, habilidades) y decide `won|lost|fled|timeout`. Log ilegal/manipulado/incompleto en una pelea = `timeout` (cuenta como derrota) y queda auditado. Idempotente: repetir devuelve lo guardado (`replayed:true`).
+  - `submit {floor, report}` (ver nota de arriba): el servidor acota el resultado informado (`won|lost|fled`, vida, turnos) y decide el avance; un informe imposible o ausente en una pelea = `timeout` (cuenta como derrota) y queda auditado. Idempotente: repetir devuelve lo guardado (`replayed:true`). _(Antes: el servidor repetía el log con el motor, ENGINE_VERSION 2.)_
   - Si en `fighting` te interfirieron, `RunView.enemyBoost` trae el tipo; aplícalo con `applyEnemyBoost` (`src/lib/game/interference.ts`) al nodo del enemigo antes de pelear o la repetición no coincidirá.
   - Perder/huir: no avanzas de piso en tu Run, pero la sala sí; al empezar el siguiente piso el servidor te alinea (`run.floor` = piso de la sala).
 - `bet {fighter, prediction, stake}`: solo en `betting`, mínimo 10, no sobre ti, no sobre eliminados/sin pelea, una por pelea. `interfere {fighter, kind}`: 30 fichas, secreto hasta `reveal`.

@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # CONTRATOS_E4 — Etapa 4: Aguante, Quiebre e intenciones (pilotos)
 
 **Estado:** contrato para el programador (ChatGPT/Codex). Rama `v2`. Diseño: `COMBATE_V2.md` §7. Un solo agente toca `combat.ts` a la vez. Sub-pasos con commit y auditoría cada uno. Valores numéricos = de partida; se ajustan con `scripts/sim-stage3.ts` y se documentan. Dudas de diseño: `CRUCE_IAS.md`. Sin SQL, push ni merge a `main`.

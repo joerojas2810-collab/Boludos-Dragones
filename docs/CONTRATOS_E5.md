@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # CONTRATOS_E5 — Etapa 5: Explotar estado
 
 **Estado:** contrato para el programador (ChatGPT/Codex). Rama `v2`. Diseño: `COMBATE_V2.md` §8. Un solo agente toca `combat.ts` a la vez. **Sin SQL, push ni merge a `main`.** Dudas de diseño: `CRUCE_IAS.md`. `ENGINE_VERSION` sube a **16** en 5a.

@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # Resultado 6a-2 — escalera de dificultad (Q23-A)
 
 ## Método y ajuste

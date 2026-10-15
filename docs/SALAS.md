@@ -1,5 +1,7 @@
 # SALAS — diseño de la noche de viernes (Etapa 4)
 
+> Actualizado: motor por turnos (vigente: `docs/ideal/`). Cada pelea de piso es un combate por turnos individuales con cuatro botones (Básico, 2 habilidades equipadas de 4, Defender) y recurso de clase; "ronda" en este documento es la **ronda de 10 pisos de la sala**, no una ronda de combate. El "turno de 30 s" es el tiempo para decidir cada acción humana (al agotarse se defiende). El cliente informa el resultado del piso y el servidor lo acota; solo la torre y los duelos 1v1 se repiten con el motor en el servidor. Los apartados sobre Run, reliquias y mejoras por piso describen el diseño original; para modos y héroes ver `docs/CONTRATOS_H2.md`.
+
 Estado: propuesta para revisar. Sin código. Constantes marcadas `[K]` van en un solo archivo (`lib/game/room.ts`) para ajustarlas tras la primera noche.
 
 ## 1. La noche, minuto a minuto

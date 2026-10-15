@@ -1,5 +1,7 @@
 # Seguridad de Boludos & Dragones
 
+> Actualizado: motor por turnos. Dungeons y salas ya no repiten la pelea en el servidor: el cliente informa el resultado y el servidor deriva EXP y botín de los combates ganados, con ritmo mínimo (`MIN_FIGHT_MS`), token de run y topes por hora. La torre y los duelos se siguen verificando repitiendo el motor (`ENGINE_VERSION 26`, ver `docs/ideal/ENGINE_API.md`). Las menciones a `MIN_ACTION_MS`, runs por acción y "repetir cada run" en este documento describen el diseño anterior.
+
 Documento de diseño defensivo (investigado el 2026-10-05). Es para implementar después de crear Supabase; no hay código aún. Fuentes numeradas al final: [S1], [S2]...
 
 **Idea central:** el navegador es del jugador, así que todo lo que él pueda editar (localStorage, consola, peticiones) es mentira hasta que el servidor lo compruebe. Hoy `profileStorage.ts` guarda monedas en localStorage: sirve para desarrollar, no para la nube. El motor de juego (`src/lib/game`) es puro y determinista, lo que permite **repetir en el servidor** cada run para comprobarla.

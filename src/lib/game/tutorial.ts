@@ -25,7 +25,7 @@ export const TUTORIAL_STEPS = [
   {
     id: "level",
     title: "Nivel 1 del dungeon F",
-    text: "En Dungeons entra al nivel 1 de F. Atacar 1 es seguro; Atacar 2 pega más pero falla más. Defender reduce el daño del turno. Si defiendes justo cuando el enemigo anuncia su golpe fuerte, es guardia perfecta: casi no recibes daño y tu siguiente golpe pega más.",
+    text: "En Dungeons entra al nivel 1 de F. Tienes cuatro botones: Básico nunca falla y te da recurso de clase; las dos habilidades lo gastan o lo generan; Defender te da la mitad de daño hasta tu próximo turno. Cada rival anuncia lo que hará antes de que elijas: si defiendes justo ante su golpe fuerte, es guardia perfecta y casi no recibes daño.",
   },
   {
     id: "equip",

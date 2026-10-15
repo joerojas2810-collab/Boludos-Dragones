@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # 6a-3 — Economía por dificultad
 
 ## Decisiones aplicadas

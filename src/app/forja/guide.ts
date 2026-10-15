@@ -34,7 +34,7 @@ export const GUIDE: Record<"ascend" | "heroes" | "upgrade", Guide> = {
       "Una tirada repetida no sube la estrella sola: queda como copia y guarda el rasgo que le tocó.",
       "Rasgos: si te gusta más el rasgo de una copia, úsalo como principal. El que tenías pasa a ser una copia, así que no se pierde.",
       "Subir ★: elige el héroe y 3 unidades de material. El material desaparece (las copias primero; un héroe se va solo cuando gastas todas sus unidades).",
-      "Subir de rango: elige el héroe y el material que pide el rango. El héroe conserva clase, elemento, nombre, rasgo, nivel y habilidad; sus ★ se convierten (mira la tabla).",
+      "Subir de rango: elige el héroe y el material que pide el rango. El héroe conserva clase, elemento, nombre, perfil (rasgo y Factor) y nivel; sus ★ se convierten (mira la tabla).",
       "Si ya tienes a ese héroe en el rango siguiente, se fusionan: tú eliges qué rasgo queda y te quedas con las ★ más altas.",
       "Ojo: gastar un héroe que ya tiene ★ o nivel pierde esa inversión. La pantalla te avisa.",
       "El rango S es el techo: ahí solo se suben ★.",

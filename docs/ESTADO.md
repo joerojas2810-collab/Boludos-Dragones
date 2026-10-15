@@ -1,5 +1,7 @@
 # Estado de traspaso (leer junto con CLAUDE.md)
 
+> Actualizado: este traspaso es del motor por rondas (v6.0, `ENGINE_VERSION 2`) y quedó como historial. Estado vigente: `CLAUDE.md` (sección "Estado y pendiente") y `docs/ideal/ENTREGA.md`; motor por turnos con 20 habilidades, `ENGINE_VERSION 26`.
+
 Última actualización: 2026-10-07 (v6.0, arte pintado integrado; antes: 2026-10-06, Vercel, salas reales, racha diaria, votación y mercado).
 
 ## Hecho y verificado

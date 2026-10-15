@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # REDISEÑO DE COMBATE — Boludos & Dragones
 
 Fecha: 2026-10-09 · Estado: documento de trabajo para terminar en Claude Code.

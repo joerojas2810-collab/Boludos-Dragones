@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # CONTRATOS_H2 — Modos nivelado / colección en torre y salas
 
 **Estado:** contrato para el programador (ChatGPT/Codex). Rama `v2` (después de integrar `v2-h3` y cerrar H1). Diseño: `HEROES_V2.md` §5, `CRUCE_IAS.md` (P1, P9, Q5, Q6). Cualquier ambigüedad: pregunta en `CRUCE_IAS.md`, no se decide en silencio. Hay reset total (`reset_progress.sql`): sin compatibilidad con datos antiguos.

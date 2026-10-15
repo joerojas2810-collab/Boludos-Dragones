@@ -633,7 +633,7 @@ export async function submitRunService(
       p_loot: [],
     });
     // Tower ranking: only a fully verified log counts; the best floor of the week stays,
-    // and at equal floors the climb with fewer battle rounds wins.
+    // and at equal floors the climb with fewer resolved battle turns (`rounds` column) wins.
     let towerPrize: { floors: number; coins: number; dados: number } | undefined;
     if (verdict === "accepted") {
       // tower_record also pays the floors not paid yet this week (once per floor and mode).

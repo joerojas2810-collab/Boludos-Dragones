@@ -1,3 +1,5 @@
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
+
 # E5 5b — Escarcha e Impulso en rondas
 
 ## Implementación

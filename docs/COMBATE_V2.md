@@ -1,4 +1,4 @@
-> **Reemplazado por el motor de turnos (`docs/ideal/`). Se conserva como historial.**
+> Historial: describe el motor anterior por rondas; vigente: docs/ideal/
 
 # COMBATE_V2 — Línea de progreso, habilidades universales, Quiebre
 
