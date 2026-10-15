@@ -15,6 +15,7 @@ import {
 import { niveladoHero } from "./niveladoHero";
 import { heroFromOwned, type Profile } from "./profile";
 import { hashSeed } from "./rng";
+import { artWeekKey } from "./expedition";
 import type { Loadout } from "./skills";
 import type { RarityId } from "./rarity";
 import {
@@ -40,7 +41,8 @@ export const TOWER_BLURB: Record<TowerMode, string> = {
 
 // Weekly prizes for the top 3 of each mode (needs TOWER_MIN_FLOOR). Keep in sync with
 // tower_settle in 0022_tower.sql.
-export const TOWER_MIN_FLOOR = 8;
+// Expedition (docs/torre/01 §10): needs the first boss (node 10) cleared; `floor` = node.
+export const TOWER_MIN_FLOOR = 10;
 export const TOWER_PRIZES = [
   { place: 1, coins: 300, dados: 1 },
   { place: 2, coins: 200, dados: 1 },
@@ -121,12 +123,30 @@ export function towerHero(
   return heroFromOwned(profile, characterId);
 }
 
-/** Week seed for local (offline) play: stable per ISO week, same for every player. */
+/** Week seed for local (offline) play: stable per Buenos Aires week (Monday), same for every player. */
 export function localWeekSeed(d: Date = new Date()): number {
-  const t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-  const week = Math.floor((t / 86_400_000 + 3) / 7); // weeks start on Monday
+  const week = Math.floor(Date.parse(artWeekKey(d)) / 86_400_000 / 7);
   return hashSeed(week, 7771);
 }
+
+/** Seed of an expedition: the week's seed mixed with the mode (separate streams per mode). */
+export const expeditionSeed = (weekSeed: number, mode: TowerMode): number =>
+  hashSeed(weekSeed, 7772, mode === "nivelado" ? 1 : 2);
+
+// EXP of a verified first win of a weekly node (Collection mode): a quarter of the dungeon fight EXP,
+// elite fights like elites and the sector boss like a final fight. Mirror of tower_node_xp in 0059.
+export const TOWER_NODE_XP = {
+  normal: Math.round(TOWER_XP_FACTOR * FIGHT_XP.normal),
+  elite: Math.round(TOWER_XP_FACTOR * FIGHT_XP.elite),
+  boss: Math.round(TOWER_XP_FACTOR * FIGHT_XP.final),
+} as const;
+export const TOWER_PAID_NODES = 30; // first 3 sectors pay (expedition.ts TOWER_PAID_SECTORS x 10)
+
+// Server limits of an expedition (docs/torre/03): per batch and per run; hitting the run budget ends it
+// explicitly with reason "limit", never a silent truncation.
+export const EXP_BATCH_MAX_ACTIONS = 256;
+export const EXP_BATCH_MAX_BYTES = 64 * 1024;
+export const EXP_ACTION_BUDGET = 150_000;
 
 // ---- the climb on the stage engine: ONE life, hp carried with a small heal ----
 // Every floor is one fight (floorFights.ts). Score = floors cleared; tiebreak =

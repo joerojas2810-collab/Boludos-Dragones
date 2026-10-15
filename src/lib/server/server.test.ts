@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import { ASCEND } from "../game/pieceGrowth";
 import { generateCharacter } from "../game/characters";
 import { ENGINE_VERSION, levelFights, resultFromWins } from "../game/stage";
-import { replayTower } from "../game/tower";
-import { defaultLoadout } from "../game/skills";
 import { createRng } from "../game/rng";
 import { derivePassword, safeEqual, syntheticEmail } from "./credentials";
 import { parseEnv } from "./envSchema";
@@ -29,7 +27,7 @@ import {
   startRunService,
   submitRunService,
 } from "./services";
-import { FakeDb, heroRow, playBot } from "./testkit";
+import { FakeDb, heroRow } from "./testkit";
 import {
   credsBody,
   ascendBody,
@@ -422,199 +420,19 @@ describe("mission claims", () => {
   });
 });
 
-describe("weekly tower", () => {
-  // A beefed-up hero so the bot climbs a few floors.
-  const h0 = generateCharacter(createRng(7), "caballero");
-  const hero = {
-    ...h0,
-    stats: {
-      ...h0.stats,
-      hp: h0.stats.hp * 25,
-      atk: h0.stats.atk * 6,
-      def: h0.stats.def * 6,
-    },
-  };
-  const open = (db: FakeDb, startedAt?: number) => {
-    db.run = {
-      seed: 777,
-      hero: { ...hero, engineVersion: ENGINE_VERSION, tower: "coleccion", loadout: defaultLoadout("caballero") },
-      status: "open",
-      startedAt,
-    };
-  };
-  const sub = (
-    db: FakeDb,
-    actions: unknown[],
-    claimed?: { coins: number; maxFloor: number },
-  ) =>
-    submitRunService(db.deps, "u1", {
-      runId: UUID,
-      actions: actions as never,
-      claimed,
-    });
-
-  it("starts on the week's seed and records only a verified floor, paying nothing", async () => {
-    const db = new FakeDb();
-    const info = await startRunService(db.deps, "u1", {
-      classId: "mago",
-      characterId: null,
-      element: "agua",
-      tower: "nivelado",
-    });
-    expect(info).toMatchObject({ seed: 777, rank: null, tower: "nivelado" });
-    expect(db.calls.find((c) => c.name === "start_run")!.args).toMatchObject({
-      p_seed: 777,
-      p_character_id: null,
-      p_hero: { tower: "nivelado" },
-    });
-    const log = playBot(777, hero, 800);
-    const truth = replayTower(777, hero, log);
-    expect(truth.rejectedAt).toBeNull();
-    expect(truth.floors).toBeGreaterThan(2);
-    open(db);
-    const r = await sub(db, log, { coins: 0, maxFloor: truth.floors });
-    expect(r.verdict).toBe("accepted");
-    expect(db.banked[0]).toMatchObject({ p_coins: 0, p_loot: [], p_parts: {} });
-    expect(r.towerPrize).toMatchObject({ floors: truth.floors }); // paid floors reach the client
-    expect(db.towerRecords[0]).toMatchObject({
-      p_mode: "coleccion",
-      p_floor: truth.floors,
-      p_rounds: truth.rounds, // the tiebreak is stored with the floor
-    });
-  });
-
-  it("requires an element for the levelled tower", async () => {
-    const db = new FakeDb();
-    await expect(
-      startRunService(db.deps, "u1", {
-        classId: "mago",
-        characterId: null,
-        tower: "nivelado",
-      }),
-    ).rejects.toMatchObject({ code: "invalid_input" });
-  });
-
-  it("the tower gives a quarter of the dungeon EXP to the hero that climbed", async () => {
-    const db = new FakeDb();
-    db.run = {
-      seed: 777,
-      hero: {
-        ...hero,
-        engineVersion: ENGINE_VERSION,
-        tower: "coleccion",
-        loadout: defaultLoadout("caballero"),
-        heroId: "c-caballero-fuego-f",
-      },
-      status: "open",
-    };
-    const log = playBot(777, hero, 800);
-    const truth = replayTower(777, hero, log);
-    await sub(db, log);
-    expect(truth.climb.wins).toBeGreaterThan(0);
-    expect(db.xpGrants[0]).toMatchObject({
-      p_character_id: "c-caballero-fuego-f",
-    });
-    expect(Number(db.xpGrants[0].p_xp)).toBeGreaterThan(0);
-  });
-
-  it("the levelled tower does not grant EXP to a collection hero", async () => {
-    const db = new FakeDb();
-    db.run = {
-      seed: 777,
-      hero: { ...hero, engineVersion: ENGINE_VERSION, tower: "nivelado", loadout: defaultLoadout("caballero") },
-      status: "open",
-    };
-    const log = playBot(777, hero, 800);
-    await sub(db, log);
-    expect(db.xpGrants).toHaveLength(0);
-  });
-
-  it("inflated claims are ignored: the replayed floor is what counts", async () => {
-    const db = new FakeDb();
-    open(db);
-    const log = playBot(777, hero, 800);
-    const truth = replayTower(777, hero, log);
-    const r = await sub(db, log, { coins: 0, maxFloor: 99 });
-    expect(r.verdict).toBe("mismatch");
-    expect(db.banked[0].p_max_floor).toBe(truth.floors);
-    expect(db.towerRecords).toHaveLength(0); // only fully verified logs rank
-    expect(db.audits).toContain("run_mismatch");
-  });
-
-  it("an illegal action cuts the log there and never reaches the ranking", async () => {
-    const db = new FakeDb();
-    open(db);
-    const r = await sub(db, [{ t: "fin" }]); // no fight has ended
-    expect(r.verdict).toBe("truncated");
-    expect(db.towerRecords).toHaveLength(0);
-    expect(db.audits).toContain("run_truncated");
-  });
-
-  it("one submission per run, unknown run, other engine versions and dungeons", async () => {
-    const db = new FakeDb();
-    expect(await catchErr(sub(db, []))).toMatchObject({
-      status: 404,
-      code: "run_not_found",
-    });
-    db.run = { seed: 777, hero: { ...hero, tower: "coleccion" }, status: "open" };
-    expect(await catchErr(sub(db, []))).toMatchObject({
-      code: "engine_outdated", // recorded before versioning
-    });
-    open(db);
-    const stale = submitRunService(db.deps, "u1", {
-      runId: UUID,
-      actions: [],
-      engineVersion: ENGINE_VERSION + 1,
-    });
-    expect(await catchErr(stale)).toMatchObject({ code: "engine_outdated" });
-    await sub(db, []);
-    db.run!.status = "closed";
-    expect(await catchErr(sub(db, []))).toMatchObject({
-      status: 409,
-      code: "duplicate_run",
-    });
-    db.run = { seed: 1, hero: { ...hero, engineVersion: ENGINE_VERSION }, status: "open" };
-    // a dungeon-level attempt cannot be submitted as a tower run (and vice versa)
-    expect(await catchErr(sub(db, []))).toMatchObject({
-      status: 400,
-      code: "wrong_run_kind",
-    });
-    expect(
-      await catchErr(
-        startRunService(db.deps, "u1", {
-          classId: "mago",
-          characterId: null,
-        } as never),
-      ),
-    ).toMatchObject({ status: 400 });
-  });
-
-  it("a foreign or wrong-class character is refused", async () => {
+describe("legacy tower run endpoints", () => {
+  it("are gone: the tower is the server-side expedition now", async () => {
     const db = new FakeDb();
     expect(
       await catchErr(
-        startRunService(db.deps, "u1", {
-          classId: "mago",
-          characterId: "c-mago-fuego-legendario",
-          tower: "coleccion",
-        }),
+        startRunService(db.deps, "u1", { classId: "mago", characterId: null, tower: "nivelado", element: "agua" }),
       ),
-    ).toMatchObject({ status: 404 });
-  });
-
-  it("a log faster than a person can click is closed unpaid", async () => {
-    const db = new FakeDb();
-    const log = playBot(777, hero, 800);
-    open(db, Date.now() - 5_000); // hundreds of actions in 5 s
-    expect(await catchErr(sub(db, log))).toMatchObject({
-      status: 429,
-      code: "too_fast",
+    ).toMatchObject({ status: 410, code: "tower_moved" });
+    expect(await catchErr(submitRunService(db.deps, "u1", { runId: UUID, actions: [] }))).toMatchObject({
+      status: 410,
+      code: "tower_moved",
     });
-    expect(db.banked[0]).toMatchObject({ p_verdict: "rejected", p_coins: 0 });
-    expect(db.audits).toContain("run_too_fast");
-    const slow = new FakeDb();
-    open(slow, Date.now() - log.length * 1000); // plausible pace
-    expect((await sub(slow, log)).verdict).toBe("accepted");
+    expect(db.towerRecords).toHaveLength(0); // nothing can rank a floor log any more
   });
 });
 

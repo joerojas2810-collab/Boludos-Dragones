@@ -10,6 +10,7 @@
 --   runs, run_submissions, weekly_scores,
 --   route_progress, step_clears, dungeon_clears, dungeon_reward_days,
 --   tower_scores, tower_scores_archive, tower_floor_paid, tower_daily, tower_settled,
+--   tower_runs, tower_node_paid, tower_codex (0059),
 --   class_mastery, skill_loadouts,
 --   rooms (cascades room_players, room_battles, bets, interferences, room_state, room_floor,
 --          room_votes, room_vote_results, room_coop, room_duel) and chip_ledger:
@@ -47,6 +48,9 @@ delete from public.tower_scores_archive;
 delete from public.tower_floor_paid;
 delete from public.tower_daily;
 delete from public.tower_settled;
+delete from public.tower_runs;       -- 0059: expedition runs (cascades nothing else)
+delete from public.tower_node_paid;  -- 0059: weekly node payout ledger
+delete from public.tower_codex;      -- 0059: relic/event codex
 delete from public.class_mastery;
 delete from public.skill_loadouts;
 update public.gacha_state set pity = 0, pity_ssr = 0;

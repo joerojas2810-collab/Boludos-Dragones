@@ -14,7 +14,7 @@ const throws = (p: Promise<unknown>, code: string) => p.then(() => false, (e: Er
 const dir = root + "migrations/";
 const all = fs.readdirSync(dir).filter((f) => /^\d{4}_.+\.sql$/.test(f)).sort();
 const LAST = "0018_lockdown_functions.sql";
-const old = [...all.filter((f) => f !== LAST && !f.startsWith("0058")), LAST];
+const old = [...all.filter((f) => f !== LAST && !f.startsWith("0058") && !f.startsWith("0059")), LAST];
 await db.exec(old.map((f) => fs.readFileSync(dir + f, "utf8")).join("\n"));
 ok(!(await q(`select 1 from pg_tables where tablename='class_mastery'`)).length, "0057 database has no class_mastery");
 
@@ -102,6 +102,10 @@ insert into public.part_stock(player_id,key,qty) values ('${A}','p-casco-f',2);
 insert into public.route_progress(player_id,route,difficulty,ascension,levels) values ('${A}','ash_king','f',0,2);
 insert into public.step_clears(player_id,difficulty,ascension) values ('${A}','f',0);
 insert into public.tower_scores(week,mode,player_id,max_floor,rounds) values (public.game_week(),'nivelado','${A}',9,100);
+insert into public.tower_runs(player_id,mode,week,deadline,seed,engine_version,catalog_version,status,state,nodes)
+  values ('${A}','nivelado',public.game_week(),public.game_week_end(public.game_week()),1,1,1,'active','{}'::jsonb,3);
+insert into public.tower_node_paid(player_id,mode,week,node,kind,coins) values ('${A}','nivelado',public.game_week(),1,'normal',5);
+insert into public.tower_codex(player_id,relics) values ('${A}','{bear_heart}');
 update public.player_state set coins=12345, escamas=7, dados=2, tutorial=7 where player_id='${A}';
 update public.players set best_floor=5, is_admin=true where id='${A}';
 insert into public.rooms(code,host_id) values ('ABCD','${A}');
@@ -116,7 +120,7 @@ const before = {
 };
 await db.exec(fs.readFileSync(root + "reset_progress_ideal.sql", "utf8"));
 const count = async (t: string) => (await q(`select count(*)::int n from public.${t}`))[0].n;
-for (const t of ["characters", "weapons", "equipment", "fragments", "part_stock", "route_progress", "step_clears", "tower_scores",
+for (const t of ["characters", "weapons", "equipment", "fragments", "part_stock", "route_progress", "step_clears", "tower_scores", "tower_runs", "tower_node_paid", "tower_codex",
   "class_mastery", "skill_loadouts", "rooms", "room_players", "chip_ledger", "runs", "pulls", "mission_state", "market_offers"])
   ok((await count(t)) === 0, `reset wiped ${t}`);
 const st = (await q(`select * from public.player_state where player_id='${A}'`))[0];

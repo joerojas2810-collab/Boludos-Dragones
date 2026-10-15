@@ -1,0 +1,13 @@
+
+ RUN  v5.0.3 /Users/josephrojas/Desktop/Nuevo Juego
+
+
+ Test Files  79 passed (79)
+      Tests  957 passed (957)
+   Start at  09:28:02
+   Duration  3.08s (tests 55%, transform 26%, import 17%, worker 2%)
+
+  Transform  transforming modules took 3.29s · 26% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
+

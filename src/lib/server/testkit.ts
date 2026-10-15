@@ -22,6 +22,27 @@ export interface Row {
   data: unknown;
 }
 
+/** In-memory twin of the 0059 tower_runs / tower_run_* functions (the SQL itself is covered by PGlite tests). */
+export interface FakeTowerRun {
+  id: string;
+  player: string;
+  mode: string;
+  week: string;
+  deadline: number; // ms
+  seed: number;
+  engineVersion: number;
+  catalogVersion: number;
+  revision: number;
+  status: "active" | "suspended" | "ended";
+  state: Record<string, unknown>;
+  nodes: number;
+  turns: number;
+  actions: number;
+  lastBatch: unknown;
+  endReason: string | null;
+  heroId: string | null;
+}
+
 export class FakeDb {
   coins = 3000;
   version = 0;
@@ -55,6 +76,18 @@ export class FakeDb {
   loadouts: Record<string, string[]> = {};
   levelLoadouts: Record<string, string[]> = {};
   towerRecords: Args[] = [];
+  // ---- tower expeditions (0059 twin) ----
+  towerRuns: FakeTowerRun[] = [];
+  nodePaid = new Set<string>();
+  paidCoins = 0;
+  paidXp: Args[] = [];
+  scores: Record<string, { nodes: number; turns: number }> = {};
+  codex: { relics: Set<string>; events: Set<string> } = { relics: new Set(), events: new Set() };
+  nowMs = Date.parse("2026-10-07T12:00:00Z");
+  weekDeadlineMs = Date.parse("2026-10-12T03:00:00Z");
+  runAgeMs = 1e9; // age reported for open runs (the pace check compares it with the action count)
+  beforeCommit: (() => void) | null = null; // lets a test commit "from another tab" first
+  commits = 0;
   missionProgress: Record<string, number> = {};
   bestRank = "f";
   missionClaims: Args[] = [];
@@ -73,6 +106,111 @@ export class FakeDb {
   }
   private okv(data: unknown): RpcResult {
     return { data, error: null };
+  }
+
+  private view(r: FakeTowerRun) {
+    return {
+      id: r.id, mode: r.mode, week: r.week, seed: r.seed, engineVersion: r.engineVersion,
+      catalogVersion: r.catalogVersion, revision: r.revision, status: r.status,
+      state: JSON.parse(JSON.stringify(r.state)), nodes: r.nodes, turns: r.turns, actions: r.actions,
+      lastBatch: r.lastBatch, endReason: r.endReason, ageMs: this.runAgeMs,
+    };
+  }
+  private endRun(r: FakeTowerRun, reason: string) {
+    if (r.status === "ended") return;
+    r.status = "ended";
+    r.endReason = reason;
+    r.revision += 1;
+    r.state = { ...r.state, phase: "ended", battle: null, revision: r.revision, end: { reason, node: r.nodes } };
+  }
+  private openRun(player: string, mode: string) {
+    return this.towerRuns.find((r) => r.player === player && r.mode === mode && r.status !== "ended");
+  }
+
+  // Mirrors tower_run_* of 0059 (same errors, same idempotency rules).
+  private tower(name: string, a: Args): RpcResult {
+    const player = String(a.p_player);
+    switch (name) {
+      case "tower_run_current": {
+        const run = this.openRun(player, String(a.p_mode));
+        let closed = null;
+        let open = run;
+        if (run && this.nowMs >= run.deadline) {
+          this.endRun(run, "season");
+          closed = this.view(run);
+          open = undefined;
+        }
+        return this.okv({ week: "2026-10-05", run: open ? this.view(open) : null, closed });
+      }
+      case "tower_run_end": {
+        const r = this.towerRuns.find((x) => x.id === a.p_run && x.player === player);
+        if (!r) return this.err("run_not_found");
+        if (!["season", "engine", "limit"].includes(String(a.p_reason))) return this.err("invalid_args");
+        this.endRun(r, String(a.p_reason));
+        return this.okv(this.view(r));
+      }
+      case "tower_run_create": {
+        const mode = String(a.p_mode);
+        const open = this.openRun(player, mode);
+        if (open) return this.okv({ created: false, run: this.view(open) });
+        const st = a.p_state as Record<string, unknown>;
+        const r: FakeTowerRun = {
+          id: `run-${this.towerRuns.length + 1}`, player, mode, week: String(a.p_week), deadline: this.weekDeadlineMs,
+          seed: Number(a.p_seed), engineVersion: Number(a.p_engine), catalogVersion: Number(a.p_catalog),
+          revision: 0, status: "active", state: JSON.parse(JSON.stringify(st)), nodes: 0, turns: 0, actions: 0,
+          lastBatch: null, endReason: null, heroId: (a.p_hero_id as string | null) ?? null,
+        };
+        this.towerRuns.push(r);
+        return this.okv({ created: true, run: this.view(r) });
+      }
+      case "tower_run_commit": {
+        this.beforeCommit?.();
+        this.beforeCommit = null;
+        const r = this.towerRuns.find((x) => x.id === a.p_run && x.player === player);
+        if (!r) return this.err("run_not_found");
+        if (r.status === "ended") return this.err("run_ended");
+        if (r.revision !== a.p_revision) return this.err("conflict");
+        if (this.nowMs >= r.deadline) {
+          this.endRun(r, "season");
+          return this.okv({ season: true, run: this.view(r) });
+        }
+        const st = JSON.parse(JSON.stringify(a.p_state)) as Record<string, unknown>;
+        let coins = 0;
+        let xp = 0;
+        let n = 0;
+        for (const e of a.p_paid as { node: number; kind: string }[]) {
+          const key = `${player}:${r.mode}:${r.week}:${e.node}`;
+          if (e.node < 1 || e.node > 30 || this.nodePaid.has(key)) continue;
+          this.nodePaid.add(key);
+          coins += { normal: 5, elite: 150, boss: 300 }[e.kind] ?? 0;
+          xp += r.mode === "coleccion" && r.heroId ? { normal: 25, elite: 63, boss: 125 }[e.kind] ?? 0 : 0;
+          n++;
+        }
+        this.coins += coins;
+        this.paidCoins += coins;
+        if (xp > 0) this.paidXp.push({ p_character_id: r.heroId, p_xp: xp });
+        const nodes = Number(st.nodes);
+        const turns = Number(st.turns);
+        const key = `${player}:${r.mode}`;
+        const best = this.scores[key];
+        if (nodes > 0 && (!best || nodes > best.nodes || (nodes === best.nodes && turns < best.turns)))
+          this.scores[key] = { nodes, turns };
+        for (const x of ((st.seen as { relics?: string[] })?.relics ?? [])) this.codex.relics.add(x);
+        for (const x of ((st.seen as { events?: string[] })?.events ?? [])) this.codex.events.add(x);
+        r.state = st;
+        r.revision = Number(st.revision);
+        r.nodes = nodes;
+        r.turns = turns;
+        r.actions += Number(a.p_added);
+        r.lastBatch = a.p_batch;
+        r.status = st.phase === "ended" ? "ended" : st.phase === "suspended" ? "suspended" : "active";
+        r.endReason = r.status === "ended" ? String((st.end as { reason: string }).reason) : null;
+        this.commits++;
+        return this.okv({ season: false, revision: r.revision, status: r.status, prize: { nodes: n, coins, xp } });
+      }
+      default:
+        return this.okv({ relics: [...this.codex.relics], events: [...this.codex.events], best: null, history: [] });
+    }
   }
 
   private handle(name: string, a: Args): RpcResult {
@@ -310,6 +448,12 @@ export class FakeDb {
         });
       case "tower_state":
         return this.okv({ week: "2026-10-05", modes: {}, last: {} });
+      case "tower_run_current":
+      case "tower_run_end":
+      case "tower_run_create":
+      case "tower_run_commit":
+      case "tower_codex_get":
+        return this.tower(name, a);
       case "mission_get": {
         const sc = (progress: Record<string, number>) => ({
           progress,
@@ -341,6 +485,7 @@ export class FakeDb {
   }
 }
 
+// (methods of FakeDb are declared above; the tower twin lives in a prototype extension below)
 // Plays a simple deterministic bot through the tower engine and returns its log.
 export function playBot(
   seed: number,

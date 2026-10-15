@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { CLASS_IDS, type Character, type ClassId } from "../game/characters";
-import { ELEMENTS, type Element } from "../game/elements";
+import { type Element } from "../game/elements";
 import { createStarterHero } from "../game/tutorial";
 import { fuseHeroes, starUpHero, swapCopy, type Material } from "../game/heroFusion";
 import { isLevelUnlocked, isStepUnlocked } from "../game/dungeonProgress";
@@ -21,13 +21,7 @@ import {
   type PullResult,
   type Profile,
 } from "../game/profile";
-import {
-  isTowerMode,
-  replayTower,
-  towerHero,
-  towerXp,
-  type TowerMode,
-} from "../game/tower";
+import { type TowerMode } from "../game/tower";
 import { loadoutFor, masteryOf } from "../game/loadout";
 import { loadoutError, type Loadout } from "../game/skills";
 import { ascendPiece, starUpPiece, swapPieceRoll } from "../game/pieceGrowth";
@@ -408,69 +402,14 @@ async function openRunRow(
   }
 }
 
-export async function startRunService(
-  d: Deps,
-  playerId: string,
-  body: RunStartBody,
-) {
-  await limit(d.rpc, `runstart:${playerId}`, 10, 60);
-  await limit(d.rpc, `runstarth:${playerId}`, 20, 3600);
-  // Dungeon levels have their own route (startLevelService).
-  if (!body.tower)
-    throw new ApiError(400, "invalid_input", "Falta el modo de la torre.");
-  if (body.tower === "nivelado" && !ELEMENTS.includes(body.element as Element))
-    throw new ApiError(400, "invalid_input", "Elige un elemento para la torre.");
-  const me = await loadMe(d.rpc, playerId);
-  // Weekly tower: everybody gets the week's seed (first request of the week fixes it).
-  const ws = await call<{ seed: number }>(d.rpc, "get_weekly_seed", {
-    p_seed: d.randomSeed(),
-  });
-  const seed = Number(ws.seed);
-  const hero = towerHero(
-    me.profile,
-    body.tower,
-    body.characterId,
-    body.classId,
-    body.element ?? null,
-  );
-  if (!hero)
-    throw new ApiError(404, "character_not_found", "Personaje no encontrado.");
-  const loadout = resolveLoadout(me.profile, hero, body.tower, body.loadout);
-  try {
-    const r = await openRunRow(d, playerId, {
-      p_player: playerId,
-      p_character_id: body.tower === "coleccion" ? body.characterId : null,
-      p_seed: seed,
-      // The engine version and the validated loadout ride inside the hero json (no schema change):
-      // a log is only replayable by the engine and with the skills that recorded it.
-      // heroId: who gets the EXP.
-      p_hero: {
-        ...hero,
-        engineVersion: ENGINE_VERSION,
-        loadout,
-        tower: body.tower,
-        ...(body.tower === "coleccion" && body.characterId
-          ? { heroId: body.characterId }
-          : {}),
-      },
-    });
-    return {
-      runId: r.run_id,
-      seed,
-      hero,
-      rank: null,
-      tower: body.tower,
-      loadout,
-      engineVersion: ENGINE_VERSION,
-    };
-  } catch (e) {
-    return mapRpcError(e);
-  }
+/** The weekly tower is now the server-side expedition (src/lib/server/expedition.ts, /api/tower/*). */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function startRunService(..._args: [Deps, string, RunStartBody]): Promise<never> {
+  throw new ApiError(410, "tower_moved", "La torre ahora es una expedición: recarga la página.");
 }
 
 // Anti-farming (a script can replay the deterministic engine at CPU speed):
 // a log cannot be faster than a person clicking.
-const TOWER_SQL_MAX_FLOOR = 500; // tower_record rejects more; keep in sync with 0055
 export const MIN_ACTION_MS = 400; // fastest believable pace per logged action
 export const MIN_ACTION_GRACE_MS = 3_000; // clock skew between app and database
 
@@ -489,13 +428,6 @@ const tooFastFights = (startedAt: number | undefined, wins: number) => {
     : null;
 };
 
-const tooFast = (startedAt: number | undefined, actions: number) => {
-  const elapsed = startedAt ? Date.now() - startedAt : null;
-  return elapsed !== null && elapsed + MIN_ACTION_GRACE_MS < actions * MIN_ACTION_MS
-    ? elapsed
-    : null;
-};
-
 export interface RunSubmitBody {
   runId: string;
   actions: StageAction[];
@@ -503,178 +435,10 @@ export interface RunSubmitBody {
   engineVersion?: number; // engine the client played with
 }
 
-export type Verdict = "accepted" | "truncated" | "mismatch";
-
-// bank_run only accepts accepted|capped|rejected|cut; both replay problems pay the replayed value ("cut").
-const SQL_VERDICT: Record<Verdict, "accepted" | "cut"> = {
-  accepted: "accepted",
-  truncated: "cut",
-  mismatch: "cut",
-};
-
-export async function submitRunService(
-  d: Deps,
-  playerId: string,
-  body: RunSubmitBody,
-) {
-  await limit(d.rpc, `runsubmit:${playerId}`, 20, 60);
-  const row = await d.getRun(playerId, body.runId);
-  if (!row) throw new ApiError(404, "run_not_found", "Run no encontrada.");
-  if (row.status !== "open")
-    throw new ApiError(409, "duplicate_run", "Esta run ya fue entregada.");
-  const {
-    engineVersion: stored = 1,
-    tower: storedTower,
-    heroId,
-    loadout: storedLoadout,
-    ...hero
-  } = row.hero as Character & {
-    engineVersion?: number;
-    tower?: string;
-    heroId?: string;
-    loadout?: readonly string[];
-  };
-  const tower = isTowerMode(storedTower) ? storedTower : null;
-  if (!tower)
-    throw new ApiError(
-      400,
-      "wrong_run_kind",
-      "Esa run no es de la torre: los niveles se entregan en /api/level/finish.",
-    );
-  // Impossibly fast log: close the run unpaid (nothing is credited) and say why.
-  const elapsed = tooFast(row.startedAt, body.actions.length);
-  if (elapsed !== null) {
-    try {
-      await call(d.rpc, "bank_run", {
-        p_player: playerId,
-        p_run_id: body.runId,
-        p_coins: 0,
-        p_max_floor: 0,
-        p_log: body.actions.length <= 2000 ? body.actions : null,
-        p_verdict: "rejected",
-        p_reason: `too_fast ${elapsed}ms for ${body.actions.length} actions`,
-      });
-    } catch (e) {
-      return mapRpcError(e);
-    }
-    await audit(d.rpc, playerId, "run_too_fast", {
-      runId: body.runId,
-      elapsed,
-      n: body.actions.length,
-    });
-    throw new ApiError(
-      429,
-      "too_fast",
-      "Ese intento se jugó demasiado rápido para ser real y no se registró.",
-    );
-  }
-  if (body.engineVersion !== undefined && body.engineVersion !== stored)
-    throw new ApiError(
-      409,
-      "engine_outdated",
-      "La run se jugó con otra versión del juego. Recarga la página y empieza una nueva.",
-    );
-  // Old-engine logs are never reinterpreted, and a run without a valid stored loadout cannot be replayed.
-  if (stored !== ENGINE_VERSION)
-    throw new ApiError(
-      409,
-      "engine_outdated",
-      "Esta run es de una versión anterior del juego y ya no se puede verificar. Empieza una nueva.",
-    );
-  const loadoutProblem = loadoutError(hero.classId, storedLoadout, null);
-  if (loadoutProblem)
-    throw new ApiError(409, "invalid_loadout", `La run no guardó unas habilidades válidas: ${loadoutProblem}`);
-  const rep = replayTower(row.seed, hero, body.actions, stored, [storedLoadout![0], storedLoadout![1]] as unknown as Loadout);
-  if (rep.error === "too_many_actions") {
-    await call(d.rpc, "bank_run", {
-      p_player: playerId,
-      p_run_id: body.runId,
-      p_coins: 0,
-      p_max_floor: 0,
-      p_log: null,
-      p_verdict: "rejected",
-      p_reason: "too_many_actions",
-    }).catch(() => undefined);
-    throw new ApiError(400, "too_many_actions", "Ese intento fue demasiado largo para verificarse.");
-  }
-  if (rep.error)
-    throw new ApiError(
-      409,
-      "engine_outdated",
-      "Esta run es de una versión anterior del juego y ya no se puede verificar.",
-    );
-  const floors = Math.min(rep.floors, TOWER_SQL_MAX_FLOOR);
-  let verdict: Verdict = "accepted";
-  let reason: string | null = null;
-  if (rep.rejectedAt !== null) {
-    verdict = "truncated";
-    reason = `illegal action at ${rep.rejectedAt}`;
-  } else if (body.claimed && body.claimed.maxFloor !== floors) {
-    verdict = "mismatch";
-    reason = `claimed floor ${body.claimed.maxFloor} replay ${floors}`;
-  }
-  try {
-    // The tower pays nothing per run (no coins, loot or parts): only the weekly prizes.
-    const r = await call<{
-      coinsAdded: number;
-      coins: number;
-      bestFloor: number;
-      capped: boolean;
-    }>(d.rpc, "bank_run", {
-      p_player: playerId,
-      p_run_id: body.runId,
-      p_coins: 0,
-      p_max_floor: floors,
-      p_log: verdict === "accepted" ? null : body.actions,
-      p_verdict: SQL_VERDICT[verdict],
-      p_reason: reason,
-      p_parts: {},
-      p_clear: null,
-      p_loot: [],
-    });
-    // Tower ranking: only a fully verified log counts; the best floor of the week stays,
-    // and at equal floors the climb with fewer resolved battle turns (`rounds` column) wins.
-    let towerPrize: { floors: number; coins: number; dados: number } | undefined;
-    if (verdict === "accepted") {
-      // tower_record also pays the floors not paid yet this week (once per floor and mode).
-      const rec = await call<{
-        prize: { floors: number; coins: number; dados: number };
-      }>(d.rpc, "tower_record", {
-        p_player: playerId,
-        p_mode: tower,
-        p_floor: floors,
-        p_rounds: Math.min(rep.rounds, 1_000_000), // resolved turns
-        p_class: hero.classId,
-        p_element: hero.element,
-      }).catch(async (e) => {
-        // The run is already closed: leave a trail so the score can be restored by hand.
-        await audit(d.rpc, playerId, "tower_record_failed", {
-          runId: body.runId,
-          floors,
-          rounds: rep.rounds,
-        });
-        throw e;
-      });
-      towerPrize = rec?.prize;
-      // A quarter of the dungeon EXP for the hero that climbed (best effort).
-      const xp = towerXp(rep.climb);
-      if (heroId && xp > 0)
-        await call(d.rpc, "grant_hero_xp", {
-          p_player: playerId,
-          p_character_id: heroId,
-          p_xp: xp,
-        }).catch(() => undefined);
-    }
-    if (verdict !== "accepted" || r.capped)
-      await audit(d.rpc, playerId, "run_" + verdict, {
-        runId: body.runId,
-        reason,
-        capped: r.capped,
-      });
-    return { ...r, verdict, maxFloor: floors, towerPrize };
-  } catch (e) {
-    return mapRpcError(e);
-  }
+/** Old tower runs are gone with the expedition: nothing verifies or ranks a floor log any more. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function submitRunService(..._args: [Deps, string, RunSubmitBody]): Promise<never> {
+  throw new ApiError(410, "tower_moved", "La torre ahora es una expedición: recarga la página.");
 }
 
 // ---- dungeon levels (stage engine) ----

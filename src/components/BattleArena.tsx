@@ -6,6 +6,7 @@ import { blockMenuMusic } from "@/lib/menu-music";
 import { BossIntro, FxLayer, useBattleFx } from "@/components/fx/BattleFx";
 import { EnemyCueContext, type EnemyCue } from "@/components/EnemySprite";
 import { StatusIcons } from "@/components/StatusIcons";
+import { ElementalStatusOverlay } from "@/components/ElementalStatusOverlay";
 import { HudCard } from "@/components/HudCard";
 import { HeroSprite } from "@/components/HeroSprite";
 import { Tooltip } from "@/components/Tooltip";
@@ -17,12 +18,19 @@ import type { HeroAction } from "@/lib/art/heroes";
 import { Vfx } from "@/components/fx/Vfx";
 import { STAGGER_S } from "@/components/fx/timing";
 import { effectSrc } from "@/lib/art/effects";
+import type { StatusAnchorFamily } from "@/lib/art/statusAnchors";
+import { allStatusLayerIds, layerChangeDelayMs, statusLayerSrc } from "@/lib/art/statusLayers";
 import { preloadImages } from "@/lib/preload";
 import { enemyIntents, type Battle, type Combatant, type Intent } from "@/lib/game/combat";
 import { intentInfo, intentTip, type Tip } from "@/lib/game/explain";
 import { EVENT_VFX_IDS, heroActionFor, pickCallouts, SKILL_FX, skillTag, type Callout } from "@/lib/art/skillFx";
 import { isSkillId, SKILLS } from "@/lib/game/skills";
 import { STATUS_DATA, type StatusId } from "@/lib/game/statuses";
+
+// Clicks and keys that come from a real control inside the target (help / Info buttons, links) must not pick or
+// un-pick the target: only the card itself does.
+const fromControl = (e: { target: EventTarget | null; currentTarget: EventTarget }) =>
+  e.target !== e.currentTarget && !!(e.target as Element | null)?.closest?.("button, a, input, select, textarea, [role='button']");
 
 // Animation for who attacked / who got hit in the last step, staggered like the sfx.
 
@@ -221,7 +229,11 @@ const FIGHT_EFFECTS = [
 function usePreload(urls: string[]) {
   const key = urls.join("|");
   useEffect(() => {
-    preloadImages([...key.split("|"), ...FIGHT_EFFECTS.flatMap((id) => [effectSrc(id), effectSrc(id, true)])]);
+    preloadImages([
+      ...key.split("|"),
+      ...FIGHT_EFFECTS.flatMap((id) => [effectSrc(id), effectSrc(id, true)]),
+      ...allStatusLayerIds.map((id) => statusLayerSrc(id, isPixel())),
+    ]);
   }, [key]);
 }
 
@@ -237,6 +249,7 @@ type Props = {
   enemyExtra: (i: number, c: Combatant) => string;
   enemyArt: (i: number, c: Combatant) => ReactNode; // already flipped by the caller
   enemyChips?: (i: number, c: Combatant) => ReactNode;
+  enemyStatusFamily?: (i: number, c: Combatant) => StatusAnchorFamily; // anchor exception for wide / flying sprites
   enemy: number; // highlighted target (index in b.enemies)
   onTarget?: (i: number) => void;
   bleed?: boolean; // the scenery is drawn full-screen by the page: no border, no own background
@@ -255,6 +268,7 @@ export function BattleArena({
   enemyExtra,
   enemyArt,
   enemyChips,
+  enemyStatusFamily,
   enemy,
   onTarget,
   bleed,
@@ -328,6 +342,7 @@ export function BattleArena({
             </div>
           </div>
         </div>
+        <ElementalStatusOverlay c={b.player} family="hero" ended={b.status !== "ongoing"} delayMs={layerChangeDelayMs(b.cev, 0)} />
         <StatusIcons c={b.player} />
       </div>
       <div className="stage-player-hud absolute left-2 top-2 z-10 w-[min(12.5rem,44%)]">
@@ -361,9 +376,9 @@ export function BattleArena({
               aria-disabled={dead}
               aria-label={`${c.char.name}${dead ? " (derrotado)" : ""}`}
               tabIndex={dead || !multi ? -1 : selected ? 0 : -1}
-              onClick={() => !dead && onTarget?.(i)}
+              onClick={(e) => !dead && !fromControl(e) && onTarget?.(i)}
               onKeyDown={(e) => {
-                if (dead || !multi) return;
+                if (dead || !multi || fromControl(e)) return;
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onTarget?.(i);
@@ -374,6 +389,7 @@ export function BattleArena({
                     const j = (i + step * k + n * 3) % n;
                     if (b.enemies[j].hp > 0) {
                       onTarget?.(j);
+                      (e.currentTarget.parentElement?.children[j] as HTMLElement | undefined)?.focus(); // keep the roving focus with the pick
                       break;
                     }
                   }
@@ -410,6 +426,15 @@ export function BattleArena({
                 >
                   {enemyChips?.(i, c)}
                 </HudCard>
+              </div>
+              {/* Same slot as the art below, but not re-keyed per step: the envelope keeps its state across steps. */}
+              <div className="stage-foe-art pointer-events-none absolute bottom-0 left-1/2 z-[5] -translate-x-1/2">
+                <ElementalStatusOverlay
+                  c={c}
+                  family={enemyStatusFamily?.(i, c) ?? (boss ? "boss" : "foe")}
+                  ended={b.status !== "ongoing"}
+                  delayMs={layerChangeDelayMs(b.cev, i + 1)}
+                />
               </div>
               <div
                 key={`e${i}-${b.log.length}`}

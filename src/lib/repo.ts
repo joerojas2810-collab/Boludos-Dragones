@@ -46,6 +46,16 @@ import { createRng } from "./game/rng";
 import { equipLoadout, loadoutFor } from "./game/loadout";
 import type { Loadout } from "./game/skills";
 import { claimDaily, dayKey } from "./game/streak";
+import { artWeekKey, type ExpAction, type ExpState } from "./game/expedition";
+import {
+  browserKV,
+  createLocalExpedition,
+  ExpError,
+  type KV,
+  type ExpActResult,
+  type ExpCodex,
+  type ExpStartOpts,
+} from "./localExpedition";
 
 export class RepoError extends Error {
   constructor(
@@ -118,6 +128,44 @@ export interface Me {
   profile: Profile;
 }
 
+// ---- tower expedition (docs/torre): server-authoritative runs, ranking by validated nodes ----
+export type { ExpActResult, ExpCodex, ExpStartOpts };
+export interface TowerRankRow {
+  place: number;
+  player?: string;
+  name: string;
+  nodes: number; // validated nodes (alias: floor)
+  floor: number;
+  turns: number; // tie-break: turns of the won fights (alias: rounds)
+  rounds: number;
+  at: string; // SERVER time the milestone was reached (second tie-break)
+  eligible: boolean; // node 10 (first boss) cleared: can win the weekly top-3 prize
+  class: ClassId | null;
+  element: Element | null;
+}
+export interface TowerMine extends Omit<TowerRankRow, "player" | "name"> {
+  paidFloors: number; // weekly nodes already paid
+  pending: boolean; // the open run is ahead of the validated score
+}
+export interface TowerActiveRun {
+  nodes: number;
+  turns: number;
+  revision: number;
+  status: "active" | "suspended";
+  week: string;
+  deadline: string;
+  stale: boolean; // past its week: the next load closes it as "season"
+}
+export interface TowerStateInfo {
+  week: string;
+  weekKey: string;
+  deadline: string | null; // first instant of the next week (Buenos Aires); null offline
+  modes: Record<TowerMode, { top: TowerRankRow[]; mine: TowerMine | null }>;
+  last: Record<TowerMode, { place: number; name: string; floor: number }[]>;
+  king: Record<TowerMode, { day: string; name: string; floor: number; me: boolean } | null>;
+  activeByMode: Record<TowerMode, TowerActiveRun | null>;
+}
+
 export interface ProfileRepo {
   readonly mode: "local" | "remote";
   load(): Promise<Me | null>; // null = not signed in
@@ -166,6 +214,15 @@ export interface ProfileRepo {
   starUpHero(baseId: string, materials: Material[]): Promise<{ text: string; id: string }>;
   /** Swaps the hero's main trait with the one of its spare copy `index`. */
   swapCopy(heroId: string, index: number): Promise<{ text: string; id: string }>;
+  /** Open expedition of a mode (null if none). A just-closed one (season/engine) comes back ended, once. */
+  expeditionCurrent(mode: TowerMode): Promise<ExpState | null>;
+  /** Starts the expedition of a mode, or returns the open one. */
+  expeditionStart(mode: TowerMode, opts: ExpStartOpts): Promise<ExpState>;
+  /** Sends actions; the result carries the canonical state and where the first rejection happened. */
+  expeditionAct(mode: TowerMode, state: ExpState, actions: ExpAction[], keepalive?: boolean): Promise<ExpActResult>;
+  expeditionCodex(mode?: TowerMode): Promise<ExpCodex>;
+  /** Week, rankings of both modes, my validated place and my open runs. */
+  towerState(): Promise<TowerStateInfo>;
   startRun(
     classId: ClassId,
     characterId: string | null,
@@ -195,7 +252,7 @@ export interface StoreApi {
   replace(p: Profile): void; // cache only (remote mode)
 }
 
-export function createLocalRepo(store: StoreApi): ProfileRepo {
+export function createLocalRepo(store: StoreApi, kv: KV = browserKV): ProfileRepo {
   // Applies a star-up / trait swap result to the local profile.
   const grew = <R extends HeroGrowthResult | PieceGrowthResult>(r: R, id: string | ((r: Extract<R, { ok: true }>) => string)) => {
     if (!r.ok) throw new RepoError("fusion_invalid", r.error);
@@ -220,9 +277,36 @@ export function createLocalRepo(store: StoreApi): ProfileRepo {
       );
     return { results: out.rs };
   };
+  const exp = createLocalExpedition(kv, () => store.get());
+  const asRepoError = async <T>(f: Promise<T>): Promise<T> =>
+    f.catch((e) => {
+      throw e instanceof ExpError ? new RepoError(e.code, e.message) : e;
+    });
   return {
     mode: "local",
     load: async () => ({ name: "Local", isAdmin: false, profile: store.get() }),
+    expeditionCurrent: (mode) => exp.current(mode),
+    expeditionStart: (mode, opts) => asRepoError(exp.start(mode, opts)),
+    expeditionAct: (mode, state, actions) => asRepoError(exp.act(mode, state, actions)),
+    expeditionCodex: (mode) => exp.codex(mode),
+    towerState: async () => {
+      const weekKey = artWeekKey();
+      const active = async (mode: TowerMode): Promise<TowerActiveRun | null> => {
+        const s = await exp.current(mode);
+        return s && s.phase !== "ended"
+          ? { nodes: s.nodes, turns: s.turns, revision: s.revision, status: s.phase === "suspended" ? "suspended" : "active", week: s.weekKey, deadline: "", stale: false }
+          : null;
+      };
+      return {
+        week: weekKey,
+        weekKey,
+        deadline: null,
+        modes: { nivelado: { top: [], mine: null }, coleccion: { top: [], mine: null } },
+        last: { nivelado: [], coleccion: [] },
+        king: { nivelado: null, coleccion: null },
+        activeByMode: { nivelado: await active("nivelado"), coleccion: await active("coleccion") },
+      };
+    },
     pull: (b, n) => pull(b, n),
     dailyPull: async (banner) => {
       const rng = createRng(Date.now());
@@ -458,8 +542,28 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
   const withProfile = async (path: string, body: unknown) =>
     store.replace((await api<{ profile: Profile }>(path, body)).profile);
 
+  const modeQuery = (mode?: TowerMode) => (mode ? `?mode=${mode}` : "");
   return {
     mode: "remote",
+    expeditionCurrent: async (mode) =>
+      (await api<{ state: ExpState | null }>(`/api/tower/current${modeQuery(mode)}`)).state,
+    expeditionStart: async (mode, opts) =>
+      (await api<{ state: ExpState }>("/api/tower/start", { mode, ...opts })).state,
+    expeditionAct: async (mode, _state, actions, keepalive) => {
+      const r = await api<ExpActResult & { prize?: { coins: number; xp: number } }>(
+        "/api/tower/act",
+        { mode, actions },
+        keepalive,
+      );
+      // Node payouts and Collection EXP land in the profile: refresh the cache (best effort).
+      if (r.prize && (r.prize.coins > 0 || r.prize.xp > 0))
+        await api<Me>("/api/me")
+          .then((me) => store.replace(me.profile))
+          .catch(() => undefined);
+      return { state: r.state, applied: r.applied, rejectedAt: r.rejectedAt, ...(r.error ? { error: r.error } : {}) };
+    },
+    expeditionCodex: (mode) => api<ExpCodex>(`/api/tower/codex${modeQuery(mode)}`),
+    towerState: () => api<TowerStateInfo>("/api/tower"),
     load: async () => {
       try {
         const me = await api<Me>("/api/me");

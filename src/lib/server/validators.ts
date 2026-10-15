@@ -159,3 +159,37 @@ export const upgradeBody = z.strictObject({
   pieceId: z.string().min(1).max(100),
   useDado: z.boolean(),
 });
+
+// ---- tower expedition (docs/torre/03) ----
+// Shape only: the reducer decides legality. `mode` stays a free string here so an unknown value gets the
+// recovery-friendly invalid_mode error from the service instead of a generic 400.
+const expBase = { actionId: z.string().min(1).max(64), expectedRevision: z.number().int().min(0).max(10_000_000) };
+const id = z.string().min(1).max(40);
+const slot = z.number().int().min(0).max(5);
+const expAction = z.discriminatedUnion("type", [
+  z.strictObject({ ...expBase, type: z.literal("begin") }),
+  z.strictObject({ ...expBase, type: z.literal("set_loadout"), loadout: z.array(z.string().max(40)).max(4) }),
+  z.strictObject({ ...expBase, type: z.literal("choose_route"), optionId: id }),
+  z.strictObject({ ...expBase, type: z.literal("combat_action"), a: id, target: z.number().int().min(0).max(8).optional() }),
+  z.strictObject({ ...expBase, type: z.literal("combat_auto") }),
+  z.strictObject({ ...expBase, type: z.literal("choose_relic"), offerId: id, optionId: id, replaceSlot: slot.optional() }),
+  z.strictObject({ ...expBase, type: z.literal("decline_relic"), offerId: id }),
+  z.strictObject({ ...expBase, type: z.literal("buy"), itemId: id, replaceSlot: slot.optional() }),
+  z.strictObject({ ...expBase, type: z.literal("choose_event"), optionId: z.enum(["a", "b"]), relicId: id.optional(), replaceSlot: slot.optional() }),
+  z.strictObject({ ...expBase, type: z.literal("choose_rest"), optionId: z.enum(["heal", "fragments"]) }),
+  z.strictObject({ ...expBase, type: z.literal("choose_sanctuary"), optionId: z.enum(["heal", "upgrade", "fragments"]), relicId: id.optional() }),
+  z.strictObject({ ...expBase, type: z.literal("continue") }),
+  z.strictObject({ ...expBase, type: z.literal("suspend") }),
+  z.strictObject({ ...expBase, type: z.literal("retire") }),
+]);
+export const expeditionStartBody = z.strictObject({
+  mode: z.string().max(32),
+  characterId: z.string().min(1).max(100).optional(),
+  classId: z.string().max(20).optional(),
+  element: z.string().max(20).optional(),
+  loadout: loadoutSchema.optional(),
+});
+export const expeditionActBody = z.strictObject({
+  mode: z.string().max(32),
+  actions: z.array(expAction).min(1).max(256),
+});

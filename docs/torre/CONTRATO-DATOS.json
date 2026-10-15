@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "status": "propuesta_no_implementada",
+  "authority": "01-DISENO-TORRE-ENDLESS.md",
+  "nodesPerSector": 10,
+  "combatsPerSector": 7,
+  "maxNodes": 500,
+  "maxRelics": 6,
+  "relicTiers": [
+    1,
+    2
+  ],
+  "startingFragments": 20,
+  "maxFragments": 999,
+  "schedule": [
+    {
+      "position": 1,
+      "type": "combat",
+      "relicReward": false
+    },
+    {
+      "position": 2,
+      "type": "combat",
+      "relicReward": true
+    },
+    {
+      "position": 3,
+      "type": "service",
+      "relicReward": false
+    },
+    {
+      "position": 4,
+      "type": "combat",
+      "relicReward": false
+    },
+    {
+      "position": 5,
+      "type": "elite",
+      "relicReward": true
+    },
+    {
+      "position": 6,
+      "type": "combat",
+      "relicReward": false
+    },
+    {
+      "position": 7,
+      "type": "service",
+      "relicReward": false
+    },
+    {
+      "position": 8,
+      "type": "combat",
+      "relicReward": true
+    },
+    {
+      "position": 9,
+      "type": "sanctuary",
+      "relicReward": false
+    },
+    {
+      "position": 10,
+      "type": "boss",
+      "relicReward": true
+    }
+  ],
+  "relics": [
+    {
+      "category": "Global",
+      "name": "Corazón del oso",
+      "artId": "bear_heart",
+      "effectSpec": "+8/12% PV máximos; no cura al adquirir o mejorar"
+    },
+    {
+      "category": "Global",
+      "name": "Coraza",
+      "artId": "bronze_armor",
+      "effectSpec": "−4/6% daño de golpes enemigos"
+    },
+    {
+      "category": "Global",
+      "name": "Lente",
+      "artId": "hunter_lens",
+      "effectSpec": "+4/6 puntos de crítico; respetar topes de motor"
+    },
+    {
+      "category": "Global",
+      "name": "Piedra",
+      "artId": "whetstone",
+      "effectSpec": "+8/12% daño del básico"
+    },
+    {
+      "category": "Global",
+      "name": "Botas",
+      "artId": "winged_boots",
+      "effectSpec": "Empieza cada combate con 8/12% de progreso, una vez"
+    },
+    {
+      "category": "Global",
+      "name": "Bolsa",
+      "artId": "bottomless_purse",
+      "effectSpec": "+5/8 fragmentos al ganar combate, no monedas de cuenta"
+    },
+    {
+      "category": "Caballero",
+      "name": "Escudo rúnico",
+      "artId": "runic_shield",
+      "effectSpec": "Empieza combate con 1/2 Resolución; no se suma por impacto"
+    },
+    {
+      "category": "Mago",
+      "name": "Libro",
+      "artId": "old_book",
+      "effectSpec": "Inscribir hace+10/15% daño; sin más cargas que su regla"
+    },
+    {
+      "category": "Pícaro",
+      "name": "Guante",
+      "artId": "duelist_glove",
+      "effectSpec": "Primer golpe propio por turno a Expuesto hace+12/18%"
+    },
+    {
+      "category": "Clérigo",
+      "name": "Cáliz",
+      "artId": "thirsty_chalice",
+      "effectSpec": "Primera cura activa de cada combate añade escudo 2/3% PV; respeta tope"
+    },
+    {
+      "category": "Berserker",
+      "name": "Anillo",
+      "artId": "blood_ring",
+      "effectSpec": "Reduce 25/40% el autodaño de Embestida; sigue no letal"
+    },
+    {
+      "category": "Fuego",
+      "name": "Colmillo",
+      "artId": "dragon_fang",
+      "effectSpec": "+10/15% daño de Quemadura; no supera su cap"
+    },
+    {
+      "category": "Agua",
+      "name": "Musgo",
+      "artId": "moss_amulet",
+      "effectSpec": "Consumir Escarcha retrasa+2/4 puntos de progreso; cap total 25% y protección antidemora"
+    },
+    {
+      "category": "Viento",
+      "name": "Reloj",
+      "artId": "broken_clock",
+      "effectSpec": "Consumir Impulso adelanta+3/5 puntos; cap total 40%; no acción gratuita"
+    },
+    {
+      "category": "Tierra",
+      "name": "Placas",
+      "artId": "plate_armor",
+      "effectSpec": "Ataque que aprovecha penetración preparada hace+6/10%; no aumenta cargas"
+    },
+    {
+      "category": "Rayo",
+      "name": "Sello sabio",
+      "artId": "scholar_seal",
+      "effectSpec": "Componente de descarga de Sobrecarga hace+8/12%; no todos los ataques"
+    },
+    {
+      "category": "Riesgo",
+      "name": "Filo vorpal",
+      "artId": "vorpal_blade",
+      "effectSpec": "Habilidades dañinas+12/18%; golpes enemigos recibidos+6/9%"
+    },
+    {
+      "category": "Riesgo",
+      "name": "Corazón fénix",
+      "artId": "phoenix_heart",
+      "effectSpec": "Una recuperación por expedición al morir,15/25% PV; no se recarga al cambiar/mejorar"
+    }
+  ],
+  "weeklyRewards": {
+    "sectors": 3,
+    "normal": 5,
+    "elite": 150,
+    "boss": 300,
+    "maxPerMode": 1425
+  },
+  "notes": [
+    "Los effectSpec son especificación textual, no código ejecutable.",
+    "Validar IDs contra catálogo del motor antes de integración."
+  ]
+}

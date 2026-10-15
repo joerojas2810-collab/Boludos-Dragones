@@ -155,6 +155,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       document.removeEventListener("click", click, true);
     };
   }, []);
+  // /run?torre=... is the tower too: the tab highlights it (the query is not part of `path`).
+  const [towerRun, setTowerRun] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTowerRun(path === "/run" && new URLSearchParams(location.search).has("torre"));
+  }, [path]);
   const { profile, session } = useProfile();
   const visible = SHELL_ROUTES.some((r) =>
     r === "/" ? path === "/" : path === r || path === `${r}/`,
@@ -200,7 +206,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <TutorialGuide />
       <nav className="shell-nav" aria-label="Secciones">
         {TABS.filter((t) => !t.remoteOnly || remote).map((t) => {
-          const active = t.match.includes(path.replace(/\/$/, "") || "/");
+          const here = t.match.includes(path.replace(/\/$/, "") || "/");
+          const active = t.id === "tower" ? here || towerRun : t.id === "dungeons" ? here && !towerRun : here;
           const badge =
             (t.id === "summon" && dailyReady) ||
             (t.id === "missions" && missionsPending);

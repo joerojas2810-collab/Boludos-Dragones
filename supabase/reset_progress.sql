@@ -25,6 +25,9 @@ delete from public.tower_scores;
 delete from public.tower_floor_paid;
 delete from public.tower_daily;
 delete from public.tower_settled;
+delete from public.tower_runs;       -- 0059: expedition runs (cascades nothing else)
+delete from public.tower_node_paid;  -- 0059: weekly node payout ledger
+delete from public.tower_codex;      -- 0059: relic/event codex
 update public.gacha_state set pity = 0, pity_ssr = 0;
 update public.player_state
    set coins = public.game_const('starting_coins'),
