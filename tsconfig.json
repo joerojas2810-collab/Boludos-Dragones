@@ -38,7 +38,9 @@
     ".next-pixel/types/**/*.ts",
     ".next-pixel/dev/types/**/*.ts",
     ".next-toggle/types/**/*.ts",
-    ".next-toggle/dev/types/**/*.ts"
+    ".next-toggle/dev/types/**/*.ts",
+    ".next-local/types/**/*.ts",
+    ".next-local/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
