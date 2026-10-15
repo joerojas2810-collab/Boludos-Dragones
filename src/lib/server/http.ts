@@ -43,6 +43,7 @@ export const E = {
 
 export const MAX_BODY_DEFAULT = 8 * 1024;
 export const MAX_BODY_RUN = 200 * 1024;
+export const MAX_BODY_EXPEDITION = 64 * 1024; // one action batch (docs/torre/03)
 
 // Reads at most `max` bytes (checks Content-Length and the real stream).
 export async function readJson<T>(

@@ -23,7 +23,7 @@ await err(rec(1, "nivelado", 3, 10, "hacker", "agua"), "invalid_args");
 await err(rec(1, "nivelado", 3, 10, "mago", "metal"), "invalid_args");
 await rec(1, "nivelado", 12, 30, "mago", "agua");
 await rec(1, "nivelado", 7, 30, "berserker", "rayo");
-ok((await rec(1, "nivelado", 9, 30)).max_floor === 12, "keeps the best floor");
+ok((await rec(1, "nivelado", 9, 30)).nodes === 12, "keeps the best floor");
 await rec(2, "nivelado", 15, 30, "picaro", "fuego");
 await rec(1, "coleccion", 20, 30, "clerigo", "tierra");
 await db.exec(`insert into public.tower_scores (week, mode, player_id, max_floor, updated_at) values
@@ -51,38 +51,25 @@ ok(s.modes.nivelado.mine.class === "mago" && s.modes.nivelado.mine.element === "
 ok(s.modes.coleccion.top.length === 1 && s.modes.coleccion.mine.place === 1, "modes are separate rankings");
 ok(s.modes.nivelado.top.length === 2, "only players who climbed appear");
 
-// settle: only finished weeks, top 3 with >= 8 floors, once
+// settle: only finished weeks, top 3 with >= 10 nodes (the first boss), once
 const wk = (await one("select public.game_week() w")).w.toISOString().slice(0, 10);
 ok((await rpc("tower_settle", { p_week: wk })).settled === 0, "current week is not settled");
 ok((await coins(1)) === c[1] + 300, "1st (tie broken by who got there first) gets 300");
 ok((await coins(2)) === c[2] + 200, "2nd gets 200");
 ok((await coins(3)) === c[3] + 100, "3rd gets 100");
-ok((await coins(4)) === c[4], "below 8 floors gets nothing");
+ok((await coins(4)) === c[4], "below 10 nodes gets nothing");
 ok((await cores(1)) === cb[1] + 1 && (await cores(2)) === cb[2] + 1 && (await cores(3)) === cb[3] + 1, "1 Dado cargado each for the top 3");
 ok(s.last.nivelado.map((r) => r.name).join() === "pl1,pl2,pl3", "last week's podium is shown");
 ok(s.last.coleccion.length === 0, "a mode with nobody over the minimum has no podium");
 await rpc("tower_state", { p_player: U(2) });
 ok((await coins(1)) === c[1] + 300, "settling twice never pays twice");
 
-// floor prizes (0030): each floor once per week and mode, only on a verified record
+// node payouts live in tower_node_paid / tower_run_commit (tower_expedition.mjs): a plain score pays nothing
 const cc = await coins(3);
 await err(rec(3, "coleccion", 9999, 1), "invalid_args");
 await err(rec(3, "coleccion", -1, 1), "invalid_args");
-ok((await coins(3)) === cc, "forged floors pay nothing");
-let t = await rec(3, "coleccion", 12, 5);
-ok(t.prize.coins === 500 && t.prize.dados === 0 && t.prize.floors === 12 && (await coins(3)) === cc + 500, "12 floors: 10x5 + 150 + 300, no dice: " + JSON.stringify(t.prize));
-t = await rec(3, "coleccion", 12, 4, "berserker", "rayo");
-ok(t.prize.coins === 0 && (await coins(3)) === cc + 500, "replaying the same floors pays nothing");
-t = await rec(3, "coleccion", 5, 4, "picaro", "fuego");
-ok(t.prize.coins === 0 && (await coins(3)) === cc + 500, "a lower climb pays nothing");
-t = await rec(3, "coleccion", 15, 4, "clerigo", "tierra");
-ok(t.prize.coins === 160 && t.prize.floors === 3, "floors 13-15: 5+5+150");
-t = await rec(3, "nivelado", 3, 4, "mago", "agua");
-ok(t.prize.coins === 15, "the other mode pays its own floors");
-ok((await one(`select count(*)::int n from public.tower_floor_paid where player_id='${U(3)}'`)).n === 18, "one row per paid floor");
-await db.exec(`update public.tower_floor_paid set week = week - 7 where player_id='${U(3)}'`);
-t = await rec(3, "nivelado", 3, 3, "berserker", "viento");
-ok(t.prize.coins === 15, "a new week pays the floors again");
+await rec(3, "coleccion", 12, 5);
+ok((await coins(3)) === cc, "recording a score pays nothing by itself");
 s = await rpc("tower_state", { p_player: U(2) });
 ok(s.king.nivelado.name === "pl2" && s.king.nivelado.me === true && s.king.coleccion.name === "pl1" && s.modes.coleccion.mine === null, "state shows the daily kings");
 
@@ -97,7 +84,7 @@ ok(win[0].player === U(2) && win[1].player === U(1), "fewer rounds wins the week
 // locked down
 for (const [role, uid] of [["authenticated", U(1)], ["anon", null]])
   await as(role, uid, async () => {
-    for (const f of ["tower_record('" + U(1) + "','nivelado',3,10)", "tower_settle(current_date)", "tower_settle_daily()", "best_cleared_rank('"+U(1)+"')", "tower_state('" + U(1) + "')"]) {
+    for (const f of ["tower_record('" + U(1) + "','nivelado',3,10,'mago','agua')", "tower_settle(current_date)", "tower_settle_daily()", "best_cleared_rank('"+U(1)+"')", "tower_state('" + U(1) + "')"]) {
       try { await db.query(`select public.${f}`); fail++; console.log("FAIL:", role, "can call", f); } catch { pass++; }
     }
   });

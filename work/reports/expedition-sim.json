@@ -1,0 +1,6186 @@
+{
+ "summary": {
+  "params": {
+   "runs": 2,
+   "seed": 1,
+   "maxSectors": 10,
+   "rank": "d",
+   "stars": 3,
+   "expeditions": 300,
+   "seconds": 1.05
+  },
+  "survivalBySector": {
+   "nivelado/greedy": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "nivelado/conservative": [
+    1,
+    1,
+    0.32,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "nivelado/random": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "coleccion/greedy": [
+    1,
+    1,
+    1,
+    0.82,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "coleccion/conservative": [
+    1,
+    1,
+    1,
+    1,
+    0.38,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "coleccion/random": [
+    1,
+    1,
+    1,
+    0.26,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  "turnsPerCombat": 11,
+  "endReasons": {
+   "death": 297,
+   "stuck_battle": 3
+  },
+  "byStrategy": {
+   "nivelado/greedy": {
+    "meanNodes": 12.5,
+    "capped": 0
+   },
+   "nivelado/conservative": {
+    "meanNodes": 17.9,
+    "capped": 0
+   },
+   "nivelado/random": {
+    "meanNodes": 12.82,
+    "capped": 0
+   },
+   "coleccion/greedy": {
+    "meanNodes": 31.58,
+    "capped": 0
+   },
+   "coleccion/conservative": {
+    "meanNodes": 37.26,
+    "capped": 0
+   },
+   "coleccion/random": {
+    "meanNodes": 26.58,
+    "capped": 0
+   }
+  },
+  "byClass": {
+   "caballero": 23.38,
+   "mago": 22.38,
+   "picaro": 22.98,
+   "clerigo": 24.08,
+   "berserker": 22.7
+  },
+  "byElement": {
+   "agua": 23.53,
+   "fuego": 24.03,
+   "viento": 23.12,
+   "tierra": 21.88,
+   "rayo": 22.97
+  },
+  "topCells": [
+   {
+    "cell": "caballero/fuego",
+    "meanNodes": 24.42
+   },
+   {
+    "cell": "clerigo/agua",
+    "meanNodes": 24.42
+   },
+   {
+    "cell": "clerigo/fuego",
+    "meanNodes": 24.42
+   },
+   {
+    "cell": "clerigo/rayo",
+    "meanNodes": 24.33
+   },
+   {
+    "cell": "caballero/agua",
+    "meanNodes": 24.25
+   }
+  ],
+  "bottomCells": [
+   {
+    "cell": "caballero/tierra",
+    "meanNodes": 22.08
+   },
+   {
+    "cell": "picaro/tierra",
+    "meanNodes": 21.83
+   },
+   {
+    "cell": "mago/rayo",
+    "meanNodes": 21.67
+   },
+   {
+    "cell": "mago/tierra",
+    "meanNodes": 21.25
+   },
+   {
+    "cell": "berserker/tierra",
+    "meanNodes": 20.83
+   }
+  ],
+  "relicPickCount": {
+   "bear_heart": 148,
+   "bronze_armor": 222,
+   "hunter_lens": 225,
+   "whetstone": 198,
+   "winged_boots": 268,
+   "bottomless_purse": 125,
+   "runic_shield": 56,
+   "old_book": 38,
+   "duelist_glove": 39,
+   "thirsty_chalice": 51,
+   "blood_ring": 30,
+   "dragon_fang": 30,
+   "moss_amulet": 39,
+   "broken_clock": 19,
+   "plate_armor": 51,
+   "scholar_seal": 31,
+   "vorpal_blade": 97,
+   "phoenix_heart": 100
+  },
+  "neverChosen": [],
+  "relicInTopQuartile": {
+   "bear_heart": 67,
+   "bronze_armor": 60,
+   "hunter_lens": 66,
+   "whetstone": 55,
+   "winged_boots": 75,
+   "bottomless_purse": 12,
+   "runic_shield": 16,
+   "old_book": 2,
+   "duelist_glove": 5,
+   "thirsty_chalice": 17,
+   "blood_ring": 4,
+   "dragon_fang": 9,
+   "moss_amulet": 13,
+   "broken_clock": 4,
+   "plate_armor": 11,
+   "scholar_seal": 1,
+   "vorpal_blade": 25,
+   "phoenix_heart": 55
+  }
+ },
+ "results": [
+  {
+   "classId": "caballero",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 147,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "runic_shield",
+    "bear_heart",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 219,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "runic_shield",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 141,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "runic_shield",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 252,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "runic_shield",
+    "dragon_fang"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 131,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "runic_shield",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 10,
+   "sector": 2,
+   "combats": 7,
+   "turns": 154,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "runic_shield"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 159,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "runic_shield",
+    "plate_armor",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 231,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "runic_shield",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 129,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "runic_shield",
+    "scholar_seal",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 230,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "runic_shield",
+    "scholar_seal"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 64,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "old_book",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 19,
+   "sector": 2,
+   "combats": 13,
+   "turns": 132,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "old_book",
+    "bear_heart",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 99,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "old_book",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 118,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "old_book",
+    "dragon_fang"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 69,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "old_book",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 89,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "old_book"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 78,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "old_book",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 132,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "old_book",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 51,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "old_book",
+    "scholar_seal"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 84,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "old_book"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 79,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "duelist_glove",
+    "bear_heart",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 123,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "duelist_glove",
+    "bear_heart",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 80,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "duelist_glove",
+    "dragon_fang",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 98,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "duelist_glove"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 66,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "duelist_glove",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 95,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "duelist_glove"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 82,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "duelist_glove",
+    "plate_armor",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 122,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "duelist_glove",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 82,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "duelist_glove",
+    "scholar_seal",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 128,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "duelist_glove",
+    "scholar_seal"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 112,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "thirsty_chalice",
+    "bear_heart",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 174,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade",
+    "bear_heart",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 117,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "thirsty_chalice",
+    "dragon_fang",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 168,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "dragon_fang",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 99,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "thirsty_chalice",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 131,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 128,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "thirsty_chalice",
+    "plate_armor",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 143,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 103,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "thirsty_chalice",
+    "scholar_seal",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 145,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 82,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "blood_ring",
+    "bear_heart",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 111,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 100,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "blood_ring",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 144,
+   "reason": "stuck_battle",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 78,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "blood_ring",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 10,
+   "sector": 2,
+   "combats": 7,
+   "turns": 88,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 97,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "blood_ring",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 137,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 84,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "blood_ring",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "greedy",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 106,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 20,
+   "sector": 3,
+   "combats": 14,
+   "turns": 229,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "runic_shield",
+    "moss_amulet"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 19,
+   "sector": 2,
+   "combats": 13,
+   "turns": 258,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "moss_amulet",
+    "bear_heart",
+    "bronze_armor",
+    "runic_shield"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 20,
+   "sector": 3,
+   "combats": 14,
+   "turns": 216,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "runic_shield",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 19,
+   "sector": 2,
+   "combats": 13,
+   "turns": 269,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "runic_shield",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 138,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "runic_shield"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 17,
+   "sector": 2,
+   "combats": 12,
+   "turns": 295,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "runic_shield"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 145,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "runic_shield"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 19,
+   "sector": 2,
+   "combats": 13,
+   "turns": 326,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "plate_armor",
+    "bear_heart",
+    "bronze_armor",
+    "runic_shield"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 135,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "runic_shield"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 19,
+   "sector": 2,
+   "combats": 13,
+   "turns": 282,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "runic_shield",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 74,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "moss_amulet"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 19,
+   "sector": 2,
+   "combats": 13,
+   "turns": 112,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "moss_amulet",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 79,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 25,
+   "sector": 3,
+   "combats": 18,
+   "turns": 180,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 62,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 17,
+   "sector": 2,
+   "combats": 12,
+   "turns": 124,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 67,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 21,
+   "sector": 3,
+   "combats": 15,
+   "turns": 182,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "plate_armor",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 65,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 21,
+   "sector": 3,
+   "combats": 15,
+   "turns": 149,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 17,
+   "sector": 2,
+   "combats": 12,
+   "turns": 88,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "moss_amulet"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 19,
+   "sector": 2,
+   "combats": 13,
+   "turns": 110,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "moss_amulet",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 73,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 152,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 79,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 17,
+   "sector": 2,
+   "combats": 12,
+   "turns": 132,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 68,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 21,
+   "sector": 3,
+   "combats": 15,
+   "turns": 162,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "plate_armor",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 73,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 21,
+   "sector": 3,
+   "combats": 15,
+   "turns": 159,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 224,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "thirsty_chalice",
+    "bronze_armor",
+    "bear_heart",
+    "moss_amulet",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 19,
+   "sector": 2,
+   "combats": 13,
+   "turns": 166,
+   "reason": "death",
+   "picks": [
+    "thirsty_chalice",
+    "moss_amulet",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 100,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "thirsty_chalice",
+    "bronze_armor",
+    "bear_heart",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 246,
+   "reason": "death",
+   "picks": [
+    "thirsty_chalice",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "winged_boots",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 100,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "thirsty_chalice",
+    "bronze_armor",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 173,
+   "reason": "death",
+   "picks": [
+    "thirsty_chalice",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 123,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "thirsty_chalice",
+    "bronze_armor",
+    "bear_heart",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 21,
+   "sector": 3,
+   "combats": 15,
+   "turns": 260,
+   "reason": "death",
+   "picks": [
+    "thirsty_chalice",
+    "plate_armor",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 226,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "thirsty_chalice",
+    "bronze_armor",
+    "bear_heart",
+    "whetstone",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 20,
+   "sector": 3,
+   "combats": 14,
+   "turns": 227,
+   "reason": "death",
+   "picks": [
+    "thirsty_chalice",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "winged_boots",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 19,
+   "sector": 2,
+   "combats": 13,
+   "turns": 107,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "moss_amulet"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 19,
+   "sector": 2,
+   "combats": 13,
+   "turns": 138,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "moss_amulet",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 93,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 25,
+   "sector": 3,
+   "combats": 18,
+   "turns": 212,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 93,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 21,
+   "sector": 3,
+   "combats": 15,
+   "turns": 198,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 100,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 21,
+   "sector": 3,
+   "combats": 15,
+   "turns": 210,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "plate_armor",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 90,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "conservative",
+   "nodes": 19,
+   "sector": 2,
+   "combats": 13,
+   "turns": 152,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 153,
+   "reason": "death",
+   "picks": [
+    "moss_amulet",
+    "hunter_lens",
+    "runic_shield",
+    "winged_boots",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 240,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "runic_shield"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 137,
+   "reason": "death",
+   "picks": [
+    "dragon_fang",
+    "hunter_lens",
+    "runic_shield",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 214,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 137,
+   "reason": "death",
+   "picks": [
+    "broken_clock",
+    "hunter_lens",
+    "runic_shield",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 218,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 152,
+   "reason": "death",
+   "picks": [
+    "plate_armor",
+    "hunter_lens",
+    "runic_shield",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 212,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 156,
+   "reason": "death",
+   "picks": [
+    "scholar_seal",
+    "hunter_lens",
+    "runic_shield",
+    "winged_boots",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 209,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 78,
+   "reason": "death",
+   "picks": [
+    "moss_amulet",
+    "hunter_lens",
+    "old_book",
+    "winged_boots",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 116,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "old_book"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 71,
+   "reason": "death",
+   "picks": [
+    "dragon_fang",
+    "hunter_lens",
+    "old_book",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 118,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "old_book"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 66,
+   "reason": "death",
+   "picks": [
+    "broken_clock",
+    "hunter_lens",
+    "old_book"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 76,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 66,
+   "reason": "death",
+   "picks": [
+    "plate_armor",
+    "hunter_lens",
+    "old_book"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 113,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "old_book"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 66,
+   "reason": "death",
+   "picks": [
+    "scholar_seal",
+    "hunter_lens",
+    "old_book",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 71,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 77,
+   "reason": "death",
+   "picks": [
+    "moss_amulet",
+    "hunter_lens",
+    "duelist_glove",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 112,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "duelist_glove"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 83,
+   "reason": "death",
+   "picks": [
+    "dragon_fang",
+    "hunter_lens",
+    "duelist_glove",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 115,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "duelist_glove"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 79,
+   "reason": "death",
+   "picks": [
+    "broken_clock",
+    "hunter_lens",
+    "duelist_glove",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 91,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 84,
+   "reason": "death",
+   "picks": [
+    "plate_armor",
+    "hunter_lens",
+    "duelist_glove",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 101,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "duelist_glove"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 95,
+   "reason": "death",
+   "picks": [
+    "scholar_seal",
+    "hunter_lens",
+    "duelist_glove",
+    "winged_boots",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 119,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "duelist_glove"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 15,
+   "sector": 2,
+   "combats": 11,
+   "turns": 122,
+   "reason": "death",
+   "picks": [
+    "moss_amulet",
+    "hunter_lens",
+    "thirsty_chalice",
+    "winged_boots",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 170,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "thirsty_chalice"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 91,
+   "reason": "death",
+   "picks": [
+    "dragon_fang",
+    "hunter_lens",
+    "thirsty_chalice",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 149,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 125,
+   "reason": "death",
+   "picks": [
+    "broken_clock",
+    "hunter_lens",
+    "thirsty_chalice",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 142,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 105,
+   "reason": "death",
+   "picks": [
+    "plate_armor",
+    "hunter_lens",
+    "thirsty_chalice",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 170,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "thirsty_chalice"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 104,
+   "reason": "death",
+   "picks": [
+    "scholar_seal",
+    "hunter_lens",
+    "thirsty_chalice",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 162,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "thirsty_chalice"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 14,
+   "sector": 2,
+   "combats": 10,
+   "turns": 91,
+   "reason": "death",
+   "picks": [
+    "moss_amulet",
+    "hunter_lens",
+    "blood_ring",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "agua",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 143,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "blood_ring"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 87,
+   "reason": "death",
+   "picks": [
+    "dragon_fang",
+    "hunter_lens",
+    "blood_ring",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "fuego",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 118,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 75,
+   "reason": "death",
+   "picks": [
+    "broken_clock",
+    "hunter_lens",
+    "blood_ring"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "viento",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 119,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 86,
+   "reason": "death",
+   "picks": [
+    "plate_armor",
+    "hunter_lens",
+    "blood_ring",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "tierra",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 154,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "blood_ring"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 13,
+   "sector": 2,
+   "combats": 9,
+   "turns": 82,
+   "reason": "death",
+   "picks": [
+    "scholar_seal",
+    "hunter_lens",
+    "blood_ring",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "rayo",
+   "mode": "nivelado",
+   "strategy": "random",
+   "nodes": 11,
+   "sector": 2,
+   "combats": 8,
+   "turns": 122,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 37,
+   "sector": 4,
+   "combats": 26,
+   "turns": 444,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "runic_shield",
+    "bear_heart",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 30,
+   "sector": 4,
+   "combats": 21,
+   "turns": 289,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "runic_shield",
+    "bear_heart",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 39,
+   "sector": 4,
+   "combats": 27,
+   "turns": 405,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "runic_shield",
+    "dragon_fang",
+    "bronze_armor",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 324,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "runic_shield",
+    "dragon_fang",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 424,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "runic_shield",
+    "bear_heart",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 352,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "runic_shield",
+    "bear_heart",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 375,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "runic_shield",
+    "plate_armor",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 238,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "runic_shield",
+    "plate_armor",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 369,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "runic_shield",
+    "scholar_seal",
+    "bronze_armor",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 30,
+   "sector": 4,
+   "combats": 21,
+   "turns": 306,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "runic_shield",
+    "scholar_seal",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 203,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "old_book",
+    "bear_heart",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 176,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "old_book",
+    "bear_heart",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 174,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "old_book",
+    "dragon_fang",
+    "bronze_armor",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 190,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "old_book",
+    "dragon_fang",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 189,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "old_book",
+    "bear_heart",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 218,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "old_book",
+    "bear_heart",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 30,
+   "sector": 4,
+   "combats": 21,
+   "turns": 203,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "old_book",
+    "plate_armor",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 25,
+   "sector": 3,
+   "combats": 18,
+   "turns": 147,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "old_book",
+    "plate_armor",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 29,
+   "sector": 3,
+   "combats": 20,
+   "turns": 181,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "old_book",
+    "scholar_seal",
+    "bronze_armor",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 24,
+   "sector": 3,
+   "combats": 17,
+   "turns": 126,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "old_book",
+    "scholar_seal",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 250,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "duelist_glove",
+    "bear_heart",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 30,
+   "sector": 4,
+   "combats": 21,
+   "turns": 148,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "duelist_glove",
+    "bear_heart",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 232,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "duelist_glove",
+    "dragon_fang",
+    "bronze_armor",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 29,
+   "sector": 3,
+   "combats": 20,
+   "turns": 159,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "duelist_glove",
+    "dragon_fang",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 37,
+   "sector": 4,
+   "combats": 26,
+   "turns": 260,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "duelist_glove",
+    "bear_heart",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 207,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "duelist_glove",
+    "bear_heart",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 30,
+   "sector": 4,
+   "combats": 21,
+   "turns": 176,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "duelist_glove",
+    "plate_armor",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 105,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "duelist_glove",
+    "plate_armor",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 30,
+   "sector": 4,
+   "combats": 21,
+   "turns": 200,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "duelist_glove",
+    "scholar_seal",
+    "bronze_armor",
+    "vorpal_blade",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 177,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "duelist_glove",
+    "scholar_seal",
+    "vorpal_blade",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 335,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "thirsty_chalice",
+    "bear_heart",
+    "vorpal_blade",
+    "whetstone",
+    "moss_amulet"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 30,
+   "sector": 4,
+   "combats": 21,
+   "turns": 243,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade",
+    "bear_heart",
+    "winged_boots",
+    "thirsty_chalice",
+    "moss_amulet"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 39,
+   "sector": 4,
+   "combats": 27,
+   "turns": 319,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "thirsty_chalice",
+    "dragon_fang",
+    "bronze_armor",
+    "vorpal_blade",
+    "whetstone",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 217,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade",
+    "bear_heart",
+    "dragon_fang",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 39,
+   "sector": 4,
+   "combats": 27,
+   "turns": 363,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "thirsty_chalice",
+    "bear_heart",
+    "vorpal_blade",
+    "whetstone",
+    "broken_clock"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 273,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade",
+    "bear_heart",
+    "winged_boots",
+    "thirsty_chalice",
+    "broken_clock"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 37,
+   "sector": 4,
+   "combats": 26,
+   "turns": 397,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "thirsty_chalice",
+    "plate_armor",
+    "vorpal_blade",
+    "whetstone",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 25,
+   "sector": 3,
+   "combats": 18,
+   "turns": 198,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade",
+    "bear_heart",
+    "winged_boots",
+    "thirsty_chalice",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 280,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "thirsty_chalice",
+    "scholar_seal",
+    "bronze_armor",
+    "vorpal_blade",
+    "whetstone",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 250,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade",
+    "bear_heart",
+    "scholar_seal",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 153,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "blood_ring",
+    "bear_heart",
+    "vorpal_blade",
+    "whetstone",
+    "moss_amulet"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 33,
+   "sector": 4,
+   "combats": 23,
+   "turns": 183,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade",
+    "bear_heart",
+    "winged_boots",
+    "blood_ring",
+    "moss_amulet"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 214,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "blood_ring",
+    "dragon_fang",
+    "bronze_armor",
+    "vorpal_blade",
+    "whetstone",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 33,
+   "sector": 4,
+   "combats": 23,
+   "turns": 206,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade",
+    "bear_heart",
+    "dragon_fang",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 198,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "blood_ring",
+    "bear_heart",
+    "vorpal_blade",
+    "whetstone",
+    "broken_clock"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 197,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade",
+    "bear_heart",
+    "winged_boots",
+    "blood_ring",
+    "broken_clock"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 25,
+   "sector": 3,
+   "combats": 18,
+   "turns": 163,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "blood_ring",
+    "plate_armor",
+    "vorpal_blade",
+    "whetstone",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 25,
+   "sector": 3,
+   "combats": 18,
+   "turns": 161,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade",
+    "bear_heart",
+    "winged_boots",
+    "blood_ring",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 230,
+   "reason": "death",
+   "picks": [
+    "hunter_lens",
+    "winged_boots",
+    "blood_ring",
+    "scholar_seal",
+    "bronze_armor",
+    "vorpal_blade",
+    "whetstone",
+    "bear_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "greedy",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 181,
+   "reason": "death",
+   "picks": [
+    "whetstone",
+    "bottomless_purse",
+    "hunter_lens",
+    "vorpal_blade",
+    "bear_heart",
+    "scholar_seal",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 402,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "runic_shield",
+    "moss_amulet"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 311,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "moss_amulet",
+    "bear_heart",
+    "bronze_armor",
+    "runic_shield",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 342,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "runic_shield",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 267,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "runic_shield",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 397,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "runic_shield",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 361,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "runic_shield",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 453,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "runic_shield",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 380,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "plate_armor",
+    "bear_heart",
+    "bronze_armor",
+    "runic_shield",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 420,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "runic_shield",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 316,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "runic_shield",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 171,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "moss_amulet",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 172,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "moss_amulet",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 207,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 131,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 202,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 227,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 168,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "plate_armor",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 193,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "plate_armor",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 37,
+   "sector": 4,
+   "combats": 26,
+   "turns": 175,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 170,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 37,
+   "sector": 4,
+   "combats": 26,
+   "turns": 191,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "moss_amulet",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 185,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "moss_amulet",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 213,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 143,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 219,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 238,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 184,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "plate_armor",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 37,
+   "sector": 4,
+   "combats": 26,
+   "turns": 209,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "plate_armor",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 235,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 179,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 39,
+   "sector": 4,
+   "combats": 27,
+   "turns": 280,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "thirsty_chalice",
+    "bronze_armor",
+    "bear_heart",
+    "moss_amulet",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 248,
+   "reason": "death",
+   "picks": [
+    "thirsty_chalice",
+    "moss_amulet",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 279,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "thirsty_chalice",
+    "bronze_armor",
+    "bear_heart",
+    "whetstone",
+    "hunter_lens",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 229,
+   "reason": "death",
+   "picks": [
+    "thirsty_chalice",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "winged_boots",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 41,
+   "sector": 5,
+   "combats": 29,
+   "turns": 359,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "thirsty_chalice",
+    "bronze_armor",
+    "bear_heart",
+    "whetstone",
+    "hunter_lens",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 356,
+   "reason": "death",
+   "picks": [
+    "thirsty_chalice",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "winged_boots",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 39,
+   "sector": 4,
+   "combats": 27,
+   "turns": 323,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "thirsty_chalice",
+    "bronze_armor",
+    "bear_heart",
+    "plate_armor",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 396,
+   "reason": "death",
+   "picks": [
+    "thirsty_chalice",
+    "plate_armor",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 43,
+   "sector": 5,
+   "combats": 30,
+   "turns": 381,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "thirsty_chalice",
+    "bronze_armor",
+    "bear_heart",
+    "whetstone",
+    "hunter_lens",
+    "winged_boots"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 269,
+   "reason": "death",
+   "picks": [
+    "thirsty_chalice",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "winged_boots",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 188,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "moss_amulet",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 207,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "moss_amulet",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 251,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 192,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 39,
+   "sector": 4,
+   "combats": 27,
+   "turns": 236,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 40,
+   "sector": 5,
+   "combats": 28,
+   "turns": 282,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 34,
+   "sector": 4,
+   "combats": 24,
+   "turns": 192,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "plate_armor",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 222,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "plate_armor",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 39,
+   "sector": 4,
+   "combats": 27,
+   "turns": 246,
+   "reason": "death",
+   "picks": [
+    "phoenix_heart",
+    "winged_boots",
+    "bronze_armor",
+    "bear_heart",
+    "hunter_lens",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "conservative",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 221,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "whetstone",
+    "bear_heart",
+    "bronze_armor",
+    "hunter_lens",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 303,
+   "reason": "death",
+   "picks": [
+    "moss_amulet",
+    "hunter_lens",
+    "runic_shield",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 25,
+   "sector": 3,
+   "combats": 18,
+   "turns": 242,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "runic_shield",
+    "moss_amulet",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 349,
+   "reason": "death",
+   "picks": [
+    "dragon_fang",
+    "hunter_lens",
+    "runic_shield",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor",
+    "phoenix_heart",
+    "bronze_armor",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 215,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "runic_shield",
+    "dragon_fang"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 314,
+   "reason": "death",
+   "picks": [
+    "broken_clock",
+    "hunter_lens",
+    "runic_shield",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 212,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "runic_shield",
+    "broken_clock"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 29,
+   "sector": 3,
+   "combats": 20,
+   "turns": 292,
+   "reason": "death",
+   "picks": [
+    "plate_armor",
+    "hunter_lens",
+    "runic_shield",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 253,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "runic_shield",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 316,
+   "reason": "death",
+   "picks": [
+    "scholar_seal",
+    "hunter_lens",
+    "runic_shield",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "caballero",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 25,
+   "sector": 3,
+   "combats": 18,
+   "turns": 225,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "runic_shield",
+    "scholar_seal",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 27,
+   "sector": 3,
+   "combats": 19,
+   "turns": 137,
+   "reason": "death",
+   "picks": [
+    "moss_amulet",
+    "hunter_lens",
+    "old_book",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 116,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "old_book",
+    "moss_amulet"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 33,
+   "sector": 4,
+   "combats": 23,
+   "turns": 164,
+   "reason": "stuck_battle",
+   "picks": [
+    "dragon_fang",
+    "hunter_lens",
+    "old_book",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor",
+    "phoenix_heart",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 112,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "old_book",
+    "dragon_fang"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 29,
+   "sector": 3,
+   "combats": 20,
+   "turns": 143,
+   "reason": "death",
+   "picks": [
+    "broken_clock",
+    "hunter_lens",
+    "old_book",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 20,
+   "sector": 3,
+   "combats": 14,
+   "turns": 99,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "old_book",
+    "broken_clock"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 25,
+   "sector": 3,
+   "combats": 18,
+   "turns": 141,
+   "reason": "death",
+   "picks": [
+    "plate_armor",
+    "hunter_lens",
+    "old_book",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 114,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "old_book",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 29,
+   "sector": 3,
+   "combats": 20,
+   "turns": 151,
+   "reason": "death",
+   "picks": [
+    "scholar_seal",
+    "hunter_lens",
+    "old_book",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "mago",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 111,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "old_book",
+    "scholar_seal"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 27,
+   "sector": 3,
+   "combats": 19,
+   "turns": 152,
+   "reason": "death",
+   "picks": [
+    "moss_amulet",
+    "hunter_lens",
+    "duelist_glove",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 128,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "duelist_glove",
+    "moss_amulet"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 33,
+   "sector": 4,
+   "combats": 23,
+   "turns": 163,
+   "reason": "death",
+   "picks": [
+    "dragon_fang",
+    "hunter_lens",
+    "duelist_glove",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor",
+    "phoenix_heart",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 133,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "duelist_glove",
+    "dragon_fang"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 187,
+   "reason": "death",
+   "picks": [
+    "broken_clock",
+    "hunter_lens",
+    "duelist_glove",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 21,
+   "sector": 3,
+   "combats": 15,
+   "turns": 112,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "duelist_glove",
+    "broken_clock"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 25,
+   "sector": 3,
+   "combats": 18,
+   "turns": 143,
+   "reason": "death",
+   "picks": [
+    "plate_armor",
+    "hunter_lens",
+    "duelist_glove",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 127,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "duelist_glove",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 27,
+   "sector": 3,
+   "combats": 19,
+   "turns": 145,
+   "reason": "death",
+   "picks": [
+    "scholar_seal",
+    "hunter_lens",
+    "duelist_glove",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "picaro",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 133,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "duelist_glove",
+    "scholar_seal"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 33,
+   "sector": 4,
+   "combats": 23,
+   "turns": 258,
+   "reason": "death",
+   "picks": [
+    "moss_amulet",
+    "hunter_lens",
+    "thirsty_chalice",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor",
+    "phoenix_heart",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 161,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "thirsty_chalice",
+    "moss_amulet"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 35,
+   "sector": 4,
+   "combats": 25,
+   "turns": 270,
+   "reason": "death",
+   "picks": [
+    "dragon_fang",
+    "hunter_lens",
+    "thirsty_chalice",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor",
+    "phoenix_heart",
+    "bronze_armor",
+    "vorpal_blade"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 25,
+   "sector": 3,
+   "combats": 18,
+   "turns": 191,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "thirsty_chalice",
+    "dragon_fang",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 33,
+   "sector": 4,
+   "combats": 23,
+   "turns": 263,
+   "reason": "death",
+   "picks": [
+    "broken_clock",
+    "hunter_lens",
+    "thirsty_chalice",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor",
+    "phoenix_heart",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 157,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "thirsty_chalice",
+    "broken_clock"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 31,
+   "sector": 4,
+   "combats": 22,
+   "turns": 284,
+   "reason": "death",
+   "picks": [
+    "plate_armor",
+    "hunter_lens",
+    "thirsty_chalice",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor",
+    "phoenix_heart"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 161,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "thirsty_chalice",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 33,
+   "sector": 4,
+   "combats": 23,
+   "turns": 269,
+   "reason": "death",
+   "picks": [
+    "scholar_seal",
+    "hunter_lens",
+    "thirsty_chalice",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor",
+    "phoenix_heart",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "clerigo",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 25,
+   "sector": 3,
+   "combats": 18,
+   "turns": 174,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "thirsty_chalice",
+    "scholar_seal",
+    "hunter_lens"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 29,
+   "sector": 3,
+   "combats": 20,
+   "turns": 166,
+   "reason": "death",
+   "picks": [
+    "moss_amulet",
+    "hunter_lens",
+    "blood_ring",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "agua",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 162,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "blood_ring",
+    "moss_amulet"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 33,
+   "sector": 4,
+   "combats": 23,
+   "turns": 196,
+   "reason": "stuck_battle",
+   "picks": [
+    "dragon_fang",
+    "hunter_lens",
+    "blood_ring",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor",
+    "phoenix_heart",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "fuego",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 145,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "blood_ring",
+    "dragon_fang"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 29,
+   "sector": 3,
+   "combats": 20,
+   "turns": 178,
+   "reason": "death",
+   "picks": [
+    "broken_clock",
+    "hunter_lens",
+    "blood_ring",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "viento",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 148,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "blood_ring",
+    "broken_clock"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 25,
+   "sector": 3,
+   "combats": 18,
+   "turns": 162,
+   "reason": "death",
+   "picks": [
+    "plate_armor",
+    "hunter_lens",
+    "blood_ring",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "tierra",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 21,
+   "sector": 3,
+   "combats": 15,
+   "turns": 132,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "blood_ring",
+    "plate_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 29,
+   "sector": 3,
+   "combats": 20,
+   "turns": 174,
+   "reason": "death",
+   "picks": [
+    "scholar_seal",
+    "hunter_lens",
+    "blood_ring",
+    "winged_boots",
+    "bronze_armor",
+    "bottomless_purse",
+    "whetstone",
+    "vorpal_blade",
+    "bronze_armor"
+   ],
+   "capped": false
+  },
+  {
+   "classId": "berserker",
+   "element": "rayo",
+   "mode": "coleccion",
+   "strategy": "random",
+   "nodes": 23,
+   "sector": 3,
+   "combats": 16,
+   "turns": 138,
+   "reason": "death",
+   "picks": [
+    "winged_boots",
+    "bottomless_purse",
+    "whetstone",
+    "bronze_armor",
+    "blood_ring",
+    "scholar_seal"
+   ],
+   "capped": false
+  }
+ ]
+}

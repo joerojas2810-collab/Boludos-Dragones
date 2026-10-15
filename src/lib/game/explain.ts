@@ -737,7 +737,7 @@ export const statusTip = (s: StatusEffect): Tip => ({
 });
 
 // Boss mechanic shown as a HUD chip (label + tooltip); null when it has nothing to show.
-const BOSS_TEXT: Record<BossRule, { title: string; line: string }> = {
+export const BOSS_TEXT: Record<BossRule, { title: string; line: string }> = {
   plaga: { title: "Plaga", line: `Al final de cada turno del jefe pierdes ${pct(PLAGUE_LOSS)} de tu vida máxima.` },
   presion: { title: "Presión", line: `Cada turno suyo suma +${pct(PRESSURE_STEP)} de daño por nivel (máx. 5). Una guardia perfecta contra su golpe fuerte la reinicia.` },
   aprende: { title: "Te lee", line: `Si repites la misma acción ${ADAPT_AFTER} veces seguidas, la siguiente hace ${pct(1 - ADAPT_FACTOR)} menos.` },

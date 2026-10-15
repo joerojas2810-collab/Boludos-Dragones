@@ -15,6 +15,7 @@ import { TRAITS, type Trait } from "./traits";
 import {
   aggregateRelics,
   buildOffer,
+  MAX_RELICS,
   REPLACE_FRAGMENTS,
   RELICS,
   takeRelic,
@@ -164,7 +165,7 @@ export function sectorBossRoute(seed: number, sector: number): RouteId {
   const block = Math.floor((sector - 1) / ROUTE_IDS.length);
   const pos = (sector - 1) % ROUTE_IDS.length;
   const cur = order(block);
-  if (pos === 0 && block > 0 && cur[0] === order(block - 1)[ROUTE_IDS.length - 1]) {
+  if (block > 0 && cur[0] === order(block - 1)[ROUTE_IDS.length - 1]) {
     [cur[0], cur[1]] = [cur[1], cur[0]];
   }
   return cur[pos];
@@ -428,7 +429,7 @@ function beginFight(s: ExpState, option: number): ExpState {
   });
   const base = spec.kind === "boss" ? FRAGMENTS.boss : spec.kind === "elite" ? FRAGMENTS.elite : FRAGMENTS.normal;
   const hard = spec.kind === "combat" && option === 1;
-  return {
+  const started: ExpState = {
     ...s,
     phase: "combat",
     pact: false,
@@ -444,6 +445,7 @@ function beginFight(s: ExpState, option: number): ExpState {
       names: spec.enemies.map((e) => e.name),
     },
   };
+  return battle.status === "ongoing" ? started : settleFight(started, battle);
 }
 
 const trimBattle = (b: Battle): Battle => (b.log.length > MAX_LOG ? { ...b, log: b.log.slice(-MAX_LOG) } : b);
@@ -622,7 +624,7 @@ function reduce(s: ExpState, a: ExpAction): ExpResult {
       if (!offer || offer.id !== a.offerId) return fail(s, "La oferta ya no es válida.");
       if (a.type === "decline_relic") {
         if (!offer.canDecline) return fail(s, "Debes elegir una reliquia inicial.");
-        return finish(afterOffer(note(addFragments(s, REPLACE_FRAGMENTS), "Oferta rechazada")));
+        return finish(afterOffer(note(s.relics.length >= MAX_RELICS ? addFragments(s, REPLACE_FRAGMENTS) : s, "Oferta rechazada")));
       }
       const opt = offer.options.find((o) => o.id === a.optionId);
       if (!opt) return fail(s, "Opción desconocida.");

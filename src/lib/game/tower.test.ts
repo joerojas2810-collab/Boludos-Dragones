@@ -11,6 +11,7 @@ import {
   towerFloorReward,
   towerXp,
   localWeekSeed,
+  expeditionSeed,
   replayTower,
   startTower,
   towerHero,
@@ -66,12 +67,13 @@ describe("tower", () => {
     expect(towerHero(pulled, "coleccion", null, owned.classId, null))
       .toBeNull();
   });
-  it("the local week seed is stable within a week and changes on Monday", () => {
+  it("the local week seed follows the Buenos Aires week (Monday 00:00 ART = 03:00 UTC)", () => {
     const mon = new Date(Date.UTC(2026, 9, 5, 12)); // Monday
-    const sun = new Date(Date.UTC(2026, 9, 11, 23)); // Sunday of that week
-    const next = new Date(Date.UTC(2026, 9, 12, 1)); // next Monday
+    const sun = new Date(Date.UTC(2026, 9, 12, 2)); // Sunday 23:00 ART: still that week (UTC says Monday)
+    const next = new Date(Date.UTC(2026, 9, 12, 3)); // Monday 00:00 ART
     expect(localWeekSeed(mon)).toBe(localWeekSeed(sun));
     expect(localWeekSeed(next)).not.toBe(localWeekSeed(mon));
+    expect(expeditionSeed(localWeekSeed(mon), "nivelado")).not.toBe(expeditionSeed(localWeekSeed(mon), "coleccion"));
   });
 
   it("replay repeats the client's climb exactly (floors, rounds, hp)", () => {
