@@ -115,7 +115,7 @@ export function scoreIntents(v: BrainView): Candidate[] {
     }
     if (intent === "rebuild") parts.objective = 100;
     const repeats = (self.mem ?? []).filter((m) => m === intent).length;
-    parts.repetition = -12 * repeats;
+    parts.repetition = -12 * repeats || 0;
     const score = clamp100(Object.values(parts).reduce((s, x) => s + x, 0));
     return { intent, ...(ally !== undefined && { ally }), score, parts };
   });

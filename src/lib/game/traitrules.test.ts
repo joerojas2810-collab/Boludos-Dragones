@@ -5,13 +5,12 @@ import {
   dmgReductionOf,
   estimateDamage,
   hitChance,
-  startBattle,
   step,
-  withRound,
   type Battle,
   TRAIT_CAPS,
 } from "./combat";
 import { createRng } from "./rng";
+import { fight, spyRng, withIntents, withProgress } from "./testkit";
 import {
   RAGE_MAX,
   rollTrait,
@@ -52,8 +51,11 @@ const foe = (traits: TraitId[] = [], classId: ClassId = "mago") => ({
   ...hero(traits, classId),
   element: "viento" as const,
 });
+// Hero awaiting; the enemy announces a plain attack and will act right after the hero's step.
 const open = (p: Character, e: Character, opts = {}): Battle =>
-  startBattle(p, e, createRng(3), opts);
+  withProgress(fight(p, e, opts), { 0: 0, 1: 10_000 });
+// ...and the same with the enemy only defending (no retaliation to disturb the numbers).
+const calm = (b: Battle): Battle => withIntents(b, ["defend"]);
 
 describe("trait rules: generation", () => {
   it("is deterministic per seed", () => {
@@ -104,51 +106,42 @@ describe("trait rules: combat", () => {
     expect(dmgReductionOf({ ...r.player, hp: 10 })).toBe(
       TRAIT_CAPS.dmgReduction,
     );
-    // lifesteal 40% with a guaranteed hit: heals half of 40% of the damage
-    const s = open(hero(["ultimoAliento"]), foe(), {
-      playerHp: 50,
-      perks: { lifesteal: 0.4 },
-    });
-    const dealt = estimateDamage(s.player, s.enemies[0], "attack1");
-    const after = step(
-      withRound(s, false, ["attack1"]),
-      "attack1",
-      createRng(9),
-    );
-    const healed = after.player.hp - 50;
-    // enemy may have hit back; compare against the same fight without the trait
-    expect(after.log.join(" ")).toContain("de daño");
-    expect(healed).toBeLessThanOrEqual(Math.round(dealt * 0.4 * (1 - HEAL)));
+    // lifesteal perk (capped at 15 %) heals through the trait's heal penalty; no retaliation here
+    const mk = (t: TraitId[]) => calm(open(hero(t), foe(), { playerHp: 50, perks: { lifesteal: 0.4 } }));
+    const run = (t: TraitId[]) => {
+      const s = mk(t);
+      const dealt = estimateDamage(s.player, s.enemies[0], "attack1");
+      return { healed: step(s, "attack1", createRng(9)).player.hp - 50, dealt };
+    };
+    const plain = run([]);
+    const trait = run(["ultimoAliento"]);
+    expect(plain.healed).toBe(Math.min(6, Math.round(plain.dealt * 0.15))); // LIFESTEAL_CAP, active heal cap 6 %
+    expect(trait.healed).toBe(Math.min(6, Math.round(trait.dealt * 0.15 * (1 - HEAL))));
+    expect(trait.healed).toBeLessThan(plain.healed);
   });
 
   it("Último aliento halves the Clérigo blessing", () => {
-    const mk = (t: TraitId[]) =>
-      open(hero(t, "clerigo", { hp: 200 }), foe(), { playerHp: 100 });
-    const run = (b: Battle) =>
-      step(withRound(b, false, ["defend"]), "defend", createRng(2)).player.hp;
-    expect(run(mk(["ultimoAliento"])) - 100).toBeLessThan(
-      run(mk([])) - 100 + 1,
-    );
+    const mk = (t: TraitId[]) => calm(open(hero(t, "clerigo", { hp: 1000 }), foe(), { playerHp: 500 }));
+    const run = (b: Battle) => step(b, "defend", createRng(2)).player.hp;
     expect(run(mk(["ultimoAliento"]))).toBeLessThan(run(mk([])));
+    expect(run(mk([]))).toBeGreaterThan(500);
   });
 
   it("Espinas: the attacker takes 15% of the damage dealt, in both directions", () => {
     const p = hero([]);
     const e = foe(["espinas"]);
-    const b = open(p, e);
+    const b = calm(open(p, e));
     const dmg = estimateDamage(b.player, b.enemies[0], "attack1");
-    const after = step(withRound(b, false, []), "attack1", createRng(4));
+    const after = step(b, "attack1", createRng(4));
     expect(after.enemies[0].hp).toBe(100 - dmg);
     expect(after.player.hp).toBe(100 - Math.round(dmg * THORNS));
     expect(after.log.join(" ")).toContain("espinas");
     // and when the thorned hero is the one hit
     const b2 = open(hero(["espinas"]), foe());
-    const d2 = estimateDamage(b2.enemies[0], b2.player, "attack1");
-    const a2 = step(withRound(b2, true, ["attack1"]), "defend", createRng(4));
-    expect(a2.player.hp).toBeGreaterThan(0);
-    expect(a2.enemies[0].hp).toBeLessThanOrEqual(
-      100 - Math.round(d2 * THORNS * 0.5),
-    );
+    const d2 = estimateDamage(b2.enemies[0], { ...b2.player, defending: true }, "attack1");
+    const a2 = step(b2, "defend", createRng(4));
+    expect(a2.player.hp).toBe(100 - d2);
+    expect(a2.enemies[0].hp).toBe(100 - Math.round(d2 * THORNS));
   });
 
   it("Apostador: same mean, wide spread, same visible accuracy", () => {
@@ -161,8 +154,8 @@ describe("trait rules: combat", () => {
     const rng = createRng(11);
     const seen: number[] = [];
     for (let i = 0; i < 600; i++) {
-      const s = open(hero(["apostador"]), foe());
-      const a = step(withRound(s, false, []), "attack1", rng);
+      const s = calm(open(hero(["apostador"]), foe()));
+      const a = step(s, "attack1", rng);
       seen.push(100 - a.enemies[0].hp);
     }
     const mean = seen.reduce((x, y) => x + y, 0) / seen.length;
@@ -171,13 +164,14 @@ describe("trait rules: combat", () => {
     expect(Math.max(...seen)).toBeGreaterThan(est * 1.6);
   });
 
-  it("non-rule characters consume the same RNG as before (no extra draws)", () => {
-    const a = open(hero([]), foe());
-    const r1 = createRng(21);
-    const r2 = createRng(21);
-    step(withRound(a, false, []), "attack1", r1);
-    step(withRound(a, false, []), "attack1", r2);
-    expect(r1.next()).toBe(r2.next());
+  it("only Apostador draws extra RNG for its spread; other traits take none", () => {
+    const draws = (t: TraitId[]) => {
+      const rng = spyRng(21);
+      step(calm(open(hero(t), foe())), "attack1", rng);
+      return rng.calls();
+    };
+    expect(draws(["terco"])).toBe(draws([]));
+    expect(draws(["apostador"])).toBeGreaterThan(draws([]));
   });
 });
 
@@ -212,16 +206,16 @@ describe("trait rules: personality traits", () => {
     const b = open(hero(["paciente"]), foe());
     const base = dmg(b);
     expect(estimateDamage({ ...b.player, guardedLast: true }, b.enemies[0], "attack1") / base).toBeCloseTo(1.08, 1);
-    const armed = step(withRound(b, false, [[]], 1), "defend", createRng(2));
+    const armed = step(calm(b), "defend", createRng(2));
     expect(armed.player.guardedLast).toBe(true);
-    const spent = step(withRound({ ...b, player: { ...b.player, guardedLast: true } }, false, [[]], 1), "attack1", createRng(2));
+    const spent = step(calm({ ...b, player: { ...b.player, guardedLast: true } }), "attack1", createRng(2));
     expect(spent.player.guardedLast).toBe(false);
   });
 
   it("Glotón: heals 3% of max hp when it takes an enemy down", () => {
     const b = open(hero(["glotón"], "mago", { hp: 100, accuracy: 1 }), foe([], "mago"), { playerHp: 50 });
     const dying = { ...b, enemies: [{ ...b.enemies[0], hp: 1 }] };
-    const s = step(withRound(dying, false, [[]], 1), "attack1", createRng(2));
+    const s = step(calm(dying), "attack1", createRng(2));
     expect(s.status).toBe("won");
     expect(s.player.hp).toBe(50 + Math.round(100 * TRAITS["glotón"].rules.killHeal));
   });
@@ -229,7 +223,7 @@ describe("trait rules: personality traits", () => {
   it("Fanfarrón: the first hit of a fight is +20%, the next ones are normal", () => {
     const b = open(hero(["fanfarron"]), foe());
     expect(dmg(b) / plainDmg()).toBeCloseTo(1.2, 1);
-    const after = step(withRound(b, false, [[]], 1), "attack1", createRng(2));
+    const after = step(calm(b), "attack1", createRng(2));
     expect(after.player.opened).toBe(true);
     expect(estimateDamage(after.player, after.enemies[0], "attack1")).toBeLessThan(dmg(b));
   });
@@ -252,7 +246,7 @@ describe("trait rules: personality traits", () => {
     const base = dmg(b);
     expect(estimateDamage({ ...b.player, rage: 3 }, b.enemies[0], "attack1") / base).toBeCloseTo(1.12, 1);
     expect(estimateDamage({ ...b.player, rage: 99 }, b.enemies[0], "attack1") / base).toBeCloseTo(1 + 0.04 * RAGE_MAX, 1);
-    const hurt = step(withRound(b, true, [["attack1"]], 1), "defend", createRng(2));
+    const hurt = step(b, "defend", createRng(2)); // the enemy's announced attack lands once
     expect(hurt.player.rage).toBe(1);
   });
 });

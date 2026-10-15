@@ -873,6 +873,7 @@ function heroAction(w: Work, action: Action, tIdx: number | undefined) {
   const alive = w.es.flatMap((e, i) => (e.hp > 0 ? [i] : []));
   const heroDefenders = w.humanFoe;
   if (action === "defend") {
+    emit(w, "actionCommitted", 0, { skillId: "defend" });
     p.defending = true;
     w.log.push(`${p.char.name} se defiende.`);
     const threat = heroDefenders ? duelThreat(w.es[0]) : w.es.some((e) => e.hp > 0 && e.intent !== undefined && isStrongIntent(e.intent));
@@ -1062,7 +1063,7 @@ function enemyTurnEnd(w: Work, c: Combatant) {
     c.char = { ...c.char, element };
     w.log.push(`${c.char.name} cambia a ${ELEMENT_LABEL[element]}.`);
   }
-  if (c.ownTurns > ENRAGE_AFTER_OWN_TURN) {
+  if (c.ownTurns >= ENRAGE_AFTER_OWN_TURN) {
     c.char = { ...c.char, stats: { ...c.char.stats, atk: c.char.stats.atk * (1 + ENRAGE_STEP) } };
     w.log.push(`${c.char.name} se enfurece.`);
   }
@@ -1180,6 +1181,7 @@ function enemyAttack(w: Work, c: Combatant, i: number, intent: "attack1" | "atta
   if (intent === "charge") w.log.push(`${c.char.name} lanza su Carga.`);
   const strong = intent !== "attack1";
   const guarded = w.p.defending && !!w.p.guard;
+  const starving = ruleOf(c) === "hambre" && c.hp < c.char.stats.hp * hungerBelow(c.boss?.ascension ?? 0);
   c.chargePending = false;
   const dmg = strike(w, c, w.p, key, {
     eIdx: i, defenseBypass: intent === "charge" ? CHARGE_DEFENSE_BYPASS : 0,
@@ -1190,7 +1192,7 @@ function enemyAttack(w: Work, c: Combatant, i: number, intent: "attack1" | "atta
     const rule = ruleOf(c);
     let extra = 0;
     if (rule === "cabezas") extra = Math.min(MAX_EXTRA_IMPACTS, c.boss?.heads ?? 0);
-    if (rule === "hambre" && c.hp < c.char.stats.hp * hungerBelow(c.boss?.ascension ?? 0)) extra = 1;
+    if (starving) extra = 1;
     for (let k = 0; k < extra && w.p.hp > 0; k++)
       strike(w, c, w.p, "attack1", { eIdx: i, factor: EXTRA_IMPACT, applyElement: false });
     if (rule === "cabezas" && extra > 0 && c.boss) c.boss = { ...c.boss, heads: 0 };
@@ -1212,7 +1214,9 @@ function schedule(w: Work): number {
   for (let guard = 0; guard < 10_000; guard++) {
     const live = ids.filter((id) => actorOf(w, id).hp > 0);
     const held = (id: number) => id !== 0 && !(w.humanFoe && id === 1) && isHeld(actorOf(w, id));
+    // A held enemy keeps filling its bar up to the threshold but cannot act until the human has.
     const eligible = live.filter((id) => !held(id));
+    const holdingBar = live.filter(held);
     const ready = eligible.filter((id) => actorOf(w, id).progress >= TURN_THRESHOLD);
     if (ready.length) {
       ready.sort((x, y) => {
@@ -1231,6 +1235,10 @@ function schedule(w: Work): number {
     for (const id of eligible) {
       const c = actorOf(w, id);
       c.progress += t * rateOf(c);
+    }
+    for (const id of holdingBar) {
+      const c = actorOf(w, id);
+      c.progress = Math.max(c.progress, Math.min(TURN_THRESHOLD, c.progress + t * rateOf(c)));
     }
   }
   return 0;
@@ -1292,7 +1300,7 @@ export function startBattle(
     }
     if (opts.enemyStatus) e.applies = true;
     const rule = ruleOf(e);
-    if ((opts.enemyAguante && i === 0) || (c.bossId && rule !== "armadura") || c.name === COLOSSAL_GOLEM) {
+    if (rule !== "armadura" && ((opts.enemyAguante && i === 0) || c.bossId || c.name === COLOSSAL_GOLEM)) {
       e.aguanteMax = Math.max(1, Math.round(c.stats.hp * AGUANTE_FRACTION));
       e.aguante = e.aguanteMax;
     }
