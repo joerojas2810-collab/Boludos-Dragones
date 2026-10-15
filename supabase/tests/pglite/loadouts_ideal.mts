@@ -2,7 +2,7 @@
 // Run: npx tsx supabase/tests/pglite/loadouts_ideal.mts
 import fs from "fs";
 import { db, rpc, as } from "./harness.mjs";
-import { SKILLS, SKILL_IDS } from "../../../src/lib/game/skills.ts";
+import { SKILLS, SKILL_IDS } from "../../../src/lib/game/skills";
 
 const root = decodeURIComponent(new URL("../../", import.meta.url).pathname);
 let pass = 0, fail = 0;

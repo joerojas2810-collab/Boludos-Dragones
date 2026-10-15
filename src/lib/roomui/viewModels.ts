@@ -35,6 +35,7 @@ const ERRORS: Record<string, string> = {
   seed_required: "Falta la semilla de la ronda.",
   coop_disabled: "El jefe cooperativo todavía no está disponible.",
   max_rounds: "La noche ya llegó a su límite de rondas.",
+  engine_outdated: "Versión del juego distinta. Recarga la página.",
   network: "Sin conexión con el servidor. Reintenta.",
 };
 export const errorText = (code: string) =>

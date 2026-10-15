@@ -805,11 +805,9 @@ export async function finishLevelService(
     asc,
     heroId,
     engineVersion: storedEngine,
-    loadout: _storedLoadout,
     ...hero
   } = row.hero as Character & {
     engineVersion?: number;
-    loadout?: readonly string[];
     kind?: string;
     route?: string;
     difficulty?: string;
