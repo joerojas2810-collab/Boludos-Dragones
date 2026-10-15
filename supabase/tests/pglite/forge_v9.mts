@@ -29,7 +29,7 @@ await db.exec(`insert into public.part_stock(player_id,key,qty) values
   ('${U}','p-daga-f',2),('${U}','p-maza-a',1),('${U}','p-libro-c',1),
   ('${U}','core-agua',2),('${U}','core-rayo',1)`);
 await db.exec(`delete from public.migration_flags where key='0041_forge_v9'`);
-const reapply = async () => { for (const f of ["0041_forge_v9.sql", "0042_forge_v9_fixes.sql", "0050_hero_copies.sql", "0053_piece_copies.sql", "0056_dungeon_routes.sql"]) await db.exec(fs.readFileSync(new URL("../../migrations/" + f, import.meta.url), "utf8")); };
+const reapply = async () => { for (const f of ["0041_forge_v9.sql", "0042_forge_v9_fixes.sql", "0050_hero_copies.sql", "0053_piece_copies.sql", "0056_dungeon_routes.sql", "0061_forge_upsert_limit.sql"]) await db.exec(fs.readFileSync(new URL("../../migrations/" + f, import.meta.url), "utf8")); };
 await reapply();
 const s = await st();
 ok(s.escamas === 11 && s.dados === 3 && s.coins === 190, "conversion " + JSON.stringify(s));
@@ -126,6 +126,14 @@ ok(prof4.weapons.find((w: any) => w.id === "w-espada-fuego-e").data.copies.lengt
 // unequip
 await pc({ p_upsert: [prow("espada", "fuego", "e", { stars: 1 })], p_delete: [], p_equip: [{ weapon: "w-espada-fuego-e", to: null }], p_coins: 0 });
 ok((await q(`select count(*)::int c from public.equipment where player_id='${U}'`))[0].c === 0, "unequipped");
+// 0061: a rank-up spending copies from several pieces upserts the result plus every material row
+const many = (n: number) => ["espada", "hacha", "casco", "peto", "daga", "arco", "baston", "varita", "maza", "libro", "mandoble", "martillo", "collar"]
+  .slice(0, n).map((t, i) => prow(t, ["fuego", "agua", "rayo", "tierra", "viento"][i % 5], "f"));
+const bulk = async (n: number) => rpc("apply_piece_change", { p_player: U, p_version: await v(), p_coins: 0, p_equip: [], p_upsert: many(n), p_delete: "{}" });
+await bulk(5);
+ok((await q(`select count(*)::int c from public.weapons where player_id='${U}'`))[0].c >= 5, "five upserted pieces in one change are accepted");
+await bulk(12);
+await err(bulk(13), "invalid_args", "more than 12 upserts");
 // grant_piece: a duplicate is a copy with its own roll; at 50 copies it refunds (or errors without refund)
 const gp = async (refund: boolean) => rpc("grant_piece", { p_player: U, p_type: "peto", p_element: "tierra", p_rank: "f", p_name: "x", p_roll: 1.1, p_lines: null, p_refund_on_max: refund });
 ok((await gp(true)) === "copy" && (await q(`select jsonb_array_length(copies) n, stars from public.weapons where key='w-peto-tierra-f'`))[0].n === 1, "duplicate piece = copy");
