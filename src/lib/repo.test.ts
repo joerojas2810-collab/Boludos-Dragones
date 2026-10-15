@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createProfile, type Profile } from "./game/profile";
+import { pullCharacter, createProfile, type Profile } from "./game/profile";
+import { heroKey } from "./game/loadout";
+import { createRng } from "./game/rng";
+import { SKILLS } from "./game/skills";
 import { RepoError, selectRepo, type StoreApi } from "./repo";
 import { runSubmitBody } from "./server/validators";
 
@@ -108,5 +111,45 @@ describe("selectRepo", () => {
       code: "insufficient_coins",
       message: "No te alcanzan las monedas.",
     });
+  });
+});
+
+describe("equipped skills reach the server", () => {
+  const heroProfile = (): Profile => {
+    const base = pullCharacter({ ...createProfile(), coins: 5000 }, createRng(3))!.profile;
+    return { ...base, classMastery: { caballero: 12, mago: 12, picaro: 12, clerigo: 12, berserker: 12 } };
+  };
+
+  it("remote startLevel sends the equipped loadout of the hero explicitly", async () => {
+    const profile = heroProfile();
+    const c = profile.characters[0];
+    const hero = { classId: c.classId, element: c.element, rarity: c.rarity };
+    const ids = Object.values(SKILLS).filter((d) => d.classId === c.classId && d.unlock === 0).map((d) => d.id);
+    const chosen = [ids[1], ids[0]] as const;
+    const withChoice: Profile = { ...profile, loadouts: { [heroKey(hero as never)]: chosen } };
+    const { store } = memStore(withChoice);
+    const sent: Record<string, unknown>[] = [];
+    const f = (async (_url: string, init: RequestInit) => {
+      sent.push(JSON.parse(String(init.body)));
+      return Response.json({ runId: "r", seed: 1, hero: {}, loadout: chosen });
+    }) as unknown as typeof fetch;
+    await selectRepo("https://abc.supabase.co", store, f).startLevel(c.id, "lord_of_flies", "f", 0, 0);
+    expect(sent[0].loadout).toEqual([...chosen]);
+  });
+
+  it("remote saveLoadout posts the selection to /api/loadout and caches the server profile", async () => {
+    const { store, cur } = memStore(heroProfile());
+    let sent: { url: string; body: Record<string, unknown> } | null = null;
+    const f = (async (url: string, init: RequestInit) => {
+      sent = { url, body: JSON.parse(String(init.body)) };
+      return Response.json({ profile: { ...createProfile(), coins: 42 } });
+    }) as unknown as typeof fetch;
+    await selectRepo("https://abc.supabase.co", store, f).saveLoadout(
+      { classId: "caballero", nivelado: true },
+      ["knight_advance", "knight_breaker"],
+    );
+    expect(sent!.url).toBe("/api/loadout");
+    expect(sent!.body).toEqual({ mode: "nivelado", classId: "caballero", loadout: ["knight_advance", "knight_breaker"] });
+    expect(cur().coins).toBe(42);
   });
 });

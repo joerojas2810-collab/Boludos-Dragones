@@ -6,9 +6,8 @@ import { useState } from "react";
 import { HeroSprite } from "@/components/HeroSprite";
 import { CLASS_IDS, CLASSES, type ClassId } from "@/lib/game/characters";
 import { SkillPicker } from "@/components/SkillPicker";
-import { equipLoadout } from "@/lib/game/loadout";
 import { sanitizeLoadout } from "@/lib/game/skills";
-import { updateProfile, useProfile } from "@/lib/useProfile";
+import { equipSkills, useProfile } from "@/lib/useProfile";
 import { ELEMENT_LABEL, ELEMENTS, type Element } from "@/lib/game/elements";
 
 export function ClassElementPicker({
@@ -67,7 +66,7 @@ export function ClassElementPicker({
             classId={c}
             mastery={null}
             value={sanitizeLoadout(c, profile.levelLoadouts?.[c], null)}
-            onChange={(l) => updateProfile((p) => equipLoadout(p, { classId: c, nivelado: true }, l) ?? p)}
+            onChange={(l) => equipSkills({ classId: c, nivelado: true }, l)}
           />
         </div>
       )}

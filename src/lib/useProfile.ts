@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
+import type { ClassId } from "./game/characters";
+import { equipLoadout } from "./game/loadout";
 import { TUTORIAL_DONE, type Profile } from "./game/profile";
+import type { Loadout } from "./game/skills";
 import { loadProfile, PROFILE_KEY, saveProfile } from "./profileStorage";
 import { selectRepo, type ProfileRepo } from "./repo";
 
@@ -96,6 +99,24 @@ export function updateProfile(fn: (p: Profile) => Profile) {
       body: JSON.stringify({ step: next.tutorial ?? TUTORIAL_DONE }),
     }).catch(() => undefined); // best effort: next load re-reads the stored step
   set({ ...s, profile: next });
+}
+
+/**
+ * Equips skills: applied at once for instant feedback, and in remote mode saved on the server (which
+ * revalidates against its own mastery). Without this the choice never leaves the browser and the
+ * server plays the fight with the default pair.
+ */
+export function equipSkills(
+  target: { key: string; classId: ClassId } | { classId: ClassId; nivelado: true },
+  loadout: Loadout,
+) {
+  updateProfile((p) => equipLoadout(p, target, loadout) ?? p);
+  if (!isRemote()) return;
+  void repo.saveLoadout(target, loadout).catch(async (e: unknown) => {
+    pushNotice(e instanceof Error ? e.message : "No se pudo guardar la selección de habilidades.");
+    const me = await repo.load().catch(() => null);
+    if (me) replaceWith(me.profile); // drop the optimistic choice the server refused
+  });
 }
 
 export const pushNotice = (notice: string | null) =>

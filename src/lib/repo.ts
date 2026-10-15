@@ -608,6 +608,7 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         difficulty,
         level,
         ascension: asc,
+        ...chosenLoadout(store.get(), heroId),
       });
       return {
         attemptId: r.runId,
@@ -643,6 +644,7 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
         difficulty,
         level,
         ascension: asc,
+        ...chosenLoadout(store.get(), heroId),
       });
       store.replace(r.profile);
       // The server paid from its own play; the same deterministic engine rebuilds it for display.
@@ -739,6 +741,12 @@ export function createRemoteRepo(store: StoreApi, f: Fetch): ProfileRepo {
 }
 
 // Remote mode only when a Supabase URL is configured at build time.
+/** The skills the player equipped for `heroId` (sent explicitly; the server revalidates them against its own mastery). */
+function chosenLoadout(p: Profile, heroId: string): { loadout?: Loadout } {
+  const hero = heroFromOwned(p, heroId);
+  return hero ? { loadout: loadoutFor(p, hero, "coleccion") } : {};
+}
+
 export const selectRepo = (
   supabaseUrl: string | undefined,
   store: StoreApi,

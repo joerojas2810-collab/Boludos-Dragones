@@ -16,7 +16,7 @@ import { skillMeta } from "@/lib/game/explain";
 import type { ClassId } from "@/lib/game/characters";
 import { skillBlockReason, type Action, type Combatant, type CombatEventType } from "@/lib/game/combat";
 import type { Element } from "@/lib/game/elements";
-import { equipLoadout, heroKey, masteryOf } from "@/lib/game/loadout";
+import { heroKey, masteryOf } from "@/lib/game/loadout";
 import { RESOURCE_MAX, RESOURCE_NAME, SKILLS, sanitizeLoadout, type Loadout } from "@/lib/game/skills";
 import {
   DEFAULT_HERO,
@@ -29,7 +29,7 @@ import type { DuelView } from "@/lib/rooms/api";
 import type { RoomClient, RoomView } from "@/lib/roomui/types";
 import { errorText, formatCountdown, msLeft } from "@/lib/roomui/viewModels";
 import { useNow } from "@/lib/useRoom";
-import { updateProfile, useProfile } from "@/lib/useProfile";
+import { equipSkills, useProfile } from "@/lib/useProfile";
 import { characterView, filterSortCharacters } from "@/lib/viewModels";
 
 type Match = DuelView["matches"][number];
@@ -239,11 +239,7 @@ export function DuelSetup({ view, client, onError }: Props) {
                     classId={owned.classId}
                     mastery={masteryOf(profile, owned.classId)}
                     value={loadout}
-                    onChange={(l) =>
-                      updateProfile(
-                        (p) => equipLoadout(p, { key: heroKey(owned), classId: owned.classId }, l) ?? p,
-                      )
-                    }
+                    onChange={(l) => equipSkills({ key: heroKey(owned), classId: owned.classId }, l)}
                   />
                 </div>
               )}
