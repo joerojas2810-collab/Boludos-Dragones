@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
+import {ResultPresentation} from "@/components/ResultPresentation";
+import {combatScene} from "@/lib/art/backgrounds";
 import { SkillPicker } from "@/components/SkillPicker";
 import { ClassElementPicker } from "@/components/room/ClassElementPicker";
 import { ElementIcon } from "@/components/ElementIcon";
@@ -14,7 +16,7 @@ import type { ExpStartOpts } from "@/lib/repo";
 import { SAVE_LABEL, type ExpActionInput, type SaveStatus } from "@/lib/expeditionSync";
 import { CLASSES, type Character, type ClassId } from "@/lib/game/characters";
 import { ELEMENT_LABEL, type Element } from "@/lib/game/elements";
-import { maxHpOf, nodePay, type ExpState } from "@/lib/game/expedition";
+import { maxHpOf, nodePay, sectorBossRoute, type ExpState } from "@/lib/game/expedition";
 import { loadoutFor, masteryOf } from "@/lib/game/loadout";
 import { heroFromOwned, heroPower, type Profile } from "@/lib/game/profile";
 import { RARITIES } from "@/lib/game/rarity";
@@ -22,6 +24,7 @@ import type { Loadout } from "@/lib/game/skills";
 import { TOWER_BLURB, TOWER_LABEL, towerHero, type TowerMode } from "@/lib/game/tower";
 import { WEAPON_TYPE_DATA, type WeaponType } from "@/lib/game/weapons";
 import { characterView, statLine } from "@/lib/viewModels";
+import {DUNGEON_THEMES} from "@/lib/game/levels";
 import { RelicRows } from "./BuildPanel";
 import { BossPreview } from "./NodeViews";
 import { FragmentsChip, ScopeTag, useConfirmGuard } from "./parts";
@@ -244,7 +247,7 @@ export function EndView({
   const coins = s.ledger.reduce((sum, e) => sum + nodePay(e), 0);
   const settled = pending === 0 && save === "saved";
   return (
-    <Panel title="Fin de la expedición" className="mx-auto w-full max-w-3xl space-y-3">
+    <ResultPresentation title="Fin de la expedición" hero={s.hero} tone={end.reason==="death"?"defeat":"neutral"} scene={combatScene(DUNGEON_THEMES[sectorBossRoute(s.seed,s.sector)].world,true)} className="mx-auto w-full max-w-3xl space-y-3">
       <p className="text-center text-lg text-yellow-300">{END_REASON_TEXT[end.reason]}</p>
       <div className="text-center text-sm">
         <b>Nodo validado: {end.node}</b> · {scoreLine(s.nodes, s.turns)} · {s.combats} combates ganados · llegaste al sector {s.sector}
@@ -275,7 +278,7 @@ export function EndView({
           </button>
         )}
       </p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+      <div className="result-actions flex flex-col gap-2 sm:flex-row sm:justify-center">
         <button className="btn text-center" disabled={!settled} onClick={onNew}>
           Nueva expedición
         </button>
@@ -289,6 +292,6 @@ export function EndView({
           Menú
         </Link>
       </div>
-    </Panel>
+    </ResultPresentation>
   );
 }

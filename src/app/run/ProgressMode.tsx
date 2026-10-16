@@ -18,6 +18,9 @@ import { ItemCard } from "@/components/ItemCard";
 import { MuteButton } from "@/components/MuteButton";
 import { Notice } from "@/components/Notice";
 import { Panel } from "@/components/Panel";
+import {ResultPresentation} from "@/components/ResultPresentation";
+import {combatScene} from "@/lib/art/backgrounds";
+import {isPixel} from "@/lib/art/pixel";
 import { StarRow } from "@/components/StarRow";
 import { Tooltip } from "@/components/Tooltip";
 import { useTargeting } from "@/components/useTargeting";
@@ -537,8 +540,9 @@ export function ProgressMode() {
       <Shell>
         <Notice />
         {won && <Confetti />}
-        <Panel
+        <ResultPresentation
           title={won ? "¡Nivel superado!" : "Nivel perdido"}
+          hero={{...st.hero,level:o.bank.newLevel || st.hero.level}} tone={won?"victory":"defeat"} scene={combatScene(DUNGEON_THEMES[a.route].world,true,a.difficulty)}
           className="mx-auto w-full max-w-2xl space-y-2 text-center"
         >
           {won && dungeonEnd && (
@@ -554,7 +558,7 @@ export function ProgressMode() {
             {won && o.bank.repeat && " · repetido"}
             {o.sweeps && o.sweeps > 1 && ` · barrido ×${o.sweeps}`}
           </div>
-          <div>
+          <div className="result-xp">
             <b className="text-green-300">+{o.bank.xp} EXP</b> ({st.hero.name})
             {o.bank.xp > st.xp && st.xp > 0 && (
               <span className="text-yellow-300">
@@ -575,7 +579,7 @@ export function ProgressMode() {
           </div>
           {won ? (
             <>
-              <div className="text-yellow-300">
+              <div className="result-coins text-yellow-300">
                 <Icon name="system_coin" className="h-5" /> +{o.bank.coins}{" "}
                 monedas
                 {o.bank.chest > 0 && (
@@ -584,7 +588,7 @@ export function ProgressMode() {
               </div>
               <div className="space-y-2 text-sm">
                 {pieces.length > 0 ? (
-                  <div className="flex flex-wrap justify-center gap-2">
+                  <div className="result-loot flex flex-wrap justify-center gap-2">
                     {pieces.map((p, i) => (
                       <ItemCard
                         key={i}
@@ -596,7 +600,7 @@ export function ProgressMode() {
                           element: p.element,
                           stars: 0,
                         }}
-                        size={72}
+                        size={isPixel()?72:104}
                       />
                     ))}
                   </div>
@@ -620,7 +624,7 @@ export function ProgressMode() {
               </div>
             </>
           ) : (
-            <div className="text-sm text-[#d9d2ca]">
+            <div className="result-loss text-sm text-[#d9d2ca]">
               Sin monedas ni botín. Prueba con otro héroe o con mejor equipo.
             </div>
           )}
@@ -634,7 +638,7 @@ export function ProgressMode() {
               heroId={a.heroId}
             />
           )}
-          <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap sm:justify-center">
+          <div className="result-actions flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap sm:justify-center">
             {hasNext && (
               <button
                 className="btn text-center"
@@ -686,7 +690,7 @@ export function ProgressMode() {
               Volver
             </button>
           </div>
-        </Panel>
+        </ResultPresentation>
       </Shell>
     );
   }

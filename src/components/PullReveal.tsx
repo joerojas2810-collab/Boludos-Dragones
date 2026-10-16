@@ -1,7 +1,11 @@
 "use client";
 
 import { CLASSES } from "@/lib/game/characters";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState,type CSSProperties } from "react";
+import {Icon} from "./Icon";
+import {isPixel} from "@/lib/art/pixel";
+import {paintedBackground} from "@/lib/art/painted-backgrounds";
+import {usePrefersReducedMotion} from "@/lib/motion";
 import { createPortal } from "react-dom";
 import { RARITIES, RARITY_IDS, isTopRank } from "@/lib/game/rarity";
 import { playPullSound } from "@/lib/sfx";
@@ -11,7 +15,12 @@ import { ELEMENT_LABEL } from "@/lib/game/elements";
 import { WEAPON_TYPE_DATA } from "@/lib/game/weapons";
 import "./fx.css";
 import "./pull-reveal.css";
+import "./painted-pull.css";
 import { HeroFactor } from "@/components/HeroFactor";
+import {HeroSprite} from "./HeroSprite";
+import {ElementIcon} from "./ElementIcon";
+import {StarRow} from "./StarRow";
+import {RarityFrame} from "./RarityFrame";
 
 // Light rays behind a Legendario reveal (CSS-rotated SVG, no image files).
 function Rays({ color }: { color: string }) {
@@ -65,6 +74,27 @@ type Props = { items: ItemView[]; onDone: () => void; legacy?: boolean }; // leg
 const SUMMON_MS = 1100;
 const STEP_MS = 450;
 
+function PullHeroPortrait({item}:{item:Extract<ItemView,{kind:"character"}>}) {
+  const host=useRef<HTMLDivElement>(null);
+  const [width,setWidth]=useState(48);
+  useEffect(()=>{
+    if(!host.current)return;
+    const observer=new ResizeObserver(([entry])=>{
+      setWidth(Math.max(1,Math.floor(Math.min(entry.contentRect.width,entry.contentRect.height*.75,300))));
+    });
+    observer.observe(host.current);
+    return ()=>observer.disconnect();
+  },[]);
+  return <div ref={host} className="pull-hero-portrait" data-class={item.classId}>
+    <RarityFrame rarity={item.rarity} size={width} painted className="pull-hero-frame">
+      <HeroSprite classId={item.classId} element={item.element} traits={item.traits} crop fitBox className="absolute"/>
+      {width<64&&<span className="pull-portrait-rank" style={{color:RARITIES[item.rarity].color}} aria-hidden>{RARITIES[item.rarity].label}</span>}
+      <ElementIcon element={item.element} bare className="pull-portrait-element"/>
+      <span className="pull-portrait-stars"><StarRow stars={item.stars} className="h-full"/></span>
+    </RarityFrame>
+  </div>;
+}
+
 function FittedCard({ item }: { item: ItemView }) {
   const host = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(96);
@@ -86,8 +116,12 @@ const best = (items: ItemView[]) =>
   ).rarity;
 
 export function PullReveal({ items, onDone, legacy = false }: Props) {
+  const painted=!legacy&&!isPixel();
+  const reduced=usePrefersReducedMotion();
   const [shown, setShown] = useState(-1); // -1 = summoning
+  const [detailIndex,setDetailIndex]=useState<number|null>(null);
   const continueButton = useRef<HTMLButtonElement>(null);
+  const dialog=useRef<HTMLDivElement>(null);
   const bestId = best(items);
   const color = RARITIES[bestId].color;
   const finished = shown >= items.length - 1;
@@ -106,33 +140,38 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
   useEffect(() => {
     if (finished) return;
     const id = setTimeout(
-      () => setShown((n) => n + 1),
-      shown < 0 ? SUMMON_MS : STEP_MS,
+      () => setShown((n) => reduced?items.length-1:n+1),
+      reduced?0:shown < 0 ? SUMMON_MS : STEP_MS,
     );
     return () => clearTimeout(id);
-  }, [shown, finished]);
+  }, [shown, finished,reduced,items.length]);
 
   useEffect(() => {
     if (shown >= 0) playPullSound(items[shown].rarity);
   }, [shown, items]);
 
   const single = items.length === 1;
+  const detail=detailIndex!==null;
+  const visibleItems=detailIndex===null?items.slice(0,shown+1).map((item,index)=>({item,index})):[{item:items[detailIndex],index:detailIndex}];
   const legendNow = shown >= 0 && isTopRank(items[shown].rarity);
   // Portal: an ancestor stacking context would leave the overlay under the top bar.
   const ui = (
-    <div className="pull-overlay fixed inset-0 z-50 flex bg-[#050b16]/90" role="dialog" aria-modal="true" aria-labelledby="pull-results-title"
+    <div ref={dialog} className={`pull-overlay fixed inset-0 z-50 flex bg-[#050b16]/90${painted?" painted-pull":""}`} style={painted?{"--pull-tint":color,"--pull-bg":`url(${paintedBackground("gacha")?.src})`} as CSSProperties:undefined} role="dialog" aria-modal="true" aria-labelledby="pull-results-title"
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.preventDefault();
-          if (finished) onDone();
+          if(detail)setDetailIndex(null);
+          else if (finished) onDone();
           else setShown(items.length - 1);
         }
         if (event.key === "Tab") {
-          event.preventDefault();
-          continueButton.current?.focus();
+          const stops=Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not([disabled]),[tabindex="0"]')??[]);
+          const first=stops[0],last=stops[stops.length-1];
+          if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
+          else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
         }
       }}>
-      {legendNow && (
+      {legendNow && !reduced && (
         <div
           key={shown}
           className="fx-flash pointer-events-none fixed inset-0 bg-yellow-300/50"
@@ -140,14 +179,15 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
       )}
       <section className="pull-panel relative m-auto flex w-full max-w-[1040px] flex-col border-2 border-[#637f9b] bg-[#101c2e] text-white shadow-[0_0_0_3px_#050b16,0_24px_80px_#000]">
       <header className="pull-header shrink-0 border-b border-[#40546c] text-center">
-        <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-[#c2a66c]">Boludos & Dragones</p>
-        <h2 id="pull-results-title" className="text-xl font-bold text-[#ffe0a3] sm:text-2xl">{shown < 0 ? "Abriendo la invocación" : "Tu botín de invocación"}</h2>
+        <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-[#c2a66c]">{painted?"Círculo de invocación":"Boludos & Dragones"}</p>
+        <h2 id="pull-results-title" className="text-xl font-bold text-[#ffe0a3] sm:text-2xl">{detail?"Detalles de invocación":shown < 0 ? "Abriendo la invocación" : "Tu botín de invocación"}</h2>
         <p className="mt-1 text-xs text-[#bdcce0]">{shown < 0 ? "La próxima aventura empieza acá." : finished ? `${items.length} ${single ? "resultado" : "resultados"} · Mejor rango: ${RARITIES[bestId].label}` : `Revelando ${shown + 1} de ${items.length}...`}</p>
+        {painted&&!single&&!detail&&shown>=0&&<p className="pull-compact-help">Seleccioná una carta para ver sus detalles.</p>}
       </header>
       {shown < 0 ? (
         <div className="relative m-auto flex h-40 w-40 items-center justify-center">
           {isTopRank(bestId) && <Rays color={color} />}
-          {legacy ? (
+          {painted ? (<div className="painted-pull-opening"><div className="painted-pull-circle"/><Icon name="system_chest" className="h-36 w-36"/></div>) : legacy ? (
             <Chest color={color} />
           ) : (
             <Vfx id={`gacha_open_${bestId}`} className="h-44 w-44 max-w-none" />
@@ -156,10 +196,11 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
         </div>
       ) : (
         <div
-          className={`pull-grid ${single ? "pull-grid-single" : ""}`}
+          className={`pull-grid ${single||detail ? "pull-grid-single" : ""}`}
+          tabIndex={0} role="region" aria-label="Resultados de invocación"
         >
-          {items.slice(0, shown + 1).map((it, i) => (
-            <article key={i} className="pull-result fx-flip relative flex min-h-0 min-w-0 flex-col items-center gap-1 text-center">
+          {visibleItems.map(({item:it,index:i}) => (
+            <article key={i} className="pull-result fx-flip relative flex min-h-0 min-w-0 flex-col items-center gap-1 text-center" style={{"--pull-rank":RARITIES[it.rarity].color} as CSSProperties}>
               <div className="pull-card-space relative isolate overflow-hidden">
               {isTopRank(it.rarity) && i === shown && <Rays color={color} />}
               {isTopRank(it.rarity) && (
@@ -180,16 +221,19 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
                   className="pointer-events-none absolute inset-0 -z-10 w-full max-w-none opacity-40"
                 />
               )}
-                <FittedCard item={it} />
+                {painted&&it.kind==="character"?<PullHeroPortrait item={it}/>:<FittedCard item={it} />}
               </div>
-              <h3 className="sr-only">{it.name}</h3>
+              <div className="pull-copy">
+              <h3 className={painted?"pull-item-name":"sr-only"}>{it.name}</h3>
               <p className="pull-detail w-full truncate text-[#bdcce0]">{it.kind === "character" ? CLASSES[it.classId].name : WEAPON_TYPE_DATA[it.type ?? "espada"].label} · {ELEMENT_LABEL[it.element]}</p>
               <p className="pull-detail font-bold" style={{ color: RARITIES[it.rarity].color }}>Rango {RARITIES[it.rarity].label}{it.pity ? " · Garantizado" : ""}</p>
-              {it.kind === "character" && it.factors && <HeroFactor factors={it.factors} compact />}
+              {it.kind === "character" && it.factors && <div className="pull-factor"><HeroFactor factors={it.factors} compact /></div>}
               <span className={`pull-outcome w-full border font-bold ${it.badge?.startsWith("REEMBOLSO") ? "border-[#aa8747] bg-[#382c16] text-[#ffe0a3]" : it.badge?.startsWith("+1") ? "border-[#567faa] bg-[#1c3454] text-[#d3e8ff]" : "border-[#43846b] bg-[#15362d] text-[#baf3d9]"}`}>
                 <span className="pull-outcome-rank" style={{ color: RARITIES[it.rarity].color }}>{RARITIES[it.rarity].label} · </span>
                 {it.badge?.startsWith("REEMBOLSO") ? it.badge.replace("REEMBOLSO", "Reembolso") + " monedas" : it.badge === "+1 COPIA" ? "Duplicado · copia guardada" : it.badge?.startsWith("+1") ? "Duplicado · +1 estrella" : it.badge === "NUEVO" ? "Nuevo" : it.badge ?? "Obtenido"}
               </span>
+              </div>
+              {painted&&!single&&!detail&&<button type="button" className="pull-inspect" aria-label={`Ver detalles: ${it.name}`} onClick={()=>{setDetailIndex(i);continueButton.current?.focus();}}/>}
             </article>
           ))}
         </div>
@@ -197,9 +241,9 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
       <footer className="pull-footer flex shrink-0 justify-center border-t border-[#40546c] bg-[#101c2e]">
       <button ref={continueButton}
         className="btn min-w-40 text-center"
-        onClick={() => (finished ? onDone() : setShown(items.length - 1))}
+        onClick={() => detail?setDetailIndex(null):(finished ? onDone() : setShown(items.length - 1))}
       >
-        {finished ? "Continuar" : "Saltar"}
+        {detail?"Volver al botín":finished ? "Continuar" : "Saltar"}
       </button>
       </footer>
       </section>
