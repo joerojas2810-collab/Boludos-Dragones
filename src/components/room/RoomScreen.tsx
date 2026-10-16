@@ -429,8 +429,8 @@ export function RoomScreen({
                       classId={p.hero.classId}
                       element={p.hero.element}
                       traits={p.hero.traits}
-                      className="w-16 shrink-0 max-md:w-10"
-                      crop
+                      className="relative grid h-20 w-16 shrink-0 place-items-center max-md:h-14 max-md:w-10"
+                      crop fitBox
                     />
                   ) : null}
                   <span
@@ -648,8 +648,8 @@ function FightStrip({
                     classId={p.hero.classId}
                     element={p.hero.element}
                     traits={p.hero.traits}
-                    className="w-14 shrink-0"
-                    crop
+                    className="relative grid h-20 w-14 shrink-0 place-items-center"
+                    crop fitBox
                   />
                 )}
                 {p.door && <DoorIcon kind={p.door} className="h-10 shrink-0" />}
@@ -816,8 +816,8 @@ function BetPanel({
                   classId={p.hero.classId}
                   element={p.hero.element}
                   traits={p.hero.traits}
-                  className="w-20 shrink-0"
-                  crop
+                  className="relative grid h-24 w-20 shrink-0 place-items-center"
+                  crop fitBox
                 />
               )}
               <span className="min-w-0 flex-1 basis-32">

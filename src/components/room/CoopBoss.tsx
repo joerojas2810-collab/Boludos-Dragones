@@ -42,8 +42,8 @@ export function CoopBar({ view }: { view: RoomView }) {
                 classId={heroOf(r.id)!.classId}
                 element={heroOf(r.id)!.element}
                 traits={heroOf(r.id)!.traits}
-                className="w-14 shrink-0"
-                crop
+                className="relative grid h-20 w-14 shrink-0 place-items-center"
+                crop fitBox
               />
             )}
             <span className="w-24 truncate">

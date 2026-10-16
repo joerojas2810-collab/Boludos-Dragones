@@ -7,6 +7,8 @@ import { DoorIcon } from "@/components/DoorIcon";
 import { ElementIcon } from "@/components/ElementIcon";
 import { Icon } from "@/components/Icon";
 import { Panel } from "@/components/Panel";
+import {SecondaryPanel} from "@/components/SecondaryPanel";
+import {combatScene} from "@/lib/art/backgrounds";
 import { SkillPicker } from "@/components/SkillPicker";
 import {
   EVENT_ICON,
@@ -252,7 +254,7 @@ export function OfferView({ s, act, guard, error }: NodeProps) {
     };
   });
   return (
-    <Panel title={offer.source === "initial" ? "Reliquia inicial" : "Recompensa"} className="mx-auto w-full max-w-5xl space-y-3">
+    <SecondaryPanel scene={combatScene(DUNGEON_THEMES[sectorBossRoute(s.seed,s.sector)].world,false)} title={offer.source === "initial" ? "Reliquia inicial" : "Recompensa"} className="mx-auto w-full max-w-5xl space-y-3">
       <ErrorLine error={error} />
       <p className="text-center text-sm text-[#d9d2ca]">
         {OFFER_SOURCE[offer.source]}
@@ -282,7 +284,7 @@ export function OfferView({ s, act, guard, error }: NodeProps) {
           </div>
         </details>
       )}
-    </Panel>
+    </SecondaryPanel>
   );
 }
 
@@ -312,7 +314,7 @@ export function ShopView({ s, act, guard, error }: NodeProps) {
     };
   });
   return (
-    <Panel title="Tienda" className="mx-auto w-full max-w-5xl space-y-3">
+    <SecondaryPanel scene={combatScene(DUNGEON_THEMES[sectorBossRoute(s.seed,s.sector)].world,false)} title="Tienda" className="mx-auto w-full max-w-5xl space-y-3">
       <ErrorLine error={error} />
       <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
         <span className="inline-flex items-center gap-1">
@@ -336,7 +338,7 @@ export function ShopView({ s, act, guard, error }: NodeProps) {
           </button>
         }
       />
-    </Panel>
+    </SecondaryPanel>
   );
 }
 
@@ -361,7 +363,7 @@ export function RestView({ s, act, guard, error }: NodeProps) {
     disabled: done ? "Ya elegiste." : o.disabled,
   }));
   return (
-    <Panel title="Descanso" className="mx-auto w-full max-w-3xl space-y-3">
+    <SecondaryPanel scene={combatScene(DUNGEON_THEMES[sectorBossRoute(s.seed,s.sector)].world,false)} title="Descanso" className="mx-auto w-full max-w-3xl space-y-3">
       <ErrorLine error={error} />
       <div className="flex items-center justify-center gap-3">
         <DoorIcon kind="rest" className="h-16 w-16" />
@@ -383,7 +385,7 @@ export function RestView({ s, act, guard, error }: NodeProps) {
           )
         }
       />
-    </Panel>
+    </SecondaryPanel>
   );
 }
 
@@ -399,7 +401,7 @@ export function EventView({ s, act, guard, error }: NodeProps) {
     pick: ev.id === "book" && o.id === "a" && ups.length > 0 ? { title: "Elige qué reliquia mejorar", options: upgradeOptions(s.relics) } : undefined,
   }));
   return (
-    <Panel title={EVENT_TITLE[ev.id]} className="mx-auto w-full max-w-3xl space-y-3">
+    <SecondaryPanel scene={combatScene(DUNGEON_THEMES[sectorBossRoute(s.seed,s.sector)].world,false)} title={EVENT_TITLE[ev.id]} className="mx-auto w-full max-w-3xl space-y-3">
       <ErrorLine error={error} />
       <div className="flex items-center justify-center gap-3">
         <Icon name={EVENT_ICON[ev.id]} className="h-20 w-20" />
@@ -424,7 +426,7 @@ export function EventView({ s, act, guard, error }: NodeProps) {
           </button>
         </div>
       )}
-    </Panel>
+    </SecondaryPanel>
   );
 }
 
@@ -444,7 +446,7 @@ export function SanctuaryView({
     pick: o.id === "upgrade" && ups.length > 0 ? { title: "Elige qué reliquia mejorar", options: upgradeOptions(s.relics) } : undefined,
   }));
   return (
-    <Panel title="Santuario" className="mx-auto w-full max-w-5xl space-y-3">
+    <SecondaryPanel scene={combatScene(DUNGEON_THEMES[sectorBossRoute(s.seed,s.sector)].world,false)} title="Santuario" className="mx-auto w-full max-w-5xl space-y-3">
       <ErrorLine error={error} />
       <p className="text-center text-sm text-[#d9d2ca]">
         Un solo beneficio, y cambio gratuito de tus dos habilidades antes de seguir (nunca clase, elemento, héroe ni equipo de cuenta).
@@ -476,7 +478,7 @@ export function SanctuaryView({
         </div>
       </details>
       <BossPreview s={s} />
-    </Panel>
+    </SecondaryPanel>
   );
 }
 

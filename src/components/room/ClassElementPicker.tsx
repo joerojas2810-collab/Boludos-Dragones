@@ -43,7 +43,7 @@ export function ClassElementPicker({
                 ✓
               </span>
             )}
-            <HeroSprite classId={id} element={e ?? "fuego"} className="mx-auto w-20" crop />
+            <HeroSprite classId={id} element={e ?? "fuego"} className="relative mx-auto grid h-28 w-20 place-items-center" crop fitBox />
             {CLASSES[id].name}
           </button>
         ))}

@@ -3,6 +3,7 @@ import { HeroSprite } from "@/components/HeroSprite";
 import { Icon } from "@/components/Icon";
 import type { PlayerView } from "@/lib/roomui/types";
 import "@/components/fx.css";
+import "@/components/secondary-surfaces.css";
 
 const STEP = [
   { h: 96, bg: "#c9b037", delay: 0.9 }, // 1st (center)
@@ -22,7 +23,7 @@ export function Podium({
   // visual order: 2nd, 1st, 3rd
   const order = [1, 0, 2].filter((i) => top[i]);
   return (
-    <div className="relative mb-4 flex items-end justify-center gap-2">
+    <div className="room-podium relative mb-4 flex items-end justify-center gap-2">
       <Vfx
         id="podium"
         delay={0.9}
@@ -32,9 +33,9 @@ export function Podium({
         const p = top[i];
         const s = STEP[i];
         return (
-          <div key={p.id} className="flex w-28 flex-col items-center sm:w-32">
+          <div key={p.id} className="flex min-w-0 max-w-32 flex-1 flex-col items-center">
             <div
-              className="b-podium-who flex flex-col items-center text-center"
+              className="b-podium-who flex w-full min-w-0 flex-col items-center text-center"
               style={{ animationDelay: `${s.delay + 0.5}s` }}
             >
               {p.hero && (
@@ -42,8 +43,9 @@ export function Podium({
                   classId={p.hero.classId}
                   element={p.hero.element}
                   traits={p.hero.traits}
-                  className="w-28 sm:w-32"
+                  className="relative grid h-32 w-full place-items-center sm:h-44"
                   crop
+                  fitBox
                 />
               )}
               <b className="max-w-full truncate text-sm">{p.name}</b>
