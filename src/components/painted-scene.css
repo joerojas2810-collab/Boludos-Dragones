@@ -1,0 +1,5 @@
+.painted-scene { --painted-scene-image: var(--painted-scene-desktop); }
+/* Landscape keeps the wide composition, including small notebooks and phones. */
+@media (max-width: 767px) and (orientation: portrait) {
+  .painted-scene { --painted-scene-image: var(--painted-scene-mobile); }
+}

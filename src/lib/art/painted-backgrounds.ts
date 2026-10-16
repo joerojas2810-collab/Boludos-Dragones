@@ -22,3 +22,13 @@ export function paintedBackground(
   if (!entry) return undefined;
   return mobile ? entry.mobile ?? entry.desktop : entry.desktop;
 }
+
+/** CSS chooses a composition before requesting an image; no viewport effect or double load. */
+export function paintedSceneStyle(scene: string) {
+  const desktop = paintedBackground(scene);
+  const mobile = paintedBackground(scene, true);
+  return {
+    "--painted-scene-desktop": desktop ? `url("${desktop.src}")` : "none",
+    "--painted-scene-mobile": mobile ? `url("${mobile.src}")` : "none",
+  };
+}

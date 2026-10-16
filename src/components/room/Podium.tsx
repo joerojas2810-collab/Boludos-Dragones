@@ -2,6 +2,7 @@ import { Vfx } from "@/components/fx/Vfx";
 import { HeroSprite } from "@/components/HeroSprite";
 import { Icon } from "@/components/Icon";
 import type { PlayerView } from "@/lib/roomui/types";
+import {isPixel} from "@/lib/art/pixel";
 import "@/components/fx.css";
 import "@/components/secondary-surfaces.css";
 
@@ -24,11 +25,11 @@ export function Podium({
   const order = [1, 0, 2].filter((i) => top[i]);
   return (
     <div className="room-podium relative mb-4 flex items-end justify-center gap-2">
-      <Vfx
+      {isPixel() && <Vfx
         id="podium"
         delay={0.9}
         className="pointer-events-none absolute left-1/2 top-1/2 -z-0 w-[min(100%,24rem)] -translate-x-1/2 -translate-y-1/2 opacity-70"
-      />
+      />}
       {order.map((i) => {
         const p = top[i];
         const s = STEP[i];

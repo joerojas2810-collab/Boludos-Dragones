@@ -36,24 +36,40 @@ export function RelicRows({ owned, compact }: { owned: readonly OwnedRelic[]; co
 
 export function BuildPanel({ owned, onClose }: { owned: readonly OwnedRelic[]; onClose: () => void }) {
   const close = useRef<HTMLButtonElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  const closeAction = useRef(onClose);
+  useEffect(() => { closeAction.current = onClose; }, [onClose]);
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     close.current?.focus();
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        e.preventDefault();
         e.stopPropagation();
-        onClose();
+        closeAction.current();
+      }
+      if (e.key === "Tab") {
+        const stops = Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]') ?? []);
+        const first = stops[0], last = stops[stops.length - 1];
+        if (!dialog.current?.contains(document.activeElement) || (e.shiftKey && document.activeElement === first) || (!e.shiftKey && document.activeElement === last)) {
+          e.preventDefault();
+          (e.shiftKey ? last : first)?.focus();
+        }
       }
     };
     window.addEventListener("keydown", key, true);
     return () => {
       window.removeEventListener("keydown", key, true);
+      document.body.style.overflow = previousOverflow;
       opener?.focus?.();
     };
-  }, [onClose]);
+  }, []);
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center sm:p-4" onClick={onClose}>
       <div
+        ref={dialog}
         role="dialog"
         aria-modal="true"
         aria-label="Reliquias de la expedición"

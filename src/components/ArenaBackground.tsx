@@ -56,7 +56,7 @@ export function ArenaBackground({
         className={`arena-bg pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       >
         <picture className="absolute inset-0">
-          <source media="(max-width: 767px)" srcSet={paintedMobile?.src ?? painted.src} />
+          <source media="(max-width: 767px) and (orientation: portrait)" srcSet={paintedMobile?.src ?? painted.src} />
           <img src={painted.src} alt="" className="bg-painted-scene" />
         </picture>
         <AmbientFx world={world} />

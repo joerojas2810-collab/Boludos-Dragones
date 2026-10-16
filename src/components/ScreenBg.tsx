@@ -16,7 +16,7 @@ export function ScreenBg({ scene, dim = 0 }: { scene: string; dim?: number }) {
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       {painted ? (
         <picture>
-          <source media="(max-width: 767px)" srcSet={paintedMobile?.src ?? painted.src} />
+          <source media="(max-width: 767px) and (orientation: portrait)" srcSet={paintedMobile?.src ?? painted.src} />
           <img src={painted.src} alt="" className="bg-painted-scene" />
         </picture>
       ) : (

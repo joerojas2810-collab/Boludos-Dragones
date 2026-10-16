@@ -1,15 +1,41 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ArenaBackground } from "@/components/ArenaBackground";
 import { ScreenBg } from "@/components/ScreenBg";
+import {SecondaryPanel} from "@/components/SecondaryPanel";
+import {ResultPresentation} from "@/components/ResultPresentation";
+import {Podium} from "@/components/room/Podium";
 import { bgSrc, combatScene } from "@/lib/art/backgrounds";
 import { paintedBackground } from "@/lib/art/painted-backgrounds";
 import { isPixel, setPixel } from "@/lib/art/pixel";
 
 const previousPixel = isPixel();
 afterEach(() => setPixel(previousPixel));
+// Expose mounting independently from the real effect's delayed reveal timer.
+vi.mock("@/components/fx/Vfx", () => ({Vfx: ({id}:{id:string}) => <span data-effect={id}/>}));
 
 describe("painted background rendering integration", () => {
+  it("gives recent result and service screens both compositions without a viewport-dependent render", () => {
+    setPixel(false);
+    for (const html of [
+      renderToStaticMarkup(<SecondaryPanel scene="menu" title="Misiones">Contenido</SecondaryPanel>),
+      renderToStaticMarkup(<ResultPresentation title="Victoria" tone="victory" scene="menu" hero={{classId:"caballero",element:"fuego",name:"Héroe",level:1}}>Contenido</ResultPresentation>),
+    ]) {
+      expect(html).toContain(paintedBackground("menu")!.src);
+      expect(html).toContain(paintedBackground("menu",true)!.src);
+      expect(html).not.toContain("url(undefined)");
+    }
+    setPixel(true);
+    expect(renderToStaticMarkup(<SecondaryPanel title="Misiones">Contenido</SecondaryPanel>)).not.toContain("backgrounds-painted-v2");
+  });
+
+  it("does not mount the obsolete painted podium effect, but preserves the Pixel effect", () => {
+    setPixel(false);
+    expect(renderToStaticMarkup(<Podium ranked={[]} titles={null}/>)).not.toContain('data-effect="podium"');
+    setPixel(true);
+    expect(renderToStaticMarkup(<Podium ranked={[]} titles={null}/>)).toContain('data-effect="podium"');
+  });
+
   it("renders a painted screen with its mobile source and catalog fallback", () => {
     setPixel(false);
     const html = renderToStaticMarkup(<ScreenBg scene="menu" />);

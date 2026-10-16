@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BG_COMBAT_SCENES, BG_SCREEN_SCENES } from "./backgrounds.generated";
 import generatedCatalog from "./painted-backgrounds.generated.json";
-import { paintedBackground } from "./painted-backgrounds";
+import { paintedBackground, paintedSceneStyle } from "./painted-backgrounds";
 
 type Variant = { src: string; width: number; height: number };
 type Entry = { desktop: Variant; mobile?: Variant };
@@ -33,5 +33,6 @@ describe("painted backgrounds", () => {
   it("returns undefined for scenes outside the painted catalog", () => {
     expect(paintedBackground("unknown_scene")).toBeUndefined();
     expect(paintedBackground("unknown_scene", true)).toBeUndefined();
+    expect(Object.values(paintedSceneStyle("unknown_scene"))).toEqual(["none", "none"]);
   });
 });

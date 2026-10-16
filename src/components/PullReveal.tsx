@@ -4,7 +4,7 @@ import { CLASSES } from "@/lib/game/characters";
 import { useEffect, useRef, useState,type CSSProperties } from "react";
 import {Icon} from "./Icon";
 import {isPixel} from "@/lib/art/pixel";
-import {paintedBackground} from "@/lib/art/painted-backgrounds";
+import {paintedSceneStyle} from "@/lib/art/painted-backgrounds";
 import {usePrefersReducedMotion} from "@/lib/motion";
 import { createPortal } from "react-dom";
 import { RARITIES, RARITY_IDS, isTopRank } from "@/lib/game/rarity";
@@ -16,6 +16,7 @@ import { WEAPON_TYPE_DATA } from "@/lib/game/weapons";
 import "./fx.css";
 import "./pull-reveal.css";
 import "./painted-pull.css";
+import "./painted-scene.css";
 import { HeroFactor } from "@/components/HeroFactor";
 import {HeroSprite} from "./HeroSprite";
 import {ElementIcon} from "./ElementIcon";
@@ -156,7 +157,7 @@ export function PullReveal({ items, onDone, legacy = false }: Props) {
   const legendNow = shown >= 0 && isTopRank(items[shown].rarity);
   // Portal: an ancestor stacking context would leave the overlay under the top bar.
   const ui = (
-    <div ref={dialog} className={`pull-overlay fixed inset-0 z-50 flex bg-[#050b16]/90${painted?" painted-pull":""}`} style={painted?{"--pull-tint":color,"--pull-bg":`url(${paintedBackground("gacha")?.src})`} as CSSProperties:undefined} role="dialog" aria-modal="true" aria-labelledby="pull-results-title"
+    <div ref={dialog} className={`pull-overlay fixed inset-0 z-50 flex bg-[#050b16]/90${painted?" painted-pull painted-scene":""}`} style={painted?{...paintedSceneStyle("gacha"),"--pull-tint":color} as CSSProperties:undefined} role="dialog" aria-modal="true" aria-labelledby="pull-results-title"
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.preventDefault();

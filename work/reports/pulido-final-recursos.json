@@ -1,0 +1,134 @@
+{
+  "date": "2026-10-16",
+  "scope": [
+    "public/art/backgrounds-painted-v2",
+    "public/art/heroes",
+    "public/art/enemies-painted-v2",
+    "public/art/effects",
+    "public/art/icons"
+  ],
+  "totalFiles": 1776,
+  "totalBytes": 105790998,
+  "largest": [
+    {
+      "path": "public/art/effects/ritual_interrupt.webp",
+      "bytes": 1239686
+    },
+    {
+      "path": "public/art/effects/consume_water.webp",
+      "bytes": 1223824
+    },
+    {
+      "path": "public/art/effects/armor_rebuild.webp",
+      "bytes": 1151690
+    },
+    {
+      "path": "public/art/effects/stagger_break.webp",
+      "bytes": 973886
+    },
+    {
+      "path": "public/art/effects/consume_fire.webp",
+      "bytes": 897310
+    },
+    {
+      "path": "public/art/effects/consume_lightning.webp",
+      "bytes": 895298
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/dungeon_a_boss_mobile.webp",
+      "bytes": 873904
+    },
+    {
+      "path": "public/art/effects/consume_wind.webp",
+      "bytes": 836096
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/dungeon_a_boss_desktop.webp",
+      "bytes": 821818
+    },
+    {
+      "path": "public/art/effects/consume_earth.webp",
+      "bytes": 802392
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/dungeon_a_normal_desktop.webp",
+      "bytes": 786930
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/swamp_boss_mobile.webp",
+      "bytes": 749366
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/dungeon_a_normal_mobile.webp",
+      "bytes": 741316
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/swamp_boss_desktop.webp",
+      "bytes": 724120
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/gacha_desktop.webp",
+      "bytes": 698220
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/canyon_boss_mobile.webp",
+      "bytes": 695138
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/market_desktop.webp",
+      "bytes": 678788
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/dungeon_ss_boss_desktop.webp",
+      "bytes": 675132
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/canyon_boss_desktop.webp",
+      "bytes": 672244
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/dungeon_ss_boss_mobile.webp",
+      "bytes": 663812
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/market_mobile.webp",
+      "bytes": 660898
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/caverns_boss_mobile.webp",
+      "bytes": 657886
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/peaks_boss_mobile.webp",
+      "bytes": 645606
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/swamp_normal_desktop.webp",
+      "bytes": 634496
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/gacha_mobile.webp",
+      "bytes": 632294
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/swamp_normal_mobile.webp",
+      "bytes": 630556
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/dungeon_s_boss_mobile.webp",
+      "bytes": 623942
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/storm_boss_mobile.webp",
+      "bytes": 621842
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/dungeon_ssr_boss_mobile.webp",
+      "bytes": 619814
+    },
+    {
+      "path": "public/art/backgrounds-painted-v2/dungeon_ss_normal_desktop.webp",
+      "bytes": 610504
+    }
+  ]
+}

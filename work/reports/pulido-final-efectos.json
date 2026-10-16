@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-16",
+  "note": "Inventario de archivos y estimación RGBA, no tráfico medido ni memoria real del navegador. No se redujo calidad.",
+  "effects": [
+    {
+      "id": "ritual_interrupt",
+      "compressedBytes": 1239686,
+      "frames": 6,
+      "cell": [
+        512,
+        512
+      ],
+      "estimatedUncompressedRGBABytes": 6291456
+    },
+    {
+      "id": "consume_water",
+      "compressedBytes": 1223824,
+      "frames": 6,
+      "cell": [
+        512,
+        512
+      ],
+      "estimatedUncompressedRGBABytes": 6291456
+    },
+    {
+      "id": "armor_rebuild",
+      "compressedBytes": 1151690,
+      "frames": 6,
+      "cell": [
+        512,
+        512
+      ],
+      "estimatedUncompressedRGBABytes": 6291456
+    },
+    {
+      "id": "stagger_break",
+      "compressedBytes": 973886,
+      "frames": 6,
+      "cell": [
+        512,
+        512
+      ],
+      "estimatedUncompressedRGBABytes": 6291456
+    },
+    {
+      "id": "consume_fire",
+      "compressedBytes": 897310,
+      "frames": 6,
+      "cell": [
+        512,
+        512
+      ],
+      "estimatedUncompressedRGBABytes": 6291456
+    }
+  ],
+  "removedPaintedPodiumMount": {
+    "sheetBytes": 188430,
+    "reducedBytes": 20160,
+    "networkSavingMeasured": false
+  }
+}
