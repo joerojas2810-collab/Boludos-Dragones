@@ -1,15 +1,16 @@
 import type { Combatant } from "@/lib/game/combat";
+import "./combat-status-icons.css";
 
 // Elemental states (Escarcha, Quemadura, Impulso, Ruptura, Sobrecarga) are drawn as envelopes around the
 // sprite (ElementalStatusOverlay) and read in the combatant's detail. What stays here are the marks that
 // change how the next hit lands: Expuesto, next-hit mitigation and Defender. Small, off the face, no clicks.
-const TILE = "relative inline-flex flex-col items-center";
-const LABEL = "mt-0.5 max-md:hidden rounded bg-black/75 px-1 text-[9px] font-bold leading-3 tracking-wide text-white";
+const TILE = "combat-status-tile relative inline-flex flex-col items-center";
+const LABEL = "combat-status-label mt-0.5 rounded bg-black/75 px-1 text-[9px] font-bold leading-3 tracking-wide text-white";
 
-export function StatusIcons({ c }: { c: Combatant }) {
+export function StatusIcons({ c, side = "right" }: { c: Combatant; side?: "left" | "right" }) {
   if (!c.exposed && !c.defending && !c.nextHitReduction) return null;
   return (
-    <div className="pointer-events-none absolute left-1/2 top-[12%] z-[6] flex max-w-full -translate-x-1/2 flex-wrap justify-center gap-1">
+    <div className="combat-status-icons" data-side={side}>
       {c.exposed && (
         <span className={TILE} role="img" aria-label="Expuesto: DEF −15 % hasta su siguiente turno">
           {/* Cracked shield: a different silhouette from the resource diamonds. */}

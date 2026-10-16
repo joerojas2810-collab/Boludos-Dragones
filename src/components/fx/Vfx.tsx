@@ -82,18 +82,20 @@ export function VfxNumber({
   kind,
   delay = 0,
   size = 40,
+  reviewFrame,
 }: {
   text: string;
   kind: "damage_normal" | "damage_critical" | "heal_number";
   delay?: number;
   size?: number;
+  reviewFrame?: number; // Optional still frame for galleries; combat keeps normal playback.
 }) {
   const reduced = usePrefersReducedMotion();
   const m = effectMeta(kind);
   const glyphSize = isPixelEffect(kind) ? Math.max(m.cell[1], Math.round(size / m.cell[1]) * m.cell[1]) : size;
   const [frame, setFrame] = useState(0);
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || reviewFrame !== undefined) return;
     let i = 0;
     let iv: ReturnType<typeof setInterval>;
     const t = setTimeout(() => {
@@ -106,11 +108,12 @@ export function VfxNumber({
       clearTimeout(t);
       clearInterval(iv);
     };
-  }, [reduced, delay, m.frames, m.fps]);
+  }, [reduced, delay, m.frames, m.fps, reviewFrame]);
   const rows = m.rows;
   const w = (glyphSize * m.cell[0]) / m.cell[1];
   const step = (m.advance ?? m.cell[0] / 2) * (glyphSize / m.cell[1]);
   const cols = reduced ? 1 : m.frames;
+  const shown = reviewFrame === undefined ? frame : Math.max(0,Math.min(m.frames-1,reviewFrame));
   return (
     <span role="img" aria-label={text} className="inline-flex" style={{ height: glyphSize, imageRendering: isPixelEffect(kind) ? "pixelated" : undefined }}>
       {[...text].map((ch, i) => {
@@ -127,7 +130,7 @@ export function VfxNumber({
               backgroundRepeat: "no-repeat",
               backgroundSize: `${cols * w}px ${rows * glyphSize}px`,
               // center the glyph cell inside its advance
-              backgroundPosition: `${(step - w) / 2 - (reduced ? 0 : frame * w)}px ${-row * glyphSize}px`,
+              backgroundPosition: `${(step - w) / 2 - (reduced ? 0 : shown * w)}px ${-row * glyphSize}px`,
               overflow: "visible",
             }}
           />

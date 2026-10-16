@@ -10,6 +10,8 @@ import { isSkillId } from "@/lib/game/skills";
 import { DUNGEON_THEMES } from "@/lib/game/levels";
 import { AnimSheet } from "@/components/AnimSheet";
 import { Vfx, VfxNumber } from "./Vfx";
+import { PaintedSkillEffect } from "./PaintedSkillEffect";
+import { PAINTED_SKILL_EFFECTS,paintedActionEffectFor,paintedOutcomeFor,type PaintedSkillEffectId } from "@/lib/art/painted-skill-effects";
 import { reducedMotion } from "./motion";
 import "./fx.css";
 
@@ -27,7 +29,7 @@ type Num = {
 };
 type Part = { element: Element; delay: number };
 // Painted overlays on a target (element arrows, guard, shield, regeneration).
-type Extra = { id: string; delay: number; wide?: boolean; cls?: string };
+type Extra = { id: string; delay: number; wide?: boolean; cls?: string; paintedDefense?: PaintedSkillEffectId };
 // `nums`: damage, healing and self-damage are separate numbers (never a net HP difference).
 export type TargetFx = { nums: Num[]; parts: Part[]; dodge?: number; extras?: Extra[] };
 type StepFx = {
@@ -177,16 +179,23 @@ export function useBattleFx(b: Battle, boss: boolean | undefined) {
       };
       gain(0, snap.p, b.player.hp);
       b.enemies.forEach((en, i) => gain(i + 1, snap.e[i], en.hp));
-      for (const id of regen) (fxOf(id).extras ??= []).push({ id: "regeneration", delay: afterHits });
-      // Shield skills: their own geometry/material (SKILL_FX.look); a plain gain keeps the default overlay.
       const cast = b.cev.find((c) => c.type === "actionCommitted" && c.actor === 0 && isSkillId(c.skillId));
+      const paintedOutcomes=b.cev.flatMap(ev=>{const effect=paintedOutcomeFor(cast?.skillId,ev,isPixel());return effect?[effect]:[];});
+      for (const id of regen) if(!paintedOutcomes.some(e=>e.id==="restore"&&e.at===id)) (fxOf(id).extras ??= []).push({ id: "regeneration", delay: afterHits });
+      // Shield skills: their own geometry/material (SKILL_FX.look); a plain gain keeps the default overlay.
       const castFx = cast && isSkillId(cast.skillId) ? SKILL_FX[cast.skillId] : undefined;
+      const defense = paintedActionEffectFor(cast?.skillId, isPixel());
       if (castFx?.vfx === "shield" || (b.player.shield ?? 0) > snap.sh)
-        (player.extras ??= []).push({ id: "shield", delay: IMPACT_S, cls: castFx?.vfx === "shield" ? castFx.look : undefined });
+        (player.extras ??= []).push({ id: "shield", delay: IMPACT_S, cls: defense ? PAINTED_SKILL_EFFECTS[defense].className : castFx?.vfx === "shield" ? castFx.look : undefined, paintedDefense: defense ?? undefined });
       if (b.guardEarned)
         (player.extras ??= []).push({ id: "perfect_guard", delay: IMPACT_S });
       // Structured events (consume / Quiebre / ritual cancelled / armor rebuilt / status cleansed) play their own sheet.
       for (const ev of b.cev) {
+        const effect=paintedOutcomeFor(cast?.skillId,ev,isPixel());
+        if(effect){
+          (fxOf(effect.at).extras??=[]).push({id:effect.id,paintedDefense:effect.id,cls:PAINTED_SKILL_EFFECTS[effect.id].className,delay:effect.id==="restore"?afterHits:IMPACT_S});
+          continue;
+        }
         const v = eventVfx(ev);
         const t = v && fxOf(v.at);
         if (v && t) (t.extras ??= []).push({ id: v.id, delay: IMPACT_S, wide: true });
@@ -263,7 +272,9 @@ export function FxLayer({ t, k }: { t?: TargetFx; k: number }) {
           ¡Falla!
         </span>
       )}
-      {t.extras?.map((x, i) => (
+      {t.extras?.map((x, i) => x.paintedDefense ? (
+        <PaintedSkillEffect key={`x${i}`} id={x.paintedDefense} delay={x.delay} className={`absolute left-1/2 -translate-x-1/2 ${x.cls}`} />
+      ) : (
         <Vfx
           key={`x${i}`}
           id={x.id}

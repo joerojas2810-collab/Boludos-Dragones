@@ -8,6 +8,9 @@ import { SkillPicker } from "@/components/SkillPicker";
 import { HealthBar } from "@/components/HealthBar";
 import { HeroSprite } from "@/components/HeroSprite";
 import { Icon } from "@/components/Icon";
+import {PaintedSkillEffect} from "@/components/fx/PaintedSkillEffect";
+import {isPixel} from "@/lib/art/pixel";
+import {paintedActionEffectFor,paintedOutcomeFor,DUEL_EFFECT_CLASS,type PaintedSkillEffectId} from "@/lib/art/painted-skill-effects";
 import { Vfx } from "@/components/fx/Vfx";
 import { ItemCard } from "@/components/ItemCard";
 import { Panel } from "@/components/Panel";
@@ -329,13 +332,20 @@ type Side = "a" | "b";
 const FOE: Record<Side, Side> = { a: "b", b: "a" };
 
 /** Overlays of the last step for one side, from the same semantic events and skill map as the PvE arena. */
-function sideFx(f: Fight, s: Side): { id: string; cls?: string; wide?: boolean }[] {
+type DuelFx={id:string;cls?:string;wide?:boolean;painted?:PaintedSkillEffectId};
+function sideFx(f: Fight, s: Side): DuelFx[] {
   const num = (x: Side | null | undefined) => (x === "a" ? 0 : x === "b" ? 1 : undefined);
-  const out: { id: string; cls?: string; wide?: boolean }[] = [];
+  const out: DuelFx[] = [];
   const mine = num(s);
   for (const e of f.events) {
     const actor = num(e.actor);
     if (actor === undefined) continue;
+    const caster=num(f.last?.side);
+    const painted=caster===undefined?null:paintedOutcomeFor(f.last?.action,{type:e.type as CombatEventType,actor,target:num(e.target),value:e.value,detail:e.detail},isPixel(),caster);
+    if(painted){
+      if(painted.at===mine)out.push({id:painted.id,painted:painted.id,cls:DUEL_EFFECT_CLASS[painted.id]});
+      continue;
+    }
     const v = eventVfx({ type: e.type as CombatEventType, actor, target: num(e.target), detail: e.detail });
     if (v && v.at === mine) out.push({ id: v.id, wide: true });
     if (e.type === "guardTriggered" && actor === mine) out.push({ id: "perfect_guard" });
@@ -348,7 +358,11 @@ function sideFx(f: Fight, s: Side): { id: string; cls?: string; wide?: boolean }
     const fx = SKILL_FX[last.action];
     if (fx.vfx === "shield" && !out.some((x) => x.id === "shield")) out.push({ id: "shield" });
     const shield = out.find((x) => x.id === "shield");
-    if (shield && fx.vfx === "shield") shield.cls = fx.look;
+    if (shield && fx.vfx === "shield") {
+      const painted=paintedActionEffectFor(last.action,isPixel());
+      shield.painted=painted??undefined;
+      shield.cls=painted?DUEL_EFFECT_CLASS[painted]:fx.look;
+    }
   }
   return out;
 }
@@ -436,7 +450,7 @@ function MatchFight({
             className="w-full"
           />
           {sideFx(f, s).map((x, i) => (
-            <Vfx
+            x.painted?<PaintedSkillEffect key={`${f.n}-${x.id}-${i}`} id={x.painted} delay={.2} className={`pointer-events-none absolute left-1/2 -translate-x-1/2 ${x.cls}`}/>:<Vfx
               key={`${f.n}-${x.id}-${i}`}
               id={x.id}
               delay={0.2}

@@ -2,10 +2,12 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { ArenaBackground } from "@/components/ArenaBackground";
+import { PAINTED_SKILL_EFFECTS } from "@/lib/art/painted-skill-effects";
 import { blockMenuMusic } from "@/lib/menu-music";
 import { BossIntro, FxLayer, useBattleFx } from "@/components/fx/BattleFx";
 import { EnemyCueContext, type EnemyCue } from "@/components/EnemySprite";
 import { StatusIcons } from "@/components/StatusIcons";
+import {useStatusColumnLayout} from "@/components/useStatusColumnLayout";
 import { ElementalStatusOverlay } from "@/components/ElementalStatusOverlay";
 import { HudCard } from "@/components/HudCard";
 import { HeroSprite } from "@/components/HeroSprite";
@@ -203,6 +205,7 @@ function usePreload(urls: string[]) {
   useEffect(() => {
     preloadImages([
       ...key.split("|"),
+      ...(!isPixel() ? Object.values(PAINTED_SKILL_EFFECTS).map(d=>d.src) : []),
       ...FIGHT_EFFECTS.flatMap((id) => [effectSrc(id), effectSrc(id, true)]),
       ...allStatusLayerIds.map((id) => statusLayerSrc(id, isPixel())),
     ]);
@@ -284,6 +287,7 @@ export function BattleArena({
   const { fx, paused } = useBattleFx(b, boss);
   const stageRef = useRef<HTMLDivElement>(null);
   useFeetLine(stageRef, world === undefined ? null : combatScene(world, boss ?? false, rank), !!bleed);
+  useStatusColumnLayout(stageRef,JSON.stringify([b.log.length,[b.player,...b.enemies].map(c=>[c.exposed,c.defending,c.nextHitReduction])]));
   const hc = b.player.char;
   const cls = CLASS_ART[hc.classId];
   const [heroX, heroY, heroWidth, heroHeight] = paintedHeroes.idle_bounds[cls as keyof typeof paintedHeroes.idle_bounds];
@@ -427,6 +431,7 @@ export function BattleArena({
               </div>
               {/* Same slot as the art below, but not re-keyed per step: the envelope keeps its state across steps. */}
               <div className="stage-foe-art pointer-events-none absolute bottom-0 left-1/2 z-[5] -translate-x-1/2">
+                <StatusIcons c={c} side="left" />
                 <span aria-hidden="true" className="stage-shadow stage-shadow-foe" />
                 <ElementalStatusOverlay
                   c={c}
@@ -440,7 +445,6 @@ export function BattleArena({
                 className="stage-foe-art relative"
                 style={fxStyle(b, "enemy", i)}
               >
-                <StatusIcons c={c} />
                 <div className="fx-breathe fx-breathe-b h-full w-full">
                   <EnemyCueContext.Provider value={enemyCue(b, i, boss)}>
                     {enemyArt(i, c)}

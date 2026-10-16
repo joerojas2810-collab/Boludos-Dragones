@@ -1,0 +1,7 @@
+.painted-defense-art{display:block;width:100%;height:auto;aspect-ratio:1;object-fit:contain;pointer-events:none;animation:painted-defense-appear 850ms ease-out both;transform-origin:50% 85%}.painted-defense-art.is-still{animation:none;opacity:.8}@keyframes painted-defense-appear{0%{opacity:0;transform:scale(.84)}18%{opacity:.8;transform:scale(1)}66%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(1.02)}}@media(prefers-reduced-motion:reduce){.painted-defense-art{animation:none;opacity:.8}}
+
+.painted-skill-restore{animation-name:painted-heal-rise}.painted-skill-cleanse{animation-name:painted-cleanse-sweep}.painted-skill-step{animation-name:painted-step-trail}.painted-skill-sabotage{animation-name:painted-seal-break}
+@keyframes painted-heal-rise{0%{opacity:0;transform:translateY(8%) scale(.88)}22%,65%{opacity:.8;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-5%) scale(1.03)}}
+@keyframes painted-cleanse-sweep{0%{opacity:0;transform:scale(.76)}25%,60%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(1.1)}}
+@keyframes painted-step-trail{0%{opacity:0;transform:translateX(-7%)}20%,60%{opacity:.8;transform:translateX(0)}100%{opacity:0;transform:translateX(7%)}}
+@keyframes painted-seal-break{0%{opacity:0;transform:scale(.75) rotate(-8deg)}22%,55%{opacity:.8;transform:scale(1) rotate(0)}100%{opacity:0;transform:scale(1.12) rotate(4deg)}}
