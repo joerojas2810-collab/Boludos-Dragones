@@ -4,7 +4,7 @@
 import { autoBlockReason, autoResolve } from "./auto";
 import { step, type Action, type Battle } from "./combat";
 import type { Character } from "./characters";
-import type { Loadout } from "./skills";
+import { defaultLoadout, type Loadout } from "./skills";
 import type { Rng } from "./rng";
 import {
   abandonStage,
@@ -37,8 +37,8 @@ export function initialStageReplay(
   seed: number,
   hero: Character,
   fights: FightSpec[],
-  asc = 0,
-  loadout?: Loadout,
+  asc: number,
+  loadout: Loadout, // required: omitting it silently plays the class defaults
 ): StageReplayState {
   const stage = createStage(seed, hero, fights, asc, loadout);
   const f = startFight(stage);
@@ -107,7 +107,7 @@ export function replayStage(
   engineVersion: number = ENGINE_VERSION,
   loadout?: Loadout,
 ): StageReplayResult {
-  let s = initialStageReplay(seed, hero, fights, asc, loadout);
+  let s = initialStageReplay(seed, hero, fights, asc, loadout ?? defaultLoadout(hero.classId));
   if (engineVersion !== ENGINE_VERSION)
     return { stage: s.stage, applied: 0, rejectedAt: null, error: "engine_version" };
   if (actions.length > MAX_STAGE_ACTIONS)

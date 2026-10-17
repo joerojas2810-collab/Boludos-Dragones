@@ -84,7 +84,7 @@ export interface LevelStartInfo {
   attemptId: string;
   seed: number;
   hero: Character;
-  loadout?: Loadout;
+  loadout: Loadout; // the two skills the fight is played with
 }
 export interface LevelFinish {
   info: LevelStartInfo;

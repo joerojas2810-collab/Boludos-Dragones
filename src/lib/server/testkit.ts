@@ -1,4 +1,5 @@
 // Test helpers: in-memory fake of the Supabase RPC surface (no real backend).
+import { defaultLoadout } from "../game/skills";
 import {
   applyStageAction,
   initialStageReplay,
@@ -558,7 +559,7 @@ export function playLevelBot(
   asc = 0,
   maxActions = 600,
 ): StageAction[] {
-  let s = initialStageReplay(seed, hero, levelFights(levelsOf("lord_of_flies", rank)[level], asc), asc);
+  let s = initialStageReplay(seed, hero, levelFights(levelsOf("lord_of_flies", rank)[level], asc), asc, defaultLoadout(hero.classId));
   const log: StageAction[] = [];
   const push = (a: StageAction): boolean => {
     const n = applyStageAction(s, a);

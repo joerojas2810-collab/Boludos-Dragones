@@ -225,6 +225,7 @@ export function ProgressMode() {
         info.hero,
         levelFights(spec, asc),
         asc,
+        info.loadout, // the two skills the player equipped (the server validated them)
       );
       setView({
         t: "fight",
@@ -267,6 +268,7 @@ export function ProgressMode() {
       attemptId: "sweep",
       seed: out.stage.seed,
       hero: out.stage.hero,
+      loadout: out.stage.loadout,
     };
     setView({
       t: "result",
