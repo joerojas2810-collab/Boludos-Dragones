@@ -213,7 +213,11 @@ type Item =
 
 const itemOf = (r: PullResult): Item | null => {
   if (r.character) {
-    const { name, stats, traits, factors, catchphrase, level, xp } = r.character;
+    const { name, stats, catchphrase, level, xp } = r.character;
+    // A duplicate stores the freshly rolled profile (last copy), not the owned hero's own.
+    const rolled = r.status === "copy" ? r.character.copies?.at(-1) : undefined;
+    const traits = rolled ? [rolled.trait] : r.character.traits;
+    const factors = rolled ? rolled.factors : r.character.factors;
     return {
       class: r.character.classId,
       element: r.character.element,
