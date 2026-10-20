@@ -48,6 +48,15 @@ describe("FASE VILLANOS combat coverage",()=>{
       expect(anim.src).toContain(aliases[design]||design);
     }
   });
+  it("keeps the approved final boss and requested pose for every randomized combat element",()=>{
+    for(const [route,theme] of Object.entries(DUNGEON_THEMES))for(const element of ELEMENTS)for(const action of actions){
+      const actual=enemyAnim(theme.families[0],"boss",element,action,route,"painted");
+      const native=enemyAnim(theme.families[0],"boss",theme.bossElement,action,route,"painted");
+      expect(actual,`${route}/${element}/${action}`).toEqual(native);
+      expect(actual.src).toMatch(/^\/art-review\/painted-enemies\/production\//);
+      expect(actual.loop).toBe(action==="idle");
+    }
+  });
   it("preserves pixel URLs, timing, aspect and route-keyed final boss selection",()=>{
     setPixel(true);
     for(const action of actions){

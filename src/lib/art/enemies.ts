@@ -24,6 +24,9 @@ export type EnemyTier = "normal" | "elite" | "boss";
 export const PAINTED_FINAL_BOSS_BY_RANK:Record<string,string>=Object.fromEntries(
   Object.entries(DUNGEON_THEMES).map(([rank,theme])=>[rank,`boss_${theme.bossId}`]),
 );
+const PAINTED_FINAL_BOSS_ELEMENT:Record<string,Element>=Object.fromEntries(
+  Object.entries(DUNGEON_THEMES).map(([route,theme])=>[route,theme.bossElement]),
+);
 
 const FAMILY_ART: Record<EnemyFamily, string> = {
   limo: "slime",
@@ -52,10 +55,18 @@ export function enemyAnim(
     return { src: `/art/enemies-px/${design}_${e}_${a}.png`, ...PX_ACTIONS[a], aspect: PX_ASPECT };
   }
   const paintedDesign=(tier==="boss"&&finalRank&&PAINTED_FINAL_BOSS_BY_RANK[finalRank])||design;
+  const updatedRegistry=paintedVillains as Record<string,SheetAnim>;
+  const nativeElement=tier==="boss"&&finalRank?PAINTED_FINAL_BOSS_ELEMENT[finalRank]:undefined;
+  const nativeArt=nativeElement?ELEMENT_ART[nativeElement]:e;
+  // Final bosses have an approved design in their native palette. A randomized
+  // combat element must not bring back a retired design; it stays on the HUD/rules.
+  const updated=updatedRegistry[`${paintedDesign}_${e}_${action}`]
+    ?? updatedRegistry[`${paintedDesign}_${nativeArt}_${action}`]
+    ?? updatedRegistry[`${paintedDesign}_${e}_idle`]
+    ?? updatedRegistry[`${paintedDesign}_${nativeArt}_idle`];
+  if(updated)return updated;
   let name = `${paintedDesign}_${e}_${action}`;
   if (!ENEMY_ANIMS[name]) name = `${paintedDesign}_${e}_idle`; // e.g. entrance on a non-boss
-  const updated=(paintedVillains as Record<string,SheetAnim>)[name];
-  if(updated)return updated;
   const m = ENEMY_ANIMS[name];
   return {
     src: `/art/enemies/${name}.webp`,
